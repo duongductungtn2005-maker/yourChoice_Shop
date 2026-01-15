@@ -1,9 +1,18 @@
 package org.example.yourchoiceshop.entity;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-@Entity @Table(name = "lich_su_thanh_toan") @Data
+@Entity
+@Table(name = "lich_su_thanh_toan")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class LichSuThanhToan extends PrimaryEntity {
     @ManyToOne @JoinColumn(name = "id_hoa_don") private HoaDon hoaDon;
     private String maGiaoDich;

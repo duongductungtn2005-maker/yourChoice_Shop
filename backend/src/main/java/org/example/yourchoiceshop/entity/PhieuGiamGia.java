@@ -4,7 +4,12 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity @Table(name = "phieu_giam_gia") @Data
+@Entity 
+@Table(name = "phieu_giam_gia")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class PhieuGiamGia extends PrimaryEntity { // SQL không có audit fields đầy đủ
     @Column(name = "ma_phieu_giam_gia") private String maPhieuGiamGia;
     @Column(name = "ten_phieu_giam_gia") private String tenPhieuGiamGia;
