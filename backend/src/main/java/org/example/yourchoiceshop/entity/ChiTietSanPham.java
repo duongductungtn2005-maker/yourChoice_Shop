@@ -5,7 +5,12 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.util.List;
 
-@Entity @Table(name = "chi_tiet_san_pham") @Data
+@Entity
+@Table(name = "chi_tiet_san_pham")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChiTietSanPham extends BaseStatusEntity {
     @Column(name = "ma_ctsp") private String maCtsp;
     private Integer soLuong;

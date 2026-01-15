@@ -4,7 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
 
-@Entity @Table(name = "san_pham") @Data
+@Entity
+@Table(name = "san_pham")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class SanPham extends BaseStatusEntity {
     @Column(name = "ma_san_pham") private String maSanPham;
     @Column(name = "ten_san_pham") private String tenSanPham;
