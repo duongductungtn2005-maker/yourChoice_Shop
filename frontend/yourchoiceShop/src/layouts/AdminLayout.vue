@@ -3,7 +3,7 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="logo-circle">
-            <img src="https://via.placeholder.com/40" alt="Logo" />
+            <!-- <img src="C:\Users\quanm\Downloads\Logo_DATN.png" alt="Logo" /> -->
         </div>
         <span class="brand-name">YourChoice</span>
       </div>
@@ -16,7 +16,9 @@
             <span class="icon">🏪</span> Bán hàng tại quầy
         </div>
         <div class="menu-item">
-            <span class="icon">📄</span> Quản lý đơn hàng
+          <router-link to="/admin/orders" class="submenu-item">
+            Quản lý đơn hàng
+          </router-link>
         </div>
 
         <div class="menu-group expanded">
@@ -24,7 +26,7 @@
             <span class="icon">👕</span> Quản lý sản phẩm <span class="arrow">▼</span>
           </div>
           <div class="submenu">
-            <router-link to="/admin/products" class="submenu-item active">
+            <router-link to="/admin/products" class="submenu-item">
                 <span class="dot">•</span> Sản phẩm
             </router-link>
             <router-link to="/admin/co-ao" class="submenu-item">
@@ -69,7 +71,7 @@
 </template>
 
 <script setup>
-// Logic toggle menu có thể thêm sau
+
 </script>
 
 <style scoped>
