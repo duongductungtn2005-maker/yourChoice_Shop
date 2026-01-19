@@ -67,7 +67,7 @@
             <td>{{ order.customer }}</td>
             <td>{{ order.createdAt }}</td>
             <td>
-              <span class="badge" :class="order.type === 'Trực tuyến' ? 'blue' : 'green'">
+              <span class="badge" :class="order.type === 'Trực tuyến' ? 'green' : 'blue'">
                 {{ order.type }}
               </span>
             </td>
