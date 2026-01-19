@@ -32,7 +32,7 @@
       </div>
 
 
-      <button class="btn-outline">⬇ Xuất Excel</button>
+      <!-- <button class="btn-outline">⬇ Xuất Excel</button> -->
     </div>
 
     <!-- Tabs -->
@@ -59,8 +59,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(order, index) in orders" :key="order.code">
-            <td>{{ index + 1 }}</td>
+          <tr v-for="(order, index) in paginatedOrders" :key="order.code">
+            <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
             <td>{{ order.code }}</td>
             <td>{{ order.totalItems }}</td>
             <td>{{ order.totalPrice }}</td>
@@ -72,10 +72,15 @@
               </span>
             </td>
             <td>
-              <span class="badge" :class="STATUS_INFO[order.status].class">
+              <span v-if="STATUS_INFO[order.status]" class="badge" :class="STATUS_INFO[order.status].class">
                 {{ STATUS_INFO[order.status].text }}
               </span>
+
+              <span v-else class="badge gray">
+                Không xác định
+              </span>
             </td>
+
 
             <td>
               <router-link :to="{ name: 'admin-order-detail', params: { id: order.code } }" class="submenu-item">
@@ -85,24 +90,55 @@
           </tr>
         </tbody>
       </table>
+      <div class="pagination">
+        <button class="btn-outline" :disabled="currentPage === 1" @click="currentPage--">
+          ◀
+        </button>
+
+        <span>
+          Trang {{ currentPage }} / {{ totalPages }}
+        </span>
+
+        <button class="btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">
+          ▶
+        </button>
+      </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { fetchOrders } from '@/api/HoaDonApi'
 
-const allOrders = ref([])   // dữ liệu gốc (10 bản ghi)
-const orders = ref([])      // dữ liệu đã filter
+/* ================== DATA ================== */
+const allOrders = ref([])
+const orders = ref([])
 
 const activeTab = ref('TẤT CẢ')
-
 const keyword = ref('')
 const fromDate = ref(null)
 const toDate = ref(null)
-const orderType = ref('ALL') // mặc định: Tất cả
+const orderType = ref('ALL')
 
+/* ================== PAGINATION ================== */
+const currentPage = ref(1)
+const pageSize = ref(5)
+
+const totalPages = computed(() => {
+  const total = Math.ceil(orders.value.length / pageSize.value)
+  return total > 0 ? total : 1
+})
+
+
+const paginatedOrders = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return orders.value.slice(start, end)
+})
+
+/* ================== CONST ================== */
 const tabs = [
   'TẤT CẢ',
   'ĐÃ HỦY',
@@ -121,9 +157,17 @@ const STATUS_MAP = {
   'HOÀN THÀNH': 4
 }
 
+const STATUS_INFO = {
+  0: { text: 'Đã hủy', class: 'red' },
+  1: { text: 'Chờ xác nhận', class: 'yellow' },
+  2: { text: 'Chờ giao hàng', class: 'blue' },
+  3: { text: 'Đang vận chuyển', class: 'purple' },
+  4: { text: 'Hoàn thành', class: 'green' }
+}
+
+/* ================== METHODS ================== */
 const loadOrders = async () => {
   const res = await fetchOrders()
-
   allOrders.value = res.data.content.map(o => ({
     code: o.maHoaDon,
     totalItems: o.tongSanPham,
@@ -133,29 +177,12 @@ const loadOrders = async () => {
     type: o.loaiHoaDon,
     status: o.trangThai
   }))
-
   applyFilter()
 }
-
-const STATUS_INFO = {
-  0: { text: 'Đã hủy', class: 'red' },
-  1: { text: 'Chờ xác nhận', class: 'yellow' },
-  2: { text: 'Chờ giao hàng', class: 'blue' },
-  3: { text: 'Đang vận chuyển', class: 'purple' },
-  4: { text: 'Hoàn thành', class: 'green' }
-}
-
-
-onMounted(loadOrders)
-
-onMounted(() => {
-  loadOrders()
-})
 
 const applyFilter = () => {
   let result = [...allOrders.value]
 
-  // 🔍 Tìm theo mã hoặc tên khách
   if (keyword.value.trim()) {
     const kw = keyword.value.toLowerCase()
     result = result.filter(o =>
@@ -164,44 +191,52 @@ const applyFilter = () => {
     )
   }
 
-  // 📅 Từ ngày
   if (fromDate.value) {
-    result = result.filter(o =>
-      new Date(o.createdAt) >= new Date(fromDate.value)
-    )
+    result = result.filter(o => new Date(o.createdAt) >= new Date(fromDate.value))
   }
 
-  // 📅 Đến ngày
   if (toDate.value) {
-    result = result.filter(o =>
-      new Date(o.createdAt) <= new Date(toDate.value)
-    )
+    result = result.filter(o => new Date(o.createdAt) <= new Date(toDate.value))
   }
 
-  // 📌 Trạng thái (tab)
   const status = STATUS_MAP[activeTab.value]
   if (status !== null) {
     result = result.filter(o => o.status === status)
   }
 
-  // 🏷️ Lọc theo loại hóa đơn
   if (orderType.value !== 'ALL') {
     result = result.filter(o => o.type === orderType.value)
   }
 
-
   orders.value = result
 }
 
+/* ================== WATCH ================== */
 watch(
-  [keyword, fromDate, toDate, activeTab, orderType],
-  applyFilter
+  [keyword, fromDate, toDate, orderType, activeTab],
+  () => {
+    currentPage.value = 1
+    applyFilter()
+  }
 )
 
+
+
+/* ================== MOUNT ================== */
+onMounted(loadOrders)
 </script>
 
 
+
 <style scoped>
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
 .badge.red {
   background: #fee2e2;
   color: #991b1b;
