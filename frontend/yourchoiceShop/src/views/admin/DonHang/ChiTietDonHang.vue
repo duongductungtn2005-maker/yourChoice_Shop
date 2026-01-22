@@ -86,7 +86,7 @@
           <div>Size: {{ item.size }}</div>
           <div>x{{ item.quantity }}</div>
         </div>
-        <!-- <div class="price">{{ item.price.toLocaleString() }} đ</div> -->
+        <div class="price">{{ item.price.toLocaleString() }} đ</div>
       </div>
     </div>
 
