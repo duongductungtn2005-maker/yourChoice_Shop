@@ -1,4 +1,4 @@
-package org.example.yourchoiceshop.service.impl;
+package org.example.yourchoiceshop.service;
 
 import org.example.yourchoiceshop.dto.request.QuanLyDonHangRequest;
 import org.example.yourchoiceshop.dto.response.QuanLyDonHangResponse;
