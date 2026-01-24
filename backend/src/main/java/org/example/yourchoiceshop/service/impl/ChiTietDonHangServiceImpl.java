@@ -46,7 +46,7 @@ public class ChiTietDonHangServiceImpl implements ChiTietDonHangService {
                 hoaDonChiTietRepository.findSanPhamByDonHang(id)
         );
 
-        res.setLichSuDonHang(
+        res.setLichSuHoaDon(
                 lichSuHoaDonRepository.findByHoaDonIdOrderByThoiGianAsc(id)
                         .stream()
                         .map(LichSuHoaDonResponse::fromEntity)

@@ -29,9 +29,4 @@ public class ChiTietDonHangResponse {
     private List<SanPhamHoaDonResponse> sanPhamList;
     private List<LichSuHoaDonResponse> lichSuHoaDon;
     private List<LichSuThanhToanResponse> lichSuThanhToan;
-    public void setLichSuDonHang(List<LichSuHoaDonResponse> list) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setLichSuDonHang'");
-    }
-
 }
