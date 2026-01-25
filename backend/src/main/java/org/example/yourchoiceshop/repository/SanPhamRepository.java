@@ -1,22 +1,33 @@
 package org.example.yourchoiceshop.repository;
 
-import org.example.yourchoiceshop.entity.*;
+import org.example.yourchoiceshop.entity.SanPham;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-
-// 1. Repository Sản Phẩm (Cha)
 @Repository
 public interface SanPhamRepository extends JpaRepository<SanPham, Integer> {
-    // Tìm kiếm theo tên hoặc mã, hỗ trợ phân trang
-    @Query("SELECT sp FROM SanPham sp WHERE " +
-            "(:keyword IS NULL OR sp.tenSanPham LIKE %:keyword% OR sp.maSanPham LIKE %:keyword%) " +
-            "AND sp.trangThai = 1")
-    Page<SanPham> searchSanPhams(String keyword, Pageable pageable);
 
-    boolean existsByMaSanPham(String maSanPham);
+    // Query tìm kiếm nâng cao (Full option)
+    @Query("SELECT s FROM SanPham s WHERE " +
+            "(:keyword IS NULL OR s.tenSanPham LIKE %:keyword% OR s.maSanPham LIKE %:keyword%) " +
+            "AND (:status IS NULL OR s.trangThai = :status) " +
+            "AND (:idThuongHieu IS NULL OR s.thuongHieu.id = :idThuongHieu) " +
+            "AND (:idChatLieu IS NULL OR s.chatLieu.id = :idChatLieu) " +
+            "AND (:idXuatXu IS NULL OR s.xuatXu.id = :idXuatXu) " +
+            "AND (:idCoAo IS NULL OR s.coAo.id = :idCoAo) " +
+            "AND (:idTayAo IS NULL OR s.tayAo.id = :idTayAo)")
+    Page<SanPham> searchProductsAdvanced(
+            @Param("keyword") String keyword,
+            @Param("status") Integer status,
+            @Param("idThuongHieu") Integer idThuongHieu,
+            @Param("idChatLieu") Integer idChatLieu,
+            @Param("idXuatXu") Integer idXuatXu,
+            @Param("idCoAo") Integer idCoAo,
+            @Param("idTayAo") Integer idTayAo,
+            Pageable pageable
+    );
 }

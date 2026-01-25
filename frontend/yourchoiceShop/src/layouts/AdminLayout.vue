@@ -1,77 +1,87 @@
- Cập nhật lại phần menu bên trái:
 <template>
   <div class="admin-layout">
     <aside class="sidebar">
       <div class="brand">
         <div class="logo-circle">
-            <img src="./logo1.png" alt="Logo" />
+          <img src="./logo1.png" alt="Logo" />
         </div>
         <span class="brand-name">YourChoice</span>
       </div>
 
       <nav class="menu">
         <router-link to="/admin/dashboard" class="menu-item" active-class="active-link">
-          <i class="fa-solid fa-gauge icon"></i> Thống kê
+          <div class="icon-wrap">
+            <font-awesome-icon :icon="['fas', 'gauge']" />
+          </div>
+          <span class="menu-text">Thống kê</span>
         </router-link>
 
         <router-link to="/admin/pos" class="menu-item" active-class="active-link">
-            <i class="fa-solid fa-shop icon"></i> Bán hàng tại quầy
+          <div class="icon-wrap">
+            <font-awesome-icon :icon="['fas', 'shop']" />
+          </div>
+          <span class="menu-text">Bán hàng tại quầy</span>
         </router-link>
 
         <router-link to="/admin/orders" class="menu-item" active-class="active-link">
-            <i class="fa-solid fa-file-lines icon"></i> Quản lý đơn hàng
+          <div class="icon-wrap">
+            <font-awesome-icon :icon="['fas', 'file-lines']" />
+          </div>
+          <span class="menu-text">Quản lý đơn hàng</span>
         </router-link>
 
-        <div class="menu-group">
-          <div 
-            class="menu-item parent" 
-            :class="{ 'active-parent': openMenus.products || isProductRoute }"
-            @click="toggleMenu('products')"
-          >
-            <span>
-                <i class="fa-solid fa-shirt icon"></i> Quản lý sản phẩm
+        <div class="menu-group" :class="{ expanded: openMenus.products }">
+          <div class="menu-item parent" @click="toggleMenu('products')">
+            <div class="menu-label">
+              <div class="icon-wrap">
+                <font-awesome-icon :icon="['fas', 'shirt']" />
+              </div>
+              <span class="menu-text">Quản lý sản phẩm</span>
+            </div>
+            <span class="arrow">
+               <font-awesome-icon :icon="['fas', openMenus.products ? 'chevron-up' : 'chevron-down']" size="xs"/>
             </span>
-            <span class="arrow">{{ openMenus.products ? '▲' : '▼' }}</span>
           </div>
           
           <div class="submenu" v-show="openMenus.products">
             <router-link to="/admin/products" class="submenu-item" active-class="active-sub">
-                <span class="dot">•</span> Sản phẩm
+              <span class="dot">•</span> Sản phẩm
             </router-link>
             <router-link to="/admin/co-ao" class="submenu-item" active-class="active-sub">
-                <span class="dot">•</span> Cổ áo
+              <span class="dot">•</span> Cổ áo
             </router-link>
             <router-link to="/admin/tay-ao" class="submenu-item" active-class="active-sub">
-                <span class="dot">•</span> Tay áo
+              <span class="dot">•</span> Tay áo
             </router-link>
             <router-link to="/admin/xuat-xu" class="submenu-item" active-class="active-sub">
-                <span class="dot">•</span> Xuất xứ
+              <span class="dot">•</span> Xuất xứ
             </router-link>
             <router-link to="/admin/chat-lieu" class="submenu-item" active-class="active-sub">
-                <span class="dot">•</span> Chất liệu
+              <span class="dot">•</span> Chất liệu
             </router-link>
             <router-link to="/admin/thuong-hieu" class="submenu-item" active-class="active-sub">
-                <span class="dot">•</span> Thương hiệu
+              <span class="dot">•</span> Thương hiệu
             </router-link>
-            <router-link to="/admin/mau-sac" class="submenu-item" active-class="active-sub">
-                <span class="dot">•</span> Màu sắc
+             <router-link to="/admin/mau-sac" class="submenu-item" active-class="active-sub">
+              <span class="dot">•</span> Màu sắc
             </router-link>
-            <router-link to="/admin/kich-thuoc" class="submenu-item" active-class="active-sub">
-                <span class="dot">•</span> Kích thước
+             <router-link to="/admin/kich-thuoc" class="submenu-item" active-class="active-sub">
+              <span class="dot">•</span> Kích thước
             </router-link>
           </div>
         </div>
 
-        <div class="menu-group">
-            <div 
-                class="menu-item parent"
-:class="{ 'active-parent': openMenus.discounts || isDiscountRoute }"
-                @click="toggleMenu('discounts')"
-            >
-                <span>
-                    <i class="fa-solid fa-ticket icon"></i> Giảm giá
+        <div class="menu-group" :class="{ expanded: openMenus.discounts }">
+            <div class="menu-item parent" @click="toggleMenu('discounts')">
+                <div class="menu-label">
+                    <div class="icon-wrap">
+                      <font-awesome-icon :icon="['fas', 'ticket']" />
+                    </div>
+                    <span class="menu-text">Giảm giá</span>
+                </div>
+                <span class="arrow">
+                  <font-awesome-icon :icon="['fas', openMenus.discounts ? 'chevron-up' : 'chevron-down']" size="xs"/>
                 </span>
-                <span class="arrow">{{ openMenus.discounts ? '▲' : '▼' }}</span>
             </div>
             
             <div class="submenu" v-show="openMenus.discounts">
@@ -85,10 +95,17 @@
         </div>
 
         <router-link to="/admin/customers" class="menu-item" active-class="active-link">
-            <i class="fa-solid fa-user icon"></i> Khách hàng
+            <div class="icon-wrap">
+              <font-awesome-icon :icon="['fas', 'user']" />
+            </div>
+            <span class="menu-text">Khách hàng</span>
         </router-link>
+
         <router-link to="/admin/employees" class="menu-item" active-class="active-link">
-            <i class="fa-solid fa-user-tie icon"></i> Nhân viên
+            <div class="icon-wrap">
+              <font-awesome-icon :icon="['fas', 'user-tie']" />
+            </div>
+            <span class="menu-text">Nhân viên</span>
         </router-link>
       </nav>
     </aside>
@@ -96,17 +113,20 @@
     <main class="main-content">
       <header class="top-header">
         <div class="header-actions">
-            <button class="icon-btn">
-                <i class="fa-regular fa-calendar"></i>
+            <button class="icon-btn" title="Lịch">
+                <font-awesome-icon :icon="['far', 'calendar']" />
             </button>
-            <button class="icon-btn">
-                <i class="fa-regular fa-bell"></i>
-                <span class="badge-count">3</span>
+            <button class="icon-btn" title="Thông báo">
+                <font-awesome-icon :icon="['far', 'bell']" />
+                <span class="badge">3</span>
             </button>
         </div>
 
         <div class="user-info">
-            <div class="avatar">Admin</div>
+            <div class="avatar-circle">
+              <font-awesome-icon :icon="['fas', 'user']" />
+            </div>
+            <span class="username">Admin</span>
         </div>
       </header>
 
@@ -118,165 +138,255 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref } from 'vue';
+// Import FontAwesome (Đảm bảo bạn đã cài đặt và cấu hình trong main.js)
+// npm install --save @fortawesome/fontawesome-svg-core @fortawesome/free-solid-svg-icons @fortawesome/free-regular-svg-icons @fortawesome/vue-fontawesome
 
-const route = useRoute();
-
-// 1. Trạng thái mặc định là FALSE (đóng) để menu thu gọn
+// State đóng mở menu
 const openMenus = ref({
-    products: false, 
+    products: true, 
     discounts: false 
 });
 
-// Hàm toggle đóng/mở menu accordion
 const toggleMenu = (key) => {
-    if (openMenus.value[key]) {
-        openMenus.value[key] = false;
-    } else {
-        // Nếu muốn khi mở cái này, cái kia tự đóng thì bỏ comment dòng dưới:
-        // Object.keys(openMenus.value).forEach(k => openMenus.value[k] = false);
-        openMenus.value[key] = true;
-    }
+    openMenus.value[key] = !openMenus.value[key];
 };
-
-// 2. Computed Properties: Kiểm tra URL để active menu cha
-// Nếu đường dẫn bắt đầu bằng cụm từ khóa thì return true -> active màu đậm
-const isProductRoute = computed(() => {
-    const p = route.path;
-    return p.includes('/admin/products') || 
-           p.includes('/admin/co-ao') || 
-           p.includes('/admin/tay-ao') ||
-           p.includes('/admin/xuat-xu') ||
-           p.includes('/admin/chat-lieu') ||
-           p.includes('/admin/thuong-hieu') ||
-p.includes('/admin/mau-sac') ||
-           p.includes('/admin/kich-thuoc');
-});
-
-const isDiscountRoute = computed(() => {
-    const p = route.path;
-    return p.includes('/admin/vouchers') || 
-           p.includes('/admin/sales');
-});
 </script>
 
 <style scoped>
-/* --- 1. BIẾN MÀU SẮC --- */
-:root {
-  --primary-color: #2b4360; /* Xanh than đậm */
-  --text-gray: #64748b;     /* Màu chữ thường */
-  --bg-hover: #f1f5f9;      /* Màu nền khi hover */
-  --active-bg: #e2e8f0;     /* Màu nền active menu con */
+/* --- FONT & GLOBAL --- */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f1f5f9;
 }
 
-/* --- 2. LAYOUT CHUNG --- */
-.admin-layout { display: flex; min-height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-.sidebar { width: 260px; background: white; border-right: 1px solid #e2e8f0; position: fixed; height: 100vh; overflow-y: auto; z-index: 10; display: flex; flex-direction: column; }
-.main-content { flex: 1; margin-left: 260px; display: flex; flex-direction: column; background: #f8f9fa; }
+/* --- SIDEBAR --- */
+.sidebar {
+  width: 260px;
+  background-color: #fff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 20;
+}
 
-/* --- 3. BRAND / LOGO --- */
-.brand { height: 80px; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid #f1f5f9; }
-.logo-circle { width: 45px; height: 45px; border-radius: 30px; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-right: 12px; background: #f8fafc; }
-.logo-circle img { height: 100%; object-fit: cover; }
-.brand-name { font-weight: 700; font-size: 20px; color: #2b4360; }
-
-/* --- 4. MENU STYLES --- */
-.menu { padding: 15px 0; }
-
-.menu-item {
-  padding: 12px 24px;
+/* LOGO SECTION */
+.brand {
+  height: 80px; /* Chiều cao header logo */
   display: flex;
   align-items: center;
-  color: #64748b; /* Màu nhạt mặc định */
-  cursor: pointer;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 15px;
-  transition: all 0.2s;
-  border-right: 3px solid transparent; /* Viền ẩn bên phải */
+  padding: 0 24px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.menu-item .icon {
-  width: 24px;
-  text-align: center;
-  margin-right: 12px;
-  font-size: 18px;
-  transition: color 0.2s;
+.logo-circle {
+    width: 48px;
+    height: 48px;
+    margin-right: 12px;
+    border-radius: 12px; /* Bo góc nhẹ */
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8fafc;
+}
+
+.logo-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.brand-name {
+    font-size: 24px; /* H2 Size */
+    font-weight: 700; /* In đậm */
+    color: #0f172a;
+    letter-spacing: -0.5px;
+}
+
+/* MENU LIST */
+.menu {
+  padding: 20px 10px;
+}
+
+/* MENU ITEM CHUNG */
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  color: #64748b; /* Màu chữ thường */
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .menu-item:hover {
-  background-color: #f8fafc;
-  color: #2b4360;
-}
-
-/* Trạng thái Active cho Menu Đơn (Dashboard, POS...) */
-.active-link {
   background-color: #f1f5f9;
-  color: #2b4360 !important; /* Xanh than đậm */
-  font-weight: 700;
-  border-right-color: #2b4360; /* Hiện viền phải */
+  color: #0f172a;
 }
 
-/* --- 5. PARENT MENU STYLES --- */
+/* ACTIVE STATE (Menu cha) */
+.active-link {
+  background-color: #0f172a !important; /* Xanh đen đậm */
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+/* ICON */
+.icon-wrap {
+  width: 24px;
+  display: flex;
+  justify-content: center;
+  margin-right: 12px;
+  font-size: 18px; /* Kích thước icon */
+}
+
+.menu-text {
+  font-size: 16px; /* Body text size */
+  font-weight: 500;
+}
+
+/* PARENT MENU (Có mũi tên) */
 .menu-item.parent {
-  justify-content: space-between;
+    justify-content: space-between;
 }
-.arrow { font-size: 10px; color: #94a3b8; }
-
-/* Trạng thái Active cho Menu Cha (Khi mở hoặc khi con active) */
-.active-parent {
-  color: #2b4360 !important; /* Đậm màu chữ */
-  font-weight: 700;
-  background-color: #f8fafc; /* Nền sáng nhẹ */
+.menu-label {
+    display: flex;
+    align-items: center;
 }
-.active-parent .icon {
-  color: #2b4360; /* Đậm màu icon */
+.arrow {
+    font-size: 12px;
+    color: #94a3b8;
+    transition: transform 0.3s;
 }
 
-/* --- 6. SUBMENU STYLES --- */
+/* SUBMENU */
 .submenu {
-  background-color: #f8fafc;
-  overflow: hidden;
+  margin-top: 2px;
+  padding-bottom: 5px;
 }
 
 .submenu-item {
   display: flex;
   align-items: center;
-  padding: 10px 20px 10px 56px; /* Thụt đầu dòng */
+  padding: 10px 16px 10px 52px; /* Thụt đầu dòng */
   text-decoration: none;
   color: #64748b;
-  font-size: 14px;
+  font-size: 14px; /* Small text size */
+  border-radius: 8px;
+  margin-bottom: 2px;
   transition: 0.2s;
 }
 
 .submenu-item:hover {
-  color: #2b4360;
+    color: #0f172a;
+    background-color: #f8fafc;
 }
 
 .submenu-item .dot {
-  margin-right: 8px;
-font-size: 18px;
-  line-height: 0;
-  color: #cbd5e1;
+    margin-right: 8px;
+    font-size: 18px;
+    line-height: 0;
+    color: #cbd5e1;
 }
 
-/* Active Submenu */
+/* ACTIVE STATE (Submenu con) */
 .active-sub {
-  color: #2b4360;
-  font-weight: 600;
   background-color: #e2e8f0;
+  color: #0f172a;
+  font-weight: 600;
 }
 .active-sub .dot {
-  color: #2b4360;
+    color: #0f172a;
 }
 
-/* --- 7. HEADER --- */
-.top-header { height: 64px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: flex-end; padding: 0 24px; gap: 20px; position: sticky; top: 0; z-index: 5; }
-.header-actions { display: flex; gap: 15px; }
-.icon-btn { background: none; border: none; font-size: 20px; color: #64748b; position: relative; cursor: pointer; }
-.badge-count { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 10px; padding: 2px 5px; border-radius: 10px; }
-.user-info .avatar { width: 36px; height: 36px; background: #2b4360; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+/* --- MAIN CONTENT --- */
+.main-content {
+  flex: 1;
+  margin-left: 260px; /* Bằng width sidebar */
+  display: flex;
+  flex-direction: column;
+}
 
-.content-body { padding: 24px; flex: 1; }
+/* HEADER */
+.top-header {
+  height: 64px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 32px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 24px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 16px;
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    color: #64748b;
+    cursor: pointer;
+    position: relative;
+    padding: 4px;
+    transition: 0.2s;
+}
+.icon-btn:hover { color: #0f172a; }
+
+.badge {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    background-color: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 99px;
+    border: 2px solid #fff;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.avatar-circle {
+    width: 36px;
+    height: 36px;
+    background-color: #e2e8f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+}
+
+.username {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: 14px;
+}
+
+.content-body {
+  padding: 24px;
+  flex: 1;
+}
 </style>
