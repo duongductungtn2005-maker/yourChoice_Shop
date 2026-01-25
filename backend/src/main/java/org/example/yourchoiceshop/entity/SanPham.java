@@ -12,6 +12,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+
 public class SanPham extends BaseStatusEntity {
     // id INT PRIMARY KEY IDENTITY(1,1),
     // ma_san_pham VARCHAR(50) UNIQUE,

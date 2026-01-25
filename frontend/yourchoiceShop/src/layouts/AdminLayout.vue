@@ -14,11 +14,11 @@
         </router-link>
 
         <router-link to="/admin/pos" class="menu-item" active-class="active-link">
-           <i class="fa-solid fa-shop icon"></i> Bán hàng tại quầy
+            <i class="fa-solid fa-shop icon"></i> Bán hàng tại quầy
         </router-link>
 
         <router-link to="/admin/orders" class="menu-item" active-class="active-link">
-           <i class="fa-solid fa-file-lines icon"></i> Quản lý đơn hàng
+            <i class="fa-solid fa-file-lines icon"></i> Quản lý đơn hàng
         </router-link>
 
         <div class="menu-group">
@@ -63,7 +63,7 @@
 
         <div class="menu-group">
             <div 
-                class="menu-item parent"
+                class="menu-item parent" 
                 :class="{ 'active-parent': openMenus.discounts || isDiscountRoute }"
                 @click="toggleMenu('discounts')"
             >
@@ -157,7 +157,8 @@ const isDiscountRoute = computed(() => {
 
 // Xử lý ảnh lỗi nếu logo không load được
 const handleImageError = (e) => {
-    e.target.style.display = 'none';
+    // e.target.style.display = 'none'; // Có thể ẩn hoặc thay bằng ảnh default
+    e.target.src = 'https://via.placeholder.com/40';
 };
 </script>
 

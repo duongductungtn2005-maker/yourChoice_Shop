@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// --- 1. IMPORT CÁC MÀN HÌNH CỦA TÙNG (THUỘC TÍNH SẢN PHẨM) ---
-// (Giữ nguyên import tĩnh để tránh lỗi, hoặc chuyển sang dynamic cũng được)
+// --- IMPORT CÁC MÀN HÌNH QUẢN LÝ THUỘC TÍNH ---
 import CoAoIndex from '../views/admin/attribute/CoAoIndex.vue'
 import TayAoIndex from '../views/admin/attribute/TayAoIndex.vue'
 import ChatLieuIndex from '../views/admin/attribute/ChatLieuIndex.vue'
@@ -56,7 +55,7 @@ const router = createRouter({
           component: () => import('../views/admin/product/ProductDetail.vue')
         },
 
-        // --- QUẢN LÝ THUỘC TÍNH (CODE CỦA TÙNG - MỚI THÊM VÀO) ---
+        // --- QUẢN LÝ THUỘC TÍNH CHI TIẾT ---
         { 
             path: 'mau-sac', 
             name: 'mau-sac',
@@ -119,9 +118,19 @@ const router = createRouter({
           component: () => import('../views/admin/voucher/VoucherIndex.vue')
         },
         {
+          path: 'vouchers/create',
+          name: 'admin-voucher-create',
+          component: () => import('../views/admin/voucher/VoucherCreate.vue')
+        },
+        {
           path: 'sales',
           name: 'admin-sale-list',
           component: () => import('../views/admin/promotion/SaleIndex.vue')
+        },
+        {
+          path: 'sales/create',
+          name: 'admin-sale-create',
+          component: () => import('../views/admin/promotion/SaleCreate.vue')
         }
       ]
     },
