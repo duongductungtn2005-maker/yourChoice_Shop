@@ -5,12 +5,16 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+<<<<<<< HEAD
+@Entity @Table(name = "hoa_don") @Data
+=======
 @Entity 
 @Table(name = "hoa_don") 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+>>>>>>> upstream/main
 public class HoaDon extends BaseStatusEntity {
     @Column(name = "ma_hoa_don") private String maHoaDon;
     @Column(name = "ngay_thanh_toan") private LocalDateTime ngayThanhToan;

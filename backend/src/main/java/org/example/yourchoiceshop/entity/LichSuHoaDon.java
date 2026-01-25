@@ -1,5 +1,10 @@
 package org.example.yourchoiceshop.entity;
 import jakarta.persistence.*;
+<<<<<<< HEAD
+import lombok.Data;
+import java.time.LocalDateTime;
+@Entity @Table(name = "lich_su_hoa_don") @Data
+=======
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,6 +17,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+>>>>>>> upstream/main
 public class LichSuHoaDon extends PrimaryEntity {
     private String hanhDong;
     private LocalDateTime thoiGian;

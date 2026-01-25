@@ -1,5 +1,11 @@
 package org.example.yourchoiceshop.entity;
 import jakarta.persistence.*;
+<<<<<<< HEAD
+import lombok.Data;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+@Entity @Table(name = "lich_su_thanh_toan") @Data
+=======
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,6 +19,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+>>>>>>> upstream/main
 public class LichSuThanhToan extends PrimaryEntity {
     @ManyToOne @JoinColumn(name = "id_hoa_don") private HoaDon hoaDon;
     private String maGiaoDich;
