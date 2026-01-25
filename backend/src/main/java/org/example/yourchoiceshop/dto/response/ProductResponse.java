@@ -1,35 +1,30 @@
 package org.example.yourchoiceshop.dto.response;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
+@Builder
 public class ProductResponse {
     private Integer id;
     private String maSanPham;
     private String tenSanPham;
-    private LocalDateTime ngayTao;
-    private Integer soLuong;
-    private Integer trangThai;
+    private String moTa;
 
-    // Các trường TÊN (để hiển thị ra bảng)
+    // Tên hiển thị của các thuộc tính
     private String tenThuongHieu;
-    private String tenChatLieu;
     private String tenXuatXu;
+    private String tenChatLieu;
     private String tenCoAo;
     private String tenTayAo;
-    private String dsMauSac;
-    private String dsKichThuoc;
 
-    // --- CÁC TRƯỜNG MỚI THÊM (Để binding vào Modal sửa) ---
-    private Integer idThuongHieu;
-    private Integer idChatLieu;
-    private Integer idXuatXu;
-    private Integer idCoAo;
-    private Integer idTayAo;
-    private String moTa;
+    private Integer tongSoLuongTon; // Tổng số lượng của tất cả biến thể
+    private Integer soLuongBienThe; // Có bao nhiêu biến thể
+    private BigDecimal giaThapNhat; // Khoảng giá
+    private BigDecimal giaCaoNhat;
+
+    private Integer trangThai;
+    private LocalDateTime ngayTao;
 }

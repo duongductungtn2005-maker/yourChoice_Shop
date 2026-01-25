@@ -1,4 +1,5 @@
 package org.example.yourchoiceshop.dto.request;
+
 import lombok.Data;
 import java.util.List;
 
@@ -6,11 +7,15 @@ import java.util.List;
 public class CreateProductRequest {
     private String maSanPham;
     private String tenSanPham;
-    private String moTa; // <--- BẠN ĐANG THIẾU DÒNG NÀY
+    private String moTa;
+
+    // Các ID thuộc tính
     private Integer idThuongHieu;
+    private Integer idXuatXu;
     private Integer idChatLieu;
     private Integer idCoAo;
     private Integer idTayAo;
-    private Integer idXuatXu;
+
+    // Danh sách biến thể
     private List<ProductVariantRequest> variants;
 }

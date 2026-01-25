@@ -1,27 +1,20 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
+
+// 1. Import App gốc
 import App from './App.vue'
-import router from './router' // Import router của bạn
 
-// 1. IMPORT FONTAWESOME
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { fas } from '@fortawesome/free-solid-svg-icons'
-import { far } from '@fortawesome/free-regular-svg-icons'
+// 2. Import Router (File router/index.js mà tôi đã đưa ở các bước trước)
+import router from './router'
 
-// 2. IMPORT CSS (Nếu có file css chung)
-import './assets/main.css' // Ví dụ file css
+// 3. Import CSS Global (File reset CSS tôi đã đưa ở bước trước)
+import './assets/main.css'
 
-// 3. THÊM ICON VÀO THƯ VIỆN
-library.add(fas, far)
-
-// --- KHỞI TẠO APP (QUAN TRỌNG: Dòng này phải nằm trước khi dùng biến 'app') ---
 const app = createApp(App)
 
-// 4. ĐĂNG KÝ COMPONENT & PLUGIN SAU KHI ĐÃ CÓ 'app'
-app.component('font-awesome-icon', FontAwesomeIcon) // <--- Lỗi của bạn nằm ở đây (do đặt trước dòng const app)
+// 4. Sử dụng các Plugins
+app.use(createPinia()) // Quản lý State
+app.use(router)        // Quản lý Điều hướng
 
-app.use(router)
-// app.use(createPinia()) // Nếu có dùng Pinia thì uncomment
-
-// 5. MOUNT (Cuối cùng)
+// 5. Mount vào DOM
 app.mount('#app')
