@@ -1,137 +1,137 @@
 <template>
-    <BasePage>
+  <BasePage>
     <div class="create-employee-container">
-        
-        <div class="page-header">
+      
+      <div class="page-header">
         <h2 class="breadcrumb">
-            <span class="back-link" @click="goBack">Nhân viên</span> 
-            <span class="divider">/</span> 
-            <span class="current">Thêm nhân viên</span>
+          <span class="back-link" @click="goBack">Nhân viên</span> 
+          <span class="divider">/</span> 
+          <span class="current">{{ isEditMode ? 'Cập nhật nhân viên' : 'Thêm nhân viên' }}</span>
         </h2>
-        </div>
+      </div>
 
-        <div class="main-card">
+      <div class="main-card">
         <form @submit.prevent="handleSubmit" class="form-layout">
-            
-            <div class="left-section">
+          
+          <div class="left-section">
             <h3 class="section-title">Thông tin nhân viên</h3>
             
             <div class="avatar-upload">
-                <div class="avatar-circle" @click="triggerFileInput">
+              <div class="avatar-circle" @click="triggerFileInput">
                 <img v-if="previewImage" :src="previewImage" alt="Avatar Preview" />
                 <span v-else class="placeholder-text">Chọn ảnh</span>
-                </div>
-                <input 
-                type="file" 
-                ref="fileInput" 
-                class="hidden-input" 
-                accept="image/*" 
-                @change="handleFileChange"
-                />
+              </div>
+              <input 
+                type="file" ref="fileInput" class="hidden-input" 
+                accept="image/*" @change="handleFileChange"
+              />
             </div>
 
             <div class="form-group">
-                <label class="required-label">Họ và tên</label>
-                <input 
-                type="text" 
-                v-model="employee.tenNhanVien" 
-                class="form-control" 
-                placeholder="Nhập họ tên" 
-                required
-                />
+              <label class="required-label">Họ và tên</label>
+              <input type="text" v-model="employee.tenNhanVien" class="form-control" placeholder="Nhập họ tên" required />
             </div>
-            </div>
+          </div>
 
-            <div class="right-section">
+          <div class="right-section">
             <div class="section-header">
-                <h3 class="section-title">Thông tin chi tiết</h3>
-                <button type="button" class="btn-qr" @click="scanQR">Quét QR</button>
+              <h3 class="section-title">Thông tin chi tiết</h3>
+              <div style="display: flex; gap: 10px">
+                  <button type="button" class="btn-qr" @click="startScan">
+                    <i class="fas fa-qrcode"></i> Quét QR
+                  </button>
+              </div>
             </div>
             
             <div class="form-grid">
-                <div class="form-group">
+              <div class="form-group">
                 <label class="required-label">Số CCCD</label>
                 <input type="text" v-model="employee.cccd" class="form-control" required />
-                </div>
+              </div>
 
-                <div class="form-group">
+              <div class="form-group">
                 <label class="required-label">Giới tính</label>
                 <div class="radio-group">
-                    <label class="radio-label">
-                    <input type="radio" v-model="employee.gioiTinh" :value="true" /> Nam
-                    </label>
-                    <label class="radio-label">
-                    <input type="radio" v-model="employee.gioiTinh" :value="false" /> Nữ
-                    </label>
+                  <label class="radio-label"><input type="radio" v-model="employee.gioiTinh" :value="true" /> Nam</label>
+                  <label class="radio-label"><input type="radio" v-model="employee.gioiTinh" :value="false" /> Nữ</label>
                 </div>
-                </div>
+              </div>
 
-                <div class="form-group">
+              <div class="form-group">
                 <label class="required-label">Ngày sinh</label>
                 <input type="date" v-model="employee.ngaySinh" class="form-control" required />
-                </div>
+              </div>
 
-                <div class="form-group">
+              <div class="form-group">
                 <label class="required-label">Email</label>
                 <input type="email" v-model="employee.email" class="form-control" required />
-                </div>
+              </div>
 
-                <div class="form-group">
-                <label class="required-label">Tỉnh/thành phố</label>
-                <select v-model="address.provinceId" @change="onProvinceChange" class="form-control">
-                    <option value="">Chọn Tỉnh/Thành</option>
-                    <option v-for="p in locationData.provinces" :key="p.code" :value="p.code">{{ p.name }}</option>
+              <div class="form-group">
+                <label>Tỉnh/thành phố</label> <select v-model="address.provinceId" @change="onProvinceChange" class="form-control">
+                  <option value="">Chọn Tỉnh/Thành</option>
+                  <option v-for="p in locationData.provinces" :key="p.code" :value="p.code">{{ p.name }}</option>
                 </select>
-                </div>
+              </div>
 
-                <div class="form-group">
-                <label class="required-label">Quận/huyện</label>
-                <select v-model="address.districtId" @change="onDistrictChange" class="form-control" :disabled="!address.provinceId">
-                    <option value="">Chọn Quận/Huyện</option>
-                    <option v-for="d in locationData.districts" :key="d.code" :value="d.code">{{ d.name }}</option>
+              <div class="form-group">
+                <label>Quận/huyện</label> <select v-model="address.districtId" @change="onDistrictChange" class="form-control" :disabled="!address.provinceId">
+                  <option value="">Chọn Quận/Huyện</option>
+                  <option v-for="d in locationData.districts" :key="d.code" :value="d.code">{{ d.name }}</option>
                 </select>
-                </div>
+              </div>
 
-                <div class="form-group">
-                <label class="required-label">Xã/phường/thị trấn</label>
-                <select v-model="address.wardCode" class="form-control" :disabled="!address.districtId">
-                    <option value="">Chọn Xã/Phường</option>
-                    <option v-for="w in locationData.wards" :key="w.code" :value="w.code">{{ w.name }}</option>
+              <div class="form-group">
+                <label>Xã/phường/thị trấn</label> <select v-model="address.wardCode" class="form-control" :disabled="!address.districtId">
+                  <option value="">Chọn Xã/Phường</option>
+                  <option v-for="w in locationData.wards" :key="w.code" :value="w.code">{{ w.name }}</option>
                 </select>
-                </div>
-                
-                <div class="form-group">
+              </div>
+              <div class="form-group">
                 <label class="required-label">Số điện thoại</label>
                 <input type="text" v-model="employee.soDienThoai" class="form-control" required />
-                </div>
+              </div>
 
-                <div class="form-group full-width">
+              <div class="form-group full-width">
                 <label class="required-label">Địa chỉ cụ thể</label>
                 <input type="text" v-model="employee.diaChiCuThe" class="form-control" placeholder="Số nhà, đường..." required />
-                </div>
+              </div>
             </div>
 
             <div class="form-footer">
-                <button type="button" class="btn-submit" @click="handleSubmit">
-                    Thêm nhân viên
-                </button>
+              <button type="submit" class="btn-submit">
+                {{ isEditMode ? 'Cập nhật' : 'Thêm mới' }}
+              </button>
             </div>
-            </div>
+          </div>
         </form>
-        </div>
+      </div>
+
+      <div v-if="showScanner" class="qr-overlay">
+         <div class="qr-modal">
+            <h3>Đưa mã QR CCCD vào khung hình</h3>
+            <div id="reader"></div>
+            <button class="btn-close-qr" @click="stopScan">Đóng Camera</button>
+         </div>
+      </div>
+
     </div>
   </BasePage>
 </template>
 
 <script setup>
 import BasePage from '@/views/BasePage.vue';
-import { ref, reactive, onMounted } from 'vue';
-// 1. Thêm useRoute vào đây
+// Gộp tất cả vào một dòng này
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'; 
 import { useRouter, useRoute } from 'vue-router'; 
 import axios from 'axios';
+import { Html5QrcodeScanner } from "html5-qrcode";
+
+// ... (Phần còn lại giữ nguyên)
 
 const router = useRouter();
-const route = useRoute(); // 2. Khởi tạo route để lấy params
+const route = useRoute(); 
+
 // --- 1. State quản lý dữ liệu Form ---
 const employee = reactive({
   tenNhanVien: '',
@@ -155,6 +155,10 @@ const fileInput = ref(null);
 const selectedFile = ref(null);
 const previewImage = ref(null);
 
+// State quản lý Camera QR
+const showScanner = ref(false);
+let html5QrcodeScanner = null;
+
 // --- 2. Xử lý Ảnh đại diện ---
 const triggerFileInput = () => {
   fileInput.value.click();
@@ -164,21 +168,143 @@ const handleFileChange = (event) => {
   const file = event.target.files[0];
   if (file) {
     selectedFile.value = file;
-    // Tạo URL để preview ảnh ngay lập tức
     previewImage.value = URL.createObjectURL(file);
   }
 };
 
-// --- 3. Xử lý Địa chỉ (Mock Data hoặc gọi API GHN) ---
+// --- 3. LOGIC QUÉT MÃ QR (NEW) ---
+// --- LOGIC CAMERA AN TOÀN HƠN ---
+// Thay thế toàn bộ hàm startScan này vào code cũ
+const startScan = async () => {
+    // 1. Dọn dẹp camera cũ
+    if (html5QrcodeScanner) {
+        try { await html5QrcodeScanner.clear(); } catch (e) {}
+    }
+
+    showScanner.value = true;
+    
+    setTimeout(() => {
+        try {
+            // Cấu hình Camera chi tiết
+            const config = { 
+                fps: 10,
+                // qrbox: { width: 300, height: 300 }, <--- Xóa hoặc comment dòng này
+                rememberLastUsedCamera: false,
+                videoConstraints: {
+                    width: { min: 640, ideal: 1280 }, // HD 720p là đủ cho Laptop
+                    height: { min: 480, ideal: 720 }
+                }
+            };
+
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
+            
+            html5QrcodeScanner.render(onScanSuccess, (errorMessage) => {
+                // Đang quét...
+            });
+        } catch (e) {
+            console.error("Lỗi:", e);
+            showScanner.value = false;
+        }
+    }, 500);
+};
+
+const stopScan = () => {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().then(() => {
+            console.log("Đã tắt camera thành công.");
+        }).catch(error => {
+            console.error("Lỗi khi tắt camera:", error);
+        });
+    }
+    showScanner.value = false;
+};
+
+// --- QUAN TRỌNG: Tắt camera khi người dùng rời khỏi trang ---
+onBeforeUnmount(() => {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(e => console.error(e));
+    }
+});
+const onScanSuccess = (decodedText, decodedResult) => {
+    // Tắt camera ngay khi quét được
+    stopScan();
+    
+    // Cấu trúc CCCD: SốCCCD|CMND cũ|Tên|NgàySinh|GiớiTinh|ĐịaChỉ|NgàyCấp
+    const parts = decodedText.split('|');
+
+    if (parts.length >= 6) {
+        // 1. Số CCCD
+        employee.cccd = parts[0];
+
+        // 2. Họ tên (Viết hoa)
+        employee.tenNhanVien = parts[2].toUpperCase();
+
+        // 3. Ngày sinh: Convert từ ddMMyyyy -> yyyy-MM-dd
+        const rawDate = parts[3];
+        if (rawDate && rawDate.length === 8) {
+            const day = rawDate.substring(0, 2);
+            const month = rawDate.substring(2, 4);
+            const year = rawDate.substring(4, 8);
+            employee.ngaySinh = `${year}-${month}-${day}`;
+        }
+
+        // 4. Giới tính
+        employee.gioiTinh = parts[4].trim() === 'Nam';
+
+        // 5. Địa chỉ
+        // Do không map được ID tỉnh/huyện tự động, ta điền vào ô địa chỉ cụ thể
+        employee.diaChiCuThe = parts[5];
+
+        alert(`Đã quét thành công CCCD của: ${employee.tenNhanVien}.\nVui lòng chọn lại Tỉnh/Huyện/Xã thủ công.`);
+    } else {
+        alert("Mã QR không đúng định dạng CCCD gắn chip!");
+    }
+};
+
+const onScanFailure = (error) => {
+    // Hàm này chạy liên tục khi camera đang quét mà chưa bắt được mã -> Không cần làm gì
+};
+
+
+// --- 4. Validate & Helper ---
+
+const isValidEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(String(email).toLowerCase());
+};
+
+const isValidCCCD = (cccd) => {
+    return /^\d{9}$|^\d{12}$/.test(cccd);
+};
+
+const isValidBirthDate = (dateString) => {
+    if (!dateString) return false;
+    const birthDate = new Date(dateString);
+    const today = new Date();
+    if (birthDate >= today) return false;
+    return true;
+};
+
+// Hàm helper: Chuyển ngày về chuẩn yyyy-MM-dd
+const formatDate = (dateValue) => {
+  if (!dateValue) return null;
+  const d = new Date(dateValue);
+  if (isNaN(d.getTime())) return null; 
+  return d.toISOString().split('T')[0];
+};
+
+const getNameFromId = (id, list) => {
+    if (!id || !list || list.length === 0) return "";
+    const item = list.find(x => x.code == id || x.id == id);
+    return item ? item.name : "";
+};
+
+// --- 5. Xử lý Địa chỉ (Mock Data) ---
 const locationData = reactive({
-    provinces: [],
-    districts: [],
-    wards: []
+    provinces: [], districts: [], wards: []
 });
 
-// Mock data giả lập (Thực tế bạn sẽ gọi API)
 const fetchProvinces = async () => {
-    // Demo: axios.get('https://provinces.open-api.vn/api/p/')
     locationData.provinces = [
         { code: 1, name: 'Hà Nội' }, 
         { code: 2, name: 'Thanh Hóa' },
@@ -187,173 +313,123 @@ const fetchProvinces = async () => {
 };
 
 const onProvinceChange = () => {
-    // Reset huyện/xã khi đổi tỉnh
     address.districtId = '';
     address.wardCode = '';
     locationData.wards = [];
     
-    // Demo logic lấy huyện theo tỉnh
     if (address.provinceId == 1) locationData.districts = [{code: 101, name: 'Ba Đình'}, {code: 102, name: 'Cầu Giấy'}];
     else if (address.provinceId == 2) locationData.districts = [{code: 201, name: 'TP. Thanh Hóa'}, {code: 202, name: 'Huyện 36'}];
     else locationData.districts = [];
 };
 
 const onDistrictChange = () => {
-    // Reset xã khi đổi huyện
     address.wardCode = '';
-    
-    // Demo logic lấy xã theo huyện
     if (address.districtId == 202) locationData.wards = [{code: 301, name: '36 Trấn'}, {code: 302, name: 'Xã Mới'}];
     else locationData.wards = [{code: 401, name: 'Phường A'}, {code: 402, name: 'Phường B'}];
 };
 
-// Hàm helper: Chuyển ngày về chuẩn yyyy-MM-dd
-const formatDate = (dateValue) => {
-  if (!dateValue) return null;
-  const d = new Date(dateValue);
-  if (isNaN(d.getTime())) return null; 
-  // Lấy chuỗi yyyy-MM-dd (cắt bỏ phần giờ phía sau T)
-  return d.toISOString().split('T')[0];
-};
 
+// --- 6. HÀM SUBMIT FORM ---
 const handleSubmit = async () => {
-  try {
-    const formData = new FormData();
+    // --- Validate ---
+    if (!employee.tenNhanVien.trim()) return alert("Vui lòng nhập họ tên!");
+    if (!employee.cccd || !isValidCCCD(employee.cccd)) return alert("CCCD không hợp lệ!");
+    if (!isValidBirthDate(employee.ngaySinh)) return alert("Ngày sinh không hợp lệ!");
+    if (!isValidEmail(employee.email)) return alert("Email sai định dạng!");
+    // if (!address.provinceId || !address.districtId || !address.wardCode) return alert("Vui lòng chọn đầy đủ địa chỉ hành chính!");
+    if (!employee.soDienThoai || !/^\d{10,11}$/.test(employee.soDienThoai)) return alert("SĐT không hợp lệ!");
+    if (!employee.diaChiCuThe.trim()) return alert("Nhập địa chỉ cụ thể!");
 
-    // 1. Sửa lỗi: Bỏ ".value" vì employee là reactive
-    formData.append("tenNhanVien", employee.tenNhanVien || "");
-    formData.append("email", employee.email || "");
-    formData.append("soDienThoai", employee.soDienThoai || "");
-    
-    if (employee.cccd) {
-        formData.append("cccd", employee.cccd);
+    try {
+        const formData = new FormData();
+        formData.append("tenNhanVien", employee.tenNhanVien.trim());
+        formData.append("cccd", employee.cccd.trim());
+        formData.append("email", employee.email.trim());
+        formData.append("soDienThoai", employee.soDienThoai.trim());
+        formData.append("gioiTinh", employee.gioiTinh);
+        
+        const formattedDate = formatDate(employee.ngaySinh);
+        if (formattedDate) formData.append("ngaySinh", formattedDate);
+
+        // Lấy tên địa chỉ
+        const provinceName = getNameFromId(address.provinceId, locationData.provinces);
+        const districtName = getNameFromId(address.districtId, locationData.districts);
+        const wardName = getNameFromId(address.wardCode, locationData.wards);
+
+        formData.append("city", provinceName);
+        formData.append("district", districtName);
+        formData.append("ward", wardName);
+        formData.append("address", employee.diaChiCuThe.trim());
+
+        if (selectedFile.value) {
+            formData.append("avatarFile", selectedFile.value);
+        }
+
+        // Call API
+        const id = route.params.id;
+        const config = { headers: { "Content-Type": "multipart/form-data" } };
+        
+        if (id) {
+            await axios.put(`http://localhost:8080/api/v1/nhan-vien/${id}`, formData, config);
+            alert("Cập nhật thành công!");
+        } else {
+            await axios.post("http://localhost:8080/api/v1/nhan-vien", formData, config);
+            alert("Thêm mới thành công!");
+        }
+
+        router.push({ name: "admin-employee-list" });
+
+    } catch (error) {
+        console.error("Lỗi submit:", error);
+        const msg = error.response?.data?.message || "Có lỗi xảy ra!";
+        alert(`Lỗi: ${msg}`);
     }
-
-    // 2. Xử lý ngày sinh
-    // Lưu ý: formatDate là hàm phụ trợ bác đã có
-    const formattedDate = formatDate(employee.ngaySinh);
-    if (formattedDate) {
-        formData.append("ngaySinh", formattedDate); 
-    }
-
-    // 3. Giới tính
-    formData.append("gioiTinh", employee.gioiTinh);
-
-    // 4. Địa chỉ (Lấy từ biến reactive employee, không có .value)
-    // Lưu ý: Trong code template bác dùng v-model="employee.diaChiCuThe" 
-    // Nhưng API backend cần "address", "ward", "district", "city"
-    // Bác cần map đúng biến address bác đã khai báo riêng
-    formData.append("address", employee.diaChiCuThe || ""); 
-    
-    // address là reactive riêng bác khai báo ở dưới (const address = reactive...)
-    // Vì nó là reactive nên cũng KHÔNG CẦN .value
-    formData.append("ward", address.wardCode || "");       
-    formData.append("district", address.districtId || ""); 
-    formData.append("city", address.provinceId || "");      
-
-    // 5. File ảnh
-    // selectedFile là ref (const selectedFile = ref(null)) -> CÁI NÀY CẦN .value
-    if (selectedFile.value) {
-      formData.append("avatarFile", selectedFile.value);
-    }
-
-    // --- Gửi API ---
-    // route cần import { useRoute } from 'vue-router';
-    const id = route.params.id; 
-    
-    if (id) {
-      console.log("Đang cập nhật ID:", id);
-      await axios.put(`http://localhost:8080/api/v1/nhan-vien/${id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      alert("Cập nhật thành công!");
-    } else {
-      console.log("Đang tạo mới...");
-      await axios.post("http://localhost:8080/api/v1/nhan-vien", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      alert("Thêm mới thành công!");
-    }
-
-    router.push({ name: "admin-employee-list" });
-
-  } catch (error) {
-    console.error("Lỗi submit:", error);
-    if (error.response && error.response.data) {
-        alert("Lỗi Backend: " + JSON.stringify(error.response.data));
-    } else {
-        alert("Có lỗi xảy ra, vui lòng kiểm tra console.");
-    }
-  }
 };
 
 const goBack = () => {
     router.push({ name: 'admin-employee-list' });
 };
 
-const scanQR = () => {
-    alert("Chức năng quét QR Căn cước công dân (Đang phát triển)");
-};
-
-// --- 4. Logic Load dữ liệu khi Sửa (Edit Mode) ---
+// --- 7. Logic Load dữ liệu (Edit Mode) ---
 const fillFormData = async (id) => {
   try {
     const response = await axios.get(`http://localhost:8080/api/v1/nhan-vien/${id}`);
     const data = response.data;
 
-    // 1. Fill thông tin cơ bản
     employee.tenNhanVien = data.tenNhanVien;
     employee.email = data.email;
     employee.soDienThoai = data.soDienThoai;
-    employee.cccd = data.cccd || ''; // Nếu backend chưa có thì để rỗng
+    employee.cccd = data.cccd || '';
     employee.gioiTinh = data.gioiTinh;
-    employee.diaChiCuThe = data.diaChi || ''; // Backend trả về chuỗi địa chỉ gộp
+    employee.diaChiCuThe = data.diaChi || ''; 
 
-    // 2. Xử lý ngày sinh (Convert từ Array/String về yyyy-MM-dd)
-    // Nếu backend trả về [2000, 1, 30] hoặc "2000-01-30"
     if (data.ngaySinh) {
         employee.ngaySinh = Array.isArray(data.ngaySinh) 
             ? new Date(data.ngaySinh[0], data.ngaySinh[1]-1, data.ngaySinh[2]).toISOString().split('T')[0]
             : data.ngaySinh;
     }
 
-    // 3. Hiển thị ảnh cũ (Preview)
     if (data.maNhanVien) {
-        // Gọi lại hàm lấy ảnh từ trang danh sách
         previewImage.value = `http://localhost:8080/api/v1/nhan-vien/images/${data.maNhanVien}.jpg`;
     }
-
-    // 4. Lưu ý về Địa chỉ (Dropdown): 
-    // Vì DB chỉ lưu chuỗi text (ví dụ: "Hà Nội, Ba Đình..."), 
-    // nên rất khó để tự động chọn lại đúng Dropdown Tỉnh/Huyện/Xã trừ khi Backend lưu riêng ID của chúng.
-    // Tạm thời ta chỉ hiển thị địa chỉ cũ vào ô "Địa chỉ cụ thể" để người dùng tham khảo.
-    
   } catch (error) {
-    console.error("Không tải được thông tin nhân viên:", error);
-    alert("Không tìm thấy nhân viên này!");
-    router.push({ name: 'admin-employee' });
+    console.error("Lỗi tải thông tin:", error);
   }
 };
-onMounted(async () => {
-    // 1. Load danh sách tỉnh thành
-    await fetchProvinces();
 
-    // 2. Lấy ID từ URL
-    const id = route.params.id; // Bây giờ biến route đã tồn tại, sẽ không lỗi nữa
-    
-    // 3. Nếu có ID -> Gọi hàm đổ dữ liệu cũ vào form (Chế độ Sửa)
+onMounted(async () => {
+    await fetchProvinces();
+    const id = route.params.id;
     if (id) {
-        // Đảm bảo bác đã copy hàm fillFormData mình gửi ở câu trả lời trước nhé
-        if (typeof fillFormData === 'function') {
-             await fillFormData(id);
-        } else {
-             console.warn("Chưa có hàm fillFormData, vui lòng bổ sung logic load dữ liệu cũ.");
-        }
+         await fillFormData(id);
     }
 });
 </script>
 
 <style scoped>
+/* ========================================= */
+/* 1. CODE GỐC CỦA BẠN (GIỮ NGUYÊN)          */
+/* ========================================= */
 .create-employee-container {
   padding: 20px;
   background-color: #f5f5f5;
@@ -389,7 +465,7 @@ onMounted(async () => {
   padding-right: 30px;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Căn giữa ảnh */
+  align-items: center; 
 }
 
 .avatar-upload {
@@ -410,9 +486,7 @@ onMounted(async () => {
   transition: border-color 0.3s;
 }
 
-.avatar-circle:hover {
-  border-color: #2c3e50;
-}
+.avatar-circle:hover { border-color: #2c3e50; }
 
 .avatar-circle img {
   width: 100%;
@@ -428,9 +502,7 @@ onMounted(async () => {
 .hidden-input { display: none; }
 
 /* --- Right Section (70%) --- */
-.right-section {
-  width: 70%;
-}
+.right-section { width: 70%; }
 
 .section-header {
   display: flex;
@@ -446,6 +518,7 @@ onMounted(async () => {
   margin: 0;
 }
 
+/* Nút mở QR */
 .btn-qr {
   background: white;
   border: 1px solid #2c3e50;
@@ -454,27 +527,27 @@ onMounted(async () => {
   border-radius: 4px;
   font-weight: bold;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: 0.3s;
 }
-.btn-qr:hover { background-color: #f0f4f8; }
+.btn-qr:hover { background-color: #2c3e50; color: white; }
 
 /* Form Grid */
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr; /* 3 cột */
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 20px;
 }
 
-/* Các trường chiếm 1 cột, hoặc full width */
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-/* Riêng phần địa chỉ cụ thể chiếm hết dòng */
-.form-group.full-width {
-  grid-column: span 3;
-}
+.form-group.full-width { grid-column: span 3; }
 
 .required-label {
   font-weight: 600;
@@ -502,7 +575,7 @@ onMounted(async () => {
   display: flex;
   gap: 20px;
   align-items: center;
-  height: 40px; /* Để bằng chiều cao input */
+  height: 40px; 
 }
 .radio-label {
   display: flex;
@@ -519,7 +592,7 @@ onMounted(async () => {
 }
 
 .btn-submit {
-  background-color: #2c3e50; /* Màu Navy chủ đạo */
+  background-color: #2c3e50;
   color: white;
   padding: 12px 24px;
   border: none;
@@ -530,16 +603,79 @@ onMounted(async () => {
   transition: background 0.3s;
 }
 
-.btn-submit:hover {
-  background-color: #1a252f;
-}
+.btn-submit:hover { background-color: #1a252f; }
 
 /* Responsive */
 @media (max-width: 992px) {
   .form-layout { flex-direction: column; }
   .left-section, .right-section { width: 100%; border-right: none; }
   .left-section { border-bottom: 1px solid #eee; padding-bottom: 20px; }
-  .form-grid { grid-template-columns: 1fr; } /* Mobile về 1 cột */
+  .form-grid { grid-template-columns: 1fr; } 
   .form-group.full-width { grid-column: span 1; }
+}
+
+/* ========================================= */
+/* 2. PHẦN BỔ SUNG: CSS CHO QR MODAL         */
+/* ========================================= */
+
+/* Màn hình đen mờ che phủ toàn trang */
+.qr-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7); /* Đen mờ 70% */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Đảm bảo nằm trên cùng */
+}
+
+/* Hộp thoại chứa camera */
+.qr-modal {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 450px;
+  max-width: 90%;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qr-modal h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* Khung hiển thị Camera (id="reader") */
+#reader {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  margin-bottom: 15px;
+}
+
+/* Nút đóng camera */
+.btn-close-qr {
+  background-color: #ef4444; /* Màu đỏ */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+}
+
+.btn-close-qr:hover {
+  background-color: #dc2626;
 }
 </style>

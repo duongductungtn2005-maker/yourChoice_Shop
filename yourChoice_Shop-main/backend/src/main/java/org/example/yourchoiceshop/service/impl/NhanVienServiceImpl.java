@@ -13,6 +13,7 @@ import org.example.yourchoiceshop.dto.request.EmployeeRequest;
 import org.example.yourchoiceshop.entity.NhanVien;
 import org.example.yourchoiceshop.entity.QuyenHan;
 import org.example.yourchoiceshop.repository.NhanVienRepository;
+import org.example.yourchoiceshop.service.EmailService;
 import org.example.yourchoiceshop.service.NhanVienService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -22,12 +23,15 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.transaction.Transactional;
+
 @Service
 public class NhanVienServiceImpl implements NhanVienService {
 
     @Autowired
     private NhanVienRepository nhanVienRepo;
-
+    @Autowired
+    private EmailService emailService;
     // Đường dẫn thư mục lưu ảnh
     private final String UPLOAD_ROOT = "uploads/images/nhan-vien/";
 
@@ -49,10 +53,15 @@ public class NhanVienServiceImpl implements NhanVienService {
     }
 
     @Override
+    @Transactional
     public NhanVien create(EmployeeRequest req) {
         NhanVien nv = new NhanVien();
 
-        // 1. Map thông tin cơ bản
+        // 1. SINH MÃ NHÂN VIÊN (Random 5 số)
+        int randomNum = (int) (Math.floor(Math.random() * 90000) + 10000);
+        nv.setMaNhanVien("NV" + randomNum);
+
+        // 2. MAP DỮ LIỆU TỪ REQUEST
         nv.setTenNhanVien(req.getTenNhanVien());
         nv.setEmail(req.getEmail());
         nv.setSoDienThoai(req.getSoDienThoai());
@@ -60,28 +69,36 @@ public class NhanVienServiceImpl implements NhanVienService {
         nv.setGioiTinh(req.getGioiTinh());
         nv.setNgaySinh(req.getNgaySinh());
 
-        // 2. Xử lý địa chỉ thông minh (Tránh null)
+        // 3. XỬ LÝ ĐỊA CHỈ & ẢNH
         String cleanAddress = buildAddress(req.getAddress(), req.getWard(), req.getDistrict(), req.getCity());
         nv.setDiaChi(cleanAddress);
 
-        // 3. Set thông tin hệ thống
-        nv.setMatKhau("123456");
-        nv.setTrangThai(1);
-        nv.setMaNhanVien("NV" + System.currentTimeMillis());
-
-        // 4. --- QUYỀN HẠN (Quan Trọng) ---
-        QuyenHan quyenHan = new QuyenHan();
-        // LƯU Ý: Đảm bảo ID này tồn tại trong DB của bác (Check lại DB xem là 1 hay số khác)
-        quyenHan.setId(1); 
-        nv.setQuyenHan(quyenHan);
-
-        // 5. Xử lý ảnh (Dùng hàm helper bên dưới)
         if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
             String fileName = saveFile(req.getAvatarFile());
             nv.setAnhDaiDien(fileName);
         }
 
-        return nhanVienRepo.save(nv);
+        // 4. THIẾT LẬP MẶC ĐỊNH (Mật khẩu, Trạng thái, Quyền)
+        String matKhauMacDinh = "123456";
+        nv.setMatKhau(matKhauMacDinh); // (Nên mã hóa BCrypt ở đây nếu có security)
+        nv.setTrangThai(1);
+
+        QuyenHan quyenHan = new QuyenHan();
+        quyenHan.setId(1); // ID = 1 là Nhân viên
+        nv.setQuyenHan(quyenHan);
+
+        // 5. LƯU VÀO DB (CHỈ LƯU 1 LẦN DUY NHẤT)
+        NhanVien savedNv = nhanVienRepo.save(nv);
+
+        // 6. GỬI EMAIL CHÀO MỪNG (CHẠY NGẦM)
+        if (savedNv.getEmail() != null && !savedNv.getEmail().isEmpty()) {
+            new Thread(() -> {
+                emailService.sendWelcomeEmail(savedNv.getEmail(), savedNv.getTenNhanVien(), matKhauMacDinh);
+            }).start();
+        }
+
+        // Trả về đối tượng đã lưu
+        return savedNv;
     }
 
     @Override
@@ -122,14 +139,6 @@ public class NhanVienServiceImpl implements NhanVienService {
         nhanVienRepo.save(nv);
     }
 
-    // ==========================================================
-    // CÁC HÀM PHỤ TRỢ (HELPER METHODS) - GIỮ CODE GỌN GÀNG
-    // ==========================================================
-
-    /**
-     * Hàm lưu file vật lý vào ổ cứng
-     * Sử dụng UUID để đảm bảo tên file không bao giờ trùng
-     */
     private String saveFile(MultipartFile file) {
         try {
             String originalName = file.getOriginalFilename();

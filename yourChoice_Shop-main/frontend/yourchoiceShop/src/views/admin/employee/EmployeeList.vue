@@ -27,7 +27,6 @@
         <label>Giới tính:</label>
         <select v-model="filters.gender" class="form-control filter-select" @change="handleFilterChange">
           <option value="">Tất cả</option>
-          
           <option :value="true">Nam</option>
           <option :value="false">Nữ</option>
         </select>
@@ -64,7 +63,7 @@
           </thead>
           <tbody>
             <tr v-if="employees.length === 0">
-                <td colspan="11" style="text-align: center; padding: 20px; color: #888;">
+                <td colspan="12" style="text-align: center; padding: 20px; color: #888;">
                     Không tìm thấy nhân viên nào.
                 </td>
             </tr>
@@ -73,11 +72,11 @@
               <td>{{ index + 1 + (currentPage * pageSize) }}</td>
               <td>
                 <img 
-                  :src="getAvatarUrl(emp.maNhanVien)" 
-                  @error="$event.target.src = 'https://via.placeholder.com/40'"
-                  alt="Avatar" 
-                  class="table-avatar" 
-                />
+                      class="avatar-image"
+                      :src="generateImageUrl(emp.hinhAnh)" 
+                      @error="handleImageError"
+                      alt="Avatar"
+                  />
               </td>
               <td>{{ emp.maNhanVien }}</td>
               <td class="fw-bold">{{ emp.tenNhanVien }}</td>
@@ -144,12 +143,37 @@ const searchQuery = ref('');
 const pageSize = ref(5);
 const currentPage = ref(0);
 const totalPages = ref(0);
-let timeout = null; // Biến dùng cho Debounce search
+let timeout = null; 
 
 const filters = reactive({
   gender: '',
   status: ''
 });
+
+// 1. Hàm tạo link ảnh (Đã sửa lại an toàn tuyệt đối)
+const generateImageUrl = (imageName) => {
+    // Kiểm tra kỹ: nếu không có tên ảnh, hoặc tên là null/undefined
+    if (!imageName || imageName === 'null' || imageName === '') {
+        // Trả về ảnh rỗng (trong suốt) dạng mã Base64 -> Không cần mạng vẫn chạy
+        return 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; 
+    }
+    
+    // Trả về đường dẫn API Backend
+    return `http://localhost:8080/api/v1/nhan-vien/images/${imageName}`;
+}
+
+// 2. Hàm xử lý khi ảnh lỗi (Chặn đứng vòng lặp)
+const handleImageError = (e) => {
+    // Bước 1: Ngắt ngay sự kiện lỗi để không bao giờ lặp lại
+    e.target.onerror = null; 
+    
+    // Bước 2: Thay thế bằng ảnh "No Image" (dùng link icon ổn định hoặc base64)
+    // Mình dùng link icon của Flaticon (nhẹ hơn) hoặc ảnh rỗng
+    e.target.src = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png";
+    
+    // Nếu bạn muốn chắc ăn 100% không cần mạng, dùng dòng dưới này (bỏ comment):
+    // e.target.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+}
 
 // --- API ACTIONS ---
 
@@ -168,7 +192,6 @@ const fetchEmployees = async () => {
     
     employees.value = response.data.content || [];
 
-    // Xử lý phân trang (hỗ trợ cả cấu trúc cũ và mới của Spring)
     if (response.data.page) {
         totalPages.value = response.data.page.totalPages;
     } else {
@@ -187,7 +210,7 @@ const softDeleteEmployee = async (emp) => {
 
     try {
         await axios.delete(`http://localhost:8080/api/v1/nhan-vien/${emp.id}`);
-        emp.trangThai = 0; // Cập nhật UI ngay lập tức
+        emp.trangThai = 0; 
         alert("Đã xóa thành công!");
     } catch (error) {
         console.error(error);
@@ -200,7 +223,6 @@ const toggleStatus = async (emp) => {
     const oldStatus = emp.trangThai;
     const newStatus = oldStatus === 1 ? 0 : 1;
 
-    // Optimistic UI: Đổi màu ngay cho mượt
     emp.trangThai = newStatus;
 
     try {
@@ -210,27 +232,18 @@ const toggleStatus = async (emp) => {
         console.log(`Đã đổi trạng thái nhân viên ${emp.tenNhanVien} thành công.`);
     } catch (error) {
         console.error("Lỗi cập nhật trạng thái:", error);
-        emp.trangThai = oldStatus; // Hoàn tác nếu lỗi
+        emp.trangThai = oldStatus; 
         alert("Lỗi kết nối! Không thể cập nhật trạng thái.");
     }
 };
 
-// --- HELPER FUNCTIONS (Hàm phụ trợ) ---
+// --- HELPER FUNCTIONS ---
 
-// 1. Hàm lấy Link Ảnh (Sửa theo logic Mã nhân viên)
-const getAvatarUrl = (maNhanVien) => {
-    if (!maNhanVien) return 'https://via.placeholder.com/40';
-    
-    // Thêm ?t=time để tránh cache trình duyệt
-    return `http://localhost:8080/api/v1/nhan-vien/images/${maNhanVien}.jpg?t=${new Date().getTime()}`;
-};
-
-// 2. Hàm làm sạch hiển thị địa chỉ
 const formatAddress = (addr) => {
   if (!addr) return "Chưa cập nhật";
-  let cleanAddr = addr.replace(/null/gi, ""); // Xóa chữ null
-  cleanAddr = cleanAddr.replace(/(,\s*)+/g, ", ").trim(); // Xóa dấu phẩy thừa
-  cleanAddr = cleanAddr.replace(/^,\s*|,\s*$/g, ""); // Xóa phẩy đầu/cuối
+  let cleanAddr = addr.replace(/null/gi, ""); 
+  cleanAddr = cleanAddr.replace(/(,\s*)+/g, ", ").trim(); 
+  cleanAddr = cleanAddr.replace(/^,\s*|,\s*$/g, ""); 
   return cleanAddr || "Chưa cập nhật";
 };
 

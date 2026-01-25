@@ -1,11 +1,5 @@
 <template>
   <div class="base-page-container">
-    <div class="page-header">
-      <slot name="header">
-        <h2>Tiêu đề trang</h2>
-      </slot>
-    </div>
-
     <div class="main-card">
       <div class="toolbar" v-if="$slots.toolbar">
         <slot name="toolbar"></slot>
