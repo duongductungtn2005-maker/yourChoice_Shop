@@ -8,7 +8,7 @@
 
     <div class="card">
       <div class="card-header">
-        <h3>Quản lý sản phẩm / Sản phẩm</h3>
+        <h3>Quản lý sản phẩm / Sản phẩm111</h3>
       </div>
 
       <div class="toolbar">
