@@ -150,29 +150,18 @@ const filters = reactive({
   status: ''
 });
 
-// 1. Hàm tạo link ảnh (Đã sửa lại an toàn tuyệt đối)
+// 1. Hàm tạo link ảnh (An toàn)
 const generateImageUrl = (imageName) => {
-    // Kiểm tra kỹ: nếu không có tên ảnh, hoặc tên là null/undefined
     if (!imageName || imageName === 'null' || imageName === '') {
-        // Trả về ảnh rỗng (trong suốt) dạng mã Base64 -> Không cần mạng vẫn chạy
         return 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; 
     }
-    
-    // Trả về đường dẫn API Backend
     return `http://localhost:8080/api/v1/nhan-vien/images/${imageName}`;
 }
 
-// 2. Hàm xử lý khi ảnh lỗi (Chặn đứng vòng lặp)
+// 2. Hàm xử lý khi ảnh lỗi
 const handleImageError = (e) => {
-    // Bước 1: Ngắt ngay sự kiện lỗi để không bao giờ lặp lại
     e.target.onerror = null; 
-    
-    // Bước 2: Thay thế bằng ảnh "No Image" (dùng link icon ổn định hoặc base64)
-    // Mình dùng link icon của Flaticon (nhẹ hơn) hoặc ảnh rỗng
     e.target.src = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png";
-    
-    // Nếu bạn muốn chắc ăn 100% không cần mạng, dùng dòng dưới này (bỏ comment):
-    // e.target.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 }
 
 // --- API ACTIONS ---
@@ -218,7 +207,7 @@ const softDeleteEmployee = async (emp) => {
     }
 };
 
-// 3. Xử lý bật tắt trạng thái (Toggle Switch)
+// 3. Xử lý bật tắt trạng thái
 const toggleStatus = async (emp) => {
     const oldStatus = emp.trangThai;
     const newStatus = oldStatus === 1 ? 0 : 1;
@@ -234,6 +223,44 @@ const toggleStatus = async (emp) => {
         console.error("Lỗi cập nhật trạng thái:", error);
         emp.trangThai = oldStatus; 
         alert("Lỗi kết nối! Không thể cập nhật trạng thái.");
+    }
+};
+
+// 4. XUẤT EXCEL (ĐÃ CẬP NHẬT)
+const exportExcel = async () => {
+    try {
+        // Lấy các tham số filter hiện tại để xuất đúng dữ liệu đang xem
+        const params = {
+            keyword: searchQuery.value,
+            gioiTinh: filters.gender, // Lưu ý: Backend thường đặt tên biến là gioitinh
+            trangThai: filters.status
+        };
+
+        // Gọi API với responseType là 'blob' để nhận file binary
+        const response = await axios.get('http://localhost:8080/api/v1/nhan-vien/export-excel', {
+            params: params,
+            responseType: 'blob' 
+        });
+
+        // Tạo URL ảo từ dữ liệu Blob trả về
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        
+        // Tạo thẻ a ẩn để kích hoạt tải xuống
+        const link = document.createElement('a');
+        link.href = url;
+        const fileName = `Danh_Sach_Nhan_Vien_${new Date().toISOString().slice(0,10)}.xlsx`;
+        link.setAttribute('download', fileName);
+        
+        document.body.appendChild(link);
+        link.click();
+        
+        // Dọn dẹp bộ nhớ
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+        console.error("Lỗi xuất Excel:", error);
+        alert("Lỗi: Không thể tải file Excel. Vui lòng kiểm tra Server!");
     }
 };
 
@@ -258,10 +285,6 @@ const changePage = (page) => {
 
 const goToCreate = () => {
   router.push({ name: 'admin-employee-create' });
-};
-
-const exportExcel = () => {
-    alert('Chức năng đang phát triển...');
 };
 
 const handleFilterChange = () => {

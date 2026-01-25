@@ -1,8 +1,13 @@
 package org.example.yourchoiceshop.controller;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 
 import org.example.yourchoiceshop.dto.request.EmployeeRequest;
 import org.example.yourchoiceshop.entity.NhanVien;
@@ -17,6 +22,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*; // Import gọn hơn
+
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,5 +119,28 @@ public class NhanVienController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
         }
+    }
+    @GetMapping("/export-excel")
+    public void exportToExcel(HttpServletResponse response,
+                              @RequestParam(required = false) String keyword,
+                              @RequestParam(required = false) Boolean gender,
+                              @RequestParam(required = false) Integer status) throws IOException {
+        
+        // 1. Cấu hình Header trả về file
+        response.setContentType("application/octet-stream");
+        DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
+        String currentDateTime = dateFormatter.format(new Date());
+
+        String headerKey = "Content-Disposition";
+        String headerValue = "attachment; filename=NhanVien_" + currentDateTime + ".xlsx";
+        response.setHeader(headerKey, headerValue);
+
+        // 2. Lấy dữ liệu (Cần viết thêm hàm này trong Service nếu chưa có)
+        // Lưu ý: Hàm này trả về List<NhanVien>, KHÔNG PHẢI Page<NhanVien>
+        List<NhanVien> listNhanVien = nhanVienService.findAllList(keyword, gender, status);
+
+        // 3. Gọi class xuất Excel
+        EmployeeExcelExporter excelExporter = new EmployeeExcelExporter(listNhanVien);
+        excelExporter.export(response);
     }
 }
