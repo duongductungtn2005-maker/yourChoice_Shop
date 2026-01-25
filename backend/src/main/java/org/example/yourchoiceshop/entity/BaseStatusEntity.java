@@ -11,15 +11,15 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @MappedSuperclass
-@EntityListeners(AuditingEntityListener.class)
+@EntityListeners(AuditingEntityListener.class) // <--- QUAN TRỌNG NHẤT
 public abstract class BaseStatusEntity extends PrimaryEntity {
 
     @Column(name = "ngay_tao", updatable = false)
-    @CreatedDate
+    @CreatedDate // <--- Tự động lấy giờ hiện tại khi INSERT
     private LocalDateTime ngayTao;
 
     @Column(name = "ngay_cap_nhat")
-    @LastModifiedDate
+    @LastModifiedDate // <--- Tự động lấy giờ hiện tại khi UPDATE
     private LocalDateTime ngayCapNhat;
 
     @Column(name = "nguoi_tao")
