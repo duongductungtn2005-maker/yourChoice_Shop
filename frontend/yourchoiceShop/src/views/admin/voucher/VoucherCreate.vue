@@ -132,7 +132,7 @@ const submitForm = async () => {
     if (!payload.maPhieuGiamGia || payload.maPhieuGiamGia.trim() === '') {
         payload.maPhieuGiamGia = null; 
     }
-
+//tesst
     // Call API
     await request.post('/phieu-giam-gia', payload);
     
@@ -143,6 +143,7 @@ const submitForm = async () => {
     alert('Lỗi: ' + msg);
   }
 };
+// test commit
 </script>
 
 <style scoped>
