@@ -6,6 +6,7 @@ import org.example.yourchoiceshop.dto.request.KhachHangRequest;
 import org.example.yourchoiceshop.entity.KhachHang;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 
 public interface KhachHangService {
     Page<KhachHang> findAll(String keyword, Boolean gender, Integer status, Pageable pageable);  

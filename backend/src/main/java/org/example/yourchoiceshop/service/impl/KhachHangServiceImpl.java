@@ -2,6 +2,7 @@ package org.example.yourchoiceshop.service.impl;
 
 import org.example.yourchoiceshop.entity.KhachHang;
 import org.example.yourchoiceshop.repository.KhachHangRepository;
+import org.example.yourchoiceshop.service.KhachHangService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -10,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class KhachHangServiceImpl {
+public class KhachHangServiceImpl implements KhachHangService {
 
     private final KhachHangRepository khachHangRepository;
 

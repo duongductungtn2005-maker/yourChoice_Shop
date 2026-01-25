@@ -3,7 +3,7 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="logo-circle">
-          <img src="@/assets/logo.png" alt="Logo" @error="handleImageError" />
+          <img src="@/img/logo1.png" alt="Logo" @error="handleImageError" />
           </div>
         <span class="brand-name">YourChoice</span>
       </div>
