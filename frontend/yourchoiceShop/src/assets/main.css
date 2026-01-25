@@ -1,41 +1,134 @@
-/* src/assets/main.css */
 @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap');
 
 * {
-    box_sizing: border_box;
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
+:root {
+    --primary-color: #2b4360; /* Xanh than */
+    --accent-color: #eddcc3;  /* Vàng be */
+    --text-color: #334155;
+    --border-color: #cbd5e1;
+    --bg-light: #f8f9fa;
+}
+
 body {
-    font-family: 'Segoe UI', sans-serif; /* Font chuẩn window giống ảnh */
-    background-color: #f1f5f9;
-    color: #334155;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 16px;
+    color: var(--text-color);
+    background-color: var(--bg-light);
+    margin: 0;
+}
+
+/* Typography */
+h1, .page-title {
+    font-size: 32px;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 24px;
+}
+
+h2, h3 { font-weight: bold; }
+.small-text { font-size: 13px; color: #64748b; }
+
+/* Placeholder Styling */
+::placeholder {
+    color: #94a3b8 !important;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+/* Inputs */
+input, select, textarea {
+    font-family: 'Segoe UI', sans-serif;
     font-size: 14px;
-    line-height: 1.5;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 12px;
+    outline: none;
+    transition: 0.2s;
+}
+input:focus, select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(43, 67, 96, 0.1);
 }
 
-a {
+/* Buttons */
+.btn {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     text-decoration: none;
-    color: inherit;
+    border: 1px solid transparent;
+    transition: all 0.2s;
 }
 
-ul {
-    list-style: none;
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+.btn-primary:hover {
+    background-color: #1e2f45;
+    color: var(--accent-color);
 }
 
-/* Custom Scrollbar cho đẹp */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+.btn-outline {
+    background-color: white;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
 }
-::-webkit-scrollbar-track {
-    background: #f1f1f1; 
+.btn-outline:hover {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+    border-color: var(--accent-color);
 }
-::-webkit-scrollbar-thumb {
-    background: #cbd5e1; 
-    border-radius: 3px;
+
+/* Icon Buttons (Actions in Table) */
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px;
+    color: var(--primary-color);
+    transition: 0.2s;
 }
-::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8; 
+.icon-btn:hover {
+    color: #c4a982; /* Vàng đậm hơn chút */
+    transform: scale(1.1);
 }
+.icon-btn:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Table Global */
+.table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+.custom-table { width: 100%; border-collapse: collapse; }
+.custom-table th {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 15px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 14px;
+}
+.custom-table td {
+    padding: 15px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+.row-disabled { opacity: 0.6; background: #fafafa; }
