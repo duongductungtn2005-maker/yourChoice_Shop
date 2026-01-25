@@ -75,25 +75,30 @@ public class NhanVienController {
         }
     }
 
-    // 4. Hiển thị ảnh (Serve Image)
-    // Cấu trúc {filename:.+} giúp lấy cả đuôi file (.jpg, .png)
-    @GetMapping("/images/{filename:.+}")
+        @GetMapping("/images/{filename:.+}")
     public ResponseEntity<Resource> serveFile(@PathVariable String filename) {
         try {
-            // LƯU Ý: Đường dẫn này phải trùng khớp folder lưu ảnh trong Service
-            Path file = Paths.get("uploads/images/nhan-vien/").resolve(filename);
-            Resource resource = new UrlResource(file.toUri());
+            // Lấy đường dẫn gốc của dự án
+            String currentPath = System.getProperty("user.dir"); 
             
+            // Trỏ vào thư mục uploads/images/nhan-vien/
+            Path file = Paths.get(currentPath, "uploads", "images", "nhan-vien").resolve(filename);
+            
+            Resource resource = new UrlResource(file.toUri());
+
             if (resource.exists() || resource.isReadable()) {
                 return ResponseEntity.ok()
+                        // Thêm dòng này để trình duyệt cache ảnh, load nhanh hơn
+                        .header(HttpHeaders.CACHE_CONTROL, "max-age=31536000") 
                         .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
-                        .contentType(MediaType.IMAGE_JPEG) 
                         .body(resource);
+            } else {
+                // Nếu không tìm thấy file, trả về lỗi 404 hoặc ảnh mặc định (tùy chọn)
+                return ResponseEntity.notFound().build();
             }
         } catch (MalformedURLException e) {
-            logger.error("Error serving file: {}", filename, e);
+            return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.notFound().build();
     }
 
     // 5. Xóa mềm (Soft Delete)

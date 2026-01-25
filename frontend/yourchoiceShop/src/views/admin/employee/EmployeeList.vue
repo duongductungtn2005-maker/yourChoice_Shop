@@ -71,12 +71,14 @@
             <tr v-for="(emp, index) in employees" :key="emp.id">
               <td>{{ index + 1 + (currentPage * pageSize) }}</td>
               <td>
-                <img 
-                      class="avatar-image"
-                      :src="generateImageUrl(emp.hinhAnh)" 
-                      @error="handleImageError"
-                      alt="Avatar"
-                  />
+                <div class="image-container">
+                    <img 
+                        :src="getImageUrl(emp.anhDaiDien)" 
+                        alt="Ảnh NV" 
+                        class="employee-image"
+                        @error="handleImageError" 
+                    />
+                </div>
               </td>
               <td>{{ emp.maNhanVien }}</td>
               <td class="fw-bold">{{ emp.tenNhanVien }}</td>
@@ -150,19 +152,17 @@ const filters = reactive({
   status: ''
 });
 
-// 1. Hàm tạo link ảnh (An toàn)
-const generateImageUrl = (imageName) => {
-    if (!imageName || imageName === 'null' || imageName === '') {
-        return 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; 
-    }
+// Hàm tạo URL ảnh
+const getImageUrl = (imageName) => {
+    if (!imageName) return 'https://via.placeholder.com/150'; // Ảnh rỗng nếu null
+    // LƯU Ý: Thay localhost:8080 bằng port backend thực tế của bạn
     return `http://localhost:8080/api/v1/nhan-vien/images/${imageName}`;
-}
+};
 
-// 2. Hàm xử lý khi ảnh lỗi
+// Hàm xử lý khi ảnh bị lỗi (404) -> Thay thế bằng ảnh mặc định
 const handleImageError = (e) => {
-    e.target.onerror = null; 
-    e.target.src = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png";
-}
+    e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png"; // Ảnh avatar mặc định online
+};
 
 // --- API ACTIONS ---
 
@@ -595,4 +595,11 @@ input:checked + .slider:before {
 
 .text-active { color: #2c3e50; }
 .text-inactive { color: #999; }
+.employee-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%; /* Bo tròn ảnh */
+    object-fit: cover; /* Cắt ảnh vừa khung, không bị méo */
+    border: 1px solid #ddd;
+}
 </style>
