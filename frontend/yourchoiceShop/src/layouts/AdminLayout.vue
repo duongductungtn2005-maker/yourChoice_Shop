@@ -3,8 +3,8 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="logo-circle">
-          <img src="@/img/logo1.png" alt="Logo" @error="handleImageError" />
-        </div>
+          <img src="@/assets/logo.png" alt="Logo" @error="handleImageError" />
+          </div>
         <span class="brand-name">YourChoice</span>
       </div>
 
@@ -96,10 +96,10 @@
     <main class="main-content">
       <header class="top-header">
         <div class="header-actions">
-            <button class="icon-btn">
+            <button class="icon-btn" title="Lịch">
                 <i class="fa-regular fa-calendar"></i>
             </button>
-            <button class="icon-btn">
+            <button class="icon-btn" title="Thông báo">
                 <i class="fa-regular fa-bell"></i>
                 <span class="badge-count">3</span>
             </button>
@@ -157,8 +157,7 @@ const isDiscountRoute = computed(() => {
 
 // Xử lý ảnh lỗi nếu logo không load được
 const handleImageError = (e) => {
-    // e.target.style.display = 'none'; // Có thể ẩn hoặc thay bằng ảnh default
-    e.target.src = 'https://via.placeholder.com/40';
+    e.target.style.display = 'none'; // Ẩn ảnh lỗi đi
 };
 </script>
 

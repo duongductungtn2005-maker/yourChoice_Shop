@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// --- IMPORT CÁC MÀN HÌNH QUẢN LÝ THUỘC TÍNH ---
+// --- IMPORT CÁC MÀN HÌNH THUỘC TÍNH (Static Import cho các file nhẹ) ---
 import CoAoIndex from '../views/admin/attribute/CoAoIndex.vue'
 import TayAoIndex from '../views/admin/attribute/TayAoIndex.vue'
 import ChatLieuIndex from '../views/admin/attribute/ChatLieuIndex.vue'
@@ -29,25 +29,28 @@ const router = createRouter({
       children: [
         // --- Dashboard ---
         {
-          path: '', 
-          redirect: '/admin/dashboard'
-        },
-        {
-          path: 'dashboard',
+          path: 'dashboard', // Sửa lại path để khớp với router-link
           name: 'admin-dashboard',
-          component: () => import('../views/admin/dashboard/Dashboard.vue')
+          // Bạn cần đảm bảo file này tồn tại hoặc tạo mới
+          component: () => import('../views/admin/Dashboard.vue') 
+        },
+        // Redirect mặc định khi vào /admin
+        { 
+            path: '', 
+            redirect: '/admin/dashboard' 
         },
 
-        // --- QUẢN LÝ SẢN PHẨM (Gốc) ---
+        // --- QUẢN LÝ SẢN PHẨM ---
         {
           path: 'products',
           name: 'admin-product-list',
           component: () => import('../views/admin/product/ProductIndex.vue')
         },
+        // [QUAN TRỌNG] Route Create phải đặt TRƯỚC route Detail (:id)
         {
-          path: 'products/create',
-          name: 'admin-product-create',
-          component: () => import('../views/admin/product/ProductCreate.vue')
+            path: 'products/create',
+            name: 'admin-product-create',
+            component: () => import('../views/admin/product/ProductCreate.vue')
         },
         {
           path: 'products/:id',
@@ -138,7 +141,7 @@ const router = createRouter({
     // ==========================================
     // 3. CÁC ROUTE KHÁC
     // ==========================================
-    // Redirect trang chủ về login hoặc admin (Tùy bạn chọn)
+    // Redirect trang chủ về login hoặc admin
     { path: '/', redirect: '/login' },
 
     // Catch all (404) -> Về Login
