@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="page-container">
     <h1 class="page-title">Quản lý Phiếu giảm giá</h1>
 
@@ -134,10 +135,15 @@
       </div>
     </div>
 
+=======
+  <div style="padding: 20px;">
+    <h2>Trang này đang được xây dựng...</h2>
+>>>>>>> upstream/main
   </div>
 </template>
 
 <script setup>
+<<<<<<< HEAD
 import { ref, computed, onMounted } from 'vue';
 import request from '@/services/request';
 
@@ -260,3 +266,6 @@ onMounted(fetchData);
 .customer-list-box { max-height: 300px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 15px; }
 .modal-actions { display: flex; justify-content: space-between; align-items: center; }
 </style>
+=======
+</script>
+>>>>>>> upstream/main

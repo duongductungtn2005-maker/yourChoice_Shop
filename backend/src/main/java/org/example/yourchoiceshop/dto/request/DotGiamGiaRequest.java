@@ -17,4 +17,5 @@ public class DotGiamGiaRequest {
 
     // Danh sách ID của ChiTietSanPham muốn áp dụng giảm giá
     private List<Integer> idChiTietSanPhams;
+    private List<Integer> idSanPhams;
 }

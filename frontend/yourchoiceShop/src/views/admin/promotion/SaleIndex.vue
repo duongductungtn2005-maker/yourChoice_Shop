@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="page-container">
     <h1 class="page-title">Quản lý Đợt giảm giá</h1>
 
@@ -177,10 +178,15 @@
             </div>
         </div>
     </div>
+=======
+  <div style="padding: 20px;">
+    <h2>Trang này đang được xây dựng...</h2>
+>>>>>>> upstream/main
   </div>
 </template>
 
 <script setup>
+<<<<<<< HEAD
 import { ref, onMounted } from 'vue';
 import request from '@/services/request';
 
@@ -312,3 +318,6 @@ onMounted(fetchData);
 .text-center { text-align: center; }
 .empty-state { font-style: italic; color: #94a3b8; }
 </style>
+=======
+</script>
+>>>>>>> upstream/main

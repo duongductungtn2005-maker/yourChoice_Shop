@@ -2,7 +2,16 @@ package org.example.yourchoiceshop.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
+<<<<<<< HEAD
 @Entity @Table(name = "hoa_don_chi_tiet") @Data
+=======
+@Entity
+@Table(name = "hoa_don_chi_tiet")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+>>>>>>> upstream/main
 public class HoaDonChiTiet extends PrimaryEntity {
     @Column(name = "ma_hoa_don_chi_tiet") private String maHoaDonChiTiet;
     private Integer soLuong;

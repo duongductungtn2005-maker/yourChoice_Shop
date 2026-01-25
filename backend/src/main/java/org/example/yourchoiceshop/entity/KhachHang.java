@@ -4,7 +4,16 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.List;
 
+<<<<<<< HEAD
 @Entity @Table(name = "khach_hang") @Data
+=======
+@Entity
+@Table(name = "khach_hang") 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+>>>>>>> upstream/main
 public class KhachHang extends BaseStatusEntity {
     @Column(name = "ma_khach_hang") private String maKhachHang;
     @Column(name = "ten_khach_hang") private String tenKhachHang;

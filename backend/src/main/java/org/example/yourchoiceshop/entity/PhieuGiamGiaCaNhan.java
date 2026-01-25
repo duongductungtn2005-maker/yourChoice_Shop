@@ -3,7 +3,16 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+<<<<<<< HEAD
 @Entity @Table(name = "phieu_giam_gia_ca_nhan") @Data
+=======
+@Entity
+@Table(name = "phieu_giam_gia_ca_nhan")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+>>>>>>> upstream/main
 public class PhieuGiamGiaCaNhan extends PrimaryEntity {
     @Column(name = "ma_phieu_khach_hang") private String maPhieuKhachHang;
     @Column(name = "ngay_nhan") private LocalDateTime ngayNhan;

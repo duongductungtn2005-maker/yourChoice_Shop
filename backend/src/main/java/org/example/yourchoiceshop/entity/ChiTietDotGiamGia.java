@@ -2,7 +2,16 @@ package org.example.yourchoiceshop.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
+<<<<<<< HEAD
 @Entity @Table(name = "chi_tiet_dot_giam_gia") @Data
+=======
+@Entity
+@Table(name = "chi_tiet_dot_giam_gia")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+>>>>>>> upstream/main
 public class ChiTietDotGiamGia extends BaseStatusEntity {
     @ManyToOne @JoinColumn(name = "id_dot_giam_gia") private DotGiamGia dotGiamGia;
     @ManyToOne @JoinColumn(name = "id_chi_tiet_san_pham") private ChiTietSanPham chiTietSanPham;
