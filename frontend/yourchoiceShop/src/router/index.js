@@ -77,12 +77,12 @@ const router = createRouter({
         {
           path: 'orders',
           name: 'admin-order-list',
-          component: () => import('../views/admin/order/OrderIndex.vue')
+          component: () => import('../views/admin/DonHang/QuanLyDonHang.vue')
         },
         {
           path: 'orders/:id',
           name: 'admin-order-detail',
-          component: () => import('../views/admin/order/OrderDetail.vue')
+          component: () => import('../views/admin/DonHang/ChiTietDonHang.vue')
         },
 
         // --- BÁN HÀNG TẠI QUẦY (POS) ---
