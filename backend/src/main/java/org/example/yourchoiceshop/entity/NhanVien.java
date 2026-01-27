@@ -13,6 +13,11 @@ public class NhanVien extends BaseStatusEntity {
     private Boolean gioiTinh;
     @Column(name = "ngay_sinh") private LocalDate ngaySinh;
     @Column(name = "dia_chi") private String diaChi;
+    @Column(name = "anh_dai_dien") 
+    private String anhDaiDien; // Service đang gọi nv.setAnhDaiDien()
+
+    @Column(name = "cccd")
+    private String cccd;
 
     @ManyToOne @JoinColumn(name = "id_quyen_han") private QuyenHan quyenHan;
 }

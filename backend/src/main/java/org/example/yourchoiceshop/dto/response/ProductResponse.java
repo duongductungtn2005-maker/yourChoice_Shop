@@ -1,5 +1,6 @@
 package org.example.yourchoiceshop.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,11 +13,16 @@ public class ProductResponse {
     private Integer id;
     private String maSanPham;
     private String tenSanPham;
+
+    // Định dạng ngày giờ trả về cho Frontend
+    // Kết quả sẽ là chuỗi: "26/01/2026"
+    @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDateTime ngayTao;
+
     private Integer soLuong;
     private Integer trangThai;
 
-    // Các trường TÊN (để hiển thị ra bảng)
+    // --- Các trường TÊN (để hiển thị ra bảng) ---
     private String tenThuongHieu;
     private String tenChatLieu;
     private String tenXuatXu;
@@ -25,7 +31,7 @@ public class ProductResponse {
     private String dsMauSac;
     private String dsKichThuoc;
 
-    // --- CÁC TRƯỜNG MỚI THÊM (Để binding vào Modal sửa) ---
+    // --- CÁC TRƯỜNG ID (Để binding vào Modal sửa) ---
     private Integer idThuongHieu;
     private Integer idChatLieu;
     private Integer idXuatXu;

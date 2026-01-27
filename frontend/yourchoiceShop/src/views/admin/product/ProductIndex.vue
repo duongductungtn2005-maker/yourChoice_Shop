@@ -1,9 +1,7 @@
 <template>
   <div class="product-page">
     <div class="header-section">
-      <div class="breadcrumb">
-        <span>Quản lý sản phẩm</span> <span class="divider">/</span> <span class="active">Sản phẩm</span>
-      </div>
+      <h1 class="page-title">Quản lý sản phẩm / Sản phẩm</h1>
     </div>
 
     <div class="card">
@@ -71,7 +69,9 @@
               <td class="text-center">{{ (page - 1) * pageSize + index + 1 }}</td>
               <td class="text-gray">{{ item.maSanPham }}</td>
               <td class="font-medium text-primary">{{ item.tenSanPham }}</td>
-              <td class="text-center text-gray">{{ formatDate(item.ngayTao) }}</td>
+              
+              <td class="text-center text-gray">{{ item.ngayTao }}</td>
+              
               <td class="text-center font-bold">{{ item.soLuong }}</td>
               <td class="text-center">
                  <span :class="['badge', item.trangThai === 1 ? 'badge-success' : 'badge-danger']">
@@ -110,8 +110,9 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import axios from 'axios';
-import Swal from 'sweetalert2'; // Thêm sweetalert2 để thông báo đẹp hơn
+// UPDATE: Sử dụng request chung thay vì axios trực tiếp
+import request from '@/services/request'; 
+import Swal from 'sweetalert2';
 
 // STATE
 const items = ref([]);
@@ -126,13 +127,12 @@ const filter = reactive({
     status: null 
 });
 
-const API_URL = 'http://localhost:8080/api/v1/products';
-
 // FETCH DATA
 const fetchProducts = async () => {
     loading.value = true;
     try {
-        const res = await axios.get(API_URL, {
+        // UPDATE: Dùng request.get, bỏ bớt phần 'http://localhost...' vì đã có baseURL
+        const res = await request.get('/products', {
             params: {
                 page: page.value - 1,
                 size: pageSize.value,
@@ -144,6 +144,7 @@ const fetchProducts = async () => {
         totalPages.value = res.data.totalPages;
     } catch (e) {
         console.error(e);
+        // Có thể thêm thông báo lỗi nhẹ nếu muốn
     } finally {
         loading.value = false;
     }
@@ -152,7 +153,7 @@ const fetchProducts = async () => {
 // EXPORT EXCEL
 const exportExcel = async () => {
     try {
-        const response = await axios.get(`${API_URL}/export`, {
+        const response = await request.get('/products/export', {
             responseType: 'blob' 
         });
 
@@ -169,7 +170,6 @@ const exportExcel = async () => {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
         
-        // Thông báo thành công
         const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
         Toast.fire({ icon: 'success', title: 'Đã tải xuống file Excel!' });
 
@@ -182,7 +182,8 @@ const exportExcel = async () => {
 // UTILS
 const changePage = (p) => { if (p >= 1 && p <= totalPages.value) { page.value = p; fetchProducts(); } };
 const handlePageSizeChange = () => { page.value = 1; fetchProducts(); };
-const formatDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit', year:'numeric'}) : '';
+
+// REMOVE: Đã xóa hàm formatDate gây lỗi "Invalid Date"
 
 const visiblePages = computed(() => {
     let p = [];
@@ -269,6 +270,7 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-
 
 .action-btn { background: none; border: none; cursor: pointer; font-size: 18px; color: #475569; transition: 0.2s; }
 .action-btn:hover { color: #0f172a; transform: scale(1.1); }
+.page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 
 /* PAGINATION */
 .pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f1f5f9; }

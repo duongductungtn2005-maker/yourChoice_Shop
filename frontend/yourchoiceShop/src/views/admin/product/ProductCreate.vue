@@ -195,8 +195,9 @@ import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
-// FIX IMPORT: Import đúng file Modal vừa tạo ở Bước 1
+// FIX IMPORT: Import đúng file Modal
 import ImageGalleryModal from './ImageGalleryModal.vue';
+
 const router = useRouter();
 const loading = ref(false);
 const API_URL = 'http://localhost:8080/api/v1';
@@ -320,7 +321,7 @@ const submitProduct = async () => {
             variants: generatedVariants.value.map(v => ({
                 idMauSac: v.idMauSac, idKichThuoc: v.idKichThuoc,
                 soLuong: v.soLuong, giaNhap: v.giaNhap, giaBan: v.giaBan, trangThai: v.trangThai,
-                // GỬI KÈM LIST ẢNH (Backend cần hỗ trợ nhận list ảnh hoặc lấy ảnh đầu tiên làm avatar)
+                // GỬI KÈM LIST ẢNH
                 listAnh: groupImages[v.idMauSac] || [] 
             }))
         };
