@@ -10,7 +10,11 @@
         </div>
         <div class="buttons">
           <button @click="exportExcel" class="btn btn-outline"><i class="fas fa-file-excel"></i> Xuất Excel</button>
-          <router-link to="/admin/vouchers/create" class="btn btn-primary"><i class="fas fa-plus"></i> Tạo mới</router-link>
+          
+          <router-link :to="{ name: 'admin-voucher-create' }" class="btn btn-primary">
+             <i class="fas fa-plus"></i> Tạo mới
+          </router-link>
+          
         </div>
       </div>
 
@@ -70,14 +74,12 @@
             </td>
             <td><span class="badge" :class="getStatusClass(item)">{{ getStatusLabel(item) }}</span></td>
             <td class="text-center action-col">
-              
               <button 
                 v-if="item.loaiPhieu === 'CaNhan' && !isExpired(item.ngayKetThuc)" 
                 class="icon-btn" title="Gửi mail" @click="openSendMailModal(item)"
               >
                 <i class="far fa-envelope"></i>
               </button>
-
               <button v-if="item.trangThai === 1" class="icon-btn" title="Ngưng hoạt động" @click="toggleStatus(item)">
                 <i class="fas fa-ban" style="color: #ef4444;"></i>
               </button>
@@ -218,6 +220,7 @@ onMounted(fetchData);
 </script>
 
 <style scoped>
+/* Style cũ giữ nguyên */
 .page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; }
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 .control-panel { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }

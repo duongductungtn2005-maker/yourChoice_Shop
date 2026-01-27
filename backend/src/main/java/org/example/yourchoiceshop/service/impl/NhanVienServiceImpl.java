@@ -188,12 +188,17 @@ public class NhanVienServiceImpl implements NhanVienService {
 
     @Override
     public List<NhanVien> findAllList(String keyword, Boolean gender, Integer status) {
-        // Cách 1: Đơn giản nhất - Lấy tất cả (để test tính năng Xuất Excel trước)
-        return nhanVienRepo.findAll();
-        
-        // Lưu ý: Nếu muốn lọc đúng theo ô tìm kiếm như trên màn hình, 
-        // bạn cần copy logic từ hàm findAll (phân trang) bỏ vào đây.
-        // Nhưng tạm thời cứ return findAll() để file tải được đã nhé.
+        // Xử lý keyword giống hệt hàm findAll phân trang
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            keyword = "%" + keyword.trim().toLowerCase() + "%";
+        } else {
+            keyword = null;
+        }
+
+        // Gọi Repo lấy list không phân trang (Bạn cần thêm hàm này vào Repo)
+        // Hoặc tạm thời dùng cách dưới đây để convert Page sang List nếu lười sửa Repo:
+        // (Cách này không tối ưu lắm cho data lớn nhưng nhanh gọn)
+        return nhanVienRepo.searchNhanVien(keyword, gender, status, Pageable.unpaged()).getContent();
     }
 
 } // Kết thúc class

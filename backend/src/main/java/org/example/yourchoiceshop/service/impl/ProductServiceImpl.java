@@ -6,7 +6,7 @@ import org.example.yourchoiceshop.dto.request.CreateProductRequest;
 import org.example.yourchoiceshop.dto.request.ProductVariantRequest;
 import org.example.yourchoiceshop.dto.request.UpdateVariantRequest;
 import org.example.yourchoiceshop.dto.response.ProductResponse;
-import org.example.yourchoiceshop.dto.response.VariantResponse; // Import DTO mới
+import org.example.yourchoiceshop.dto.response.VariantResponse;
 import org.example.yourchoiceshop.entity.*;
 import org.example.yourchoiceshop.repository.*;
 import org.springframework.data.domain.Page;
@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime; // <--- QUAN TRỌNG: Import thư viện ngày giờ
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -39,6 +40,7 @@ public class ProductServiceImpl {
     private final MauSacRepository mauSacRepo;
     private final KichThuocRepository kichThuocRepo;
     private final HinhAnhRepository hinhAnhRepo;
+
     // 1. LẤY DANH SÁCH (CHO TRANG LIST)
     public Page<ProductResponse> getAllProducts(
             String keyword, Integer status,
@@ -56,14 +58,22 @@ public class ProductServiceImpl {
     @Transactional
     public SanPham createProduct(CreateProductRequest req) {
         SanPham sp = new SanPham();
+
+        // --- XỬ LÝ MÃ SẢN PHẨM ---
         if (req.getMaSanPham() == null || req.getMaSanPham().isEmpty()) {
             sp.setMaSanPham("SP" + System.currentTimeMillis());
         } else {
             sp.setMaSanPham(req.getMaSanPham());
         }
+
+        // --- GÁN THÔNG TIN CƠ BẢN ---
         sp.setTenSanPham(req.getTenSanPham());
         sp.setMoTaChiTiet(req.getMoTa());
         sp.setTrangThai(1);
+
+        // --- FIX LỖI: GÁN NGÀY TẠO HIỆN TẠI ---
+        sp.setNgayTao(LocalDateTime.now());
+        // --------------------------------------
 
         if(req.getIdThuongHieu() != null) sp.setThuongHieu(thuongHieuRepo.findById(req.getIdThuongHieu()).orElse(null));
         if(req.getIdChatLieu() != null) sp.setChatLieu(chatLieuRepo.findById(req.getIdChatLieu()).orElse(null));
@@ -73,6 +83,7 @@ public class ProductServiceImpl {
 
         SanPham savedSp = sanPhamRepo.save(sp);
 
+        // --- XỬ LÝ BIẾN THỂ (GIỮ NGUYÊN) ---
         if (req.getVariants() != null && !req.getVariants().isEmpty()) {
             Set<String> uniqueCheck = new HashSet<>();
 
@@ -82,34 +93,32 @@ public class ProductServiceImpl {
                 if (!uniqueCheck.contains(key)) {
                     uniqueCheck.add(key);
 
-                    // 1. Tạo và Lưu Biến thể trước (để có ID)
+                    // Tạo biến thể
                     ChiTietSanPham variant = new ChiTietSanPham();
                     variant.setSanPham(savedSp);
                     if(vReq.getIdMauSac() != null) variant.setMauSac(mauSacRepo.findById(vReq.getIdMauSac()).orElse(null));
                     if(vReq.getIdKichThuoc() != null) variant.setKichThuoc(kichThuocRepo.findById(vReq.getIdKichThuoc()).orElse(null));
 
-                    // Tạo mã tự động
                     variant.setMaCtsp(savedSp.getMaSanPham() + "-" + vReq.getIdMauSac() + "-" + vReq.getIdKichThuoc());
                     variant.setSoLuong(vReq.getSoLuong());
                     variant.setGiaNhap(vReq.getGiaNhap());
                     variant.setGiaBan(vReq.getGiaBan());
                     variant.setTrangThai(1);
 
-                    // LƯU NGAY ĐỂ LẤY ID CHO ẢNH
                     ChiTietSanPham savedVariant = chiTietRepo.save(variant);
 
-                    // 2. Lưu Danh sách Ảnh (Nếu có)
+                    // Lưu ảnh
                     if (vReq.getListAnh() != null && !vReq.getListAnh().isEmpty()) {
                         List<HinhAnh> listHinhAnh = new ArrayList<>();
                         for (String url : vReq.getListAnh()) {
                             HinhAnh img = new HinhAnh();
-                            img.setChiTietSanPham(savedVariant); // Liên kết với biến thể vừa lưu
+                            img.setChiTietSanPham(savedVariant);
                             img.setDuongDanAnh(url);
                             img.setTenAnh("Img-" + savedVariant.getMaCtsp());
                             img.setTrangThai(1);
                             listHinhAnh.add(img);
                         }
-                        hinhAnhRepo.saveAll(listHinhAnh); // Lưu xuống DB
+                        hinhAnhRepo.saveAll(listHinhAnh);
                     }
                 }
             }
@@ -132,42 +141,35 @@ public class ProductServiceImpl {
         chiTietRepo.saveAll(childs);
     }
 
-    // 4. LẤY CHI TIẾT SẢN PHẨM CHA (Theo ID) - Dùng DTO để tránh lỗi đệ quy
+    // 4. LẤY CHI TIẾT SẢN PHẨM CHA
     public ProductResponse getProductById(Integer id) {
         SanPham sp = sanPhamRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm ID: " + id));
         return mapToProductResponse(sp);
     }
 
-    // 5. LẤY DANH SÁCH BIẾN THỂ (Theo ID Cha) - Dùng DTO VariantResponse
-    // 5. LẤY DANH SÁCH BIẾN THỂ (Cập nhật: Kèm theo listAnh)
+    // 5. LẤY DANH SÁCH BIẾN THỂ
     public List<VariantResponse> getVariantsByProductId(Integer productId) {
         List<ChiTietSanPham> entities = chiTietRepo.findBySanPhamId(productId);
 
         return entities.stream().map(ct -> {
-            // 1. Map Màu sắc
             VariantResponse.AttributeDTO mauSacDTO = null;
             if (ct.getMauSac() != null) {
                 mauSacDTO = new VariantResponse.AttributeDTO(ct.getMauSac().getId(), ct.getMauSac().getTenMauSac());
             }
 
-            // 2. Map Kích thước
             VariantResponse.AttributeDTO kichThuocDTO = null;
             if (ct.getKichThuoc() != null) {
                 kichThuocDTO = new VariantResponse.AttributeDTO(ct.getKichThuoc().getId(), ct.getKichThuoc().getTenKichThuoc());
             }
 
-            // 3. Map Danh sách ảnh (LOGIC MỚI)
-            // Giả sử trong Entity ChiTietSanPham bạn có quan hệ @OneToMany tên là 'hinhAnhs'
-            // Và Entity HinhAnh có hàm getUrl()
             List<String> listAnh = new ArrayList<>();
             if (ct.getHinhAnhs() != null && !ct.getHinhAnhs().isEmpty()) {
                 listAnh = ct.getHinhAnhs().stream()
-                        .map(h -> h.getDuongDanAnh()) // Lấy đường dẫn ảnh
+                        .map(HinhAnh::getDuongDanAnh)
                         .collect(Collectors.toList());
             }
 
-            // 4. Trả về DTO
             return new VariantResponse(
                     ct.getId(),
                     ct.getMaCtsp(),
@@ -177,17 +179,15 @@ public class ProductServiceImpl {
                     ct.getTrangThai(),
                     mauSacDTO,
                     kichThuocDTO,
-                    listAnh // <--- Truyền list ảnh vào Constructor
+                    listAnh
             );
         }).collect(Collectors.toList());
     }
 
-    // --- HÀM PHỤ: Map Entity -> ProductResponse ---
-    // --- HÀM PHỤ: Map Entity -> ProductResponse ---
+    // --- MAP ENTITY -> DTO ---
     private ProductResponse mapToProductResponse(SanPham sp) {
         Integer tongSoLuong = chiTietRepo.sumSoLuongBySanPhamId(sp.getId());
 
-        // 1. Xử lý chuỗi màu sắc
         String dsMauSac = "";
         if (sp.getChiTietSanPhams() != null) {
             dsMauSac = sp.getChiTietSanPhams().stream()
@@ -196,7 +196,6 @@ public class ProductServiceImpl {
                     .distinct().collect(Collectors.joining(", "));
         }
 
-        // 2. Xử lý chuỗi kích thước
         String dsKichThuoc = "";
         if (sp.getChiTietSanPhams() != null) {
             dsKichThuoc = sp.getChiTietSanPhams().stream()
@@ -205,16 +204,13 @@ public class ProductServiceImpl {
                     .distinct().collect(Collectors.joining(", "));
         }
 
-        // 3. Trả về DTO đầy đủ (Bao gồm cả Tên và ID)
         return new ProductResponse(
                 sp.getId(),
                 sp.getMaSanPham(),
                 sp.getTenSanPham(),
-                sp.getNgayTao(),
+                sp.getNgayTao(), // Đảm bảo trường này là LocalDateTime
                 tongSoLuong != null ? tongSoLuong : 0,
                 sp.getTrangThai(),
-
-                // --- Nhóm TÊN (String) ---
                 sp.getThuongHieu() != null ? sp.getThuongHieu().getTenThuongHieu() : "",
                 sp.getChatLieu() != null ? sp.getChatLieu().getTenChatLieu() : "",
                 sp.getXuatXu() != null ? sp.getXuatXu().getTenXuatXu() : "",
@@ -222,8 +218,6 @@ public class ProductServiceImpl {
                 sp.getTayAo() != null ? sp.getTayAo().getTenTayAo() : "",
                 dsMauSac,
                 dsKichThuoc,
-
-                // --- Nhóm ID (Integer) - QUAN TRỌNG ĐỂ HIỆN DROPDOWN ---
                 sp.getThuongHieu() != null ? sp.getThuongHieu().getId() : null,
                 sp.getChatLieu() != null ? sp.getChatLieu().getId() : null,
                 sp.getXuatXu() != null ? sp.getXuatXu().getId() : null,
@@ -232,12 +226,13 @@ public class ProductServiceImpl {
                 sp.getMoTaChiTiet()
         );
     }
+
+    // UPDATE VARIANT
     @Transactional
     public void updateVariant(Integer id, UpdateVariantRequest req) {
         ChiTietSanPham variant = chiTietRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể: " + id));
 
-        // 1. Update các thông tin cơ bản (Giữ nguyên code cũ của bạn)
         variant.setGiaNhap(req.getGiaNhap());
         variant.setGiaBan(req.getGiaBan());
         variant.setSoLuong(req.getSoLuong());
@@ -245,25 +240,18 @@ public class ProductServiceImpl {
         if (req.getIdMauSac() != null) variant.setMauSac(mauSacRepo.findById(req.getIdMauSac()).orElse(null));
         if (req.getIdKichThuoc() != null) variant.setKichThuoc(kichThuocRepo.findById(req.getIdKichThuoc()).orElse(null));
 
-        // 2. Update thông tin cha (Giữ nguyên code cũ)
         SanPham parent = variant.getSanPham();
         if (parent != null) {
-            // ... code update cha ...
             sanPhamRepo.save(parent);
         }
 
-        // 3. --- LOGIC CẬP NHẬT ẢNH (FIX LẠI) ---
-        // Chỉ xử lý khi Frontend có gửi listAnh (kể cả list rỗng)
         if (req.getListAnh() != null) {
-            // A. Xóa sạch ảnh cũ của biến thể này bằng Query trực tiếp (An toàn nhất)
             hinhAnhRepo.deleteByChiTietSanPhamId(id);
-
-            // B. Lưu danh sách ảnh mới
             if (!req.getListAnh().isEmpty()) {
                 List<HinhAnh> newImages = new ArrayList<>();
                 for (String url : req.getListAnh()) {
                     HinhAnh img = new HinhAnh();
-                    img.setChiTietSanPham(variant); // Gắn lại mối quan hệ
+                    img.setChiTietSanPham(variant);
                     img.setDuongDanAnh(url);
                     img.setTenAnh("Update-" + System.currentTimeMillis());
                     img.setTrangThai(1);
@@ -272,10 +260,10 @@ public class ProductServiceImpl {
                 hinhAnhRepo.saveAll(newImages);
             }
         }
-        // ----------------------------------------
-
         chiTietRepo.save(variant);
     }
+
+    // BULK UPDATE
     @Transactional
     public void bulkUpdateVariants(List<BulkUpdateVariantRequest> requests) {
         for (BulkUpdateVariantRequest req : requests) {
@@ -283,27 +271,21 @@ public class ProductServiceImpl {
             if (variant != null) {
                 if (req.getGiaBan() != null) variant.setGiaBan(req.getGiaBan());
                 if (req.getSoLuong() != null) variant.setSoLuong(req.getSoLuong());
-                // Không cần save từng cái nếu đang trong @Transactional,
-                // nhưng để chắc chắn có thể gọi saveAll ở ngoài vòng lặp.
                 chiTietRepo.save(variant);
             }
         }
     }
-    public ByteArrayInputStream exportProductsToExcel() throws IOException {
-        // 1. Lấy dữ liệu (Ví dụ: Lấy tất cả sản phẩm đang hoạt động)
-        List<SanPham> products = sanPhamRepo.findAll(); // Hoặc dùng hàm search nếu muốn export theo bộ lọc
 
-        // 2. Khởi tạo Workbook (File Excel)
+    // EXPORT EXCEL
+    public ByteArrayInputStream exportProductsToExcel() throws IOException {
+        List<SanPham> products = sanPhamRepo.findAll();
         try (Workbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
             Sheet sheet = workbook.createSheet("Danh sách sản phẩm");
-
-            // 3. Tạo Header (Dòng tiêu đề)
             Row headerRow = sheet.createRow(0);
             String[] columns = {"ID", "Mã SP", "Tên Sản Phẩm", "Thương Hiệu", "Chất Liệu", "Tổng Tồn", "Trạng Thái"};
 
-            // Style cho Header in đậm
             CellStyle headerStyle = workbook.createCellStyle();
             Font font = workbook.createFont();
             font.setBold(true);
@@ -315,12 +297,9 @@ public class ProductServiceImpl {
                 cell.setCellStyle(headerStyle);
             }
 
-            // 4. Đổ dữ liệu vào các dòng
             int rowIdx = 1;
             for (SanPham sp : products) {
                 Row row = sheet.createRow(rowIdx++);
-
-                // Tính tổng tồn kho (nếu cần)
                 Integer tongTon = chiTietRepo.sumSoLuongBySanPhamId(sp.getId());
 
                 row.createCell(0).setCellValue(sp.getId());
@@ -331,12 +310,9 @@ public class ProductServiceImpl {
                 row.createCell(5).setCellValue(tongTon != null ? tongTon : 0);
                 row.createCell(6).setCellValue(sp.getTrangThai() == 1 ? "Đang bán" : "Ngừng bán");
             }
-
-            // Tự động giãn cột cho đẹp
             for(int i = 0; i < columns.length; i++) {
                 sheet.autoSizeColumn(i);
             }
-
             workbook.write(out);
             return new ByteArrayInputStream(out.toByteArray());
         }

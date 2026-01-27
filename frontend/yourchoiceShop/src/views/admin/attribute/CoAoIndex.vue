@@ -1,11 +1,8 @@
 <template>
   <div class="attribute-page">
     <div class="header-section">
-      <div class="breadcrumb">
-        <span>Quản lý sản phẩm</span> 
-        <span class="divider">/</span> 
-        <span class="active">Cổ áo</span>
-      </div>
+            <h1 class="page-title">Quản lý sản phẩm / Cổ áo</h1>
+
     </div>
 
     <div class="card">
@@ -21,7 +18,9 @@
                >
             </div>
             <div class="action-group">
-               <button class="btn btn-outline" @click="exportExcel">📥 Xuất Excel</button>
+               <button class="btn btn-outline" @click="exportExcel">
+                <font-awesome-icon :icon="['fas', 'file-excel']" /> Xuất Excel
+            </button>
                
                <button class="btn btn-primary" @click="openModal()">+ Tạo mới</button>
             </div>
@@ -332,6 +331,8 @@ onMounted(() => { fetchData(); });
 
 <style scoped>
 /* CSS ĐỒNG BỘ */
+.page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
+
 .attribute-page { font-family: 'Segoe UI', sans-serif; color: #333; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
 .header-section { margin-bottom: 20px; }
 .breadcrumb { font-size: 14px; color: #64748b; } .breadcrumb .active { font-weight: 600; color: #0f172a; }

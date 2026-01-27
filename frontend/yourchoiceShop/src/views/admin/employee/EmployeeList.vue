@@ -1,145 +1,143 @@
 <template>
-  <BasePage>
-    
-    <template #header>
-      <h2 class="breadcrumb">Nhân viên <span class="divider">/</span> <span class="current">Danh sách nhân viên</span></h2>
-    </template>
-
-    <template #toolbar>
-      <div class="search-box">
-        <div class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-        
-        <input 
-            type="text" 
-            placeholder="Tìm theo tên, SĐT..." 
-            v-model="searchQuery"
-            class="form-control search-input"
-        />
-      </div>
-      <div class="action-buttons">
-        <button class="btn-outline" @click="exportExcel">Xuất Excel</button>
-        <button class="btn-primary" @click="goToCreate">＋ Tạo nhân viên</button>
-      </div>
-    </template>
-
-    <template #filter>
-      <div class="filter-item">
-        <label>Giới tính:</label>
-        <select v-model="filters.gender" class="form-control filter-select" @change="handleFilterChange">
-          <option value="">Tất cả</option>
-          <option :value="true">Nam</option>
-          <option :value="false">Nữ</option>
-        </select>
-      </div>
-    
-    <div class="filter-item">
-      <label>Trạng thái:</label>
-      <select v-model="filters.status" class="form-control filter-select" @change="handleFilterChange">
-         <option value="">Tất cả</option>
-         <option value="1">Hoạt động</option>
-         <option value="0">Ngừng HĐ</option>
-      </select>
+  <div class="employee-page">
+    <div class="header-section">
+      <h1 class="page-title">Quản lý nhân viên</h1>
     </div>
-    </template>
 
-    <template #default>
+    <div class="card">
+      <div class="card-header">
+         <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input 
+              type="text" 
+              v-model="searchQuery" 
+              placeholder="Tìm theo tên, SĐT, email..." 
+              @keyup.enter="fetchEmployees"
+            >
+         </div>
+         <div class="action-group">
+             <button class="btn btn-outline" @click="exportExcel">
+                <i class="fas fa-file-excel"></i> Xuất Excel
+             </button>
+             <button class="btn btn-primary" @click="$router.push({ name: 'admin-employee-create' })">
+                <i class="fas fa-plus"></i> Tạo nhân viên
+             </button>
+         </div>
+      </div>
+
+      <div class="filter-bar">
+         <div class="filter-item">
+            <label>Giới tính:</label>
+            <select v-model="filters.gender" @change="handleFilterChange">
+               <option value="">Tất cả</option>
+               <option :value="true">Nam</option>
+               <option :value="false">Nữ</option>
+            </select>
+         </div>
+         <div class="filter-item">
+            <label>Trạng thái:</label>
+            <select v-model="filters.status" @change="handleFilterChange">
+               <option value="">Tất cả</option>
+               <option value="1">Hoạt động</option>
+               <option value="0">Ngừng HĐ</option>
+            </select>
+         </div>
+      </div>
+
       <div class="table-responsive">
-        <table class="employee-table">
+        <table>
           <thead>
             <tr>
-              <th width="50">STT</th>
-              <th width="80">Ảnh</th>
+              <th class="text-center" width="5%">STT</th>
+              <th width="80px">Ảnh</th>
               <th>Mã NV</th>
               <th>Họ tên</th>
               <th>Email</th>
-              <th>Địa chỉ</th>
               <th>SĐT</th>
-              <th>Ngày sinh</th>
-              <th>Giới tính</th>
-              <th>Chức vụ</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
+              <th>Địa chỉ</th>
+              <th class="text-center">Giới tính</th>
+              <th class="text-center">Trạng thái</th>
+              <th class="text-center">Thao tác</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="employees.length === 0">
-                <td colspan="12" style="text-align: center; padding: 20px; color: #888;">
-                    Không tìm thấy nhân viên nào.
-                </td>
+                <td colspan="10" class="text-center py-4 text-gray">Không tìm thấy nhân viên nào.</td>
             </tr>
 
             <tr v-for="(emp, index) in employees" :key="emp.id">
-              <td>{{ index + 1 + (currentPage * pageSize) }}</td>
+              <td class="text-center">{{ index + 1 + (currentPage * pageSize) }}</td>
               <td>
-                <div class="image-container">
+                <div class="avatar-cell">
                     <img 
                         :src="getImageUrl(emp.anhDaiDien)" 
-                        alt="Ảnh NV" 
-                        class="employee-image"
                         @error="handleImageError" 
+                        class="avatar-img"
                     />
                 </div>
               </td>
-              <td>{{ emp.maNhanVien }}</td>
-              <td class="fw-bold">{{ emp.tenNhanVien }}</td>
+              <td class="font-bold text-code">{{ emp.maNhanVien }}</td>
+              <td class="font-medium text-primary">{{ emp.tenNhanVien }}</td>
               <td>{{ emp.email }}</td>
-              <td>
-                <div class="address-col" :title="formatAddress(emp.diaChi)">
-                    {{ formatAddress(emp.diaChi) }}
-                </div>
-              </td>
               <td>{{ emp.soDienThoai }}</td>
-              <td>{{ emp.ngaySinh }}</td>
-              <td>{{ emp.gioiTinh ? 'Nam' : 'Nữ' }}</td>
-              <td>{{ emp.idChucVu?.tenChucVu || "Nhân viên" }}</td>
-              <td>
-                <span :class="['status-badge', emp.trangThai === 1 ? 'status-active' : 'status-inactive']">
-                  {{ emp.trangThai === 1 ? 'Hoạt động' : 'Ngừng hoạt động' }}
-                </span>
+              <td :title="formatAddress(emp.diaChi)" class="text-truncate" style="max-width: 150px;">
+                  {{ formatAddress(emp.diaChi) }}
               </td>
-              <td>
-                <div class="status-wrapper" @click="toggleStatus(emp)">
-                  <i 
-                    class="fa-solid toggle-icon"
-                    :class="emp.trangThai === 1 ? 'fa-toggle-on active' : 'fa-toggle-off inactive'"
-                  ></i>
-                  </div>
+              <td class="text-center">
+                  {{ emp.gioiTinh === true ? 'Nam' : (emp.gioiTinh === false ? 'Nữ' : '-') }}
+              </td>
+              
+              <td class="text-center">
+                 <span :class="['badge', emp.trangThai === 1 ? 'badge-success' : 'badge-secondary']">
+                    {{ emp.trangThai === 1 ? 'Hoạt động' : 'Ngừng HĐ' }}
+                 </span>
+              </td>
+              
+              <td class="text-center">
+                 <div class="action-container">
+                    <div class="status-wrapper" @click="toggleStatus(emp)" title="Bật/Tắt trạng thái">
+                       <i 
+                         class="fas toggle-icon"
+                         :class="emp.trangThai === 1 ? 'fa-toggle-on active' : 'fa-toggle-off inactive'"
+                       ></i>
+                    </div>
+                    
+                 </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-    </template>
 
-    <template #footer>
-        <div class="page-size">
-           Xem 
-           <select v-model="pageSize" @change="fetchEmployees" class="form-control size-select">
-                <option :value="5">5</option>
-                <option :value="10">10</option>
-                <option :value="20">20</option>
-           </select> 
-           nhân viên
-        </div>
-        <div class="pagination-controls">
-           <button class="page-btn" :disabled="currentPage === 0" @click="changePage(currentPage - 1)">‹</button>
-           <span class="page-info">Trang {{ currentPage + 1 }} / {{ totalPages }}</span>
-           <button class="page-btn" :disabled="currentPage >= totalPages - 1" @click="changePage(currentPage + 1)">›</button>
-        </div>
-    </template>
-
-  </BasePage>
+      <div class="pagination-footer">
+         <div class="page-info">
+            Hiển thị 
+            <select v-model="pageSize" @change="fetchEmployees">
+               <option :value="5">5</option>
+               <option :value="10">10</option>
+               <option :value="20">20</option>
+            </select> 
+            nhân viên
+         </div>
+         <div class="page-controls">
+            <button :disabled="currentPage === 0" @click="changePage(currentPage - 1)">‹</button>
+            <span class="page-number">Trang {{ currentPage + 1 }} / {{ totalPages }}</span>
+            <button :disabled="currentPage >= totalPages - 1" @click="changePage(currentPage + 1)">›</button>
+         </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import BasePage from '@/views/BasePage.vue';
 import { ref, reactive, onMounted, watch } from 'vue';
-import axios from 'axios';
+import request from '@/services/request'; // Dùng request chung
+import Swal from 'sweetalert2';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-// --- STATE QUẢN LÝ DỮ LIỆU ---
+// STATE
 const employees = ref([]);
 const searchQuery = ref('');
 const pageSize = ref(5);
@@ -147,29 +145,26 @@ const currentPage = ref(0);
 const totalPages = ref(0);
 let timeout = null; 
 
-const filters = reactive({
-  gender: '',
-  status: ''
-});
+const filters = reactive({ gender: '', status: '' });
+const API_URL = '/nhan-vien'; 
 
-// Hàm tạo URL ảnh
+// HÀM HỖ TRỢ
 const getImageUrl = (imageName) => {
-    if (!imageName) return 'https://via.placeholder.com/150'; // Ảnh rỗng nếu null
-    // LƯU Ý: Thay localhost:8080 bằng port backend thực tế của bạn
+    if (!imageName) return 'https://via.placeholder.com/150';
     return `http://localhost:8080/api/v1/nhan-vien/images/${imageName}`;
 };
-
-// Hàm xử lý khi ảnh bị lỗi (404) -> Thay thế bằng ảnh mặc định
 const handleImageError = (e) => {
-    e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png"; // Ảnh avatar mặc định online
+    e.target.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+};
+const formatAddress = (addr) => {
+  if (!addr) return "-";
+  return addr.replace(/null/gi, "").replace(/(,\s*)+/g, ", ").replace(/^,\s*|,\s*$/g, "") || "-";
 };
 
-// --- API ACTIONS ---
-
-// 1. Lấy danh sách nhân viên
+// ACTIONS
 const fetchEmployees = async () => {
   try {
-    const response = await axios.get('http://localhost:8080/api/v1/nhan-vien', {
+    const res = await request.get(API_URL, {
       params: {
         page: currentPage.value,
         size: pageSize.value,
@@ -178,428 +173,124 @@ const fetchEmployees = async () => {
         status: filters.status  
       }
     });
-    
-    employees.value = response.data.content || [];
-
-    if (response.data.page) {
-        totalPages.value = response.data.page.totalPages;
-    } else {
-        totalPages.value = response.data.totalPages || 0;
-    }
-
-  } catch (error) {
-    console.error("Lỗi API:", error);
-  }
+    employees.value = res.data.content || [];
+    totalPages.value = res.data.totalPages || 0;
+  } catch (error) { console.error(error); }
 };
 
-// 2. Xử lý xóa mềm (Soft Delete)
-const softDeleteEmployee = async (emp) => {
-    const confirmDelete = confirm(`Bạn có chắc muốn xóa nhân viên "${emp.tenNhanVien}" không?`);
-    if (!confirmDelete) return;
-
-    try {
-        await axios.delete(`http://localhost:8080/api/v1/nhan-vien/${emp.id}`);
-        emp.trangThai = 0; 
-        alert("Đã xóa thành công!");
-    } catch (error) {
-        console.error(error);
-        alert("Có lỗi xảy ra khi xóa nhân viên!");
-    }
-};
-
-// 3. Xử lý bật tắt trạng thái
 const toggleStatus = async (emp) => {
     const oldStatus = emp.trangThai;
     const newStatus = oldStatus === 1 ? 0 : 1;
-
-    emp.trangThai = newStatus;
+    emp.trangThai = newStatus; // Optimistic UI
 
     try {
-        await axios.put(`http://localhost:8080/api/v1/nhan-vien/${emp.id}/trang-thai`, null, {
+        await request.put(`${API_URL}/${emp.id}/trang-thai`, null, {
             params: { trangThai: newStatus }
         });
-        console.log(`Đã đổi trạng thái nhân viên ${emp.tenNhanVien} thành công.`);
+        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+        Toast.fire({ icon: 'success', title: 'Cập nhật trạng thái thành công' });
     } catch (error) {
-        console.error("Lỗi cập nhật trạng thái:", error);
         emp.trangThai = oldStatus; 
-        alert("Lỗi kết nối! Không thể cập nhật trạng thái.");
+        Swal.fire('Lỗi', 'Không thể cập nhật trạng thái', 'error');
     }
 };
 
-// 4. XUẤT EXCEL (ĐÃ CẬP NHẬT)
+const softDeleteEmployee = async (emp) => {
+    const result = await Swal.fire({
+        title: 'Xác nhận xóa?',
+        text: `Bạn có chắc muốn xóa nhân viên ${emp.tenNhanVien}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await request.delete(`${API_URL}/${emp.id}`);
+            emp.trangThai = 0; 
+            Swal.fire('Thành công', 'Đã xóa nhân viên', 'success');
+        } catch (error) { Swal.fire('Lỗi', 'Có lỗi xảy ra', 'error'); }
+    }
+};
+
 const exportExcel = async () => {
     try {
-        // Lấy các tham số filter hiện tại để xuất đúng dữ liệu đang xem
-        const params = {
-            keyword: searchQuery.value,
-            gioiTinh: filters.gender, // Lưu ý: Backend thường đặt tên biến là gioitinh
-            trangThai: filters.status
-        };
-
-        // Gọi API với responseType là 'blob' để nhận file binary
-        const response = await axios.get('http://localhost:8080/api/v1/nhan-vien/export-excel', {
-            params: params,
+        const response = await request.get(`${API_URL}/export-excel`, {
+            params: { keyword: searchQuery.value, gioiTinh: filters.gender, trangThai: filters.status },
             responseType: 'blob' 
         });
-
-        // Tạo URL ảo từ dữ liệu Blob trả về
         const url = window.URL.createObjectURL(new Blob([response.data]));
-        
-        // Tạo thẻ a ẩn để kích hoạt tải xuống
         const link = document.createElement('a');
         link.href = url;
-        const fileName = `Danh_Sach_Nhan_Vien_${new Date().toISOString().slice(0,10)}.xlsx`;
-        link.setAttribute('download', fileName);
-        
-        document.body.appendChild(link);
-        link.click();
-        
-        // Dọn dẹp bộ nhớ
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-    } catch (error) {
-        console.error("Lỗi xuất Excel:", error);
-        alert("Lỗi: Không thể tải file Excel. Vui lòng kiểm tra Server!");
-    }
+        link.setAttribute('download', `DS_NhanVien_${new Date().toISOString().slice(0,10)}.xlsx`);
+        document.body.appendChild(link); link.click(); document.body.removeChild(link); window.URL.revokeObjectURL(url);
+    } catch (error) { Swal.fire('Lỗi', 'Không thể xuất file Excel', 'error'); }
 };
 
-// --- HELPER FUNCTIONS ---
-
-const formatAddress = (addr) => {
-  if (!addr) return "Chưa cập nhật";
-  let cleanAddr = addr.replace(/null/gi, ""); 
-  cleanAddr = cleanAddr.replace(/(,\s*)+/g, ", ").trim(); 
-  cleanAddr = cleanAddr.replace(/^,\s*|,\s*$/g, ""); 
-  return cleanAddr || "Chưa cập nhật";
-};
-
-// --- NAVIGATION & EVENTS ---
-
-const changePage = (page) => {
-  if (page >= 0 && page < totalPages.value) {
-    currentPage.value = page;
-    fetchEmployees();
-  }
-};
-
-const goToCreate = () => {
-  router.push({ name: 'admin-employee-create' });
-};
-
-const handleFilterChange = () => {
-    currentPage.value = 0; 
-    fetchEmployees();      
-};
-
-// --- WATCHERS & MOUNTED ---
+const changePage = (p) => { if (p >= 0 && p < totalPages.value) { currentPage.value = p; fetchEmployees(); } };
+const handleFilterChange = () => { currentPage.value = 0; fetchEmployees(); };
 
 watch(searchQuery, () => {
     clearTimeout(timeout);
-    timeout = setTimeout(() => {
-        currentPage.value = 0;
-        fetchEmployees();
-    }, 500);
+    timeout = setTimeout(() => { currentPage.value = 0; fetchEmployees(); }, 500);
 });
 
-onMounted(() => {
-  fetchEmployees();
-});
+onMounted(() => { fetchEmployees(); });
 </script>
 
 <style scoped>
-/* --- CSS CÁC PHẦN TỬ UI (BUTTON, INPUT, TABLE) --- */
+/* CSS ĐỒNG BỘ VỚI MÀN HÌNH KHÁCH HÀNG */
+.page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 
-/* Breadcrumb Styling */
-.breadcrumb { font-size: 18px; color: #333; font-weight: bold; margin: 0; }
-.breadcrumb .divider { color: #999; margin: 0 5px; }
-.breadcrumb .current { color: #6c757d; }
+.employee-page { font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
+.header-section { margin-bottom: 20px; }
+.breadcrumb { font-size: 14px; color: #64748b; } .breadcrumb .active { font-weight: 600; color: #0f172a; }
 
-/* Search Box */
-.search-box { position: relative; width: 350px; }
-.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #999; }
-.search-input { padding-left: 30px !important; width: 100%; }
+.card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 20px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 
-/* Buttons */
-.action-buttons { display: flex; gap: 10px; }
-.btn-primary { background-color: #2c3e50; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-.btn-primary:hover { background-color: #1a252f; }
-.btn-outline { background-color: white; color: #2c3e50; border: 1px solid #2c3e50; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-.btn-outline:hover { background-color: #f0f4f8; }
+.search-wrap { position: relative; width: 350px; }
+.search-wrap input { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid #e2e8f0; border-radius: 4px; outline: none; font-size: 14px; }
+.search-wrap input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
 
-/* Filters */
-.filter-item { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: bold; color: #333; }
-.filter-select { border: none; cursor: pointer; background: transparent; color: #666; font-weight: normal; }
-.filter-select:hover { color: #2c3e50; }
+.action-group { display: flex; gap: 10px; }
+.btn { padding: 8px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; border: 1px solid transparent; display: flex; align-items: center; gap: 5px; font-size: 14px; }
+.btn-primary { background: #0f172a; color: #fff; }
+.btn-outline { background: #fff; border-color: #cbd5e1; color: #475569; }
+.btn-outline:hover { background-color: #f8fafc; border-color: #94a3b8; }
 
-/* Form Control */
-.form-control { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; outline: none; }
-.form-control:focus { border-color: #2c3e50; }
+.filter-bar { display: flex; gap: 30px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #f1f5f9; }
+.filter-item { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #334155; }
+.filter-item select { padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 4px; cursor: pointer; outline: none; color: #475569; }
 
-/* Table */
-.table-responsive { overflow-x: auto; }
-.employee-table { width: 100%; border-collapse: collapse; }
-.employee-table th { text-align: left; padding: 12px 10px; background-color: #f8f9fa; color: #333; font-weight: bold; border-bottom: 2px solid #eee; font-size: 14px; }
-.employee-table td { padding: 12px 10px; border-bottom: 1px solid #eee; color: #555; font-size: 14px; vertical-align: middle; }
-.employee-table tr:hover { background-color: #f9f9f9; }
-.table-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd; }
-.fw-bold { font-weight: 600; color: #333; }
+.table-responsive { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; }
+th { background: #f8fafc; padding: 12px; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-transform: uppercase; text-align: left; }
+td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: middle; color: #334155; }
 
-/* Status Badges */
-.status-badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-.status-active { background-color: #e6fffa; color: #28a745; border: 1px solid #b7eb8f; }
-.status-inactive { background-color: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
+.avatar-cell { display: flex; justify-content: center; }
+.avatar-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; }
 
-/* Action Icons */
-.action-icons { display: flex; gap: 8px; }
-.icon-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; opacity: 0.7; transition: 0.2s; }
-.icon-btn:hover { opacity: 1; background-color: #eee; border-radius: 4px; }
-.view { color: #1890ff; }
-.edit { color: #faad14; }
-.delete { color: #ff4d4f; }
+.text-center { text-align: center; } .font-bold { font-weight: 600; } .font-medium { font-weight: 500; }
+.text-primary { color: #0f172a; } .text-code { color: #64748b; font-family: monospace; }
+.text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: middle; }
 
-/* Pagination Controls */
-.page-size { font-size: 14px; color: #666; display: flex; align-items: center; gap: 5px; }
-.size-select { padding: 4px 8px; width: auto; }
-.pagination-controls { display: flex; gap: 5px; align-items: center; }
-.page-info { font-size: 14px; color: #666; padding: 0 10px; }
-.page-btn { background: white; border: 1px solid #ddd; padding: 5px 12px; border-radius: 4px; cursor: pointer; color: #666; }
-.page-btn:hover:not(:disabled) { background-color: #f0f0f0; }
-.page-btn:disabled { background-color: #f5f5f5; color: #ccc; cursor: not-allowed; }
-.btn-icon {
-  border: none;
-  background: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: transform 0.2s;
-  margin: 0 4px; /* Cách nhau ra một chút */
-}
+.badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.badge-secondary { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
 
-.btn-icon:hover {
-  transform: scale(1.2);
-}
+.action-container { display: flex; align-items: center; justify-content: center; gap: 15px; }
+.status-wrapper { cursor: pointer; transition: opacity 0.2s; } .status-wrapper:hover { opacity: 0.8; }
+.toggle-icon { font-size: 24px; transition: color 0.3s ease; }
+.toggle-icon.active { color: #10b981; } .toggle-icon.inactive { color: #cbd5e1; }
+.btn-icon.delete { color: #ef4444; background: none; border: none; font-size: 16px; cursor: pointer; }
 
-/* Màu cho nút sửa */
-.edit {
-    color: #f59e0b; /* Màu cam */
-}
-
-/* Màu cho nút xóa */
-.delete {
-    color: #ef4444; /* Màu đỏ */
-}
-/* Style cho cái nút trạng thái trên bảng */
-.status-badge {
-    padding: 5px 10px;
-    border-radius: 15px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    display: inline-block;
-    transition: all 0.2s;
-}
-.status-badge:hover {
-    opacity: 0.8;
-    transform: scale(1.05);
-}
-.status-badge.active { background-color: #d1fae5; color: #065f46; } /* Xanh lá */
-.status-badge.inactive { background-color: #f3f4f6; color: #374151; } /* Xám */
-
-/* --- MODAL CSS --- */
-
-/* Lớp phủ mờ đen toàn màn hình */
-.modal-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.5); /* Màu đen mờ 50% */
-    display: flex;
-    justify-content: center; /* Căn giữa ngang */
-    align-items: center;     /* Căn giữa dọc */
-    z-index: 1000;           /* Nổi lên trên cùng */
-}
-
-/* Cái khung trắng (Frame) */
-.modal-content {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    width: 400px; /* Độ rộng của modal */
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    animation: fadeIn 0.3s;
-}
-
-/* Header */
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-}
-.modal-header h3 { margin: 0; font-size: 1.2rem; }
-.close-btn { cursor: pointer; font-size: 1.5rem; color: #aaa; }
-.close-btn:hover { color: black; }
-
-/* Body */
-.status-options {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin: 15px 0;
-}
-.option-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    border: 1px solid #eee;
-    border-radius: 5px;
-    cursor: pointer;
-}
-.option-item:hover { background-color: #f9f9f9; }
-
-.text-success { color: #16a34a; font-weight: bold; }
-.text-danger { color: #dc2626; font-weight: bold; }
-
-/* Footer (Buttons) */
-.modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
-    padding-top: 10px;
-    border-top: 1px solid #eee;
-}
-
-.btn-primary {
-    background-color: #2563eb;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-.btn-secondary {
-    background-color: white;
-    color: #333;
-    border: 1px solid #ccc;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-/* Hiệu ứng hiện ra nhẹ nhàng */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-/* --- CSS CHO SWITCH TOGGLE --- */
-.status-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Khung ngoài của switch */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;  /* Chiều rộng nút */
-  height: 24px; /* Chiều cao nút */
-}
-
-/* Ẩn input checkbox mặc định */
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-/* Thanh trượt (Slider) */
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #ccc; /* Màu xám khi tắt */
-  transition: .4s;
-  border-radius: 34px;
-}
-
-/* Cái chấm tròn trắng bên trong */
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px; /* Chiều cao chấm */
-  width: 18px;  /* Chiều rộng chấm */
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-/* Khi Input được Checked (Bật) */
-input:checked + .slider {
-  background-color: #2c3e50; /* Màu xanh Navy chủ đạo (hoặc dùng #28a745 xanh lá) */
-}
-
-/* Di chuyển chấm tròn khi bật */
-input:checked + .slider:before {
-  transform: translateX(20px);
-}
-
-/* Màu chữ trạng thái bên cạnh */
-.status-text {
-  font-size: 13px;
-  font-weight: 600;
-}
-.status-text.active { color: #28a745; }
-.status-text.inactive { color: #999; }
-/* Container bao quanh để căn chỉnh */
-.status-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px; /* Khoảng cách giữa icon và chữ */
-  cursor: pointer;
-  width: fit-content; /* Để vùng click vừa khít nội dung */
-  transition: opacity 0.2s;
-}
-
-.status-wrapper:hover {
-  opacity: 0.8; /* Hiệu ứng hover nhẹ */
-}
-
-/* Style chung cho Icon Toggle */
-.toggle-icon {
-  font-size: 24px; /* Kích thước icon to rõ */
-  transition: color 0.3s ease;
-}
-
-/* Trạng thái ON (Hoạt động) - Màu xanh */
-.toggle-icon.active {
-  color: #2c3e50; /* Hoặc dùng màu xanh lá: #28a745 */
-}
-
-/* Trạng thái OFF (Ngừng HĐ) - Màu xám */
-.toggle-icon.inactive {
-  color: #adb5bd; /* Màu xám nhạt */
-}
-
-/* Style cho chữ bên cạnh (nếu dùng) */
-.status-text {
-  font-size: 14px;
-  font-weight: 600;
-  user-select: none; /* Không cho bôi đen chữ khi click nhanh */
-}
-
-.text-active { color: #2c3e50; }
-.text-inactive { color: #999; }
-.employee-image {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%; /* Bo tròn ảnh */
-    object-fit: cover; /* Cắt ảnh vừa khung, không bị méo */
-    border: 1px solid #ddd;
-}
+.pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; }
+.page-info { font-size: 14px; color: #64748b; }
+.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 6px; margin: 0 5px; outline: none; }
+.page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin: 0 5px; cursor: pointer; }
+.page-controls button:disabled { background: #f8fafc; color: #cbd5e1; cursor: not-allowed; }
+.page-number { font-size: 14px; font-weight: 600; margin: 0 10px; }
 </style>

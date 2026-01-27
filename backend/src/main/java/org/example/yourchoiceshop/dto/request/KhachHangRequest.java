@@ -9,6 +9,7 @@ import lombok.Data;
 
 @Data
 public class KhachHangRequest {
+    private String maKhachHang;
     private String tenKhachHang;
     private String email;
     private String soDienThoai;
@@ -22,6 +23,6 @@ public class KhachHangRequest {
     private String district;
     private String ward;
     private String address; // Số nhà cụ thể
-
+    private Integer trangThai;
     private MultipartFile avatarFile; // File ảnh upload
 }

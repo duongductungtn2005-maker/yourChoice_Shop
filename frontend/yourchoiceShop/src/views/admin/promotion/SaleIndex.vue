@@ -13,12 +13,14 @@
           />
         </div>
         <div class="buttons">
-          <button @click="exportExcel" class="btn btn-outline">
-            <i class="fas fa-file-excel"></i> Xuất Excel
-          </button>
-          <router-link to="/admin/sales/create" class="btn btn-primary">
+          <button class="btn btn-outline" @click="exportExcel">
+                <i class="fas fa-file-excel"></i> Xuất Excel
+            </button>
+          
+          <router-link :to="{ name: 'admin-sale-create' }" class="btn btn-primary">
             <i class="fas fa-plus"></i> Tạo mới
           </router-link>
+          
         </div>
       </div>
       

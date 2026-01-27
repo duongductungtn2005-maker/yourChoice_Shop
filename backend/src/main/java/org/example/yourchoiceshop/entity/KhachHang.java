@@ -3,7 +3,7 @@ package org.example.yourchoiceshop.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.sql.Date;
-
+import java.time.LocalDate; // Nhớ import dòng này
 @Entity
 @Table(name = "khach_hang")
 @Getter
@@ -38,5 +38,11 @@ public class KhachHang extends BaseStatusEntity {
     private Boolean gioiTinh;
 
     @Column(name = "ngay_sinh")
-    private Date ngaySinh;
+    private LocalDate ngaySinh;
+    @Column(name = "trang_thai")
+    private Integer trangThai;
+
+    // --- BỔ SUNG TRƯỜNG NÀY ---
+    @Column(name = "avatar") // Hoặc "anh_dai_dien" tùy DB của bạn
+    private String avatar;
 }

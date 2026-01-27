@@ -51,8 +51,7 @@ public class PhieuGiamGiaServiceImpl {
 
         // Map các trường còn lại
         pgg.setTenPhieuGiamGia(req.getTenPhieuGiamGia());
-        pgg.setKieu(req.getKieu());
-        pgg.setLoaiPhieu(req.getLoaiPhieu());
+        pgg.setLoaiPhieu(req.getLoaiPhieu()); // Đúng: setLoaiPhieu khớp với DB        pgg.setLoaiPhieu(req.getLoaiPhieu());
         pgg.setGiaTriGiam(req.getGiaTriGiam());
         pgg.setSoLuong(req.getSoLuong());
         pgg.setNgayBatDau(req.getNgayBatDau());
@@ -76,7 +75,7 @@ public class PhieuGiamGiaServiceImpl {
             // Đang tắt -> Bật lại
             if (pgg.getNgayKetThuc().isBefore(now)) {
                 // Đã hết hạn
-                if ("CongKhai".equals(pgg.getKieu())) {
+                if ("CongKhai".equals(pgg.getLoaiPhieu())) {
                     if (newEndDate == null || newEndDate.isBefore(now)) {
                         throw new RuntimeException("Voucher đã hết hạn. Vui lòng nhập ngày kết thúc mới!");
                     }
@@ -108,7 +107,7 @@ public class PhieuGiamGiaServiceImpl {
                 Row row = sheet.createRow(rowIdx++);
                 row.createCell(0).setCellValue(item.getMaPhieuGiamGia());
                 row.createCell(1).setCellValue(item.getTenPhieuGiamGia());
-                row.createCell(2).setCellValue(item.getKieu());
+                row.createCell(2).setCellValue(item.getLoaiPhieu());
                 row.createCell(3).setCellValue(item.getNgayKetThuc().toString());
             }
             workbook.write(out);

@@ -1,19 +1,22 @@
 package org.example.yourchoiceshop.service;
 
-import java.util.List;
-
 import org.example.yourchoiceshop.dto.request.KhachHangRequest;
 import org.example.yourchoiceshop.entity.KhachHang;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.List;
 
 public interface KhachHangService {
-    Page<KhachHang> findAll(String keyword, Boolean gender, Integer status, Pageable pageable);  
+    Page<KhachHang> findAll(String keyword, Boolean gender, Integer status, Pageable pageable);
+    KhachHang findById(Integer id);
     KhachHang create(KhachHangRequest request);
+    KhachHang update(Integer id, KhachHangRequest req);
     void delete(Integer id);
     void updateTrangThai(Integer id, Integer trangThai);
-    KhachHang findById(Integer id);
-    KhachHang update(Integer id, KhachHangRequest req);
+
+    // Thêm hàm này
+    ByteArrayInputStream exportToExcel(String keyword, Boolean gender, Integer status) throws IOException;
     List<KhachHang> findAllList(String keyword, Boolean gender, Integer status);
 }

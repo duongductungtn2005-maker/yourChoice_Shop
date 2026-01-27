@@ -7,7 +7,8 @@ import TayAoIndex from '../views/admin/attribute/TayAoIndex.vue'
 import ChatLieuIndex from '../views/admin/attribute/ChatLieuIndex.vue'
 import XuatXuIndex from '../views/admin/attribute/XuatXuIndex.vue'
 import ThuongHieuIndex from '../views/admin/attribute/ThuongHieuIndex.vue'
-
+import CustomerCreate from '@/views/admin/customer/CustomerCreate.vue';
+import CustomerDetail from '@/views/admin/customer/CustomerDetail.vue';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -42,12 +43,22 @@ const router = createRouter({
 
         // --- QUẢN LÝ KHÁCH HÀNG (Đã sửa tên file) ---
         {
-          path: 'customers',
+          path: 'customers', // Đường dẫn: /admin/customers
           name: 'admin-customer-list',
-          // SỬA: Đổi từ CustomerIndex.vue thành CustomerList.vue
           component: () => import('../views/admin/customer/CustomerList.vue')
         },
-
+        {
+          path: 'customers/create', // Đường dẫn: /admin/customers/create
+          name: 'admin-customer-create',
+          component: CustomerCreate,
+          meta: { title: 'Thêm khách hàng' }
+        },
+        {
+          path: 'customers/detail/:id', // Đường dẫn nhận ID
+          name: 'admin-customer-detail',
+          component: CustomerDetail,
+          meta: { title: 'Chi tiết khách hàng' }
+        },
         // --- QUẢN LÝ NHÂN VIÊN ---
         {
           path: 'employees',
@@ -125,10 +136,21 @@ const router = createRouter({
           component: () => import('../views/admin/voucher/VoucherIndex.vue')
         },
         {
+          path: 'vouchers/create', // Đường dẫn con: /admin/vouchers/create
+          name: 'admin-voucher-create',
+          component: () => import('../views/admin/voucher/VoucherCreate.vue')
+        },
+        {
           path: 'sales',
           name: 'admin-sale-list',
           component: () => import('../views/admin/promotion/SaleIndex.vue')
-        }
+        },
+        {
+          path: 'sales/create', // Đường dẫn: /admin/sales/create
+          name: 'admin-sale-create',
+          // Đảm bảo bạn đã tạo file SaleCreate.vue tại đường dẫn này
+          component: () => import('../views/admin/promotion/SaleCreate.vue')
+        },
       ]
     },
 
