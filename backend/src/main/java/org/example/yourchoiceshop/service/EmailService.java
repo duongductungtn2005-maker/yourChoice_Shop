@@ -54,27 +54,27 @@ public class EmailService {
 
     // --- 2. Hàm nghiệp vụ: Gửi phiếu giảm giá (MỚI THÊM) ---
     // --- Hàm gửi Voucher đẹp (Giống giao diện Web) ---
+    // --- Hàm gửi Voucher đẹp (Đã fix lỗi %) ---
     public void sendVoucherEmail(String toEmail, PhieuGiamGia voucher) {
         String subject = "🎁 Quà tặng đặc biệt từ YourChoice!";
 
-        // Format tiền/ngày
         DecimalFormat df = new DecimalFormat("###,###,###");
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        String giaTri = "PhanTram".equals(voucher.getLoaiPhieu())
-                ? voucher.getGiaTriGiam() + "%"
+        String giaTri = "PhanTram".equals(voucher.getLoaiPhieu()) 
+                ? voucher.getGiaTriGiam() + "%" 
                 : df.format(voucher.getGiaTriGiam()) + "đ";
-
+        
         String hanDung = voucher.getNgayKetThuc().format(dtf);
 
-        // HTML & CSS (Dùng Table để hiển thị tốt trên Gmail)
+        // LƯU Ý: width: 100% phải viết thành 100%% để tránh lỗi Java
         String htmlContent = """
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 20px;">
                 <h3 style="color: #2b4360; text-align: center;">Chào bạn, YourChoice gửi tặng bạn mã giảm giá!</h3>
                 
-                <table style="width: 100%; border-collapse: separate; border-spacing: 0; background-color: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <table style="width: 100%%; border-collapse: separate; border-spacing: 0; background-color: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                     <tr>
-                        <td style="width: 35%; background-color: #2b4360; color: #fff; text-align: center; padding: 20px; vertical-align: middle;">
+                        <td style="width: 35%%; background-color: #2b4360; color: #fff; text-align: center; padding: 20px; vertical-align: middle;">
                             <div style="font-size: 28px; font-weight: bold; color: #eddcc3; margin-bottom: 5px;">%s</div>
                             <div style="font-size: 12px; letter-spacing: 1px; text-transform: uppercase;">GIẢM GIÁ</div>
                             <div style="margin-top: 10px;">
@@ -82,7 +82,7 @@ public class EmailService {
                             </div>
                         </td>
                         
-                        <td style="width: 65%; padding: 20px; border-left: 2px dashed #cbd5e1; vertical-align: middle;">
+                        <td style="width: 65%%; padding: 20px; border-left: 2px dashed #cbd5e1; vertical-align: middle;">
                             <h4 style="margin: 0 0 5px 0; color: #334155; font-size: 16px;">%s</h4>
                             <p style="margin: 0 0 15px 0; color: #64748b; font-size: 13px;">Đơn tối thiểu: %s đ</p>
                             
@@ -100,11 +100,11 @@ public class EmailService {
                 </div>
             </div>
         """.formatted(
-                giaTri,                         // %s thứ 1: Giá trị giảm
-                voucher.getTenPhieuGiamGia(),   // %s thứ 2: Tên phiếu
-                df.format(voucher.getDonHangToiThieu()), // %s thứ 3: Đơn tối thiểu
-                voucher.getMaPhieuGiamGia(),    // %s thứ 4: Mã CODE
-                hanDung                         // %s thứ 5: Hạn sử dụng
+                giaTri,
+                voucher.getTenPhieuGiamGia(),
+                df.format(voucher.getDonHangToiThieu()),
+                voucher.getMaPhieuGiamGia(),
+                hanDung
         );
 
         sendEmail(toEmail, subject, htmlContent);
