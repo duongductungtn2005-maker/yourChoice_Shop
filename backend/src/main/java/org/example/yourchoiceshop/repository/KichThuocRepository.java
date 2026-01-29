@@ -7,10 +7,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.List;
+// import java.io.ByteArrayInputStream;
+// import java.io.ByteArrayOutputStream;
+// import java.io.IOException;
+// import java.util.List;
 @Repository
 
 public interface KichThuocRepository extends JpaRepository<KichThuoc, Integer> {

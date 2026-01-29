@@ -2,7 +2,7 @@ package org.example.yourchoiceshop.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.sql.Date;
+// import java.sql.Date;
 import java.time.LocalDate; // Nhớ import dòng này
 @Entity
 @Table(name = "khach_hang")

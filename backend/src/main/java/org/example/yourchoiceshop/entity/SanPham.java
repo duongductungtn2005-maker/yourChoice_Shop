@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.example.yourchoiceshop.entity.BaseStatusEntity; // Đảm bảo import đúng đường dẫn Base của bạn
+// import org.example.yourchoiceshop.entity.BaseStatusEntity; // Đảm bảo import đúng đường dẫn Base của bạn
 
 import java.util.List;
 

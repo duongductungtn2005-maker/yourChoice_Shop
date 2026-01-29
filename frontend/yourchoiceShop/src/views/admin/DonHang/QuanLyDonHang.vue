@@ -21,12 +21,12 @@
         </label>
 
         <label>
-          <input type="radio" value="Trực tuyến" v-model="orderType" />
+          <input type="radio" value="TRUC_TUYEN" v-model="orderType" />
           Trực tuyến
         </label>
 
         <label>
-          <input type="radio" value="Tại quầy" v-model="orderType" />
+          <input type="radio" value="TAI_QUAY" v-model="orderType" />
           Tại quầy
         </label>
       </div>
@@ -83,7 +83,7 @@
 
 
             <td>
-              <router-link :to="{ name: 'admin-order-detail', params: { id: order.code } }" class="submenu-item">
+              <router-link :to="{ name: 'admin-order-detail', params: { id: order.id } }" class="submenu-item">
                 ✏️
               </router-link>
             </td>
@@ -167,8 +167,20 @@ const STATUS_INFO = {
 
 /* ================== METHODS ================== */
 const loadOrders = async () => {
-  const res = await fetchOrders()
+  const payload = {
+    page: 0,
+    size: 100,        // lấy nhiều để FE filter
+    keyword: keyword.value || '',
+    trangThai: STATUS_MAP[activeTab.value],
+    loaiHoaDon: orderType.value === 'ALL' ? null : orderType.value
+  }
+
+  console.log('PAYLOAD:', payload)
+
+  const res = await fetchOrders(payload)
+
   allOrders.value = res.data.content.map(o => ({
+    id: o.id,
     code: o.maHoaDon,
     totalItems: o.tongSanPham,
     totalPrice: o.tongTienSauGiam,
@@ -177,6 +189,7 @@ const loadOrders = async () => {
     type: o.loaiHoaDon,
     status: o.trangThai
   }))
+
   applyFilter()
 }
 

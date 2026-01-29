@@ -2,15 +2,8 @@ package org.example.yourchoiceshop.entity;
 import jakarta.persistence.*;
 
 import lombok.*;
-
-import lombok.Data;
 import java.time.LocalDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-import java.time.LocalDateTime;
 @Entity 
 @Table(name = "lich_su_hoa_don") 
 @Getter

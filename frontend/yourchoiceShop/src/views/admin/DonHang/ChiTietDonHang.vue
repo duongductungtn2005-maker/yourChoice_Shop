@@ -45,20 +45,22 @@
         <div>
           <strong>Trạng thái:</strong>
           <span class="status-badge" :class="statusInfo(order.trangThai).class">{{
-            statusInfo(order.trangThai).text}}</span>
+            statusInfo(order.trangThai).text }}</span>
         </div>
 
-        <div v-if="order.thongTinNhanHang">
-          <strong>Người nhận:</strong> {{ order.thongTinNhanHang.tenNguoiNhan }}
-        </div>
+        <div v-if="order.loaiHoaDon === 'TRUC_TUYEN'">
+  <strong>Người nhận:</strong> {{ order.thongTinNhanHang?.tenNguoiNhan }}
+</div>
 
-        <div v-if="order.thongTinNhanHang">
-          <strong>SĐT:</strong> {{ order.thongTinNhanHang.sdt }}
-        </div>
+<div v-if="order.loaiHoaDon === 'TRUC_TUYEN'">
+  <strong>SĐT:</strong> {{ order.thongTinNhanHang?.sdt }}
+</div>
 
-        <div v-if="order.thongTinNhanHang" style="grid-column: span 2">
-          <strong>Địa chỉ:</strong> {{ order.thongTinNhanHang.diaChi }}
-        </div>
+<div v-if="order.loaiHoaDon === 'TRUC_TUYEN'" style="grid-column: span 2">
+  <strong>Địa chỉ:</strong> {{ order.thongTinNhanHang?.diaChi }}
+</div>
+
+
       </div>
 
       <div class="info-actions">
@@ -130,7 +132,7 @@
     <div class="card">
       <h3>Danh sách sản phẩm</h3>
 
-      <div class="product" v-for="(sp, i) in order.sanPhamHoaDon" :key="i">
+      <div class="product" v-for="(sp, i) in order.sanPhamList" :key="i">
         <!-- <img src="https://via.placeholder.com/80" /> -->
         <div class="product-info">
           <strong>{{ sp.tenSanPham }}</strong>
@@ -144,7 +146,7 @@
     <!-- ===== Tổng tiền ===== -->
     <div class="card summary">
       <div>
-        <div>Giảm giá: <strong>{{ formatMoney(order.giamGia) }}</strong></div>
+        <div>Giảm giá: <strong>{{ formatMoney(order.tienGiamGia) }}</strong></div>
         <div>Phí vận chuyển: <strong>{{ formatMoney(order.phiVanChuyen) }}</strong></div>
       </div>
 
@@ -156,51 +158,51 @@
 
   </div>
   <!-- ===== Modal cập nhật ===== -->
-<div v-if="showEditModal" class="modal-overlay">
-  <div class="modal">
-    <h3>Cập nhật thông tin đơn hàng</h3>
+  <div v-if="showEditModal" class="modal-overlay">
+    <div class="modal">
+      <h3>Cập nhật thông tin đơn hàng</h3>
 
-    <div class="form-group">
-      <label>Khách hàng</label>
-      <input v-model="editForm.tenKhachHang" />
-    </div>
-
-    <div class="form-group">
-      <label>SĐT</label>
-      <input v-model="editForm.sdt" />
-    </div>
-
-    <div class="form-group">
-      <label>Loại hóa đơn</label>
-      <select v-model="editForm.loaiHoaDon">
-        <option value="Trực tuyến">Trực tuyến</option>
-        <option value="Tại quầy">Tại quầy</option>
-      </select>
-    </div>
-
-    <!-- Chỉ hiện khi Trực tuyến -->
-    <template v-if="editForm.loaiHoaDon === 'Trực tuyến'">
       <div class="form-group">
-        <label>Người nhận</label>
-        <input v-model="editForm.tenNguoiNhan" />
+        <label>Khách hàng</label>
+        <input v-model="editForm.tenKhachHang" />
       </div>
 
       <div class="form-group">
-        <label>Địa chỉ</label>
-        <input v-model="editForm.diaChi" />
+        <label>SĐT</label>
+        <input v-model="editForm.sdt" />
       </div>
-    </template>
 
-    <div class="modal-actions">
-      <button class="btn-outline" @click="showEditModal = false">
-        Hủy
-      </button>
-      <button class="btn-primary" @click="saveEdit">
-        Lưu
-      </button>
+      <div class="form-group">
+        <label>Loại hóa đơn</label>
+        <select v-model="editForm.loaiHoaDon">
+          <option value="Trực tuyến">Trực tuyến</option>
+          <option value="Tại quầy">Tại quầy</option>
+        </select>
+      </div>
+
+      <!-- Chỉ hiện khi Trực tuyến -->
+      <template v-if="editForm.loaiHoaDon === 'Trực tuyến'">
+        <div class="form-group">
+          <label>Người nhận</label>
+          <input v-model="editForm.tenNguoiNhan" />
+        </div>
+
+        <div class="form-group">
+          <label>Địa chỉ</label>
+          <input v-model="editForm.diaChi" />
+        </div>
+      </template>
+
+      <div class="modal-actions">
+        <button class="btn-outline" @click="showEditModal = false">
+          Hủy
+        </button>
+        <button class="btn-primary" @click="saveEdit">
+          Lưu
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
 </template>
 
@@ -215,20 +217,6 @@ const route = useRoute()
 const router = useRouter()
 const order = ref(null)
 const statusTimes = ref({})
-
-onMounted(async () => {
-  try {
-    const id = route.params.id
-    const res = await fetchOrderDetail(id)
-    order.value = res.data
-
-    // Thời gian tạo đơn = trạng thái 1
-    statusTimes.value[1] = order.value.ngayTao
-  } catch (e) {
-    alert('Không tìm thấy đơn hàng')
-    router.push('/admin/orders')
-  }
-})
 
 const now = () =>
   new Date().toLocaleString('vi-VN')
@@ -269,11 +257,11 @@ const statusInfo = (status) => STATUS_CONFIG[status] || {
 }
 
 const ORDER_TYPE_CONFIG = {
-  'Trực tuyến': {
+  TRUC_TUYEN: {
     text: 'Trực tuyến',
     class: 'type-online'
   },
-  'Tại quầy': {
+  TAI_QUAY: {
     text: 'Tại quầy',
     class: 'type-offline'
   }
@@ -307,11 +295,13 @@ onMounted(async () => {
     const id = route.params.id
     const res = await fetchOrderDetail(id)
     order.value = res.data
+    statusTimes.value[1] = order.value.ngayTao
   } catch (e) {
     alert('Không tìm thấy đơn hàng')
     router.push('/admin/orders')
   }
 })
+
 
 const timeline = computed(() => {
   if (!order.value) return []
@@ -630,5 +620,4 @@ const formatMoney = (v) =>
   justify-content: flex-end;
   gap: 8px;
 }
-
 </style>

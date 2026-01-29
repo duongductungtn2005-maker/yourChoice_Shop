@@ -5,8 +5,8 @@ import org.example.yourchoiceshop.dto.request.BulkUpdateWrapper;
 import org.example.yourchoiceshop.dto.request.CreateProductRequest;
 import org.example.yourchoiceshop.dto.request.UpdateVariantRequest;
 import org.example.yourchoiceshop.dto.response.ProductResponse;
-import org.example.yourchoiceshop.entity.ChiTietSanPham;
-import org.example.yourchoiceshop.entity.SanPham;
+// import org.example.yourchoiceshop.entity.ChiTietSanPham;
+// import org.example.yourchoiceshop.entity.SanPham;
 import org.example.yourchoiceshop.service.impl.ProductServiceImpl;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
@@ -22,7 +22,7 @@ import org.example.yourchoiceshop.dto.response.VariantResponse; // Thêm import 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List; // <--- BẠN ĐANG THIẾU DÒNG NÀY
-import org.example.yourchoiceshop.dto.request.BulkUpdateVariantRequest;
+// import org.example.yourchoiceshop.dto.request.BulkUpdateVariantRequest;
 @RestController
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor

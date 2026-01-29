@@ -1,15 +1,9 @@
 package org.example.yourchoiceshop.entity;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 @Entity
 @Table(name = "lich_su_thanh_toan")
 @Getter

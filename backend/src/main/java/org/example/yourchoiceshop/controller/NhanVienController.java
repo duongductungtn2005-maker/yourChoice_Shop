@@ -12,7 +12,7 @@ import java.util.List;
 import org.example.yourchoiceshop.dto.request.EmployeeRequest;
 import org.example.yourchoiceshop.entity.NhanVien;
 import org.example.yourchoiceshop.service.NhanVienService;
-import org.springframework.beans.factory.annotation.Autowired;
+// import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
@@ -25,19 +25,19 @@ import org.springframework.web.bind.annotation.*; // Import gọn hơn
 
 import jakarta.servlet.http.HttpServletResponse;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+// import org.slf4j.Logger;
+// import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1/nhan-vien")
 @CrossOrigin(origins = "http://localhost:5173") 
 public class NhanVienController {
 
-    private static final Logger logger = LoggerFactory.getLogger(NhanVienController.class);
+    // private static final Logger logger = LoggerFactory.getLogger(NhanVienController.class);
 
     // ĐÃ SỬA: Bỏ @Autowired vì @RequiredArgsConstructor đã lo việc này rồi
     private final NhanVienService nhanVienService;
-    @Autowired // Có thể có hoặc không với Spring Boot mới, nhưng nên để cho rõ
+    // @Autowired // Có thể có hoặc không với Spring Boot mới, nhưng nên để cho rõ
     public NhanVienController(NhanVienService nhanVienService) {
         this.nhanVienService = nhanVienService;
     }
