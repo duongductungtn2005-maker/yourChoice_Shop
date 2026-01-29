@@ -50,13 +50,19 @@
               </td>
               <td class="text-center text-gray">{{ formatDate(item.ngayTao) }}</td>
               <td class="text-center">
-                <button class="btn-icon" @click="openModal(item)" title="Sửa">
-                    <font-awesome-icon :icon="['far', 'pen-to-square']" />
-                </button>
-                <button class="btn-icon delete" @click="confirmChangeStatus(item)" title="Đổi trạng thái">
-                    <font-awesome-icon :icon="['far', 'trash-can']" />
-                </button>
-              </td>
+    <button class="action-btn" @click="openModal(item)" title="Sửa">
+    <font-awesome-icon :icon="['far', 'pen-to-square']" />
+</button>
+
+    <label class="switch" title="Bật/Tắt trạng thái">
+        <input 
+            type="checkbox" 
+            :checked="item.trangThai === 1" 
+            @click="handleToggleStatus(item, $event)"
+        >
+        <span class="slider round"></span>
+    </label>
+</td>
             </tr>
           </tbody>
         </table>
@@ -101,11 +107,12 @@
                 </form>
              </div>
              <div class="modal-footer-custom">
-                <button type="button" class="btn-custom btn-dark-blue" @click="showModal = false">Đóng</button>
-                <button type="button" class="btn-custom btn-white-outline" @click="saveData">
-                    {{ isEdit ? 'Lưu' : 'Thêm' }}
-                </button>
-             </div>
+    <button type="button" class="btn-custom btn-white-outline" @click="showModal = false">Đóng</button>
+    
+    <button type="button" class="btn-custom btn-dark-blue" @click="saveData">
+        {{ isEdit ? 'Lưu' : 'Thêm' }}
+    </button>
+</div>
           </div>
        </div>
     </div>
@@ -219,11 +226,16 @@ const saveData = async () => {
 
     const result = await Swal.fire({
         title: `<h3 style="color:#1e293b; margin:0; font-size:20px;">Xác nhận ${isEdit.value ? 'Cập nhật' : 'Thêm mới'}?</h3>`,
-        icon: 'warning', iconColor: '#facc15', showCancelButton: true, confirmButtonText: 'Có', cancelButtonText: 'Không',
-        customClass: { confirmButton: 'swal-btn-outline', cancelButton: 'swal-btn-solid', popup: 'swal-rounded' }, 
-        buttonsStyling: false, reverseButtons: true
+        icon: 'warning', 
+        iconColor: '#facc15', 
+        showCancelButton: true, 
+        confirmButtonText: 'Có', 
+        cancelButtonText: 'Không',
+        // QUAN TRỌNG: confirmButton dùng class 'solid' (đậm), cancelButton dùng 'outline' (trắng)
+        customClass: { confirmButton: 'swal-btn-solid', cancelButton: 'swal-btn-outline', popup: 'swal-rounded' }, 
+        buttonsStyling: false, 
+        reverseButtons: true
     });
-
     if (result.isConfirmed) {
         try {
             const payload = { ten: form.ten, trangThai: form.trangThai };
@@ -241,21 +253,55 @@ const saveData = async () => {
     }
 };
 
-const confirmChangeStatus = async (item) => {
+const handleToggleStatus = async (item, event) => {
+    event.preventDefault(); // Chặn đổi trạng thái ngay lập tức
+
+    const currentStatus = item.trangThai;
+    const newStatus = currentStatus === 1 ? 0 : 1;
+    const actionText = newStatus === 1 ? 'Kích hoạt' : 'Ngừng hoạt động';
+    const confirmBtnColor = newStatus === 1 ? '#10b981' : '#ef4444'; 
+
     const result = await Swal.fire({
-        title: `<h3 style="color:#1e293b; font-size:18px;">Ngừng hoạt động?</h3>`,
-        icon: 'warning', iconColor: '#ef4444', showCancelButton: true, confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy',
-        customClass: { confirmButton: 'swal-btn-danger', cancelButton: 'swal-btn-solid' }, buttonsStyling: false
+        title: `<h3 style="color:#1e293b; font-size:18px;">Xác nhận ${actionText}?</h3>`,
+        text: `Bạn có chắc muốn ${actionText.toLowerCase()} tay áo "${item.tenTayAo}"?`, // Dùng tenTayAo
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: confirmBtnColor,
+        customClass: { popup: 'swal-rounded' }
     });
 
     if (result.isConfirmed) {
         try {
-            await axios.delete(`${API_URL}/${item.id}`);
-            fetchData();
-            Swal.fire({ icon: 'success', title: 'Đã chuyển trạng thái', timer: 1500, showConfirmButton: false });
-        } catch (e) { Swal.fire('Lỗi', '', 'error'); }
+            if (newStatus === 0) {
+                // Tắt -> Gọi Delete (Xóa mềm)
+                await axios.delete(`${API_URL}/${item.id}`);
+            } else {
+                // Bật -> Gọi Put (Cập nhật trạng thái = 1)
+                await axios.put(`${API_URL}/${item.id}`, { 
+                    ten: item.tenTayAo, // Gửi đúng tên Tay Áo
+                    trangThai: 1 
+                });
+            }
+
+            // Cập nhật giao diện
+            item.trangThai = newStatus;
+            
+            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+            Toast.fire({ icon: 'success', title: `Đã ${actionText.toLowerCase()} thành công!` });
+
+        } catch (e) {
+            console.error(e);
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Không thể thay đổi trạng thái. Vui lòng thử lại.',
+                customClass: { popup: 'swal-rounded' }
+            });
+        }
     }
-}
+};
 
 // --- UTILS ---
 const changePage = (p) => { if (p >= 1 && p <= totalPages.value) { page.value = p; fetchData(); } };
@@ -270,6 +316,50 @@ onMounted(() => { fetchData(); });
 
 <style>
 /* CSS SWEETALERT */
+/* --- CSS TOGGLE SWITCH --- */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  margin-left: 12px; /* TẠO KHOẢNG CÁCH VỚI NÚT SỬA */
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #cbd5e1;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);
+}
+
+input:checked + .slider {
+  background-color: #10b981;
+}
+
+input:checked + .slider:before {
+  transform: translateX(16px);
+}
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 
 .swal-rounded { border-radius: 12px !important; }
@@ -317,4 +407,17 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-
 .btn-white-outline:hover { background-color: #f8fafc; }
 .radio-group { display: flex; justify-content: center; gap: 20px; }
 .radio-item { font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+.action-btn { 
+    background: none; 
+    border: none; 
+    cursor: pointer; 
+    font-size: 18px; 
+    color: #475569; 
+    transition: 0.2s; 
+}
+
+.action-btn:hover { 
+    color: #0f172a; 
+    transform: scale(1.1); 
+}
 </style>
