@@ -1,30 +1,41 @@
 package org.example.yourchoiceshop.dto.response;
 
-import lombok.Builder;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import java.math.BigDecimal;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class ProductResponse {
     private Integer id;
     private String maSanPham;
     private String tenSanPham;
-    private String moTa;
 
-    // Tên hiển thị của các thuộc tính
+    // Định dạng ngày giờ trả về cho Frontend
+    // Kết quả sẽ là chuỗi: "26/01/2026"
+    @JsonFormat(pattern = "dd/MM/yyyy")
+    private LocalDateTime ngayTao;
+
+    private Integer soLuong;
+    private Integer trangThai;
+
+    // --- Các trường TÊN (để hiển thị ra bảng) ---
     private String tenThuongHieu;
-    private String tenXuatXu;
     private String tenChatLieu;
+    private String tenXuatXu;
     private String tenCoAo;
     private String tenTayAo;
+    private String dsMauSac;
+    private String dsKichThuoc;
 
-    private Integer tongSoLuongTon; // Tổng số lượng của tất cả biến thể
-    private Integer soLuongBienThe; // Có bao nhiêu biến thể
-    private BigDecimal giaThapNhat; // Khoảng giá
-    private BigDecimal giaCaoNhat;
-
-    private Integer trangThai;
-    private LocalDateTime ngayTao;
+    // --- CÁC TRƯỜNG ID (Để binding vào Modal sửa) ---
+    private Integer idThuongHieu;
+    private Integer idChatLieu;
+    private Integer idXuatXu;
+    private Integer idCoAo;
+    private Integer idTayAo;
+    private String moTa;
 }
