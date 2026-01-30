@@ -56,7 +56,7 @@
               <div class="form-row">
                 <div class="form-group half">
                   <label class="required">Số CCCD</label>
-                  <input type="text" v-model="employee.cccd" class="form-control" :class="{ 'is-invalid': errors.cccd }" @input="clearError('cccd')">
+                  <input type="number" v-model="employee.cccd" class="form-control" :class="{ 'is-invalid': errors.cccd }" @input="clearError('cccd')">
                   <span class="error-msg" v-if="errors.cccd">{{ errors.cccd }}</span>
                 </div>
                 <div class="form-group half">
@@ -75,10 +75,10 @@
                   <span class="error-msg" v-if="errors.ngaySinh">{{ errors.ngaySinh }}</span>
                 </div>
                 <div class="form-group half">
-                  <label class="required">Email</label>
-                  <input type="email" v-model="employee.email" class="form-control" :class="{ 'is-invalid': errors.email }" @input="clearError('email')">
-                  <span class="error-msg" v-if="errors.email">{{ errors.email }}</span>
-                </div>
+                    <label class="required">Số điện thoại</label>
+                    <input type="number" v-model="employee.soDienThoai" class="form-control" :class="{ 'is-invalid': errors.soDienThoai }" @input="clearError('soDienThoai')">
+                    <span class="error-msg" v-if="errors.soDienThoai">{{ errors.soDienThoai }}</span>
+                 </div>
               </div>
 
               <div class="form-row">
@@ -106,11 +106,11 @@
               </div>
 
               <div class="form-row">
-                 <div class="form-group half">
-                    <label class="required">Số điện thoại</label>
-                    <input type="text" v-model="employee.soDienThoai" class="form-control" :class="{ 'is-invalid': errors.soDienThoai }" @input="clearError('soDienThoai')">
-                    <span class="error-msg" v-if="errors.soDienThoai">{{ errors.soDienThoai }}</span>
-                 </div>
+                <div class="form-group half">
+                  <label class="required">Email</label>
+                  <input type="email" v-model="employee.email" class="form-control" :class="{ 'is-invalid': errors.email }" @input="clearError('email')">
+                  <span class="error-msg" v-if="errors.email">{{ errors.email }}</span>
+                </div>
                  <div class="form-group half">
                     <label class="required">Địa chỉ cụ thể</label>
                     <input type="text" v-model="employee.diaChiCuThe" class="form-control" placeholder="Số nhà, đường..." :class="{ 'is-invalid': errors.diaChiCuThe }" @input="clearError('diaChiCuThe')">
