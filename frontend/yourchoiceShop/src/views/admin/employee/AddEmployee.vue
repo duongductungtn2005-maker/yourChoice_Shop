@@ -112,8 +112,7 @@
                   <span class="error-msg" v-if="errors.email">{{ errors.email }}</span>
                 </div>
                  <div class="form-group half">
-                    <label class="required">Địa chỉ cụ thể</label>
-                    <input type="text" v-model="employee.diaChiCuThe" class="form-control" placeholder="Số nhà, đường..." :class="{ 'is-invalid': errors.diaChiCuThe }" @input="clearError('diaChiCuThe')">
+                    <label class="required">Địa chỉ cụ thể</label><input type="text" v-model="employee.diaChiCuThe" class="form-control" placeholder="Số nhà, đường..." :class="{ 'is-invalid': errors.diaChiCuThe }" @input="clearError('diaChiCuThe')">
                     <span class="error-msg" v-if="errors.diaChiCuThe">{{ errors.diaChiCuThe }}</span>
                  </div>
               </div>
@@ -188,8 +187,7 @@ const normalizeName = (str) => {
     str = str.toLowerCase().trim();
     // Bỏ các từ khóa hành chính thông dụng
     const prefixes = ['tỉnh ', 'thành phố ', 'tp. ', 'tp ', 'quận ', 'huyện ', 'thị xã ', 'tx. ', 'xã ', 'phường ', 'thị trấn ', 'tt. '];
-    for (const p of prefixes) {
-        if (str.startsWith(p)) {
+    for (const p of prefixes) {if (str.startsWith(p)) {
             return str.replace(p, '').trim();
         }
     }
@@ -267,8 +265,7 @@ const loadEmployeeData = async () => {
 };
 
 // SUBMIT
-const handleSubmit = async () => {
-    if (!validateForm()) return;
+const handleSubmit = async () => {if (!validateForm()) return;
     try {
         const fd = new FormData();
         fd.append("tenNhanVien", employee.tenNhanVien); fd.append("cccd", employee.cccd);
@@ -331,8 +328,7 @@ const onScanSuccess = async (decodedText) => {
                 const wName = addrParts[addrParts.length - 3]; // Xã
                 
                 // --- BƯỚC 1: TÌM TỈNH ---
-                const pCode = findLocationCode(pName, locationData.provinces);
-                if (pCode) {
+                const pCode = findLocationCode(pName, locationData.provinces);if (pCode) {
                     address.provinceId = pCode;
                     await onProvinceChange(); // Chờ tải danh sách Huyện
                     
@@ -398,8 +394,7 @@ onMounted(async () => {
     cursor: pointer; overflow: hidden; background: #f8fafc; position: relative;
     flex-direction: column; /* Để icon và chữ nằm dọc */
 }
-.avatar-preview:hover { border-color: #3b82f6; background: #eff6ff; }
-.avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-preview:hover { border-color: #3b82f6; background: #eff6ff; }.avatar-img { width: 100%; height: 100%; object-fit: cover; }
 .upload-placeholder { display: flex; flex-direction: column; align-items: center; color: #64748b; }
 .upload-placeholder i { font-size: 24px; margin-bottom: 5px; }
 .hidden-input { display: none; }

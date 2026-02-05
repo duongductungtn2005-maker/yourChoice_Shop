@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1/nhan-vien")
-@CrossOrigin(origins = "http://localhost:5173") 
+@CrossOrigin("*") // <--- THÊM DÒNG NÀY (Cho phép mọi nguồn truy cập)
 public class NhanVienController {
 
     private static final Logger logger = LoggerFactory.getLogger(NhanVienController.class);
