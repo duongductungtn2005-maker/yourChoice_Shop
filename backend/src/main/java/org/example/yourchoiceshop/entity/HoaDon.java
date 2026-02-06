@@ -73,7 +73,6 @@ public class HoaDon extends BaseStatusEntity {
     @JoinColumn(name = "id_phieu_giam_gia")
     private PhieuGiamGia phieuGiamGia;
 
-    @ToString.Exclude
     @OneToMany(mappedBy = "hoaDon", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<HoaDonChiTiet> chiTietHoaDons;
 }

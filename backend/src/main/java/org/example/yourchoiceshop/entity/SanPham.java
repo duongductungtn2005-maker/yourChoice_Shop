@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-// import org.example.yourchoiceshop.entity.BaseStatusEntity; // Đảm bảo import đúng đường dẫn Base của bạn
+import org.example.yourchoiceshop.entity.BaseStatusEntity; // Đảm bảo import đúng đường dẫn Base của bạn
 
 import java.util.List;
 
@@ -16,8 +16,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SanPham extends BaseStatusEntity {
-
-    // LƯU Ý: Đã xóa id, ngayTao, nguoiTao, trangThai... vì chúng đã nằm trong BaseStatusEntity
 
     @Column(name = "ma_san_pham")
     private String maSanPham;
@@ -50,7 +48,8 @@ public class SanPham extends BaseStatusEntity {
     @JoinColumn(name = "id_tay_ao")
     private TayAo tayAo;
 
-    // Quan hệ với bảng chi tiết (biến thể)
+    // --- SỬA Ở ĐÂY ---
     @OneToMany(mappedBy = "sanPham", fetch = FetchType.LAZY)
+    @JsonIgnore  // <--- BẮT BUỘC PHẢI CÓ DÒNG NÀY
     private List<ChiTietSanPham> chiTietSanPhams;
 }

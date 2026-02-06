@@ -1,5 +1,6 @@
 package org.example.yourchoiceshop.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -12,8 +13,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class HoaDonChiTiet extends PrimaryEntity {
 
-    // Đã bỏ trường ID vì kế thừa từ PrimaryEntity
-    
     @Column(name = "ma_hoa_don_chi_tiet")
     private String maHoaDonChiTiet;
 
@@ -29,8 +28,12 @@ public class HoaDonChiTiet extends PrimaryEntity {
     @Column(name = "ghi_chu")
     private String ghiChu;
 
+    @Column(name = "trang_thai")
+    private Integer trangThai;
+
     @ManyToOne
     @JoinColumn(name = "id_hoa_don")
+    @JsonIgnore // Ngắt vòng lặp JSON khi load từ chi tiết lên hóa đơn
     private HoaDon hoaDon;
 
     @ManyToOne
