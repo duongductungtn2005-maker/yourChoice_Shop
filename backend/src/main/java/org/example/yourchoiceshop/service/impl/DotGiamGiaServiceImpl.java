@@ -1,5 +1,6 @@
 package org.example.yourchoiceshop.service.impl;
 
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
@@ -28,8 +29,11 @@ public class DotGiamGiaServiceImpl {
     private final ChiTietDotGiamGiaRepository ctDotRepo;
     private final ChiTietSanPhamRepository ctspRepo;
 
+    // Cập nhật: Thêm các tham số lọc để hỗ trợ frontend tốt hơn
     public Page<DotGiamGia> getAll(String keyword, Integer status, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         String key = (keyword != null && !keyword.trim().isEmpty()) ? keyword : null;
+        // Giả sử Repository đã có hàm search tùy biến (như bài Voucher)
+        // Nếu chưa có, bạn cần update Repository nhận 4 tham số này
         return dotRepo.search(key, status, startDate, endDate, pageable);
     }
 
@@ -48,10 +52,12 @@ public class DotGiamGiaServiceImpl {
 
         DotGiamGia dot = new DotGiamGia();
 
+        // Logic sinh mã an toàn
         String ma = req.getMaDotGiamGia();
         if (ma == null || ma.trim().isEmpty()) {
             ma = "EVENT" + System.currentTimeMillis();
         }
+        // Kiểm tra trùng mã (Optional)
         if (dotRepo.existsByMaDotGiamGia(ma)) {
             throw new RuntimeException("Mã đợt giảm giá đã tồn tại");
         }
@@ -60,7 +66,7 @@ public class DotGiamGiaServiceImpl {
         mapReqToEntity(req, dot);
         DotGiamGia savedDot = dotRepo.save(dot);
 
-        // Lưu sản phẩm
+        // Lưu chi tiết sản phẩm
         saveProductDetails(savedDot, req.getIdChiTietSanPhams());
 
         return savedDot;
@@ -70,33 +76,20 @@ public class DotGiamGiaServiceImpl {
     public DotGiamGia update(Integer id, DotGiamGiaRequest req) {
         DotGiamGia dot = getById(id);
 
+        // Validate ngày khi update
         if (req.getNgayKetThuc() != null && req.getNgayBatDau() != null && req.getNgayKetThuc().isBefore(req.getNgayBatDau())) {
             throw new RuntimeException("Ngày kết thúc phải sau ngày bắt đầu");
         }
 
         mapReqToEntity(req, dot);
 
-        // Nếu có thay đổi danh sách sản phẩm
+        // Cập nhật danh sách sản phẩm: Xóa cũ -> Thêm mới
+        // Lưu ý: Nếu req.getIdChiTietSanPhams() là null nghĩa là không thay đổi sản phẩm -> Bỏ qua
         if (req.getIdChiTietSanPhams() != null) {
-            // BƯỚC 1: Tìm các chi tiết cũ
             List<ChiTietDotGiamGia> oldDetails = ctDotRepo.findByDotGiamGiaId(id);
+            ctDotRepo.deleteAll(oldDetails); // Xóa hết cái cũ
 
-            // BƯỚC 2: Gỡ đợt giảm giá khỏi các sản phẩm cũ (Reset về null)
-            List<ChiTietSanPham> oldProducts = new ArrayList<>();
-            for (ChiTietDotGiamGia detail : oldDetails) {
-                ChiTietSanPham sp = detail.getChiTietSanPham();
-                if (sp != null) {
-                    sp.setDotGiamGia(null); // Xóa liên kết
-                    oldProducts.add(sp);
-                }
-            }
-            ctspRepo.saveAll(oldProducts); // Lưu cập nhật gỡ bỏ
-
-            // BƯỚC 3: Xóa bảng trung gian cũ
-            ctDotRepo.deleteAll(oldDetails);
-
-            // BƯỚC 4: Thêm sản phẩm mới và cập nhật liên kết mới
-            saveProductDetails(dot, req.getIdChiTietSanPhams());
+            saveProductDetails(dot, req.getIdChiTietSanPhams()); // Thêm cái mới
         }
 
         return dotRepo.save(dot);
@@ -109,42 +102,27 @@ public class DotGiamGiaServiceImpl {
 
         // Ngưng kích hoạt các chi tiết liên quan
         List<ChiTietDotGiamGia> details = ctDotRepo.findByDotGiamGiaId(id);
-
-        // Đồng thời gỡ đợt giảm giá khỏi sản phẩm để giá về bình thường
-        List<ChiTietSanPham> productsToUpdate = new ArrayList<>();
         for (ChiTietDotGiamGia d : details) {
             d.setTrangThai(0);
-
-            ChiTietSanPham sp = d.getChiTietSanPham();
-            if (sp != null) {
-                sp.setDotGiamGia(null); // Gỡ bỏ đợt giảm giá
-                productsToUpdate.add(sp);
-            }
         }
         ctDotRepo.saveAll(details);
-        ctspRepo.saveAll(productsToUpdate);
     }
 
-    // --- HÀM QUAN TRỌNG ĐÃ ĐƯỢC SỬA ---
+    // Hàm tách riêng để tái sử dụng logic lưu sản phẩm
     private void saveProductDetails(DotGiamGia dot, List<Integer> productIds) {
         if (productIds != null && !productIds.isEmpty()) {
             List<ChiTietDotGiamGia> listCT = new ArrayList<>();
+            // Lấy 1 lần tất cả sản phẩm để tối ưu query thay vì findById trong vòng lặp
             List<ChiTietSanPham> listSp = ctspRepo.findAllById(productIds);
 
             for (ChiTietSanPham ctsp : listSp) {
-                // 1. CẬP NHẬT TRỰC TIẾP VÀO SẢN PHẨM (Để hiển thị giá giảm ngay)
-                ctsp.setDotGiamGia(dot);
-
-                // 2. Lưu vào bảng trung gian (Để lưu lịch sử/tracking)
                 ChiTietDotGiamGia ctdgg = new ChiTietDotGiamGia();
                 ctdgg.setDotGiamGia(dot);
                 ctdgg.setChiTietSanPham(ctsp);
                 ctdgg.setTrangThai(1);
+                // Nếu muốn lưu giá trị giảm cụ thể cho từng SP, cần sửa DTO request phức tạp hơn
                 listCT.add(ctdgg);
             }
-
-            // Lưu cập nhật cho cả 2 bảng
-            ctspRepo.saveAll(listSp); // <-- Quan trọng: Lưu cập nhật id_dot_giam_gia vào bảng SP
             ctDotRepo.saveAll(listCT);
         }
     }
@@ -158,10 +136,13 @@ public class DotGiamGiaServiceImpl {
         entity.setTrangThai(req.getTrangThai());
     }
 
+    // Hàm xuất Excel
     public byte[] exportExcel() throws IOException {
         List<DotGiamGia> list = dotRepo.findAll();
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("DotGiamGia");
+
+            // Header
             Row headerRow = sheet.createRow(0);
             String[] columns = {"ID", "Mã", "Tên", "Giá trị", "Loại", "Ngày BĐ", "Ngày KT", "Trạng thái"};
             for (int i = 0; i < columns.length; i++) {
@@ -173,6 +154,8 @@ public class DotGiamGiaServiceImpl {
                 style.setFont(font);
                 cell.setCellStyle(style);
             }
+
+            // Data
             int rowIdx = 1;
             for (DotGiamGia item : list) {
                 Row row = sheet.createRow(rowIdx++);
@@ -185,6 +168,7 @@ public class DotGiamGiaServiceImpl {
                 row.createCell(6).setCellValue(item.getNgayKetThuc().toString());
                 row.createCell(7).setCellValue(item.getTrangThai() == 1 ? "Hoạt động" : "Ngưng");
             }
+
             workbook.write(out);
             return out.toByteArray();
         }

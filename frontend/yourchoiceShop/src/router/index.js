@@ -20,20 +20,6 @@ const router = createRouter({
       name: 'login',
       component: () => import('../views/LoginView.vue')
     },
-    {
-      path: '/',
-      component: () => import('../layouts/ClientLayout.vue'),
-      children: [
-        {
-          path: '', // Đường dẫn gốc (Trang chủ)
-          name: 'home',
-          component: () => import('../views/client/HomeView.vue')
-        },
-        // Sau này bạn sẽ thêm các trang Shop, Giỏ hàng ở đây
-        // { path: 'shop', component: ... },
-        // { path: 'cart', component: ... },
-      ]
-    },
 
     // ==========================================
     // 2. KHU VỰC ADMIN
@@ -153,13 +139,6 @@ const router = createRouter({
           path: 'vouchers/create', // Đường dẫn con: /admin/vouchers/create
           name: 'admin-voucher-create',
           component: () => import('../views/admin/voucher/VoucherCreate.vue')
-        },
-        {
-          path: 'pos',
-          name: 'admin-pos',
-          // SỬA DÒNG NÀY: Đổi CounterSales.vue thành BanHangTaiQuay.vue
-          component: () => import('../views/admin/pos/BanHangTaiQuay.vue'), 
-          meta: { layout: 'full' } 
         },
         {
           path: 'sales',

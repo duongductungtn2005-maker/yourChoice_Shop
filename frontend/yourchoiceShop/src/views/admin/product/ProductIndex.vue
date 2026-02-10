@@ -70,9 +70,9 @@
               <td class="text-gray">{{ item.maSanPham }}</td>
               <td class="font-medium text-primary">{{ item.tenSanPham }}</td>
               
-              <td class="text-center col-ngay-tao">{{ item.ngayTao }}</td>
+              <td class="text-center text-gray">{{ item.ngayTao }}</td>
               
-              <td class="text-center">{{ item.soLuong }}</td>
+              <td class="text-center font-bold">{{ item.soLuong }}</td>
               <td class="text-center">
                  <span :class="['badge', item.trangThai === 1 ? 'badge-success' : 'badge-danger']">
                     {{ item.trangThai === 1 ? 'Đang bán' : 'Ngừng bán' }}
@@ -202,7 +202,7 @@ onMounted(() => {
 /* GENERAL STYLES */
 .product-page { font-family: 'Segoe UI', sans-serif; color: #333; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
 .header-section { margin-bottom: 20px; }
-.breadcrumb { font-size: 14px; color: #64748b; } .breadcrumb .active { font-weight: 500; color: #0f172a; }
+.breadcrumb { font-size: 14px; color: #64748b; } .breadcrumb .active { font-weight: 600; color: #0f172a; }
 .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 20px; }
 
 /* HEADER & FILTER STYLES */
@@ -216,7 +216,7 @@ onMounted(() => {
 
 /* Radio Button Status */
 .status-filter { display: flex; align-items: center; gap: 15px; font-size: 14px; }
-.status-filter .label { font-weight: 500; color: #334155; }
+.status-filter .label { font-weight: 600; color: #334155; }
 .radio-item { cursor: pointer; display: flex; align-items: center; gap: 6px; color: #475569; }
 .radio-item input { accent-color: #0f172a; width: 16px; height: 16px; cursor: pointer; }
 
@@ -228,7 +228,7 @@ onMounted(() => {
     height: 38px; /* Chiều cao cố định cho các nút bằng nhau */
     padding: 0 16px; 
     border-radius: 4px; 
-    font-weight: 500; 
+    font-weight: 600; 
     cursor: pointer; 
     font-size: 14px; 
     border: 1px solid transparent; 
@@ -259,12 +259,12 @@ onMounted(() => {
 /* TABLE */
 .table-responsive { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 4px; }
 table { width: 100%; border-collapse: collapse; }
-th { background: #E9F1FB; padding: 12px; font-weight: 700; color: #1E3A8A; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-transform: uppercase; text-align: left; }
-td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 400; vertical-align: middle; }
-.text-center { text-align: center; } .font-medium { font-weight: 500; } .font-bold { font-weight: 400; }
-.text-primary { color: #0f172a; } .text-gray { color: #64748b; } .col-ngay-tao { color: #000; }
+th { background: #f8fafc; padding: 12px; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-transform: uppercase; text-align: left; }
+td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: middle; }
+.text-center { text-align: center; } .font-medium { font-weight: 500; } .font-bold { font-weight: 700; }
+.text-primary { color: #0f172a; } .text-gray { color: #64748b; }
 
-.badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+.badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 .badge-success { background: #dcfce7; color: #166534; } 
 .badge-danger { background: #fee2e2; color: #991b1b; }
 

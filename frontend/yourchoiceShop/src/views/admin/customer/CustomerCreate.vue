@@ -73,28 +73,7 @@
 
               <div class="form-row">
                 <div class="form-group half">
-                  <label class="required">Tên tài khoản</label>
-                  <input
-                    type="text"
-                    v-model="form.username"
-                    class="form-control"
-                    placeholder="Nhập tên tài khoản..."
-                  >
-                </div>
-                <div class="form-group half">
-                  <label class="required">Mật khẩu</label>
-                  <input
-                    type="password"
-                    v-model="form.password"
-                    class="form-control"
-                    placeholder="Nhập mật khẩu..."
-                  >
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group half">
-                  <label class="required">Ngày sinh</label>
+                  <label>Ngày sinh</label>
                   <input 
                     type="date" 
                     v-model="form.ngaySinh" 
@@ -131,46 +110,6 @@
                 </div>
               </div>
 
-              <div class="address-header">
-                <h3 class="section-title" style="margin-top:10px;">Địa chỉ nhận hàng</h3>
-                <button type="button" class="btn btn-outline btn-add-address" @click="addNewAddress">+ Thêm địa chỉ mới</button>
-              </div>
-
-              <div>
-                <div v-for="(addr, idx) in form.addresses" :key="idx" class="address-box" style="margin-bottom:14px;">
-                    <div class="form-row address-row">
-                    <div class="form-group quarter">
-                      <select v-model="addr.tinhId" @change="() => onProvinceChange(idx)" class="form-control">
-                        <option value="">-- Tỉnh/TP --</option>
-                        <option v-for="t in provinces" :key="t.code" :value="t.code">{{ t.name }}</option>
-                      </select>
-                    </div>
-                    <div class="form-group quarter">
-                      <select v-model="addr.huyenId" @change="() => onDistrictChange(idx)" class="form-control" :disabled="!addr.tinhId">
-                        <option value="">-- Quận/Huyện --</option>
-                        <option v-for="d in districtsList[idx]" :key="d.code" :value="d.code">{{ d.name }}</option>
-                      </select>
-                    </div>
-                    <div class="form-group quarter">
-                      <select v-model="addr.xaId" class="form-control" :disabled="!addr.huyenId">
-                        <option value="">-- Phường/Xã --</option>
-                        <option v-for="w in wardsList[idx]" :key="w.code" :value="w.code">{{ w.name }}</option>
-                      </select>
-                    </div>
-                    <div class="form-group quarter">
-                      <input type="text" v-model="addr.diaChiNhanHang" class="form-control" placeholder="Số nhà, đường...">
-                    </div>
-                  </div>
-
-                  <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
-                    <button type="button" :class="['btn', 'btn-default-address', addr.diaChiMacDinh ? 'active' : '']" @click="() => toggleDefaultAddress(idx)">
-                      <span v-if="addr.diaChiMacDinh">✓</span> {{ addr.diaChiMacDinh ? 'Mặc định' : 'Đặt làm mặc định' }}
-                    </button>
-                    <button v-if="form.addresses.length > 1" type="button" class="btn btn-outline" @click="() => removeAddress(idx)">Xóa</button>
-                  </div>
-                </div>
-              </div>
-
               <div class="form-actions">
                  <button type="button" class="btn btn-outline" @click="$router.go(-1)">Hủy</button>
                  <button type="submit" class="btn btn-primary" :disabled="loading">
@@ -187,8 +126,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import axios from 'axios';
+import { ref, reactive } from 'vue';
 import request from '@/services/request';
 import Swal from 'sweetalert2';
 import { useRouter } from 'vue-router';
@@ -204,15 +142,9 @@ const form = reactive({
   tenKhachHang: '',
   email: '',
   soDienThoai: '',
-  username: '',
-  password: '',
   gioiTinh: true, // Mặc định Nam
   ngaySinh: '',
-  trangThai: 1,
-  // Địa chỉ nhận hàng: hỗ trợ nhiều địa chỉ
-  addresses: [
-    { tinhId: '', huyenId: '', xaId: '', diaChiNhanHang: '', diaChiMacDinh: false }
-  ]
+  trangThai: 1
 });
 
 // Xử lý chọn ảnh
@@ -229,90 +161,16 @@ const handleFileUpload = (event) => {
   }
 };
 
-// Address helper data (populate from API if available)
-const provinces = ref([]);
-// For multiple address boxes we keep per-box lists
-const districtsList = ref([[]]);
-const wardsList = ref([[]]);
-
-const toggleDefaultAddress = (index) => {
-  // Only one address should be default
-  form.addresses.forEach((a, i) => a.diaChiMacDinh = (i === index ? !a.diaChiMacDinh : false));
-};
-
-const addNewAddress = () => {
-  form.addresses.push({ tinhId: '', huyenId: '', xaId: '', diaChiNhanHang: '', diaChiMacDinh: false });
-  districtsList.value.push([]);
-  wardsList.value.push([]);
-};
-
-const removeAddress = (index) => {
-  if (form.addresses.length <= 1) return; // keep at least one
-  form.addresses.splice(index, 1);
-  districtsList.value.splice(index, 1);
-  wardsList.value.splice(index, 1);
-};
-
-// Load provinces on mount and handle dependent selects
-onMounted(async () => {
-  try {
-    const res = await axios.get('https://provinces.open-api.vn/api/?depth=1');
-    provinces.value = res.data;
-  } catch (e) {
-    console.error('Không thể load tỉnh thành', e);
-  }
-});
-
-const onProvinceChange = async (index) => {
-  // index is the address box index
-  form.addresses[index].huyenId = '';
-  form.addresses[index].xaId = '';
-  districtsList.value[index] = [];
-  wardsList.value[index] = [];
-  if (!form.addresses[index].tinhId) return;
-  try {
-    const res = await axios.get(`https://provinces.open-api.vn/api/p/${form.addresses[index].tinhId}?depth=2`);
-    districtsList.value[index] = res.data.districts || [];
-  } catch (e) {
-    console.error('Không thể load quận/huyện', e);
-  }
-};
-
-const onDistrictChange = async (index) => {
-  form.addresses[index].xaId = '';
-  wardsList.value[index] = [];
-  if (!form.addresses[index].huyenId) return;
-  try {
-    const res = await axios.get(`https://provinces.open-api.vn/api/d/${form.addresses[index].huyenId}?depth=2`);
-    wardsList.value[index] = res.data.wards || [];
-  } catch (e) {
-    console.error('Không thể load phường/xã', e);
-  }
-};
-
-  // Gửi form
+// Gửi form
 const submitForm = async () => {
   // Validate cơ bản
   if (!form.tenKhachHang || !form.email || !form.soDienThoai) {
-    Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập Họ tên, Email và Số điện thoại!' });
+    Swal.fire({
+        icon: 'warning',
+        title: 'Thiếu thông tin',
+        text: 'Vui lòng nhập Họ tên, Email và Số điện thoại!'
+    });
     return;
-  }
-  // Validate email
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(form.email)) {
-    return Swal.fire({ icon: 'warning', title: 'Email không hợp lệ', text: 'Vui lòng nhập địa chỉ email hợp lệ.' });
-  }
-  // Validate phone (ít nhất 9 chữ số)
-  const phoneDigits = ('' + form.soDienThoai).replace(/\D/g, '');
-  if (phoneDigits.length < 9) {
-    return Swal.fire({ icon: 'warning', title: 'Số điện thoại không hợp lệ', text: 'Vui lòng nhập số điện thoại hợp lệ (ít nhất 9 chữ số).' });
-  }
-  // Validate password / username if provided
-  if (form.username && form.username.trim().length < 3) {
-    return Swal.fire({ icon: 'warning', title: 'Tên tài khoản ngắn', text: 'Tên tài khoản phải có ít nhất 3 ký tự.' });
-  }
-  if (form.password && form.password.length < 6) {
-    return Swal.fire({ icon: 'warning', title: 'Mật khẩu yếu', text: 'Mật khẩu phải có ít nhất 6 ký tự.' });
   }
 
   loading.value = true;
@@ -324,31 +182,14 @@ const submitForm = async () => {
     formData.append('soDienThoai', form.soDienThoai);
     formData.append('gioiTinh', form.gioiTinh);
     formData.append('trangThai', form.trangThai);
-    if (form.username) formData.append('username', form.username);
-    if (form.password) formData.append('password', form.password);
     
     if (form.maKhachHang) formData.append('maKhachHang', form.maKhachHang);
     if (form.ngaySinh) formData.append('ngaySinh', form.ngaySinh);
-
-    // Địa chỉ nhận hàng (nhiều địa chỉ)
-    if (form.addresses && form.addresses.length) {
-      formData.append('addresses', JSON.stringify(form.addresses));
-    }
-
     if (avatarFile.value) formData.append('avatarFile', avatarFile.value);
 
-    // Debug: log payload contents for easier troubleshooting
-    try {
-      const debugPayload = {};
-      formData.forEach((value, key) => {
-        // For binary data (avatarFile), just note the filename
-        if (value instanceof File) debugPayload[key] = value.name;
-        else debugPayload[key] = value;
-      });
-      console.debug('Submitting /khach-hang', debugPayload);
-    } catch (e) { console.debug('Could not serialize FormData for debug', e); }
-
+    // --- BẠN ĐANG THIẾU DÒNG NÀY (HÃY THÊM VÀO) ---
     await request.post('/khach-hang', formData);
+    // -----------------------------------------------
 
     await Swal.fire({
         icon: 'success',
@@ -361,12 +202,11 @@ const submitForm = async () => {
     router.push({ name: 'admin-customer-list' });
 
   } catch (error) {
-    console.error('Error creating customer:', error);
-    const serverMessage = error.response?.data?.message || error.response?.data || error.message || 'Không thể thêm khách hàng.';
+    console.error(error);
     Swal.fire({
         icon: 'error',
         title: 'Lỗi',
-        html: `<div style="text-align:left">${String(serverMessage).replace(/\n/g, '<br>')}</div>`
+        text: error.response?.data?.message || 'Không thể thêm khách hàng.'
     });
   } finally {
     loading.value = false;
@@ -439,14 +279,4 @@ label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; c
 .btn-outline { background: #fff; border-color: #cbd5e1; color: #475569; }
 .btn-outline:hover { background: #f8fafc; }
 .btn:disabled { opacity: 0.7; cursor: not-allowed; }
-
-/* Address styles */
-.address-header { display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
-.btn-add-address { background: transparent; border:2px dashed #cbd5e1; color:#475569; padding:8px 12px; border-radius:6px; cursor:pointer; }
-.btn-add-address:hover, .btn-add-address:focus { border-color: #3b82f6; color: #3b82f6; }
-.address-box { position:relative; background:#fafafa; border:1px solid #eceff2; padding:16px; border-radius:6px; margin-bottom:16px; }
-.address-row .quarter { flex: 1; min-width: 150px; }
-.btn-default-address { background:#f3f4f6; border:1px solid #475569; color:#5b6b76; padding:8px 14px; border-radius:30px; cursor:pointer; }
-.btn-default-address:hover { border-color:#475569; }
-.btn-default-address.active { background:#475569; color:#fff; border-color:#475569; }
 </style>

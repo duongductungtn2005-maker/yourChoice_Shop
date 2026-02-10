@@ -1,28 +1,63 @@
-// File: src/api/ChiTietHoaDon.js
+import { fetchOrders } from './HoaDonApi'
 
-// 1. Sửa lại đường dẫn import cho đúng với file HoaDonApi.js
-import request from '@/services/request'; 
+export const fetchOrderDetail = async (maHoaDon) => {
+  // 1️⃣ Lấy danh sách đơn
+  const res = await fetchOrders()
+  const order = res.data.content.find(o => o.maHoaDon === maHoaDon)
 
-// 2. Hàm lấy chi tiết
-export function fetchOrderDetail(id) {
-  return request({
-    url: `/hoa-don/${id}`,
-    method: 'get'
-  })
-}
+  if (!order) {
+    throw new Error('Không tìm thấy đơn hàng')
+  }
 
-// 3. Hàm cập nhật trạng thái (Gọi API bạn vừa viết bên Java)
-export function updateOrderStatus(maHoaDon, newStatus) {
-  return request({
-    url: `/hoa-don/${maHoaDon}/status`,
-    method: 'put',
-    params: { newStatus } // Axios sẽ tự chuyển thành ?newStatus=...
-  })
-}
-export function updateOrderInfo(maHoaDon, infoData) {
-  return request({
-    url: `/hoa-don/${maHoaDon}/info`,
-    method: 'put',
-    data: infoData // Gửi cục dữ liệu (Tên, SĐT, Địa chỉ) lên
+  // 2️⃣ Sinh dữ liệu chi tiết từ đơn gốc
+  const isOnline = order.loaiHoaDon === 'Trực tuyến'
+
+  return Promise.resolve({
+    data: {
+      maHoaDon: order.maHoaDon,
+      tenKhachHang: order.tenKhachHang,
+      loaiHoaDon: order.loaiHoaDon,
+      trangThai: order.trangThai,
+      ngayTao: order.ngayTao + ' 09:00',
+
+      thongTinNhanHang: isOnline
+        ? {
+            tenNguoiNhan: order.tenKhachHang,
+            sdt: '09xxxxxxxx',
+            diaChi: 'Hà Nội'
+          }
+        : null,
+
+      lichSuDonHang: [
+        { hanhDong: 'Tạo đơn hàng', thoiGian: order.ngayTao + ' 09:00' },
+        { hanhDong: 'Xử lý đơn', thoiGian: order.ngayTao + ' 09:15' }
+      ],
+
+      lichSuThanhToan: [
+        {
+          soTien: order.tongTienSauGiam,
+          ngayThanhToan: order.ngayTao + ' 09:20',
+          hinhThucThanhToan: isOnline ? 'Chuyển khoản' : 'Tiền mặt',
+          loaiThanhToan: 'Thanh toán',
+          trangThai: 'Thành công'
+        }
+      ],
+
+      sanPhamHoaDon: [
+        {
+          tenSanPham: 'Áo sơ mi',
+          size: 'L',
+          mauSac: 'Trắng',
+          soLuong: order.tongSanPham,
+          donGia: Math.floor(order.tongTienSauGiam / order.tongSanPham),
+          thanhTien: order.tongTienSauGiam
+        }
+      ],
+
+      tongTien: order.tongTienSauGiam,
+      giamGia: 0,
+      phiVanChuyen: 0,
+      tongTienSauGiam: order.tongTienSauGiam
+    }
   })
 }

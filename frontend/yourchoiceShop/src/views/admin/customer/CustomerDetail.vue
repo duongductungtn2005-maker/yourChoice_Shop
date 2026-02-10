@@ -138,13 +138,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import request from '@/services/request';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 
 const route = useRoute();
-const router = useRouter();
 const id = route.params.id; // ID Khách hàng
 
 // --- STATE KHÁCH HÀNG ---
@@ -289,9 +288,8 @@ const updateCustomer = async () => {
         if(form.ngaySinh) fd.append('ngaySinh', form.ngaySinh);
         if(avatarFile.value) fd.append('avatarFile', avatarFile.value);
         await request.put(`/khach-hang/${id}`, fd);
-        await Swal.fire({ icon: 'success', title: 'Thành công', timer: 1500, showConfirmButton: false });
-        router.push({ name: 'admin-customer-list' });
-    } catch(e) { console.error(e); Swal.fire('Lỗi', 'Không thể cập nhật thông tin', 'error'); } finally { loading.value = false; }
+        Swal.fire({ icon: 'success', title: 'Thành công', timer: 1500, showConfirmButton: false });
+    } catch(e) { console.error(e); } finally { loading.value = false; }
 };
 
 onMounted(() => {

@@ -2,8 +2,6 @@ package org.example.yourchoiceshop.controller;
 import org.example.yourchoiceshop.dto.request.PhieuGiamGiaRequest;
 import org.example.yourchoiceshop.dto.request.SendMailRequest;
 import org.example.yourchoiceshop.entity.PhieuGiamGia;
-import org.example.yourchoiceshop.entity.PhieuGiamGiaCaNhan;
-import org.example.yourchoiceshop.repository.PhieuGiamGiaCaNhanRepository;
 import org.example.yourchoiceshop.repository.PhieuGiamGiaRepository;
 import org.example.yourchoiceshop.service.EmailService;
 import org.example.yourchoiceshop.service.impl.PhieuGiamGiaServiceImpl;
@@ -17,16 +15,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/phieu-giam-gia")
 @CrossOrigin("*")
 public class PhieuGiamGiaController {
-    @Autowired
-    private PhieuGiamGiaCaNhanRepository pggCaNhanRepo; // Inject Repository vừa tạo
+
     @Autowired
     private PhieuGiamGiaServiceImpl service;
 
@@ -94,23 +89,5 @@ public class PhieuGiamGiaController {
             emailService.sendEmail(email, subject, htmlBody);
         }
         return ResponseEntity.ok("Đang gửi mail...");
-    }
-    @GetMapping("/{id}/customers")
-    public ResponseEntity<?> getCustomersByVoucher(@PathVariable Integer id) {
-        // 1. Lấy danh sách từ bảng trung gian
-        List<PhieuGiamGiaCaNhan> list = pggCaNhanRepo.findByPhieuGiamGiaId(id);
-
-        // 2. Chỉ lấy thông tin khách hàng ra để trả về Frontend
-        // Dùng Map để tạo cấu trúc JSON gọn gàng: { id, hoTen, email }
-        var result = list.stream().map(item -> {
-            var kh = item.getKhachHang();
-            return Map.of(
-                    "id", kh.getId(),
-                    "hoTen", kh.getTenKhachHang(),
-                    "email", kh.getEmail()
-            );
-        }).collect(Collectors.toList());
-
-        return ResponseEntity.ok(result);
     }
 }

@@ -1,6 +1,5 @@
 package org.example.yourchoiceshop.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,7 +24,6 @@ public class HinhAnh extends PrimaryEntity {
     private Integer trangThai;
 
     @ManyToOne
-    @JoinColumn(name = "id_ctsp")
-    @JsonIgnore // Ngắt chiều ngược lại từ Ảnh -> Sản phẩm chi tiết
+    @JoinColumn(name = "id_chi_tiet_san_pham")
     private ChiTietSanPham chiTietSanPham;
 }

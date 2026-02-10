@@ -7,7 +7,7 @@
         <span class="divider">/</span> 
         <span class="text-gray text-lg">Chi tiết sản phẩm</span>
         <span class="divider">/</span> 
-        <span class="text-primary text-lg">{{ productInfo.tenSanPham || 'Đang tải...' }}</span>
+        <span class="text-primary text-lg font-bold">{{ productInfo.tenSanPham || 'Đang tải...' }}</span>
       </div>
       <div class="header-actions">
          <button class="btn btn-outline" @click="$router.push('/admin/products')">
@@ -27,24 +27,20 @@
 
         <div class="price-slider-box">
            <div class="price-labels">
-              <span class="currency-label">0 đ</span>
+              <input type="number" v-model.number="filter.minPrice" class="price-input" placeholder="0">
               <span class="separator">-</span>
-              <span class="currency-label">{{ formatCurrency(filter.maxPrice) }}</span>
+              <input type="number" v-model.number="filter.maxPrice" class="price-input" placeholder="Max">
            </div>
-           <input 
-              type="range" 
-              v-model.number="filter.maxPrice" 
-              :min="0" 
-              :max="sliderMax" 
-              class="range-slider"
-           >
-           
+           <div class="range-info">
+              <small>{{ formatCurrency(filter.minPrice) }} - {{ formatCurrency(filter.maxPrice) }}</small>
+           </div>
+           <input type="range" v-model.number="filter.maxPrice" :min="0" :max="10000000" class="range-slider">
         </div>
       </div>
 
       <div class="filter-grid">
          <div class="filter-item">
-            <label class="highlight-label">Mã SP Cha:</label>
+            <label class="highlight-label">Mã SP:</label>
             <input type="text" :value="productInfo.maSanPham" readonly class="simple-input readonly-text active-filter">
          </div>
          <div class="filter-item"><label class="highlight-label">Cổ áo:</label><select v-model="filter.coAo" class="simple-select active-filter"><option value="">Tất cả</option><option v-for="item in options.coAo" :key="item.id" :value="item.tenCoAo">{{ item.tenCoAo }}</option></select></div>
@@ -70,14 +66,12 @@
                   <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll">
               </th>
               <th width="60">Ảnh</th>
-              <th>Mã SP</th>
               <th>Mã SKU</th>
-              
               <th>Thương hiệu</th>
               <th>Màu sắc</th>
               <th>Kích thước</th>
-              <th class="text-right" width="140">Giá bán</th>
-              <th class="text-center" width="100">Tồn kho</th>
+              <th class="text-right" width="160">Giá bán</th>
+              <th class="text-center" width="120">Tồn kho</th>
               <th class="text-center">Trạng thái</th>
               
               <th class="text-center" width="120">
@@ -94,8 +88,8 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="loading"><td colspan="12" class="text-center py-5">Đang tải dữ liệu...</td></tr>
-            <tr v-else-if="filteredVariants.length === 0"><td colspan="12" class="text-center py-5 text-gray">Không tìm thấy biến thể nào phù hợp.</td></tr>
+            <tr v-if="loading"><td colspan="11" class="text-center py-5">Đang tải dữ liệu...</td></tr>
+            <tr v-else-if="filteredVariants.length === 0"><td colspan="11" class="text-center py-5 text-gray">Không tìm thấy biến thể nào phù hợp.</td></tr>
             
             <tr 
                v-else 
@@ -120,9 +114,7 @@
                 </div>
               </td>
 
-              <td class="text-gray-500">{{ productInfo.maSanPham }}</td>
-              
-              <td class="font-mono font-bold text-primary">{{ variant.maCtsp }}</td>
+              <td class="font-mono font-bold">{{ variant.maCtsp }}</td>
               <td>{{ productInfo.tenThuongHieu || '-' }}</td>
               <td><span class="tag-color">{{ variant.mauSac?.tenMauSac }}</span></td>
               <td><span class="tag-size">{{ variant.kichThuoc?.tenKichThuoc }}</span></td>
@@ -138,15 +130,12 @@
                   <div v-if="selectedIds.includes(variant.id)">
                       <input type="number" v-model="variant.soLuong" class="form-input-sm text-center">
                   </div>
-                  <div v-else>{{ variant.soLuong }}</div>
+                  <div v-else class="font-bold">{{ variant.soLuong }}</div>
               </td>
 
               <td class="text-center">
-                 <span :class="['status-badge', variant.trangThai === 1 ? 'status-active' : 'status-inactive']">
-                    {{ variant.trangThai === 1 ? 'Đang bán' : 'Ngừng HĐ' }}
-                 </span>
+                 <span :class="['dot-status', variant.trangThai === 1 ? 'green' : 'red']"></span>
               </td>
-
               <td class="text-center">
                  <button class="btn-icon" title="Cập nhật chi tiết" @click="openEditModal(variant)">
                     <font-awesome-icon :icon="['far', 'pen-to-square']" />
@@ -199,20 +188,16 @@ const currentPage = ref(1);
 const pageSize = ref(5);
 const selectedIds = ref([]); 
 
-// Filter & Options
-const options = reactive({ thuongHieu: [], chatLieu: [], xuatXu: [], coAo: [], tayAo: [], mauSac: [], kichThuoc: [] });
-const filter = reactive({ keyword: '', minPrice: 0, maxPrice: 10000000, thuongHieu: '', chatLieu: '', xuatXu: '', coAo: '', tayAo: '', idMauSac: null, idKichThuoc: null });
-
-// SỬA 3: BIẾN LƯU GIÁ MAX CỦA SP
-const sliderMax = ref(10000000); 
-
 // Modal State
 const isModalOpen = ref(false);
 const selectedVariant = ref({});
 
+// Options & Filter
+const options = reactive({ thuongHieu: [], chatLieu: [], xuatXu: [], coAo: [], tayAo: [], mauSac: [], kichThuoc: [] });
+const filter = reactive({ keyword: '', minPrice: 0, maxPrice: 10000000, thuongHieu: '', chatLieu: '', xuatXu: '', coAo: '', tayAo: '', idMauSac: null, idKichThuoc: null });
+
 // API FETCHING
 const fetchAllAttributes = async () => {
-    // ... (Giữ nguyên logic fetch attribute)
     try {
         const [th, cl, xx, ca, ta, ms, kt] = await Promise.all([
             axios.get(`${API_URL}/thuong-hieu?size=100&status=1`),
@@ -238,39 +223,26 @@ const fetchData = async () => {
     try {
         const pRes = await axios.get(`${API_URL}/products/${productId}`);
         productInfo.value = pRes.data || {};
-        
         const vRes = await axios.get(`${API_URL}/products/${productId}/variants`);
         allVariants.value = Array.isArray(vRes.data) ? vRes.data : [];
-        
-        // SỬA 3: TÍNH TOÁN GIÁ MAX
-        if (allVariants.value.length > 0) {
-            // Tìm giá bán cao nhất trong các biến thể
-            const maxPriceInList = Math.max(...allVariants.value.map(v => v.giaBan || 0));
-            // Set Slider Max = Giá cao nhất (làm tròn lên chút cho đẹp nếu muốn)
-            sliderMax.value = maxPriceInList > 0 ? maxPriceInList : 10000000;
-            // Set Filter Max mặc định = Slider Max
-            filter.maxPrice = sliderMax.value;
-        }
-
         selectedIds.value = []; 
     } catch (e) { console.error(e); allVariants.value = []; } finally { loading.value = false; }
 };
 
-// FILTER LOGIC
+// FILTER
 const filteredVariants = computed(() => {
     if (!Array.isArray(allVariants.value)) return [];
     return allVariants.value.filter(v => {
-        // Logic filter cũ
         const matchKey = filter.keyword ? v.maCtsp.toLowerCase().includes(filter.keyword.toLowerCase()) : true;
         const matchColor = filter.idMauSac ? v.mauSac?.id === filter.idMauSac : true;
         const matchSize = filter.idKichThuoc ? v.kichThuoc?.id === filter.idKichThuoc : true;
+        
         const matchTH = filter.thuongHieu ? productInfo.value.tenThuongHieu === filter.thuongHieu : true;
         const matchCL = filter.chatLieu ? productInfo.value.tenChatLieu === filter.chatLieu : true;
         const matchXX = filter.xuatXu ? productInfo.value.tenXuatXu === filter.xuatXu : true;
         const matchCA = filter.coAo ? productInfo.value.tenCoAo === filter.coAo : true;
         const matchTA = filter.tayAo ? productInfo.value.tenTayAo === filter.tayAo : true;
 
-        // Logic filter giá
         const price = v.giaBan || 0;
         const matchPrice = price >= filter.minPrice && price <= filter.maxPrice;
 
@@ -285,7 +257,7 @@ const paginatedVariants = computed(() => {
     return filteredVariants.value.slice(start, start + pageSize.value);
 });
 
-// BULK UPDATE Logic
+// BULK UPDATE
 const isAllSelected = computed(() => {
     if (paginatedVariants.value.length === 0) return false;
     return paginatedVariants.value.every(v => selectedIds.value.includes(v.id));
@@ -325,14 +297,20 @@ const handleBulkUpdate = async () => {
     }
 };
 
-// HELPERS
+// MODAL UPDATE
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 const openEditModal = (variant) => { selectedVariant.value = variant; isModalOpen.value = true; };
 
 const handleSaveVariant = async (formData) => {
     try {
+        // UPDATE: Thêm listAnh vào payload để gửi lên Server
         await axios.put(`${API_URL}/products/variants/${formData.id}`, {
-            ...formData,
+            giaBan: formData.giaBan, giaNhap: formData.giaNhap, soLuong: formData.soLuong,
+            idMauSac: formData.idMauSac, idKichThuoc: formData.idKichThuoc, trangThai: formData.trangThai,
+            idThuongHieu: formData.idThuongHieu, idChatLieu: formData.idChatLieu,
+            idCoAo: formData.idCoAo, idTayAo: formData.idTayAo, idXuatXu: formData.idXuatXu, moTa: formData.moTa,
+            
+            // --- QUAN TRỌNG: Gửi kèm danh sách ảnh mới ---
             listAnh: formData.listAnh 
         });
         alert("Cập nhật thành công!");
@@ -352,19 +330,17 @@ onMounted(() => { fetchAllAttributes(); fetchData(); });
 .text-primary { color: #2563eb; } .text-lg { font-size: 18px; }
 .divider { margin: 0 10px; color: #cbd5e1; }
 
-/* CARD & FILTER */
+/* CARD */
 .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 20px; padding: 24px; }
 .filter-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 40px; }
 .search-box { flex: 1; max-width: 50%; }
 .input-wrapper { position: relative; }
 .input-wrapper input { width: 100%; padding: 10px 10px 10px 36px; border: 1px solid #94a3b8; border-radius: 4px; outline: none; }
 .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; }
-
-/* SLIDER */
 .price-slider-box { flex: 1; max-width: 40%; display: flex; flex-direction: column; gap: 5px; }
-.price-labels { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #0f172a; }
-.range-slider { width: 100%; cursor: pointer; accent-color: #2563eb; }
-.range-info { text-align: center; color: #64748b; font-size: 12px; }
+.price-labels { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+.price-input { width: 100px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; }
+.range-slider { width: 100%; cursor: pointer; }
 
 /* FILTER GRID */
 .filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 30px; }
@@ -382,24 +358,28 @@ onMounted(() => { fetchAllAttributes(); fetchData(); });
 .table-header-title h3 { margin: 0; font-size: 18px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
 .table-responsive { width: 100%; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-th { background: #E9F1FB; padding: 15px 10px; font-weight: 700; font-size: 13px; color: #1E3A8A; border-bottom: 1px solid #e2e8f0; text-align: left; }
+th { background: #fff; padding: 15px 10px; font-weight: 700; font-size: 13px; color: #0f172a; border-bottom: 1px solid #e2e8f0; text-align: left; }
 td { padding: 15px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: middle; color: #334155; }
 .text-center { text-align: center; } .text-right { text-align: right; }
-.font-mono { font-family: monospace; } .font-bold { font-weight: 400; } .text-price { color: #ef4444; font-weight: 400; }
-.text-gray-500 { color: #6b7280; font-size: 13px; }
+.font-mono { font-family: monospace; } .font-bold { font-weight: 600; } .text-price { color: #ef4444; font-weight: 600; }
 
-/* STATUS BADGE */
-.status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-.status-active { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-.status-inactive { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-
-/* THUMBNAIL */
-.img-thumb { width: 40px; height: 40px; background: #f1f5f9; border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #e2e8f0; }
-.custom-thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.icon-placeholder { color: #cbd5e1; font-size: 18px; }
+/* CSS MỚI CHO ẢNH THUMBNAIL */
+.img-thumb {
+    width: 40px; height: 40px; background: #f1f5f9; border-radius: 4px; 
+    display: flex; align-items: center; justify-content: center; 
+    overflow: hidden; border: 1px solid #e2e8f0;
+}
+.custom-thumb-img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.icon-placeholder {
+    color: #cbd5e1; font-size: 18px;
+}
 
 .tag-color { background: #eff6ff; color: #1e40af; border: 1px solid #dbeafe; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
 .tag-size { background: #f0fdf4; color: #166534; border: 1px solid #dcfce7; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
+.dot-status { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.dot-status.green { background: #22c55e; } .dot-status.red { background: #ef4444; }
 .btn-icon { background: transparent; border: none; font-size: 16px; color: #1e293b; cursor: pointer; }
 .btn-outline { background: #fff; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .pagination-bar { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -409,11 +389,18 @@ td { padding: 15px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vert
 .nav-btn { width: 30px; height: 30px; border: 1px solid #cbd5e1; border-radius: 50%; background: #fff; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .page-count { font-size: 13px; color: #64748b; }
 
-/* INLINE EDIT */
+/* INLINE EDIT & BUTTON SAVE MINI */
 .active-row { background-color: #e0f2fe !important; }
 .active-row td { border-bottom: 1px solid #bae6fd !important; }
 .form-input-sm { width: 100%; padding: 6px; border: 1px solid #2563eb; border-radius: 4px; outline: none; font-weight: 600; font-size: 13px; }
-.btn-save-mini { background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 700; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3); transition: all 0.2s; white-space: nowrap; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+.btn-save-mini {
+    background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;
+    font-size: 12px; font-weight: 700; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3); transition: all 0.2s; white-space: nowrap;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
 .btn-save-mini:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(37, 99, 235, 0.4); }
+.btn-save-mini:active { transform: translateY(0); }
+
 @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
 </style>

@@ -13,20 +13,16 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PhieuGiamGia extends PrimaryEntity {
 
+    // Đã xóa trường ID (vì kế thừa từ PrimaryEntity)
+    
     @Column(name = "ma_phieu_giam_gia", unique = true)
     private String maPhieuGiamGia;
 
     @Column(name = "ten_phieu_giam_gia")
     private String tenPhieuGiamGia;
 
-    // ... (các trường cũ)
     @Column(name = "loai_phieu")
-    private String loaiPhieu; // Lưu: PhanTram, TienMat
-
-    // --- THÊM DÒNG NÀY ---
-    @Column(name = "kieu")
-    private String kieu;      // Lưu: CongKhai, CaNhan
-// ...
+    private String loaiPhieu;
 
     @Column(name = "gia_tri_giam")
     private BigDecimal giaTriGiam;

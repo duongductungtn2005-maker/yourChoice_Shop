@@ -12,15 +12,16 @@
             @keyup.enter="fetchData" 
           />
         </div>
-        <div class="action-group">
-  <button class="btn btn-outline" @click="exportExcel">
-    <font-awesome-icon :icon="['fas','file-excel']" /> Xuất Excel
-  </button>
-  
-  <router-link :to="{ name: 'admin-sale-create' }" class="btn btn-primary">
-    <i class="fas fa-plus"></i> Tạo mới
-  </router-link>
-</div>  
+        <div class="buttons">
+          <button class="btn btn-outline" @click="exportExcel">
+                <i class="fas fa-file-excel"></i> Xuất Excel
+            </button>
+          
+          <router-link :to="{ name: 'admin-sale-create' }" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Tạo mới
+          </router-link>
+          
+        </div>
       </div>
       
       <div class="filter-row">
@@ -76,8 +77,8 @@
         <tbody>
           <tr v-for="(item, index) in list" :key="item.id" :class="{'row-disabled': item.trangThai === 0}">
             <td>{{ (currentPage * pageSize) + index + 1 }}</td>
-            <td style="color: #2b4360;">{{ item.tenDotGiamGia }}</td>
-            <td style="color: #ef4444;">
+            <td style="font-weight: bold; color: #2b4360;">{{ item.tenDotGiamGia }}</td>
+            <td style="color: #ef4444; font-weight: bold;">
                 {{ item.loaiGiamGia === '%' ? item.giaTriGiam + '%' : formatCurrency(item.giaTriGiam) }}
             </td>
             <td>
@@ -88,24 +89,23 @@
                 <div>{{ formatDate(item.ngayKetThuc) }}</div>
             </td>
             <td class="text-center action-col">
-    <div class="action-wrapper">
-        
-        <button class="icon-btn" title="Xem sản phẩm" @click="openModal(item)">
-            <i class="fas fa-eye"></i>
-        </button>
-
-        <label class="switch" title="Bật/Tắt trạng thái">
-            <input 
-                type="checkbox" 
-                :checked="item.trangThai === 1" 
-                :disabled="item.trangThai === 0 && isExpired(item.ngayKetThuc)"
-                @click="handleToggleStatus(item, $event)"
-            >
-            <span class="slider round"></span>
-        </label>
-
-    </div>
-    </td>
+                <button class="icon-btn" title="Xem sản phẩm" @click="openModal(item)">
+                    <i class="fas fa-eye"></i>
+                </button>
+                
+                <button 
+                    v-if="item.trangThai === 1" 
+                    class="icon-btn" 
+                    @click="stopSale(item)" 
+                    title="Kết thúc đợt giảm giá"
+                >
+                    <i class="fas fa-ban" style="color: #d9534f;"></i>
+                </button>
+                
+                <button v-else class="icon-btn" disabled>
+                     <i class="fas fa-ban"></i>
+                </button>
+            </td>
           </tr>
           <tr v-if="list.length === 0">
              <td colspan="6" class="text-center empty-state">Không có dữ liệu</td>
@@ -114,27 +114,24 @@
       </table>
 
       <div class="pagination-footer">
-        <div class="page-info">
-            Hiển thị 
+        <div class="page-size-selector">
+            Xem 
             <select v-model="pageSize" @change="handlePageSizeChange">
                 <option :value="5">5</option>
                 <option :value="10">10</option>
                 <option :value="20">20</option>
             </select> 
-            đợt giảm giá / trang
+            sản phẩm
         </div>
         
-        <div class="page-controls">
-            <button :disabled="currentPage === 0" @click="changePage(currentPage - 1)">‹</button>
-            <button 
-              v-for="p in visiblePages" 
-              :key="p" 
-              :class="{ active: p === currentPage + 1 }" 
-              @click="changePage(p - 1)"
-            >
-              {{ p }}
+        <div class="pagination-controls">
+            <button class="page-btn" :disabled="currentPage === 0" @click="changePage(currentPage - 1)">
+                <i class="fas fa-chevron-left"></i>
             </button>
-            <button :disabled="currentPage >= totalPages - 1" @click="changePage(currentPage + 1)">›</button>
+            <button class="page-btn active">{{ currentPage + 1 }}</button>
+            <button class="page-btn" :disabled="currentPage >= totalPages - 1" @click="changePage(currentPage + 1)">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
       </div>
     </div>
@@ -170,7 +167,7 @@
                             <td style="text-decoration: line-through; color: #94a3b8;">
                                 {{ formatCurrency(p.chiTietSanPham.giaBan) }}
                             </td>
-                            <td style="color: #ef4444;">
+                            <td style="color: #ef4444; font-weight: bold;">
                                 {{ calculateNewPrice(p.chiTietSanPham.giaBan, selectedItem) }}
                             </td>
                         </tr>
@@ -186,62 +183,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import request from '@/services/request';
-import Swal from 'sweetalert2';
+
 const list = ref([]);
 const filter = ref({ keyword: '', startDate: '', endDate: '', status: '', valueType: '' });
 const currentPage = ref(0);
 const pageSize = ref(5);
 const totalPages = ref(0);
-const handleToggleStatus = async (item, event) => {
-    // Ngăn checkbox nhảy trạng thái ngay lập tức
-    event.preventDefault();
 
-    const currentStatus = item.trangThai;
-    const newStatus = currentStatus === 1 ? 0 : 1;
-    const actionText = newStatus === 1 ? 'Kích hoạt' : 'Ngừng hoạt động';
-    const confirmBtnColor = newStatus === 1 ? '#10b981' : '#ef4444';
-
-    // Check hết hạn nếu định kích hoạt lại
-    if (newStatus === 1 && isExpired(item.ngayKetThuc)) {
-        Swal.fire('Lỗi', 'Đợt giảm giá này đã hết hạn, không thể kích hoạt lại.', 'error');
-        return;
-    }
-
-    const result = await Swal.fire({
-        title: `<h3 style="color:#1e293b; font-size:18px;">Xác nhận ${actionText}?</h3>`,
-        text: `Bạn có muốn ${actionText.toLowerCase()} đợt "${item.tenDotGiamGia}"?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Đồng ý',
-        cancelButtonText: 'Hủy',
-        confirmButtonColor: confirmBtnColor
-    });
-
-    if (result.isConfirmed) {
-        try {
-            if (newStatus === 0) {
-                // Tắt: Gọi API Delete (như cũ)
-                await request.delete(`/dot-giam-gia/${item.id}`);
-            } else {
-                // Bật: Gọi API Update (Gửi lại thông tin item với trạng thái mới)
-                // Lưu ý: Backend cần hỗ trợ update qua PUT
-                await request.put(`/dot-giam-gia/${item.id}`, { ...item, trangThai: 1, idChiTietSanPhams: null });
-            }
-
-            // Cập nhật giao diện
-            item.trangThai = newStatus;
-            
-            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-            Toast.fire({ icon: 'success', title: `Đã ${actionText.toLowerCase()} thành công!` });
-
-        } catch (e) {
-            console.error(e);
-            Swal.fire('Lỗi', e.response?.data?.message || 'Có lỗi xảy ra', 'error');
-        }
-    }
-};
 // Modal State
 const showModal = ref(false);
 const selectedItem = ref(null);
@@ -302,137 +252,12 @@ const formatDate = (val) => val ? new Date(val).toLocaleString('vi-VN', {year:'n
 const changePage = (page) => { currentPage.value = page; fetchData(); };
 const handlePageSizeChange = () => { currentPage.value = 0; fetchData(); };
 
-// Trang hiển thị giống màn Sản phẩm
-const visiblePages = computed(() => {
-    const pages = [];
-    const current = currentPage.value + 1; // currentPage là 0-based
-    for (let i = 1; i <= totalPages.value; i++) {
-        if (i === 1 || i === totalPages.value || (i >= current - 1 && i <= current + 1)) {
-            pages.push(i);
-        }
-    }
-    return pages;
-});
-
 onMounted(fetchData);
 </script>
 
 <style scoped>
-/* --- BUTTON STYLES (Đồng bộ màn Cổ áo) --- */
-
-.action-group { 
-  display: flex; 
-  gap: 10px; /* Khoảng cách giữa các nút */
-} 
-
-.btn { 
-    height: 38px; /* Chiều cao cố định cho các nút bằng nhau */
-    padding: 0 16px; 
-    border-radius: 4px; 
-    font-weight: 500; 
-    cursor: pointer; 
-    font-size: 14px; 
-    border: 1px solid transparent; 
-    transition: 0.2s;
-    display: inline-flex; /* Flex để căn giữa icon và chữ */
-    align-items: center;
-    gap: 8px; /* Khoảng cách giữa icon và chữ */
-    text-decoration: none; /* Bỏ gạch chân cho router-link */
-}
-
-/* Nút Tạo mới: Màu xanh đen đậm (#0f172a) */
-.btn-primary { 
-  background: #0f172a; 
-  color: #fff; 
-  border-color: #0f172a;
-}
-.btn-primary:hover {
-  background: #1e293b;
-  border-color: #1e293b;
-}
-
-/* Nút Xuất Excel: Nền trắng, viền xám (#cbd5e1) */
-.btn-outline { 
-  background: #fff; 
-  border-color: #cbd5e1; 
-  color: #475569; 
-}
-.btn-outline:hover {
-  background: #f8fafc;
-  color: #0f172a;
-  border-color: #94a3b8;
-}
 /* Reuse Styles to match VoucherIndex */
-/* --- THÊM ĐOẠN NÀY VÀO CUỐI THẺ STYLE --- */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
-  margin: 0; /* Xóa margin thừa */
-  flex-shrink: 0;
-}
-
-.switch input { 
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #cbd5e1;
-  transition: .4s;
-  border-radius: 34px;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 14px;
-  width: 14px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);
-}
-
-input:checked + .slider {
-  background-color: #10b981; /* Màu xanh khi bật */
-}
-
-input:checked + .slider:before {
-  transform: translateX(16px);
-}
-
-input:disabled + .slider {
-  background-color: #e2e8f0;
-  cursor: not-allowed;
-}
-.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; color: #333; font-size: 14px; }
-.page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
-
-/* Table typography (match CoAoIndex) */
-.custom-table th {
-  background: #E9F1FB;
-  color: #1E3A8A;
-  padding: 15px;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 700;
-}
-.custom-table td {
-  padding: 15px;
-  border-bottom: 1px solid #f1f5f9;
-  text-align: center;
-  vertical-align: middle;
-  font-size: 14px;
-  color: #333;
-} 
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; }
 .page-title { font-size: 24px; font-weight: 700; color: #2b4360; margin-bottom: 20px; }
 
 /* Control Panel & Search */
@@ -448,80 +273,35 @@ input:disabled + .slider {
 .date-input-wrapper { position: relative; }
 .date-icon { position: absolute; left: 10px; top: 10px; color: #2b4360; pointer-events: none; }
 .date-input-wrapper input { padding-left: 35px; width: 160px; height: 38px; border: 1px solid #cbd5e1; border-radius: 6px; }
-.divider { font-weight: 500; color: #2b4360; }
+.divider { font-weight: bold; color: #2b4360; }
 .form-select { height: 38px; min-width: 150px; border: 1px solid #cbd5e1; border-radius: 6px; }
 
 /* Table & Status */
 .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #e2e8f0; }
 .custom-table { width: 100%; border-collapse: collapse; }
-.custom-table th { 
-  background: #E9F1FB; 
-  color: #1E3A8A;
-  padding: 15px; 
-  text-align: center; /* SỬA: Đổi từ left sang center */
-  font-weight: 700;
-}
-
-.custom-table td { 
-  padding: 15px; 
-  border-bottom: 1px solid #f1f5f9; 
-  text-align: center; /* THÊM: Căn giữa nội dung các cột */
-  vertical-align: middle;
-}
+.custom-table th { background: #f8fafc; color: #475569; padding: 15px; text-align: left; font-weight: 700; border-bottom: 1px solid #e2e8f0; }
+.custom-table td { padding: 15px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
 .row-disabled { opacity: 0.6; background: #fafafa; }
 .small-text { font-size: 13px; color: #64748b; }
-.badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .badge-active { background: #dcfce7; color: #166534; }
 .badge-stopped { background: #fee2e2; color: #991b1b; }
 .badge-expired { background: #f1f5f9; color: #94a3b8; }
 
 /* Actions */
-.action-col {
-  vertical-align: middle !important; /* Căn giữa theo chiều dọc của dòng */
-  padding: 8px !important;           /* Padding đều 4 phía */
-  width: 150px;                      /* Cố định chiều rộng cột để không bị co kéo */
-}
-.action-wrapper {
-  display: flex !important;
-  align-items: center !important;     /* Thẳng hàng dọc */
-  justify-content: center !important; /* Thẳng hàng ngang */
-  gap: 12px !important;               /* Khoảng cách giữa 2 nút */
-  width: 100%;
-}
-.icon-btn {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #2b4360;
-  transition: all 0.2s;
-  margin: 0; /* Xóa margin thừa */
-}
+.action-col { display: flex; justify-content: center; gap: 8px; }
+.icon-btn { background: none; border: 1px solid #e2e8f0; border-radius: 4px; cursor: pointer; font-size: 14px; padding: 6px; color: #2b4360; transition: 0.2s; }
+.icon-btn:hover:not(:disabled) { background: #ffffff; color: #eddcc3; }
+.icon-btn:disabled { color: #cbd5e1; border-color: #f1f5f9; cursor: not-allowed; }
 
-.icon-btn:hover:not(:disabled) {
-  background: #f1f5f9;
-  color: #0f172a;
-  border-color: #cbd5e1;
-}
-
-.icon-btn:disabled {
-  background: #f8fafc;
-  color: #cbd5e1;
-  cursor: not-allowed;
-}
-
-/* Pagination (đồng bộ màn Sản phẩm) */
-.pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f1f5f9; }
-.page-info { font-size: 14px; color: #64748b; }
-.page-info select { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 8px; margin: 0 5px; outline: none; }
-.page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; color: #64748b; }
-.page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
-.page-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Pagination */
+.pagination-footer { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: white; border-top: 1px solid #f1f5f9; }
+.page-size-selector select { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; margin: 0 5px; color: #2b4360; font-weight: bold; }
+.pagination-controls { display: flex; gap: 8px; }
+.page-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+.page-btn:hover:not(:disabled) { border-color: #2b4360; color: #2b4360; }
+.page-btn.active { background: #dbeafe; color: #1e40af; border-color: #dbeafe; font-weight: bold; }
+.page-btn:disabled { color: #cbd5e1; cursor: not-allowed; }
 
 /* Modal */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(43, 67, 96, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }

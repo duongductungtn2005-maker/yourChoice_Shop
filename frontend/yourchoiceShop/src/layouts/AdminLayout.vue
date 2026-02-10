@@ -165,12 +165,9 @@ const handleImageError = (e) => {
 /* --- 1. BIẾN MÀU SẮC --- */
 :root {
   --primary-color: #2b4360; /* Xanh than đậm */
-  --muted-color: #64748b;   /* Màu chữ thường */
-  --bg-light: #f8fafc;      /* Nền nhẹ cho sidebar/submenu */
-  --bg-surface: #f1f5f9;    /* Bề mặt/hover nhẹ */
-  --border-color: #e2e8f0;  /* Màu viền */
-  --card-bg: #ffffff;       /* Thẻ / header bg */
-  --danger-color: #ef4444;  /* Màu cảnh báo */
+  --text-gray: #64748b;     /* Màu chữ thường */
+  --bg-hover: #f1f5f9;      /* Màu nền khi hover */
+  --active-bg: #e2e8f0;     /* Màu nền active menu con */
 }
 
 /* --- 2. LAYOUT CHUNG --- */
@@ -226,21 +223,21 @@ const handleImageError = (e) => {
 .menu-item.parent {
   justify-content: space-between;
 }
-.arrow { font-size: 10px; color: var(--muted-color); }
+.arrow { font-size: 10px; color: #94a3b8; }
 
 /* Trạng thái Active cho Menu Cha (Khi mở hoặc khi con active) */
 .active-parent {
-  color: var(--primary-color) !important; /* Đậm màu chữ */
+  color: #2b4360 !important; /* Đậm màu chữ */
   font-weight: 700;
-  background-color: var(--bg-surface); /* Nền sáng nhẹ */
+  background-color: #f8fafc; /* Nền sáng nhẹ */
 }
 .active-parent .icon {
-  color: var(--primary-color); /* Đậm màu icon */
+  color: #2b4360; /* Đậm màu icon */
 }
 
 /* --- 6. SUBMENU STYLES --- */
 .submenu {
-  background-color: var(--bg-light);
+  background-color: #f8fafc;
   overflow: hidden;
 }
 
@@ -249,20 +246,20 @@ const handleImageError = (e) => {
   align-items: center;
   padding: 10px 20px 10px 56px; /* Thụt đầu dòng */
   text-decoration: none;
-  color: var(--muted-color);
+  color: #64748b;
   font-size: 14px;
-  transition: 0.18s ease;
+  transition: 0.2s;
 }
 
 .submenu-item:hover {
-  color: var(--primary-color);
+  color: #2b4360;
 }
 
 .submenu-item .dot {
   margin-right: 8px;
   font-size: 18px;
   line-height: 0;
-  color: var(--border-color);
+  color: #cbd5e1;
 }
 
 /* Active Submenu */
