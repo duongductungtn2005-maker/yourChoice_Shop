@@ -14,10 +14,6 @@ import java.util.List;
 @AllArgsConstructor
 public class HoaDon extends BaseStatusEntity {
 
-    // ID đã có trong PrimaryEntity (class ông nội)
-    // Các trường Audit (ngayTao, trangThai...) đã có trong BaseStatusEntity (class cha)
-    // Nên ta chỉ giữ lại các trường riêng của Hóa Đơn:
-
     @Column(name = "ma_hoa_don", unique = true)
     private String maHoaDon;
 
@@ -69,6 +65,11 @@ public class HoaDon extends BaseStatusEntity {
     @JoinColumn(name = "id_phieu_giam_gia")
     private PhieuGiamGia phieuGiamGia;
 
-    @OneToMany(mappedBy = "hoaDon", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<HoaDonChiTiet> chiTietHoaDons;
+    // --- Cập nhật quan hệ (Thêm List con) ---
+
+    @OneToMany(mappedBy = "hoaDon", fetch = FetchType.LAZY)
+    private List<HoaDonChiTiet> hoaDonChiTiets;
+
+    @OneToMany(mappedBy = "hoaDon", fetch = FetchType.LAZY)
+    private List<LichSuThanhToan> lichSuThanhToans;
 }

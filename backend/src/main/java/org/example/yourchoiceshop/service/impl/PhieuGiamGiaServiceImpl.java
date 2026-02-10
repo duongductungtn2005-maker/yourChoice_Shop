@@ -4,7 +4,11 @@ package org.example.yourchoiceshop.service.impl;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.example.yourchoiceshop.dto.request.PhieuGiamGiaRequest;
+import org.example.yourchoiceshop.entity.KhachHang;
 import org.example.yourchoiceshop.entity.PhieuGiamGia;
+import org.example.yourchoiceshop.entity.PhieuGiamGiaCaNhan;
+import org.example.yourchoiceshop.repository.KhachHangRepository;
+import org.example.yourchoiceshop.repository.PhieuGiamGiaCaNhanRepository;
 import org.example.yourchoiceshop.repository.PhieuGiamGiaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -14,13 +18,19 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class PhieuGiamGiaServiceImpl {
 
     @Autowired
     private PhieuGiamGiaRepository repository;
+    @Autowired
+    private PhieuGiamGiaCaNhanRepository pggCaNhanRepo;
 
+    @Autowired
+    private KhachHangRepository khachHangRepo;
     // 1. Hàm lấy danh sách (Fix lỗi tham số search)
     public Page<PhieuGiamGia> getAll(String keyword, Integer status, String scope, Pageable pageable) {
         // Chuyển chuỗi rỗng thành null để Query JPQL hoạt động đúng
@@ -34,33 +44,59 @@ public class PhieuGiamGiaServiceImpl {
     public PhieuGiamGia create(PhieuGiamGiaRequest req) {
         PhieuGiamGia pgg = new PhieuGiamGia();
 
-        // --- ĐOẠN CODE FIX LỖI ---
         String ma = req.getMaPhieuGiamGia();
-
-        // 1. Nếu mã bị null hoặc rỗng -> Tự sinh mã
         if (ma == null || ma.trim().isEmpty()) {
-            ma = "PGG" + System.currentTimeMillis(); // Ví dụ: PGG1705829100
+            ma = "PGG" + System.currentTimeMillis();
         } else {
-            // 2. Nếu có nhập mã -> Kiểm tra xem đã tồn tại chưa
             if (repository.existsByMaPhieuGiamGia(ma)) {
-                throw new RuntimeException("Mã phiếu '" + ma + "' đã tồn tại, vui lòng chọn mã khác!");
+                throw new RuntimeException("Mã phiếu '" + ma + "' đã tồn tại!");
             }
         }
         pgg.setMaPhieuGiamGia(ma);
-        // -------------------------
-
-        // Map các trường còn lại
         pgg.setTenPhieuGiamGia(req.getTenPhieuGiamGia());
-        pgg.setLoaiPhieu(req.getLoaiPhieu()); // Đúng: setLoaiPhieu khớp với DB        pgg.setLoaiPhieu(req.getLoaiPhieu());
+        pgg.setLoaiPhieu(req.getLoaiPhieu());
+        pgg.setKieu(req.getKieu());
         pgg.setGiaTriGiam(req.getGiaTriGiam());
+        pgg.setGiaTriGiamToiDa(req.getGiaTriGiamToiDa());
+        pgg.setDonHangToiThieu(req.getDonHangToiThieu());
         pgg.setSoLuong(req.getSoLuong());
         pgg.setNgayBatDau(req.getNgayBatDau());
         pgg.setNgayKetThuc(req.getNgayKetThuc());
-
-        // Mặc định trạng thái là Hoạt động (1) khi mới tạo
         pgg.setTrangThai(1);
 
-        return repository.save(pgg);
+        // 1. Lưu phiếu cha trước
+        PhieuGiamGia savedPgg = repository.save(pgg);
+
+        // 2. LOGIC QUAN TRỌNG CÒN THIẾU: Lưu danh sách khách hàng
+        if ("CaNhan".equals(req.getKieu()) && req.getCustomerIds() != null && !req.getCustomerIds().isEmpty()) {
+            List<PhieuGiamGiaCaNhan> listCaNhan = new ArrayList<>();
+
+            for (Integer khId : req.getCustomerIds()) {
+                KhachHang kh = khachHangRepo.findById(khId).orElse(null);
+
+                // --- SỬA DÒNG IF NÀY ---
+                // Chỉ xử lý nếu khách hàng tồn tại VÀ đang Hoạt động (trangThai == 1)
+                if (kh != null && kh.getTrangThai() == 1) {
+                    // -----------------------
+
+                    PhieuGiamGiaCaNhan pggCn = new PhieuGiamGiaCaNhan();
+                    pggCn.setPhieuGiamGia(savedPgg);
+                    pggCn.setKhachHang(kh);
+                    pggCn.setNgayNhan(LocalDateTime.now());
+                    pggCn.setDaSuDung(false);
+                    pggCn.setTrangThai(1);
+                    pggCn.setMaPhieuKhachHang(savedPgg.getMaPhieuGiamGia() + "-KH" + kh.getId());
+
+                    listCaNhan.add(pggCn);
+                }
+            }
+            // Lưu xuống DB
+            if (!listCaNhan.isEmpty()) {
+                pggCaNhanRepo.saveAll(listCaNhan);
+            }
+        }
+
+        return savedPgg;
     }
 
     // 3. Hàm Bật/Tắt trạng thái (Có logic gia hạn)
@@ -69,23 +105,20 @@ public class PhieuGiamGiaServiceImpl {
         LocalDateTime now = LocalDateTime.now();
 
         if (pgg.getTrangThai() == 1) {
-            // Đang chạy -> Tắt
             pgg.setTrangThai(0);
         } else {
-            // Đang tắt -> Bật lại
             if (pgg.getNgayKetThuc().isBefore(now)) {
-                // Đã hết hạn
-                if ("CongKhai".equals(pgg.getLoaiPhieu())) {
+                // SỬA: Check pgg.getKieu() thay vì getLoaiPhieu()
+                if ("CongKhai".equals(pgg.getKieu())) {
                     if (newEndDate == null || newEndDate.isBefore(now)) {
                         throw new RuntimeException("Voucher đã hết hạn. Vui lòng nhập ngày kết thúc mới!");
                     }
-                    pgg.setNgayKetThuc(newEndDate); // Gia hạn
+                    pgg.setNgayKetThuc(newEndDate);
                     pgg.setTrangThai(1);
                 } else {
                     throw new RuntimeException("Voucher cá nhân đã hết hạn không thể kích hoạt lại.");
                 }
             } else {
-                // Còn hạn -> Chỉ việc bật
                 pgg.setTrangThai(1);
             }
         }

@@ -3,7 +3,7 @@ package org.example.yourchoiceshop.dto.request;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-
+import java.util.List; // Thêm import List
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -22,4 +22,5 @@ public class PhieuGiamGiaRequest {
     private LocalDateTime ngayKetThuc;
     private Integer trangThai;
     private String kieu;
+    private List<Integer> customerIds; // Danh sách ID khách hàng
 }

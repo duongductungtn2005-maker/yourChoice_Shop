@@ -17,7 +17,7 @@
          </div>
          <div class="action-group">
              <button class="btn btn-outline" @click="exportExcel">
-                <i class="fas fa-file-excel"></i> Xuất Excel
+               <font-awesome-icon :icon="['fas','file-excel']" /> Xuất Excel
              </button>
              
              <button class="btn btn-primary" @click="$router.push({ name: 'admin-customer-create' })">
@@ -66,7 +66,7 @@
             
             <tr v-else v-for="(item, index) in items" :key="item.id">
               <td class="text-center">{{ (page - 1) * pageSize + index + 1 }}</td>
-              <td class="font-bold text-code">{{ item.maKhachHang }}</td>
+              <td class="text-code">{{ item.maKhachHang }}</td>
               <td class="font-medium text-primary cursor-pointer">{{ item.tenKhachHang }}</td>
               <td>{{ item.email }}</td>
               <td>{{ item.soDienThoai }}</td>
@@ -79,13 +79,14 @@
               </td>
               <td class="text-center">
                  <div class="action-container">
-                    <button class="btn-icon" @click="viewDetail(item)" title="Xem chi tiết">
-                        <i class="far fa-eye"></i>
-                    </button>
-                    <div class="status-wrapper" @click="toggleStatus(item)" title="Bật/Tắt trạng thái">
-                       <i class="fas toggle-icon" :class="item.trangThai === 1 ? 'fa-toggle-on active' : 'fa-toggle-off inactive'"></i>
-                    </div>
-                 </div>
+    <button class="icon-btn" @click="viewDetail(item)" title="Xem chi tiết">
+        <i class="fas fa-eye"></i>
+    </button>
+
+    <div class="status-wrapper" @click="toggleStatus(item)" title="Bật/Tắt trạng thái">
+        <i class="fas toggle-icon" :class="item.trangThai === 1 ? 'fa-toggle-on active' : 'fa-toggle-off inactive'"></i>
+    </div>
+</div>
               </td>
             </tr>
           </tbody>
@@ -100,11 +101,18 @@
                <option :value="10">10</option>
                <option :value="20">20</option>
             </select> 
-            kết quả
+            khách hàng / trang
          </div>
          <div class="page-controls">
             <button :disabled="page === 1" @click="changePage(page - 1)">‹</button>
-            <span class="page-number">Trang {{ page }} / {{ totalPages }}</span>
+            <button 
+              v-for="p in visiblePages" 
+              :key="p" 
+              :class="{ active: p === page }" 
+              @click="changePage(p)"
+            >
+              {{ p }}
+            </button>
             <button :disabled="page === totalPages" @click="changePage(page + 1)">›</button>
          </div>
       </div>
@@ -113,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch, computed } from 'vue';
 import request from '@/services/request'; 
 import Swal from 'sweetalert2';
 import { useRouter } from 'vue-router';
@@ -122,7 +130,7 @@ const router = useRouter();
 const items = ref([]);
 const loading = ref(false);
 const page = ref(1);
-const pageSize = ref(10);
+const pageSize = ref(5);
 const totalPages = ref(1);
 const filter = reactive({ keyword: '', gioiTinh: null, trangThai: null });
 const API_URL = '/khach-hang'; 
@@ -156,17 +164,32 @@ const toggleStatus = async (item) => {
 };
 
 const exportExcel = async () => {
-    try {
-        const response = await request.get(`${API_URL}/export`, {
-            params: { keyword: filter.keyword, gioiTinh: filter.gioiTinh, trangThai: filter.trangThai },
-            responseType: 'blob'
-        });
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a'); link.href = url;
-        const dateStr = new Date().toISOString().slice(0,10);
-        link.setAttribute('download', `DS_KhachHang_${dateStr}.xlsx`);
-        document.body.appendChild(link); link.click(); document.body.removeChild(link); window.URL.revokeObjectURL(url);
-    } catch (e) { Swal.fire('Lỗi', 'Không thể xuất file Excel', 'error'); }
+  const result = await Swal.fire({
+    title: 'Xác nhận',
+    text: 'Bạn có muốn tải xuống danh sách khách hàng không?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Có',
+    cancelButtonText: 'Hủy'
+  });
+  if (!result.isConfirmed) return;
+
+  try {
+    const response = await request.get(`${API_URL}/export`, {
+      params: { keyword: filter.keyword, gioiTinh: filter.gioiTinh, trangThai: filter.trangThai },
+      responseType: 'blob'
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a'); link.href = url;
+    const dateStr = new Date().toISOString().slice(0,10);
+    link.setAttribute('download', `DS_KhachHang_${dateStr}.xlsx`);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link); window.URL.revokeObjectURL(url);
+
+    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+    Toast.fire({ icon: 'success', title: 'Xuất Excel thành công' });
+  } catch (e) {
+    Swal.fire('Lỗi', 'Không thể xuất file Excel', 'error');
+  }
 };
 
 const formatDate = (dateString) => {
@@ -178,22 +201,79 @@ const formatDate = (dateString) => {
 const changePage = (p) => { if (p >= 1 && p <= totalPages.value) { page.value = p; fetchData(); } };
 const handlePageSizeChange = () => { page.value = 1; fetchData(); };
 const handleFilterChange = () => { page.value = 1; fetchData(); };
+
+// Debounced live search: khi người dùng gõ, tìm kiếm tự động sau 350ms. Nếu xóa, sẽ fetch lại toàn bộ (keyword='').
+let searchTimer = null;
+watch(() => filter.keyword, (newVal) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        page.value = 1;
+        fetchData();
+    }, 350);
+});
+
 const viewDetail = (item) => { router.push({ 
         name: 'admin-customer-detail', 
         params: { id: item.id } 
     });};
 
+// Trang hiển thị giống màn Sản phẩm
+const visiblePages = computed(() => {
+    const pages = [];
+    for (let i = 1; i <= totalPages.value; i++) {
+        if (i === 1 || i === totalPages.value || (i >= page.value - 1 && i <= page.value + 1)) {
+            pages.push(i);
+        }
+    }
+    return pages;
+});
+
 onMounted(() => { fetchData(); });
 </script>
 
 <style scoped>
+/* --- THÊM STYLE MỚI CHO NÚT XEM CHI TIẾT --- */
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #2b4360;
+  transition: all 0.2s;
+  margin: 0;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.icon-btn:disabled {
+  background: #f8fafc;
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+/* --- Cập nhật lại container để căn chỉnh đẹp hơn --- */
+.action-container { 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 10px; /* Giảm khoảng cách một chút cho gọn */
+}
 /* (Giữ nguyên CSS của bạn, nó đã ổn) */
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 
 .customer-page { font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
 .header-section { margin-bottom: 20px; }
 .breadcrumb { font-size: 14px; color: #64748b; } 
-.breadcrumb .active { font-weight: 600; color: #0f172a; }
+.breadcrumb .active { font-weight: 500; color: #0f172a; }
 .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 20px; }
 .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .search-wrap { position: relative; width: 350px; }
@@ -201,26 +281,51 @@ onMounted(() => { fetchData(); });
 .search-wrap input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
 .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
 .action-group { display: flex; gap: 10px; }
-.btn { padding: 8px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; border: 1px solid transparent; display: flex; align-items: center; gap: 5px; font-size: 14px; }
-.btn-primary { background: #0f172a; color: #fff; }
-.btn-outline { background: #fff; border-color: #cbd5e1; color: #475569; }
-.btn-outline:hover { background-color: #f8fafc; border-color: #94a3b8; }
+.btn { 
+  height: 38px; /* Chiều cao cố định cho các nút bằng nhau */
+  padding: 0 16px; 
+  border-radius: 4px; 
+  font-weight: 500; 
+  cursor: pointer; 
+  font-size: 14px; 
+  border: 1px solid transparent; 
+  transition: 0.2s;
+  display: flex; /* Flex để căn giữa icon và chữ */
+  align-items: center;
+  gap: 8px; /* Khoảng cách giữa icon và chữ */
+}
+.btn-primary { 
+  background: #0f172a; 
+  color: #fff; 
+}
+.btn-primary:hover { 
+  background: #1e293b; 
+}
+.btn-outline { 
+  background: #fff; 
+  border-color: #cbd5e1; 
+  color: #475569; 
+}
+.btn-outline:hover { 
+  background: #f1f5f9; 
+  border-color: #94a3b8;
+}
 .filter-bar { display: flex; gap: 30px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #f1f5f9; }
 .filter-item { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #334155; }
 .filter-item select { padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 4px; cursor: pointer; outline: none; color: #475569; }
 .filter-item select:focus { border-color: #3b82f6; }
 .table-responsive { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 4px; }
 table { width: 100%; border-collapse: collapse; }
-th { background: #f8fafc; padding: 12px; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-transform: uppercase; text-align: left; }
-td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: middle; color: #334155; }
+th { background: #E9F1FB; padding: 12px; font-weight: 700; color: #1E3A8A; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-transform: uppercase; text-align: left; }
+td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 400; vertical-align: middle; color: #334155; }
 .text-center { text-align: center; }
-.font-bold { font-weight: 600; }
+.font-bold { font-weight: 400; }
 .font-medium { font-weight: 500; }
 .text-primary { color: #0f172a; }
 .text-code { color: #64748b; font-family: monospace; }
 .text-gray { color: #94a3b8; }
 .cursor-pointer { cursor: pointer; }
-.badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
 .badge-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
 .badge-secondary { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
 .action-container { display: flex; align-items: center; justify-content: center; gap: 15px; }
@@ -231,10 +336,10 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-
 .toggle-icon { font-size: 24px; transition: color 0.3s ease; }
 .toggle-icon.active { color: #10b981; } 
 .toggle-icon.inactive { color: #cbd5e1; }
-.pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; }
+.pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f1f5f9; }
 .page-info { font-size: 14px; color: #64748b; }
-.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 6px; margin: 0 5px; outline: none; }
-.page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin: 0 5px; cursor: pointer; }
+.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 8px; margin: 0 5px; outline: none; }
+.page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; }
+.page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
 .page-controls button:disabled { background: #f8fafc; color: #cbd5e1; cursor: not-allowed; }
-.page-number { font-size: 14px; font-weight: 600; margin: 0 10px; }
 </style>
