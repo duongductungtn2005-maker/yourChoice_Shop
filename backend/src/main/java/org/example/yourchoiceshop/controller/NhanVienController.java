@@ -21,7 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*; // Import gọn hơn
+import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -30,42 +30,50 @@ import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1/nhan-vien")
-@CrossOrigin("*") // <--- THÊM DÒNG NÀY (Cho phép mọi nguồn truy cập)
+@CrossOrigin("*")
 public class NhanVienController {
 
     private static final Logger logger = LoggerFactory.getLogger(NhanVienController.class);
-
-    // ĐÃ SỬA: Bỏ @Autowired vì @RequiredArgsConstructor đã lo việc này rồi
     private final NhanVienService nhanVienService;
-    @Autowired // Có thể có hoặc không với Spring Boot mới, nhưng nên để cho rõ
+
+    @Autowired
     public NhanVienController(NhanVienService nhanVienService) {
         this.nhanVienService = nhanVienService;
     }
-    // 1. Lấy danh sách + Tìm kiếm + Lọc
+
+    // [UPDATED] Sửa tham số nhận vào: Bỏ gender, thêm role
     @GetMapping
     public ResponseEntity<?> getAllNhanVien(
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "5") int size,
-        @RequestParam(required = false) String keyword,
-        @RequestParam(required = false) Boolean gender,
-        @RequestParam(required = false) Integer status
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String role // Thêm tham số role
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<NhanVien> result = nhanVienService.findAll(keyword, gender, status, pageable);
+        // Gọi service findAll mới
+        Page<NhanVien> result = nhanVienService.findAll(keyword, status, role, pageable);
         return ResponseEntity.ok(result);
     }
 
-    // 2. Thêm mới (Create) - Upload File
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getById(@PathVariable Integer id) {
+        try {
+            NhanVien nv = nhanVienService.findById(id);
+            return ResponseEntity.ok(nv);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Không tìm thấy nhân viên: " + e.getMessage());
+        }
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<NhanVien> create(@ModelAttribute EmployeeRequest request) {
-        // @ModelAttribute là bắt buộc để hứng form-data vừa có Text vừa có File
         return ResponseEntity.ok(nhanVienService.create(request));
     }
 
-    // 3. Cập nhật (Update) - Upload File
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(
-            @PathVariable Integer id, 
+            @PathVariable Integer id,
             @ModelAttribute EmployeeRequest request
     ) {
         try {
@@ -75,25 +83,19 @@ public class NhanVienController {
         }
     }
 
-        @GetMapping("/images/{filename:.+}")
+    @GetMapping("/images/{filename:.+}")
     public ResponseEntity<Resource> serveFile(@PathVariable String filename) {
         try {
-            // Lấy đường dẫn gốc của dự án
-            String currentPath = System.getProperty("user.dir"); 
-            
-            // Trỏ vào thư mục uploads/images/nhan-vien/
+            String currentPath = System.getProperty("user.dir");
             Path file = Paths.get(currentPath, "uploads", "images", "nhan-vien").resolve(filename);
-            
             Resource resource = new UrlResource(file.toUri());
 
             if (resource.exists() || resource.isReadable()) {
                 return ResponseEntity.ok()
-                        // Thêm dòng này để trình duyệt cache ảnh, load nhanh hơn
-                        .header(HttpHeaders.CACHE_CONTROL, "max-age=31536000") 
+                        .header(HttpHeaders.CACHE_CONTROL, "max-age=31536000")
                         .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
                         .body(resource);
             } else {
-                // Nếu không tìm thấy file, trả về lỗi 404 hoặc ảnh mặc định (tùy chọn)
                 return ResponseEntity.notFound().build();
             }
         } catch (MalformedURLException e) {
@@ -101,7 +103,6 @@ public class NhanVienController {
         }
     }
 
-    // 5. Xóa mềm (Soft Delete)
     @DeleteMapping("/{id}")
     public ResponseEntity<?> softDelete(@PathVariable Integer id) {
         try {
@@ -112,11 +113,10 @@ public class NhanVienController {
         }
     }
 
-    // 6. Cập nhật trạng thái nhanh
     @PutMapping("/{id}/trang-thai")
     public ResponseEntity<?> updateTrangThai(
-            @PathVariable Integer id, 
-            @RequestParam Integer trangThai 
+            @PathVariable Integer id,
+            @RequestParam Integer trangThai
     ) {
         try {
             nhanVienService.updateTrangThai(id, trangThai);
@@ -125,13 +125,13 @@ public class NhanVienController {
             return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
         }
     }
+
     @GetMapping("/export-excel")
     public void exportToExcel(HttpServletResponse response,
                               @RequestParam(required = false) String keyword,
                               @RequestParam(required = false) Boolean gender,
                               @RequestParam(required = false) Integer status) throws IOException {
-        
-        // 1. Cấu hình Header trả về file
+
         response.setContentType("application/octet-stream");
         DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
         String currentDateTime = dateFormatter.format(new Date());
@@ -140,11 +140,8 @@ public class NhanVienController {
         String headerValue = "attachment; filename=NhanVien_" + currentDateTime + ".xlsx";
         response.setHeader(headerKey, headerValue);
 
-        // 2. Lấy dữ liệu (Cần viết thêm hàm này trong Service nếu chưa có)
-        // Lưu ý: Hàm này trả về List<NhanVien>, KHÔNG PHẢI Page<NhanVien>
         List<NhanVien> listNhanVien = nhanVienService.findAllList(keyword, gender, status);
 
-        // 3. Gọi class xuất Excel
         EmployeeExcelExporter excelExporter = new EmployeeExcelExporter(listNhanVien);
         excelExporter.export(response);
     }

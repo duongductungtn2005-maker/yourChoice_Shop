@@ -18,4 +18,5 @@ public interface KichThuocRepository extends JpaRepository<KichThuoc, Integer> {
             "(:keyword IS NULL OR x.tenKichThuoc LIKE %:keyword%) " +
             "AND (:status IS NULL OR x.trangThai = :status)")
     Page<KichThuoc> search(@Param("keyword") String keyword, @Param("status") Integer status, Pageable pageable);
+    List<KichThuoc> findAllByTrangThai(Integer trangThai);
 }

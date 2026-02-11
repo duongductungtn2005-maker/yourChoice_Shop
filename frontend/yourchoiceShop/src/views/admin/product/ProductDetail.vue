@@ -38,7 +38,6 @@
               :max="sliderMax" 
               class="range-slider"
            >
-           
         </div>
       </div>
 
@@ -185,6 +184,8 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
+import Swal from 'sweetalert2';
+import { toastSuccess, toastError } from '@/utils/toast';
 import ProductUpdateModal from './ProductUpdateModal.vue';
 
 const route = useRoute();
@@ -203,7 +204,7 @@ const selectedIds = ref([]);
 const options = reactive({ thuongHieu: [], chatLieu: [], xuatXu: [], coAo: [], tayAo: [], mauSac: [], kichThuoc: [] });
 const filter = reactive({ keyword: '', minPrice: 0, maxPrice: 10000000, thuongHieu: '', chatLieu: '', xuatXu: '', coAo: '', tayAo: '', idMauSac: null, idKichThuoc: null });
 
-// SỬA 3: BIẾN LƯU GIÁ MAX CỦA SP
+// Slider
 const sliderMax = ref(10000000); 
 
 // Modal State
@@ -212,7 +213,6 @@ const selectedVariant = ref({});
 
 // API FETCHING
 const fetchAllAttributes = async () => {
-    // ... (Giữ nguyên logic fetch attribute)
     try {
         const [th, cl, xx, ca, ta, ms, kt] = await Promise.all([
             axios.get(`${API_URL}/thuong-hieu?size=100&status=1`),
@@ -242,13 +242,9 @@ const fetchData = async () => {
         const vRes = await axios.get(`${API_URL}/products/${productId}/variants`);
         allVariants.value = Array.isArray(vRes.data) ? vRes.data : [];
         
-        // SỬA 3: TÍNH TOÁN GIÁ MAX
         if (allVariants.value.length > 0) {
-            // Tìm giá bán cao nhất trong các biến thể
             const maxPriceInList = Math.max(...allVariants.value.map(v => v.giaBan || 0));
-            // Set Slider Max = Giá cao nhất (làm tròn lên chút cho đẹp nếu muốn)
             sliderMax.value = maxPriceInList > 0 ? maxPriceInList : 10000000;
-            // Set Filter Max mặc định = Slider Max
             filter.maxPrice = sliderMax.value;
         }
 
@@ -260,7 +256,6 @@ const fetchData = async () => {
 const filteredVariants = computed(() => {
     if (!Array.isArray(allVariants.value)) return [];
     return allVariants.value.filter(v => {
-        // Logic filter cũ
         const matchKey = filter.keyword ? v.maCtsp.toLowerCase().includes(filter.keyword.toLowerCase()) : true;
         const matchColor = filter.idMauSac ? v.mauSac?.id === filter.idMauSac : true;
         const matchSize = filter.idKichThuoc ? v.kichThuoc?.id === filter.idKichThuoc : true;
@@ -270,7 +265,6 @@ const filteredVariants = computed(() => {
         const matchCA = filter.coAo ? productInfo.value.tenCoAo === filter.coAo : true;
         const matchTA = filter.tayAo ? productInfo.value.tenTayAo === filter.tayAo : true;
 
-        // Logic filter giá
         const price = v.giaBan || 0;
         const matchPrice = price >= filter.minPrice && price <= filter.maxPrice;
 
@@ -302,7 +296,18 @@ const toggleSelectAll = () => {
 };
 
 const handleBulkUpdate = async () => {
-    if (!confirm(`Bạn có chắc chắn muốn cập nhật ${selectedIds.value.length} dòng đã chọn?`)) return;
+    const result = await Swal.fire({
+        title: 'Xác nhận cập nhật?',
+        text: `Bạn có chắc chắn muốn cập nhật ${selectedIds.value.length} dòng đã chọn?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#0f172a'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
         const variantsToUpdate = allVariants.value
             .filter(v => selectedIds.value.includes(v.id))
@@ -316,29 +321,21 @@ const handleBulkUpdate = async () => {
             variants: variantsToUpdate 
         });
         
-        alert("Cập nhật nhanh thành công!");
+        toastSuccess("Cập nhật nhanh thành công!");
         selectedIds.value = [];
         fetchData();
     } catch (e) {
         console.error(e);
-        alert("Lỗi cập nhật nhanh! Vui lòng kiểm tra lại dữ liệu.");
+        toastError("Lỗi cập nhật nhanh! Vui lòng kiểm tra lại dữ liệu.");
     }
 };
 
-// HELPERS
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 const openEditModal = (variant) => { selectedVariant.value = variant; isModalOpen.value = true; };
 
-const handleSaveVariant = async (formData) => {
-    try {
-        await axios.put(`${API_URL}/products/variants/${formData.id}`, {
-            ...formData,
-            listAnh: formData.listAnh 
-        });
-        alert("Cập nhật thành công!");
-        isModalOpen.value = false;
-        fetchData();
-    } catch (e) { console.error(e); alert("Có lỗi xảy ra khi cập nhật!"); }
+const handleSaveVariant = () => {
+    isModalOpen.value = false;
+    fetchData();
 };
 
 onMounted(() => { fetchAllAttributes(); fetchData(); });
@@ -346,14 +343,22 @@ onMounted(() => { fetchAllAttributes(); fetchData(); });
 
 <style scoped>
 /* GLOBAL */
-.product-detail-page { font-family: 'Segoe UI', sans-serif; color: #334155; padding-bottom: 40px; }
+.product-detail-page { font-family: 'Segoe UI', sans-serif; color: #334155; padding-bottom: 40px; background-color: #f8fafc; min-height: 100vh; padding: 20px;}
 .header-section { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
 .text-bold { font-weight: 700; color: #0f172a; } .text-gray { color: #64748b; }
 .text-primary { color: #2563eb; } .text-lg { font-size: 18px; }
 .divider { margin: 0 10px; color: #cbd5e1; }
 
-/* CARD & FILTER */
-.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 20px; padding: 24px; }
+/* === UPDATE: CARD STYLING (Viền xanh #bfdbfe) === */
+.card { 
+    background: #fff; 
+    border: 1px solid #bfdbfe !important; /* Viền xanh nhạt */
+    border-radius: 16px; /* Bo góc 16px */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* Đổ bóng nhẹ */
+    margin-bottom: 20px; 
+    padding: 24px; 
+}
+
 .filter-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 40px; }
 .search-box { flex: 1; max-width: 50%; }
 .input-wrapper { position: relative; }
@@ -364,7 +369,6 @@ onMounted(() => { fetchAllAttributes(); fetchData(); });
 .price-slider-box { flex: 1; max-width: 40%; display: flex; flex-direction: column; gap: 5px; }
 .price-labels { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #0f172a; }
 .range-slider { width: 100%; cursor: pointer; accent-color: #2563eb; }
-.range-info { text-align: center; color: #64748b; font-size: 12px; }
 
 /* FILTER GRID */
 .filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 30px; }
@@ -377,7 +381,7 @@ onMounted(() => { fetchAllAttributes(); fetchData(); });
 .active-filter { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; color: #0f172a; }
 
 /* TABLE */
-.result-card { padding: 0; }
+.result-card { padding: 0; overflow: hidden; }
 .table-header-title { padding: 20px; text-align: center; border-bottom: 1px solid #f1f5f9; }
 .table-header-title h3 { margin: 0; font-size: 18px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
 .table-responsive { width: 100%; overflow-x: auto; }
@@ -401,8 +405,8 @@ td { padding: 15px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vert
 .tag-color { background: #eff6ff; color: #1e40af; border: 1px solid #dbeafe; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
 .tag-size { background: #f0fdf4; color: #166534; border: 1px solid #dcfce7; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
 .btn-icon { background: transparent; border: none; font-size: 16px; color: #1e293b; cursor: pointer; }
-.btn-outline { background: #fff; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-.pagination-bar { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+.btn-outline { background: #fff; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.pagination-bar { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; }
 .page-size { font-size: 13px; color: #94a3b8; }
 .size-select { border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 5px; margin: 0 5px; outline: none; }
 .page-nav { display: flex; gap: 10px; align-items: center; }
