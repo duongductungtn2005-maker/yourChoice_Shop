@@ -32,7 +32,7 @@
             <div class="right-col">
               <div class="section-header-row">
                  <h3 class="section-title">Thông tin chi tiết</h3>
-                 <button type="button" class="btn btn-outline btn-sm" @click="startScan">
+                 <button type="button" class="btn btn-orange" @click="startScan">
                     <i class="fas fa-qrcode"></i> Quét QR
                  </button>
               </div>
@@ -395,4 +395,20 @@ label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px; c
 /* Modal QR */
 .qr-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; }
 .qr-modal { background: #fff; padding: 20px; border-radius: 12px; width: 400px; text-align: center; }
+.btn-orange { 
+    background: #f97316; /* Màu cam đậm */
+    color: #ffffff; 
+    border: 1px solid #f97316;
+}
+.btn-orange:hover { 
+    background: #ea580c; /* Cam đậm hơn khi hover */
+    box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);
+}
+.form-control::placeholder {
+
+    color: #000000 !important;  /* Màu đen */
+    opacity: 0.5 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+
+}
 </style>

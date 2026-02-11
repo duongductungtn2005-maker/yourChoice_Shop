@@ -8,16 +8,16 @@
         <div class="filter-group">
            <div class="search-box">
               <i class="fas fa-magnifying-glass search-icon"></i>
-              <input v-model="filter.keyword" placeholder="Tìm kiếm theo mã, tên..." @keyup.enter="fetchData" />
+              <input class="input-den" v-model="filter.keyword" placeholder="Tìm kiếm theo mã, tên..." @keyup.enter="fetchData" />
            </div>
 
            <div class="date-group">
               <div class="date-input-wrapper">
-                 <input type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Ngày bắt đầu" v-model="filter.startDate">
+                 <input class="input-den" type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Ngày bắt đầu" v-model="filter.startDate">
               </div>
               <span class="divider">-</span>
               <div class="date-input-wrapper">
-                 <input type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Ngày kết thúc" v-model="filter.endDate">
+                 <input class="input-den" type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Ngày kết thúc" v-model="filter.endDate">
               </div>
            </div>
            
@@ -35,12 +35,12 @@
         </div>
 
         <div class="action-group">
-           <button class="btn btn-secondary" @click="resetFilter">
+           <button class="btn btn-navy" @click="resetFilter">
               <i class="fas fa-sync-alt"></i> Đặt lại
            </button>
 
-           <button @click="exportExcel" class="btn btn-outline">
-              <i class="fas fa-file-excel"></i> Xuất Excel
+           <button class="btn btn-outline" @click="exportExcel">
+              <font-awesome-icon :icon="['fas','file-excel']" /> Xuất Excel
            </button>
            
            <router-link :to="{ name: 'admin-voucher-create' }" class="btn btn-gradient">
@@ -447,7 +447,7 @@ onMounted(() => {
   color: #1e40af;
   padding: 16px;
   text-align: center;
-  font-size: 12px;
+  
   font-weight: 700;
   text-transform: uppercase;
   border-bottom: none !important; /* Xóa dòng kẻ */
@@ -466,7 +466,9 @@ onMounted(() => {
 
 /* BADGES */
 .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.badge-public, .badge-active { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+.badge-public, .badge-active { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.badge-stopped { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.badge-expired { background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0; }
 .badge-private, .badge-stopped, .badge-expired { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
 
 /* ACTIONS */
@@ -498,4 +500,19 @@ input:disabled + .slider { background-color: #e2e8f0; cursor: not-allowed; }
 .customer-list-box { max-height: 300px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 15px; }
 .modal-actions { display: flex; justify-content: space-between; align-items: center; }
 .close-btn { border: none; background: none; font-size: 18px; cursor: pointer; color: #64748b; }
+.btn-navy {
+    background-color: #0f172a; /* Xanh than đậm */
+    color: #ffffff;
+    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.2);
+}
+.btn-navy:hover {
+    background-color: #1e293b;
+    transform: translateY(-1px);
+}
+/* Màu chữ placeholder đen xì, rõ nét */
+.input-den::placeholder {
+    color: #000000 !important;  /* Màu đen */
+    opacity: 1 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+}
 </style>

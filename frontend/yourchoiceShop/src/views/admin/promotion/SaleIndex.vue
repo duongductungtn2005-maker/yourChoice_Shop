@@ -9,6 +9,7 @@
            <div class="search-box">
               <i class="fas fa-magnifying-glass search-icon"></i>
               <input 
+              class="input-den"
                 v-model="filter.keyword" 
                 placeholder="Tìm tên, mã đợt..." 
                 @keyup.enter="fetchData" 
@@ -17,11 +18,11 @@
 
            <div class="date-group">
               <div class="date-input-wrapper">
-                 <input type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Bắt đầu" v-model="filter.startDate">
+                 <input class="input-den" type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Bắt đầu" v-model="filter.startDate">
               </div>
               <span class="divider">-</span>
               <div class="date-input-wrapper">
-                 <input type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Kết thúc" v-model="filter.endDate">
+                 <input class="input-den" type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Kết thúc" v-model="filter.endDate">
               </div>
            </div>
            
@@ -39,7 +40,7 @@
         </div>
 
         <div class="action-group">
-           <button class="btn btn-secondary" @click="resetFilter">
+           <button class="btn btn-navy" @click="resetFilter">
               <i class="fas fa-sync-alt"></i> Đặt lại
            </button>
 
@@ -63,7 +64,7 @@
             <th>Mã đợt</th> <th>Tên đợt</th>
             <th class="text-center">Giá trị</th>
             <th class="text-center">Loại giảm</th> <th>Ngày bắt đầu</th> <th>Ngày kết thúc</th> <th class="text-center">Trạng thái</th>
-            <th class="text-center">Hành động</th>
+            <th class="text-center">Thao tác</th>
           </tr>
         </thead>
         <tbody>
@@ -98,7 +99,7 @@
               <div class="action-wrapper">
                   
                   <button class="icon-btn" title="Xem sản phẩm" @click="openModal(item)">
-                      <i class="fas fa-eye"></i>
+                      <i class="far fa-eye"></i>
                   </button>
 
                   <label class="switch" title="Bật/Tắt trạng thái">
@@ -328,6 +329,10 @@ onMounted(() => {
 .search-icon { position: absolute; left: 12px; top: 11px; color: #94a3b8; }
 .search-box input { width: 100%; padding: 8px 10px 8px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; height: 40px; }
 .search-box input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+.search-box input::placeholder {
+    color: #000000; /* Màu đen tuyệt đối */
+    opacity: 1;     /* Đảm bảo hiển thị rõ 100% trên mọi trình duyệt */
+}
 
 .date-group { display: flex; gap: 8px; align-items: center; }
 .date-input-wrapper { position: relative; }
@@ -349,7 +354,7 @@ onMounted(() => {
   color: #1e40af;
   padding: 16px;
   text-align: center;
-  font-size: 12px;
+ 
   font-weight: 700;
   text-transform: uppercase;
   border-bottom: none !important; /* Xóa dòng kẻ */
@@ -395,4 +400,19 @@ input:disabled + .slider { background-color: #e2e8f0; cursor: not-allowed; }
 .img-placeholder { width: 40px; height: 40px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #cbd5e1; border-radius: 4px; }
 .variant-badge { background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: #64748b; }
 .font-bold { font-weight: 600; }
+.btn-navy {
+    background-color: #0f172a; /* Xanh than đậm */
+    color: #ffffff;
+    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.2);
+}
+.btn-navy:hover {
+    background-color: #1e293b;
+    transform: translateY(-1px);
+}
+/* Màu chữ placeholder đen xì, rõ nét */
+.input-den::placeholder {
+    color: #000000 !important;  /* Màu đen */
+    opacity: 1 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+}
 </style>

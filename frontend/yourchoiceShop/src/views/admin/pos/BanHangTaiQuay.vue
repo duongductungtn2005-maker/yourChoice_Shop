@@ -3,6 +3,7 @@
     <div class="left-panel">
       <div class="header-pos">
         <input 
+        
           v-model="searchKeyword" 
           placeholder="Tìm kiếm sản phẩm (Tên, Mã)..." 
           class="search-input"
@@ -136,6 +137,12 @@ const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency',
 .left-panel { flex: 1; padding: 20px; overflow-y: auto; }
 .header-pos { display: flex; gap: 10px; margin-bottom: 20px; }
 .search-input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+.search-input::placeholder{
+    color: #000000 !important;  /* Màu đen */
+    opacity: 1 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+
+}
 .btn-scan { padding: 0 20px; background: white; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; }
 
 .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }

@@ -9,7 +9,7 @@
         <div class="row-3">
              <div class="form-group">
                 <label>Tên chương trình <span class="required">*</span></label>
-                <input v-model="form.tenDotGiamGia" placeholder="VD: Sale Black Friday" class="form-control" />
+                <input  v-model="form.tenDotGiamGia" placeholder="VD: Sale Black Friday" class="form-control" />
             </div>
              <div class="form-group">
                 <label>Mức giảm giá <span class="required">*</span></label>
@@ -50,7 +50,7 @@
         <div class="filter-toolbar">
             <div class="search-box">
                 <i class="fas fa-search icon"></i>
-                <input v-model="filter.keyword" @keyup.enter="loadProducts" placeholder="Tìm tên/mã sản phẩm..." />
+                <input class="input-den" v-model="filter.keyword" @keyup.enter="loadProducts" placeholder="Tìm tên/mã sản phẩm..." />
             </div>
             
             <select v-model="filter.mauSacId" @change="loadProducts" class="filter-select">
@@ -306,6 +306,13 @@ onMounted(() => { loadFilterOptions(); loadProducts(); });
 .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #334155; }
 .required { color: #ef4444; }
 .form-control { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; }
+.form-control::placeholder {
+
+    color: #000000 !important;  /* Màu đen */
+    opacity: 0.5 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+
+}
 .input-group { display: flex; }
 .input-group input { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .unit-select { border: 1px solid #e2e8f0; border-left: none; background: #f8fafc; padding: 0 15px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; font-weight: 600; cursor: pointer; }
@@ -378,4 +385,10 @@ onMounted(() => { loadFilterOptions(); loadProducts(); });
 .page-btn:hover:not(:disabled) { border-color: #0f172a; color: #0f172a; }
 .page-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; }
 .page-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #f8fafc; }
+/* Màu chữ placeholder đen xì, rõ nét */
+.input-den::placeholder {
+    color: #000000 !important;  /* Màu đen */
+    opacity: 1 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+}
 </style>

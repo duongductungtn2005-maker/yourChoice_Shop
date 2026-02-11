@@ -81,7 +81,7 @@
               <div class="address-section">
                  <div class="address-header">
                     <h3 class="section-title mb-0">Địa chỉ nhận hàng</h3>
-                    <button type="button" class="btn btn-outline btn-sm" @click="addNewAddress">
+                    <button type="button" class="btn btn-gradient" @click="addNewAddress">
                        <i class="fas fa-plus"></i> Thêm địa chỉ
                     </button>
                  </div>
@@ -395,4 +395,11 @@ label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; c
 .btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.4); }
 .btn:disabled { opacity: 0.7; cursor: not-allowed; }
 .btn-sm { padding: 6px 12px; font-size: 13px; }
+.form-control::placeholder {
+
+    color: #000000 !important;  /* Màu đen */
+    opacity: 0.5 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+
+}
 </style>

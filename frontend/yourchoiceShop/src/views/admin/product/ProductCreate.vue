@@ -39,11 +39,11 @@
               </select>
             </div>
             <div class="form-group">
-                <label class="required">Tay áo</label>
-                <select v-model="product.idTayAo" class="form-control">
-                  <option :value="null">-- Chọn tay áo --</option>
-                  <option v-for="item in attributes.tayAo" :key="item.id" :value="item.id">{{ item.tenTayAo }}</option>
-                </select>
+               <label class="required">Tay áo</label>
+               <select v-model="product.idTayAo" class="form-control">
+                 <option :value="null">-- Chọn tay áo --</option>
+                 <option v-for="item in attributes.tayAo" :key="item.id" :value="item.id">{{ item.tenTayAo }}</option>
+               </select>
             </div>
            <div class="form-group">
              <label class="required">Xuất xứ</label>
@@ -98,11 +98,7 @@
                    Danh sách sản phẩm màu: <strong>{{ color.tenMauSac }}</strong>
                 </div>
                 <div class="group-actions">
-                   <button 
-                      class="btn-restore" 
-                      @click="resetVariantGroup(color.id)"
-                      title="Khôi phục dòng đã xóa & Đặt lại giá trị mặc định"
-                   >
+                   <button class="btn-restore" @click="resetVariantGroup(color.id)" title="Khôi phục mặc định">
                       <font-awesome-icon :icon="['fas', 'rotate-left']" /> Khôi phục
                    </button>
 
@@ -117,13 +113,14 @@
                    </button>
                 </div>
              </div>
+
              <div class="group-body-flex">
                 
                 <div class="col-left-table">
                     <table class="custom-table">
                        <thead>
                           <tr>
-                             <th width="40">
+                             <th width="40" class="text-center">
                                 <input 
                                     type="checkbox" 
                                     :checked="isGroupAllSelected(color.id)"
@@ -134,12 +131,11 @@
                              <th width="110">Số lượng</th>
                              <th width="140">Giá nhập (VNĐ)</th>
                              <th width="140">Giá bán (VNĐ)</th>
-                             <th width="40"></th>
-                          </tr>
+                             <th width="60" class="text-center">Xóa</th> </tr>
                        </thead>
                        <tbody>
                           <tr v-for="variant in getVariantsByColor(color.id)" :key="variant.key">
-                             <td><input type="checkbox" v-model="variant.isSelected"></td>
+                             <td class="text-center"><input type="checkbox" v-model="variant.isSelected"></td>
                              <td>
                                 <span class="size-badge">{{ variant.tenKichThuoc }}</span>
                              </td>
@@ -163,11 +159,10 @@
                 </div>
 
                 <div class="col-right-images">
-                    <div class="img-header-row">Ảnh</div>
+                    <div class="img-header-row">Ảnh sản phẩm</div>
 
                     <div class="image-content-wrap">
                         <div class="image-upload-area">
-                            
                             <div v-if="!groupImages[color.id] || groupImages[color.id].length === 0" 
                                  class="upload-placeholder" 
                                  @click="openGalleryModal(color)">
@@ -182,7 +177,6 @@
                                     <div v-for="(img, idx) in groupImages[color.id]" :key="idx" class="img-thumbnail">
                                         <img :src="getPreviewUrl(img)" alt="Product Image">
                                     </div>
-
                                     <div class="add-image-tile" @click="openGalleryModal(color)">
                                         <div class="tile-icon">
                                             <font-awesome-icon :icon="['fas', 'images']" />
@@ -191,7 +185,6 @@
                                     </div>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
@@ -237,6 +230,7 @@
         :is-open="showGalleryModal"
         :color-name="galleryColorName"
         :current-images="currentEditingImages"
+        :color-id="galleryColorId" 
         @close="showGalleryModal = false"
         @save="handleGallerySave"
     />
@@ -261,7 +255,6 @@ import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 import ImageGalleryModal from './ImageGalleryModal.vue';
 import AttributeSelectionModal from './AttributeSelectionModal.vue';
-// 1. Import bộ Toast
 import { toastSuccess, toastError, Toast } from '@/utils/toast';
 
 const router = useRouter();
@@ -416,7 +409,6 @@ const resetVariantGroup = async (colorId) => {
         return a.idKichThuoc - b.idKichThuoc;
     });
 
-    // Sửa: Dùng Toast cho reset
     toastSuccess('Đã khôi phục dữ liệu nhóm!');
 };
 
@@ -461,54 +453,18 @@ const applyBulkEdit = () => {
     toastSuccess('Đã cập nhật hàng loạt!');
 };
 
-// --- LOGIC SUBMIT (ĐÃ SỬA VALIDATE TOAST) ---
+// SUBMIT LOGIC
 const submitProduct = async () => {
-    // 1. Validate Tên & Thương hiệu
     if (!product.tenSanPham || !product.idThuongHieu) {
-        return Toast.fire({
-            icon: 'warning',
-            title: 'Thiếu thông tin',
-            text: 'Vui lòng nhập tên sản phẩm và chọn thương hiệu.'
-        });
+        return Toast.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập tên sản phẩm và chọn thương hiệu.' });
     }
-
-    // 2. Validate Thuộc tính
     if (selectedColors.value.length === 0 || selectedSizes.value.length === 0) {
-        return Toast.fire({
-            icon: 'warning',
-            title: 'Thiếu thuộc tính',
-            text: 'Vui lòng chọn ít nhất 1 màu và 1 kích cỡ.'
-        });
+        return Toast.fire({ icon: 'warning', title: 'Thiếu thuộc tính', text: 'Vui lòng chọn ít nhất 1 màu và 1 kích cỡ.' });
     }
-
-    // 3. Validate Biến thể
     if (!generatedVariants.value || generatedVariants.value.length === 0) {
-        return Toast.fire({
-            icon: 'warning',
-            title: 'Chưa có biến thể',
-            text: 'Danh sách phân loại hàng đang trống.'
-        });
+        return Toast.fire({ icon: 'warning', title: 'Chưa có biến thể', text: 'Danh sách phân loại hàng đang trống.' });
     }
 
-    // 4. Validate Chi tiết giá/số lượng
-    for (const v of generatedVariants.value) {
-        if (!v.giaBan || Number(v.giaBan) <= 0) {
-            return Toast.fire({
-                icon: 'warning',
-                title: 'Giá bán không hợp lệ',
-                text: `Vui lòng kiểm tra giá bán cho màu ${v.tenMauSac} - size ${v.tenKichThuoc}`
-            });
-        }
-        if (v.soLuong == null || Number(v.soLuong) < 0) {
-            return Toast.fire({
-                icon: 'warning',
-                title: 'Số lượng không hợp lệ',
-                text: `Vui lòng kiểm tra số lượng cho màu ${v.tenMauSac} - size ${v.tenKichThuoc}`
-            });
-        }
-    }
-
-    // Nếu muốn bỏ confirm để nhanh hơn thì xóa đoạn này
     const result = await Swal.fire({ 
         title: 'Xác nhận tạo sản phẩm?', 
         icon: 'question', 
@@ -529,18 +485,11 @@ const submitProduct = async () => {
                 listAnh: groupImages[v.idMauSac] || [] 
             }))
         };
-        
-        // Gọi API
         await axios.post(`${API_URL}/products`, payload);
-        
-        // --- HIỂN THỊ TOAST GÓC PHẢI NHƯ HÌNH MẪU ---
         toastSuccess('Thêm sản phẩm thành công');
-        
-        // Chuyển trang
         router.push('/admin/products');
     } catch (e) {
         console.error(e);
-        // Hiển thị lỗi góc phải
         toastError(e.response?.data?.message || 'Có lỗi xảy ra khi tạo sản phẩm');
     } finally {
         loading.value = false;
@@ -574,11 +523,11 @@ onMounted(() => fetchAttributes());
 .separator { margin: 0 8px; color: #cbd5e1; }
 .cursor-pointer { cursor: pointer; }
 
-/* === UPDATE: CARD STYLE (Viền xanh + Bo góc) === */
+/* === CARD STYLE === */
 .card { 
     background: #fff; 
-    border-radius: 16px; /* Bo góc 16px */
-    border: 1px solid #bfdbfe; /* Viền xanh nhạt */
+    border-radius: 16px; 
+    border: 1px solid #bfdbfe !important; 
     box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
     padding: 24px; 
     margin-bottom: 24px; 
@@ -590,7 +539,7 @@ onMounted(() => fetchAttributes());
     color: #0f172a; 
     margin-bottom: 20px; 
     text-transform: uppercase; 
-    border-bottom: 1px solid #f1f5f9; /* Kẻ ngang mờ dưới tiêu đề */
+    border-bottom: 1px solid #f1f5f9;
     padding-bottom: 10px;
 }
 
@@ -601,7 +550,7 @@ onMounted(() => fetchAttributes());
 .form-group label { 
     display: block; 
     margin-bottom: 8px; 
-    font-weight: 600; /* Đậm hơn chút */
+    font-weight: 600; 
     font-size: 13px; 
     color: #334155; 
 }
@@ -611,7 +560,7 @@ onMounted(() => fetchAttributes());
 .form-control { 
     width: 100%; 
     padding: 10px 12px; 
-    border: 1px solid #e2e8f0; /* Viền xám nhạt mặc định */
+    border: 1px solid #e2e8f0; 
     border-radius: 6px; 
     outline: none; 
     transition: all 0.2s; 
@@ -619,8 +568,13 @@ onMounted(() => fetchAttributes());
 }
 
 .form-control:focus { 
-    border-color: #3b82f6; /* Focus màu xanh */
+    border-color: #3b82f6; 
     box-shadow: 0 0 0 3px rgba(59,130,246,0.1); 
+}
+.form-control::placeholder {
+    color: #000000 !important;
+    opacity: 0.5 !important;
+    font-weight: 500;
 }
 
 /* ATTRIBUTE SECTION */
@@ -662,24 +616,24 @@ onMounted(() => fetchAttributes());
 .variants-section { margin-top: 10px; display: flex; flex-direction: column; gap: 20px; }
 
 .variant-group-card { 
-    border: 1px solid #bfdbfe !important; /* Thay đổi từ #e2e8f0 sang #bfdbfe */
+    border: 1px solid #bfdbfe !important; 
     border-radius: 12px; 
     background: #fff; 
     overflow: hidden; 
     box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
     transition: all 0.2s ease; 
-    margin-bottom: 20px; /* Thêm khoảng cách dưới mỗi nhóm */
+    margin-bottom: 20px; 
 }
 .variant-group-card:hover { 
     box-shadow: 0 8px 20px rgba(0,0,0,0.06); 
     transform: translateY(-2px); 
-    border-color: #3b82f6 !important; /* Hiệu ứng hover viền đậm hơn */
+    border-color: #3b82f6 !important; 
 }
 
 .group-header { 
-    background: #eff6ff; /* Nền xanh nhạt đồng bộ */
+    background: #eff6ff; 
     padding: 14px 20px; 
-    border-bottom: 1px solid #bfdbfe !important; /* Viền dưới header cũng xanh */
+    border-bottom: 1px solid #bfdbfe !important; 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
@@ -720,7 +674,7 @@ onMounted(() => fetchAttributes());
 .group-body-flex { display: flex; align-items: stretch; }
 .col-left-table { 
     flex: 2; 
-    border-right: 1px solid #bfdbfe !important; /* Viền ngăn cách dọc màu xanh */
+    border-right: 1px solid #bfdbfe !important; 
     padding: 0; 
 }
 .col-right-images { flex: 1; min-width: 320px; background-color: #fff; display: flex; flex-direction: column; }
@@ -733,14 +687,14 @@ onMounted(() => fetchAttributes());
     color: #1e40af; /* Chữ xanh đậm */
     font-weight: 700; 
     padding: 12px 16px; 
-    border-bottom: 1px solid #bfdbfe !important; /* Viền dưới header bảng con */
-    background: #f8fafc; /* Nền header bảng con nhạt hơn chút để phân biệt */
+    border-bottom: 1px solid #bfdbfe !important; 
+    background: #f8fafc; 
     white-space: nowrap; 
 }
 .custom-table td { 
     padding: 10px 16px; 
     vertical-align: middle; 
-    border-bottom: 1px solid #f1f5f9; /* Viền dòng giữ nguyên màu nhạt */
+    border-bottom: 1px solid #f1f5f9; 
 }
 
 .form-control-sm { 
@@ -754,14 +708,33 @@ onMounted(() => fetchAttributes());
     font-weight: 600; font-size: 12px; color: #475569; border: 1px solid #e2e8f0; 
 }
 
-.btn-icon-trash { color: #94a3b8; background: none; border: none; cursor: pointer; font-size: 14px; transition: 0.2s; }
-.btn-icon-trash:hover { color: #ef4444; transform: scale(1.1); }
+/* UPDATE: Nút xóa (Thùng rác đỏ) */
+.btn-icon-trash { 
+    color: #ef4444; 
+    background: #fee2e2; 
+    border: 1px solid #fecaca; 
+    border-radius: 6px; 
+    width: 32px; 
+    height: 32px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    transition: 0.2s; 
+    margin: 0 auto;
+}
+.btn-icon-trash:hover { 
+    background: #ef4444; 
+    color: white; 
+    transform: scale(1.1); 
+    box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3);
+}
 
 /* IMAGE UPLOAD AREA */
 .img-header-row { 
     width: 100%; 
     padding: 12px 16px; 
-    border-bottom: 1px solid #bfdbfe !important; /* Viền dưới header ảnh */
+    border-bottom: 1px solid #bfdbfe !important; 
     font-size: 12px; 
     font-weight: 700; 
     color: #1e40af; 
@@ -798,7 +771,7 @@ onMounted(() => fetchAttributes());
 /* FIXED BOTTOM BAR */
 .bottom-action-bar {
     position: fixed;
-    left: calc(260px + 24px); /* Sidebar width + padding */
+    left: calc(260px + 24px); 
     right: 24px;
     bottom: 0;
     background: rgba(255, 255, 255, 0.95);
