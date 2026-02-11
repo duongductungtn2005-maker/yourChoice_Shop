@@ -366,4 +366,17 @@ onMounted(() => {
 .mini-btn { width: 28px; height: 28px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; cursor: pointer; }
 .mini-btn:disabled { color: #ccc; cursor: not-allowed; background: #f9fafb; }
 .mini-btn:hover:not(:disabled) { border-color: #2b4360; color: #2b4360; }
+.form-control::placeholder {
+
+    color: #000000 !important;  /* Màu đen */
+    opacity: 0.5 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+
+}
+/* Màu chữ placeholder đen xì, rõ nét */
+.input-den::placeholder {
+    color: #000000 !important;  /* Màu đen */
+    opacity: 1 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+}
 </style>
