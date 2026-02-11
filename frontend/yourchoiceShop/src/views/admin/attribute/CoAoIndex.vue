@@ -1,8 +1,7 @@
 <template>
   <div class="attribute-page">
     <div class="header-section">
-            <h1 class="page-title">Quản lý sản phẩm / Cổ áo</h1>
-
+      <h1 class="page-title">Quản lý sản phẩm / Cổ áo</h1>
     </div>
 
     <div class="card">
@@ -17,7 +16,7 @@
                  @keyup.enter="fetchData"
                >
             </div>
-           <div class="action-group">
+            <div class="action-group">
                <button class="btn btn-outline" @click="exportExcel">
                 <font-awesome-icon :icon="['fas', 'file-excel']" /> Xuất Excel
             </button>
@@ -51,16 +50,16 @@
               <td class="text-center col-ngay-tao">{{ formatDate(item.ngayTao) }}</td>
               <td class="text-center">
                 <button class="action-btn" @click="openModal(item)" title="Sửa">
-    <font-awesome-icon :icon="['far', 'pen-to-square']" />
-</button>
+                  <font-awesome-icon :icon="['far', 'pen-to-square']" />
+                </button>
                 <label class="switch" title="Bật/Tắt trạng thái">
-  <input 
-    type="checkbox" 
-    :checked="item.trangThai === 1" 
-    @click="handleToggleStatus(item, $event)"
-  >
-  <span class="slider round"></span>
-</label>
+                  <input 
+                    type="checkbox" 
+                    :checked="item.trangThai === 1" 
+                    @click="handleToggleStatus(item, $event)"
+                  >
+                  <span class="slider round"></span>
+                </label>
               </td>
             </tr>
           </tbody>
@@ -87,17 +86,23 @@
              </div>
              <div class="modal-body-custom">
                 <form @submit.prevent="saveData">
-                   <div class="form-group">
+                   <div class="form-group text-left">
+                      <label class="form-label">Tên cổ áo <span class="required">*</span></label>
                       <input 
                         type="text" 
                         v-model="form.ten" 
                         class="form-control-custom" 
+                        :class="{ 'is-invalid': errors.ten }"
                         placeholder="Nhập tên cổ áo (VD: Cổ tròn, Cổ tim...)" 
                         ref="nameInput"
+                        @blur="validateField('ten')" 
+                        @input="validateField('ten')"
                       >
+                      <span v-if="errors.ten" class="error-msg">{{ errors.ten }}</span>
                    </div>
-                   <div class="form-group" v-if="isEdit" style="margin-top: 15px;">
-                      <label style="font-size: 13px; font-weight: 500;">Trạng thái:</label>
+
+                   <div class="form-group text-left" v-if="isEdit" style="margin-top: 15px;">
+                      <label class="form-label">Trạng thái:</label>
                       <div class="radio-group">
                          <label class="radio-item"><input type="radio" :value="1" v-model="form.trangThai"> Hoạt động</label>
                          <label class="radio-item"><input type="radio" :value="0" v-model="form.trangThai"> Ngừng</label>
@@ -106,12 +111,11 @@
                 </form>
              </div>
              <div class="modal-footer-custom">
-    <button type="button" class="btn-custom btn-white-outline" @click="showModal = false">Đóng</button>
-    
-    <button type="button" class="btn-custom btn-dark-blue" @click="saveData">
-        {{ isEdit ? 'Lưu' : 'Thêm' }}
-    </button>
-</div>
+                <button type="button" class="btn-custom btn-white-outline" @click="showModal = false">Đóng</button>
+                <button type="button" class="btn-custom btn-dark-blue" @click="saveData">
+                    {{ isEdit ? 'Lưu' : 'Thêm' }}
+                </button>
+             </div>
           </div>
        </div>
     </div>
@@ -122,7 +126,8 @@
 import { ref, reactive, onMounted, computed, nextTick } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-
+import { validate } from '@/utils/validate'; // Import Validate
+import { toastSuccess, toastError } from '@/utils/toast'; // <--- THÊM DÒNG NÀY
 // --- STATE ---
 const items = ref([]);
 const loading = ref(false);
@@ -135,11 +140,24 @@ const showModal = ref(false);
 const isEdit = ref(false);
 const currentId = ref(null);
 const form = reactive({ ten: '', trangThai: 1 });
+const errors = reactive({ ten: null }); // State lưu lỗi
 const nameInput = ref(null);
 
 const API_URL = 'http://localhost:8080/api/v1/co-ao';
 
-// --- FETCH DATA ---
+// --- VALIDATE LOGIC ---
+const validateField = (field) => {
+    if (field === 'ten') {
+        errors.ten = validate.isRequired(form.ten) || validate.minLength(form.ten, 2);
+    }
+};
+
+const isFormValid = () => {
+    validateField('ten');
+    return !errors.ten;
+};
+
+// --- API FETCH ---
 const fetchData = async () => {
     loading.value = true;
     try {
@@ -151,15 +169,11 @@ const fetchData = async () => {
     } catch (e) { console.error(e); } finally { loading.value = false; }
 };
 
-// --- CHỨC NĂNG XUẤT EXCEL (MỚI) ---
+// --- EXPORT EXCEL ---
 const exportExcel = async () => {
     const confirmRes = await Swal.fire({
-        title: 'Xác nhận',
-        text: 'Bạn có muốn tải xuống danh sách cổ áo không?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Có',
-        cancelButtonText: 'Hủy'
+        title: 'Xác nhận', text: 'Bạn có muốn tải xuống danh sách cổ áo không?', icon: 'question',
+        showCancelButton: true, confirmButtonText: 'Có', cancelButtonText: 'Hủy'
     });
     if (!confirmRes.isConfirmed) return;
 
@@ -170,18 +184,18 @@ const exportExcel = async () => {
         const dateStr = new Date().toISOString().slice(0,10);
         link.setAttribute('download', `DS_CoAo_${dateStr}.xlsx`);
         document.body.appendChild(link); link.click(); document.body.removeChild(link); window.URL.revokeObjectURL(url);
-
+        
         const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
         Toast.fire({ icon: 'success', title: 'Xuất Excel thành công' });
-
     } catch (e) {
         console.error("Lỗi xuất Excel:", e);
         Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể xuất file Excel. Vui lòng thử lại sau.' });
     }
 };
 
-// --- CÁC HÀM XỬ LÝ MODAL ---
+// --- MODAL HANDLERS ---
 const openModal = (item = null) => {
+    errors.ten = null; // Reset lỗi
     if (item) {
         isEdit.value = true; currentId.value = item.id;
         form.ten = item.tenCoAo; form.trangThai = item.trangThai;
@@ -193,132 +207,87 @@ const openModal = (item = null) => {
     nextTick(() => nameInput.value?.focus());
 };
 
-// --- SAVE DATA (CÓ CHECK TRÙNG & CONFIRM) ---
 const saveData = async () => {
-    if (!form.ten.trim()) {
-        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
-        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập tên cổ áo!' });
+    // 1. Validate Form
+    if (!isFormValid()) {
+        // (Tùy chọn) Nếu muốn báo lỗi góc phải khi form rỗng
+        // toastError('Vui lòng kiểm tra lại thông tin nhập!'); 
         return;
     }
 
     try {
+        // 2. Check trùng tên (Giữ nguyên logic cũ)
         const checkRes = await axios.get(API_URL, {
             params: { keyword: form.ten.trim(), page: 0, size: 100 }
         });
         const listCheck = checkRes.data.content || [];
-        
         const isDuplicate = listCheck.some(item => 
+            // LƯU Ý: Đổi 'tenChatLieu' thành 'tenCoAo', 'tenKichThuoc'... tương ứng với từng file
             item.tenCoAo.toLowerCase() === form.ten.trim().toLowerCase() && 
             item.id !== currentId.value
         );
 
         if (isDuplicate) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Tên đã tồn tại!',
-                text: `Cổ áo "${form.ten}" đã có trong hệ thống.`,
-                confirmButtonColor: '#ef4444'
-            });
+            errors.ten = `Tên "${form.ten}" đã tồn tại!`;
             return;
         }
-    } catch (e) { console.error(e); }
 
-   const result = await Swal.fire({
-        title: `<h3 style="color:#1e293b; margin:0; font-size:20px;">Xác nhận ${isEdit.value ? 'Cập nhật' : 'Thêm mới'}?</h3>`,
-        icon: 'warning', 
-        iconColor: '#facc15', 
-        showCancelButton: true, 
-        confirmButtonText: 'Có', 
-        cancelButtonText: 'Không',
-        // QUAN TRỌNG: confirmButton dùng class 'solid' (đậm), cancelButton dùng 'outline' (trắng)
-        customClass: { confirmButton: 'swal-btn-solid', cancelButton: 'swal-btn-outline', popup: 'swal-rounded' }, 
-        buttonsStyling: false, 
-        reverseButtons: true
-    });
+        // 3. Confirm (Vẫn giữ popup xác nhận cho an toàn, hoặc bỏ nếu muốn nhanh)
+        const result = await Swal.fire({
+            title: `<h3 style="color:#1e293b; margin:0; font-size:20px;">Xác nhận ${isEdit.value ? 'Cập nhật' : 'Thêm mới'}?</h3>`,
+            icon: 'question', showCancelButton: true, confirmButtonText: 'Có', cancelButtonText: 'Không',
+            customClass: { confirmButton: 'swal-btn-solid', cancelButton: 'swal-btn-outline', popup: 'swal-rounded' }, 
+            buttonsStyling: false, reverseButtons: true
+        });
 
-    if (result.isConfirmed) {
-        try {
+        if (result.isConfirmed) {
             const payload = { ten: form.ten, trangThai: form.trangThai };
             
-            if (isEdit.value) {
-                await axios.put(`${API_URL}/${currentId.value}`, payload);
-            } else {
-                await axios.post(API_URL, payload);
-            }
+            if (isEdit.value) await axios.put(`${API_URL}/${currentId.value}`, payload);
+            else await axios.post(API_URL, payload);
             
-            showModal.value = false;
+            showModal.value = false; 
             fetchData();
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Thành công',
-                showConfirmButton: false,
-                timer: 1500,
-                customClass: { popup: 'swal-rounded' }
-            });
-
-        } catch (e) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Thất bại',
-                text: e.response?.data?.message || 'Lỗi hệ thống',
-                customClass: { popup: 'swal-rounded' }
-            });
+            
+            // --- THAY ĐỔI Ở ĐÂY: Dùng Toast thay vì Popup ---
+            toastSuccess(isEdit.value ? 'Cập nhật thành công!' : 'Thêm mới thành công!');
         }
+    } catch (e) {
+        console.error(e);
+        // Hiện lỗi góc phải
+        toastError(e.response?.data?.message || 'Có lỗi xảy ra!');
     }
 };
 
-// Thay thế hàm confirmChangeStatus cũ bằng hàm này
 const handleToggleStatus = async (item, event) => {
-    // Ngăn chặn checkbox đổi trạng thái ngay lập tức để chờ xác nhận
     event.preventDefault();
-
     const currentStatus = item.trangThai;
     const newStatus = currentStatus === 1 ? 0 : 1;
     const actionText = newStatus === 1 ? 'Kích hoạt' : 'Ngừng hoạt động';
-    const confirmBtnColor = newStatus === 1 ? '#10b981' : '#ef4444'; // Xanh hoặc Đỏ
+    const confirmBtnColor = newStatus === 1 ? '#10b981' : '#ef4444';
 
     const result = await Swal.fire({
+        // ... (Giữ nguyên cấu hình Swal Confirm cũ) ...
         title: `<h3 style="color:#1e293b; font-size:18px;">Xác nhận ${actionText}?</h3>`,
-        text: `Bạn có chắc muốn ${actionText.toLowerCase()} cổ áo "${item.tenCoAo}"?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Đồng ý',
-        cancelButtonText: 'Hủy',
-        confirmButtonColor: confirmBtnColor,
-        customClass: {
-            popup: 'swal-rounded'
-        }
+        // LƯU Ý: Sửa 'tenChatLieu' thành tên tương ứng ở các file khác
+        text: `Bạn có chắc muốn ${actionText.toLowerCase()} "${item.tenCoAo}"?`,
+        icon: 'question', showCancelButton: true, confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy',
+        confirmButtonColor: confirmBtnColor, customClass: { popup: 'swal-rounded' }
     });
 
     if (result.isConfirmed) {
         try {
-            if (newStatus === 0) {
-                // LOGIC CŨ: Gọi API Delete (Xóa mềm)
-                await axios.delete(`${API_URL}/${item.id}`);
-            } else {
-                // LOGIC MỚI: Gọi API Put để kích hoạt lại (Gửi object cập nhật trạng thái)
-                // Lưu ý: Cần đảm bảo Backend API hỗ trợ update trạng thái qua PUT
-                await axios.put(`${API_URL}/${item.id}`, { 
-                    ten: item.tenCoAo, 
-                    trangThai: 1 
-                });
-            }
+            if (newStatus === 0) await axios.delete(`${API_URL}/${item.id}`);
+            else await axios.put(`${API_URL}/${item.id}`, { ten: item.tenCoAo, trangThai: 1 }); // Sửa tên biến tương ứng
 
-            // Cập nhật giao diện ngay lập tức mà không cần load lại trang
             item.trangThai = newStatus;
             
-            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-            Toast.fire({ icon: 'success', title: `Đã ${actionText.toLowerCase()} thành công!` });
+            // --- THAY ĐỔI Ở ĐÂY ---
+            toastSuccess(`Đã ${actionText.toLowerCase()} thành công!`);
 
         } catch (e) {
             console.error(e);
-            Swal.fire({
-                icon: 'error',
-                title: 'Lỗi',
-                text: 'Không thể thay đổi trạng thái. Vui lòng thử lại.',
-                customClass: { popup: 'swal-rounded' }
-            });
+            toastError('Không thể thay đổi trạng thái.');
         }
     }
 };
@@ -335,76 +304,24 @@ onMounted(() => { fetchData(); });
 </script>
 
 <style>
-/* CSS SWEETALERT CUSTOM */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
-}
-
-.switch input { 
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #cbd5e1; /* Màu xám khi tắt */
-  transition: .4s;
-  border-radius: 34px;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 14px;
-  width: 14px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);
-}
-
-input:checked + .slider {
-  background-color: #10b981; /* Màu xanh khi bật */
-}
-
-input:checked + .slider:focus {
-  box-shadow: 0 0 1px #10b981;
-}
-
-input:checked + .slider:before {
-  transform: translateX(16px);
-}
+/* CSS SWEETALERT & SWITCH (Giữ nguyên từ trước) */
+.switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2); }
+input:checked + .slider { background-color: #10b981; }
+input:checked + .slider:before { transform: translateX(16px); }
 .swal-rounded { border-radius: 12px !important; }
-.swal-btn-outline {
-    background-color: #fff !important; color: #1e293b !important; border: 1px solid #1e293b !important;
-    padding: 8px 24px; border-radius: 6px; font-weight: 500; cursor: pointer; margin-left: 10px;
-}
+.swal-btn-outline { background-color: #fff !important; color: #1e293b !important; border: 1px solid #1e293b !important; padding: 8px 24px; border-radius: 6px; font-weight: 500; cursor: pointer; margin-left: 10px; }
 .swal-btn-outline:hover { background-color: #f1f5f9 !important; }
-.swal-btn-solid {
-    background-color: #1e293b !important; color: #fff !important; border: none !important;
-    padding: 8px 24px; border-radius: 6px; font-weight: 500; cursor: pointer;
-}
+.swal-btn-solid { background-color: #1e293b !important; color: #fff !important; border: none !important; padding: 8px 24px; border-radius: 6px; font-weight: 500; cursor: pointer; }
 .swal-btn-solid:hover { background-color: #334155 !important; }
-.swal-btn-danger {
-    background-color: #ef4444 !important; color: #fff !important; padding: 8px 24px;
-    border-radius: 6px; font-weight: 500; cursor: pointer; margin-left: 10px;
-}
 </style>
 
 <style scoped>
 /* CSS ĐỒNG BỘ */
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
-
 .attribute-page { font-family: 'Segoe UI', sans-serif; color: #333; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
-.header-section { margin-bottom: 20px; }
-.breadcrumb { font-size: 14px; color: #64748b; } .breadcrumb .active { font-weight: 500; color: #0f172a; }
 .card { background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 28px; border: 1px solid rgba(30,58,138,0.06); transition: box-shadow 0.2s ease; }
 .card:hover { box-shadow: 0 10px 28px rgba(0,0,0,0.1); }
 .toolbar { display: flex; justify-content: space-between; margin-bottom: 20px; }
@@ -412,33 +329,25 @@ input:checked + .slider:before {
 .search-wrap input { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid #e2e8f0; border-radius: 4px; outline: none; }
 .search-wrap .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
 .btn { padding: 8px 16px; border-radius: 4px; font-weight: 500; cursor: pointer; border: 1px solid transparent; }
-.btn:hover { transform: translateY(-1px); }
 .btn-primary { background: #0f172a; color: #fff; }
-.btn-primary:hover {
-  background: #2563eb;
-  border-color: #2563eb;
-  box-shadow: 0 4px 14px rgba(30,58,138,0.25);
-}
-
-/* Nút Xuất Excel: Màu trắng viền xám giống màn Cổ áo */
+.btn-primary:hover { background: #2563eb; border-color: #2563eb; box-shadow: 0 4px 14px rgba(30,58,138,0.25); }
 .btn-outline { background: #fff; border-color: #cbd5e1; color: #475569; }
-
-.action-group { display: flex; gap: 10px; } /* Căn chỉnh khoảng cách nút */
+.action-group { display: flex; gap: 10px; }
 .table-responsive { overflow-x: auto; border: 1px solid rgba(30,58,138,0.08); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 table { width: 100%; border-collapse: collapse; }
 th { background: #E9F1FB; padding: 18px 20px; font-weight: 700; color: #1E3A8A; border-bottom: 2px solid #1E3A8A; font-size: 13px; text-transform: uppercase; }
 td { padding: 18px 20px; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 400; vertical-align: middle; transition: background-color 0.2s ease; }
 table tbody tr:hover td { background-color: #f8fafc; }
-.text-center { text-align: center; } .font-medium { font-weight: 500; } .text-primary { color: #0f172a; } .text-gray { color: #64748b; } .col-ngay-tao { color: #000; }
-.edit-btn, .delete-btn { background: none; border: none; cursor: pointer; font-size: 16px; margin: 0 2px; }
-.edit-btn { color: #f59e0b; } .delete-btn { color: #ef4444; }
+.text-center { text-align: center; } .font-medium { font-weight: 500; } .text-primary { color: #0f172a; } .col-ngay-tao { color: #000; }
 .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
 .badge-success { background: #dcfce7; color: #166534; } .badge-danger { background: #fee2e2; color: #991b1b; }
 .pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f1f5f9; }
 .page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; }
 .page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
+.action-btn { background: none; border: none; cursor: pointer; font-size: 18px; color: #475569; transition: 0.2s; }
+.action-btn:hover { color: #0f172a; transform: scale(1.1); }
 
-/* MODAL STYLE */
+/* MODAL & VALIDATE */
 .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1050; display: flex; justify-content: center; align-items: flex-start; padding-top: 100px; }
 .modal-dialog-custom { width: 450px; background: transparent; }
 .modal-content-custom { background: #fff; border-radius: 12px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center; }
@@ -453,17 +362,11 @@ table tbody tr:hover td { background-color: #f8fafc; }
 .btn-white-outline:hover { background-color: #f8fafc; }
 .radio-group { display: flex; justify-content: center; gap: 20px; }
 .radio-item { font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-.action-btn { 
-    background: none; 
-    border: none; 
-    cursor: pointer; 
-    font-size: 18px; 
-    color: #475569; 
-    transition: 0.2s; 
-}
 
-.action-btn:hover { 
-    color: #0f172a; 
-    transform: scale(1.1); 
-}
+/* CSS MỚI CHO VALIDATE */
+.text-left { text-align: left; }
+.form-label { font-weight: 600; font-size: 14px; margin-bottom: 6px; display: block; color: #334155; }
+.required { color: #ef4444; }
+.is-invalid { border-color: #ef4444 !important; background-color: #fef2f2; }
+.error-msg { color: #ef4444; font-size: 12px; margin-top: 5px; display: block; text-align: left; }
 </style>

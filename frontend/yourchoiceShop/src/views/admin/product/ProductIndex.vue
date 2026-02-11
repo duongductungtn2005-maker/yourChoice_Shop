@@ -1,12 +1,13 @@
 <template>
-  <div class="product-page">
+  <div class="page-container">
     <div class="header-section">
       <h1 class="page-title">Quản lý sản phẩm / Sản phẩm</h1>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-         <div class="filter-section">
+    <div class="control-panel">
+      <div class="controls-row">
+        
+        <div class="filter-group">
             <div class="search-wrap">
                <span class="search-icon">🔍</span>
                <input 
@@ -19,40 +20,43 @@
 
             <div class="status-filter">
                <span class="label">Trạng thái: </span>
-               
                <label class="radio-item">
                   <input type="radio" :value="null" v-model="filter.status" @change="fetchProducts"> 
                   Tất cả
                </label>
-               
                <label class="radio-item">
                   <input type="radio" :value="1" v-model="filter.status" @change="fetchProducts"> 
                   Đang bán
                </label>
-               
                <label class="radio-item">
                   <input type="radio" :value="0" v-model="filter.status" @change="fetchProducts"> 
                   Ngừng bán
                </label>
             </div>
-         </div>
-         
-         <div class="action-group">
+        </div>
+
+        <div class="action-group">
+            <button class="btn btn-secondary" @click="resetFilter">
+                <font-awesome-icon :icon="['fas', 'sync-alt']" /> Đặt lại
+            </button>
+
             <button class="btn btn-outline" @click="exportExcel">
                 <font-awesome-icon :icon="['fas', 'file-excel']" /> Xuất Excel
             </button>
             
-            <button class="btn btn-primary" @click="$router.push('/admin/products/create')">
+            <button class="btn btn-gradient" @click="$router.push('/admin/products/create')">
                 <font-awesome-icon :icon="['fas', 'plus']" /> Tạo mới
             </button>
-         </div>
+        </div>
       </div>
+    </div>
 
+    <div class="table-container">
       <div class="table-responsive">
         <table>
           <thead>
             <tr>
-              <th class="text-center">STT</th>
+              <th class="text-center" width="50">STT</th>
               <th>Mã</th>
               <th>Tên Sản Phẩm</th>
               <th class="text-center">Ngày thêm</th>
@@ -63,7 +67,7 @@
           </thead>
           <tbody>
             <tr v-if="loading"><td colspan="7" class="text-center py-4">Đang tải dữ liệu...</td></tr>
-            <tr v-else-if="items.length === 0"><td colspan="7" class="text-center py-4">Không tìm thấy sản phẩm nào.</td></tr>
+            <tr v-else-if="items.length === 0"><td colspan="7" class="text-center py-4 empty-state">Không tìm thấy sản phẩm nào.</td></tr>
             
             <tr v-else v-for="(item, index) in items" :key="item.id">
               <td class="text-center">{{ (page - 1) * pageSize + index + 1 }}</td>
@@ -72,14 +76,14 @@
               
               <td class="text-center col-ngay-tao">{{ item.ngayTao }}</td>
               
-              <td class="text-center">{{ item.soLuong }}</td>
+              <td class="text-center font-bold">{{ item.soLuong }}</td>
               <td class="text-center">
                  <span :class="['badge', item.trangThai === 1 ? 'badge-success' : 'badge-danger']">
                     {{ item.trangThai === 1 ? 'Đang bán' : 'Ngừng bán' }}
                  </span>
               </td>
               <td class="text-center">
-                 <button class="action-btn" @click="$router.push(`/admin/products/${item.id}`)">
+                 <button class="action-btn" @click="$router.push(`/admin/products/${item.id}`)" title="Chỉnh sửa">
                     <font-awesome-icon :icon="['far', 'pen-to-square']" />
                  </button>
               </td>
@@ -99,9 +103,17 @@
             sản phẩm / trang
          </div>
          <div class="page-controls">
-            <button :disabled="page === 1" @click="changePage(page - 1)">‹</button>
-            <button v-for="p in visiblePages" :key="p" :class="{ active: p === page }" @click="changePage(p)">{{ p }}</button>
-            <button :disabled="page === totalPages" @click="changePage(page + 1)">›</button>
+            <button class="page-btn" :disabled="page === 1" @click="changePage(page - 1)">‹</button>
+            <button 
+                v-for="p in visiblePages" 
+                :key="p" 
+                class="page-btn" 
+                :class="{ active: p === page }" 
+                @click="changePage(p)"
+            >
+                {{ p }}
+            </button>
+            <button class="page-btn" :disabled="page === totalPages" @click="changePage(page + 1)">›</button>
          </div>
       </div>
     </div>
@@ -110,7 +122,6 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-// UPDATE: Sử dụng request chung thay vì axios trực tiếp
 import request from '@/services/request'; 
 import Swal from 'sweetalert2';
 
@@ -131,7 +142,6 @@ const filter = reactive({
 const fetchProducts = async () => {
     loading.value = true;
     try {
-        // UPDATE: Dùng request.get, bỏ bớt phần 'http://localhost...' vì đã có baseURL
         const res = await request.get('/products', {
             params: {
                 page: page.value - 1,
@@ -144,46 +154,55 @@ const fetchProducts = async () => {
         totalPages.value = res.data.totalPages;
     } catch (e) {
         console.error(e);
-        // Có thể thêm thông báo lỗi nhẹ nếu muốn
     } finally {
         loading.value = false;
     }
 };
 
+// RESET FILTER (Mới)
+const resetFilter = () => {
+    filter.keyword = '';
+    filter.status = null;
+    page.value = 1;
+    fetchProducts();
+};
+
 // EXPORT EXCEL
 const exportExcel = async () => {
-    try {
-        const response = await request.get('/products/export', {
-            responseType: 'blob' 
-        });
+    const confirmRes = await Swal.fire({
+        title: 'Xác nhận', 
+        text: 'Bạn có muốn tải xuống danh sách sản phẩm không?',
+        icon: 'question',
+        showCancelButton: true, 
+        confirmButtonText: 'Có', 
+        cancelButtonText: 'Hủy'
+    });
 
+    if (!confirmRes.isConfirmed) return;
+
+    try {
+        const response = await request.get('/products/export', { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
+        const link = document.createElement('a'); 
         link.href = url;
-        
         const dateStr = new Date().toISOString().slice(0,10);
         link.setAttribute('download', `DS_SanPham_${dateStr}.xlsx`);
-        
-        document.body.appendChild(link);
-        link.click();
-        
-        document.body.removeChild(link);
+        document.body.appendChild(link); 
+        link.click(); 
+        document.body.removeChild(link); 
         window.URL.revokeObjectURL(url);
         
         const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
-        Toast.fire({ icon: 'success', title: 'Đã tải xuống file Excel!' });
-
+        Toast.fire({ icon: 'success', title: 'Xuất Excel thành công' });
     } catch (e) {
         console.error("Lỗi xuất Excel:", e);
-        Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi xuất file!' });
+        Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể xuất file Excel.' });
     }
 };
 
 // UTILS
 const changePage = (p) => { if (p >= 1 && p <= totalPages.value) { page.value = p; fetchProducts(); } };
 const handlePageSizeChange = () => { page.value = 1; fetchProducts(); };
-
-// REMOVE: Đã xóa hàm formatDate gây lỗi "Invalid Date"
 
 const visiblePages = computed(() => {
     let p = [];
@@ -199,90 +218,122 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* GENERAL STYLES */
-.product-page { font-family: 'Segoe UI', sans-serif; color: #333; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; }
 .header-section { margin-bottom: 20px; }
-.breadcrumb { font-size: 14px; color: #64748b; } .breadcrumb .active { font-weight: 500; color: #0f172a; }
-.card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 20px; }
+.page-title { color: #2b4360; font-weight: 700; font-size: 24px; }
 
-/* HEADER & FILTER STYLES */
-.card-header { margin-bottom: 20px; }
-.filter-section { margin-bottom: 15px; }
+/* === UPDATE: CARD STYLING (Viền xanh + Bo góc) === */
+.control-panel, .table-container { 
+    background: #fff; 
+    border-radius: 16px; /* Bo góc 16px */
+    border: 1px solid #bfdbfe !important; /* Viền xanh nhạt */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+    padding: 24px; 
+    margin-bottom: 20px;
+}
 
-.search-wrap { position: relative; width: 100%; max-width: 400px; margin-bottom: 15px; }
-.search-wrap input { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid #e2e8f0; border-radius: 4px; outline: none; font-size: 14px; }
+/* HEADER & FILTER LAYOUT */
+.controls-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+.filter-group { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+
+.search-wrap { position: relative; width: 300px; }
+.search-wrap input { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; font-size: 14px; }
 .search-wrap input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-.search-wrap .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+.search-wrap .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
 
 /* Radio Button Status */
 .status-filter { display: flex; align-items: center; gap: 15px; font-size: 14px; }
-.status-filter .label { font-weight: 500; color: #334155; }
+.status-filter .label { font-weight: 600; color: #334155; }
 .radio-item { cursor: pointer; display: flex; align-items: center; gap: 6px; color: #475569; }
 .radio-item input { accent-color: #0f172a; width: 16px; height: 16px; cursor: pointer; }
 
 /* Action Buttons */
-.action-group { display: flex; justify-content: flex-end; gap: 10px; margin-top: -40px; } /* Đẩy lên ngang hàng với search nếu màn hình rộng */
+.action-group { display: flex; gap: 10px; }
 
-/* BUTTON STYLES (Cập nhật để đồng bộ với các màn khác) */
+/* === BUTTON STYLES === */
 .btn { 
-    height: 38px; /* Chiều cao cố định cho các nút bằng nhau */
+    height: 38px; 
     padding: 0 16px; 
-    border-radius: 4px; 
-    font-weight: 500; 
+    border-radius: 6px; 
+    font-weight: 600; 
     cursor: pointer; 
-    font-size: 14px; 
+    font-size: 13px; 
     border: 1px solid transparent; 
     transition: 0.2s;
-    display: flex; /* Flex để căn giữa icon và chữ */
-    align-items: center;
-    gap: 8px; /* Khoảng cách giữa icon và chữ */
+    display: flex; align-items: center; gap: 8px;
 }
 
-.btn-primary { 
-    background: #0f172a; 
+/* Button Gradient (Tạo mới) */
+.btn-gradient { 
+    background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); 
     color: #fff; 
-} 
-.btn-primary:hover { 
-    background: #1e293b; 
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); 
 }
+.btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
 
-.btn-outline { 
-    background: #fff; 
-    border-color: #cbd5e1; 
-    color: #475569; 
-} 
-.btn-outline:hover { 
-    background: #f1f5f9; 
-    border-color: #94a3b8;
-}
+/* Button Secondary (Đặt lại) */
+.btn-secondary { background: #334155; color: #fff; }
+.btn-secondary:hover { background: #1e293b; }
 
-/* TABLE */
-.table-responsive { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 4px; }
+/* Button Outline (Xuất Excel) */
+.btn-outline { background: #fff; border-color: #cbd5e1; color: #475569; }
+.btn-outline:hover { background: #f8fafc; border-color: #94a3b8; color: #0f172a; }
+
+/* TABLE STYLES */
+.table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid #e2e8f0; }
 table { width: 100%; border-collapse: collapse; }
-th { background: #E9F1FB; padding: 12px; font-weight: 700; color: #1E3A8A; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-transform: uppercase; text-align: left; }
-td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 400; vertical-align: middle; }
-.text-center { text-align: center; } .font-medium { font-weight: 500; } .font-bold { font-weight: 400; }
-.text-primary { color: #0f172a; } .text-gray { color: #64748b; } .col-ngay-tao { color: #000; }
 
-.badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
-.badge-success { background: #dcfce7; color: #166534; } 
-.badge-danger { background: #fee2e2; color: #991b1b; }
+/* Header Bảng (Xanh nhạt) */
+th { 
+    background: #eff6ff; /* Màu nền xanh nhạt */
+    padding: 14px; 
+    font-weight: 700; 
+    color: #1e40af; 
+    font-size: 13px; 
+    text-transform: uppercase; 
+    text-align: left; 
+    border-bottom: none; 
+}
 
-.action-btn { background: none; border: none; cursor: pointer; font-size: 18px; color: #475569; transition: 0.2s; }
-.action-btn:hover { color: #0f172a; transform: scale(1.1); }
-.page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
+td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: middle; color: #334155; }
+.text-center { text-align: center; }
+.font-medium { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.text-primary { color: #0f172a; }
+.text-gray { color: #64748b; font-family: monospace; }
+.col-ngay-tao { color: #334155; }
+.empty-state { font-style: italic; color: #94a3b8; }
+
+/* Badges */
+.badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid transparent; }
+.badge-success { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.badge-danger { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+
+.action-btn { width: 32px; height: 32px; border-radius: 4px; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; color: #475569; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; }
+.action-btn:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
 
 /* PAGINATION */
 .pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f1f5f9; }
-.page-info { font-size: 14px; color: #64748b; }
-.page-info select { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin: 0 5px; outline: none; }
-.page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; color: #64748b; }
-.page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
-.page-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+.page-info { font-size: 13px; color: #64748b; font-weight: 500; }
+.page-info select { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin: 0 5px; outline: none; cursor: pointer; }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .action-group { margin-top: 10px; justify-content: flex-start; }
-    .status-filter { flex-wrap: wrap; }
+.page-controls { display: flex; gap: 5px; }
+.page-btn { 
+    min-width: 32px; height: 32px; 
+    border: 1px solid #e2e8f0; background: #fff; 
+    border-radius: 4px; cursor: pointer; 
+    color: #64748b; font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+}
+.page-btn:hover:not(:disabled) { border-color: #0f172a; color: #0f172a; }
+.page-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #f8fafc; }
+
+/* Responsive */
+@media (max-width: 992px) {
+    .controls-row { flex-direction: column; align-items: flex-start; }
+    .action-group { width: 100%; justify-content: flex-start; margin-top: 10px; }
+    .filter-group { width: 100%; justify-content: space-between; }
+    .search-wrap { width: 100%; max-width: none; }
 }
 </style>

@@ -12,13 +12,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.io.ByteArrayInputStream;
+import org.example.yourchoiceshop.repository.KichThuocRepository; // Import Repo
+import java.util.List;
 @RestController
 @RequestMapping("/api/v1/kich-thuoc")
 @RequiredArgsConstructor
 @CrossOrigin("*")
 public class KichThuocController {
     private final KichThuocServiceImpl service;
-
+    private final KichThuocRepository repository; // 1. Tiêm thêm Repository
     @GetMapping
     public ResponseEntity<Page<KichThuoc>> getAll(
             @RequestParam(defaultValue = "0") int page,
@@ -52,5 +54,14 @@ public class KichThuocController {
                 .headers(headers)
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(new InputStreamResource(in));
+    }
+    @GetMapping("/list")
+    public ResponseEntity<List<KichThuoc>> getListForDropdown(
+            @RequestParam(required = false) Integer trangThai
+    ) {
+        if (trangThai != null) {
+            return ResponseEntity.ok(repository.findAllByTrangThai(trangThai));
+        }
+        return ResponseEntity.ok(repository.findAll());
     }
 }

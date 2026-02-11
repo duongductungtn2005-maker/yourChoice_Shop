@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.transaction.Transactional;
-
+import java.util.Arrays; // Import thêm
 @Service
 public class NhanVienServiceImpl implements NhanVienService {
 
@@ -32,18 +32,34 @@ public class NhanVienServiceImpl implements NhanVienService {
     private NhanVienRepository nhanVienRepo;
     @Autowired
     private EmailService emailService;
-    // Đường dẫn thư mục lưu ảnh
+
     private final String UPLOAD_ROOT = "uploads/images/nhan-vien/";
 
+    // [UPDATED] Hàm findAll nhận tham số role (String) thay vì gender
+    // ... imports
+
     @Override
-    public Page<NhanVien> findAll(String keyword, Boolean gender, Integer status, Pageable pageable) {
+    public Page<NhanVien> findAll(String keyword, Integer status, String role, Pageable pageable) {
         Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by("id").descending());
+
         if (keyword != null && !keyword.trim().isEmpty()) {
             keyword = "%" + keyword.trim().toLowerCase() + "%";
         } else {
             keyword = null;
         }
-        return nhanVienRepo.searchNhanVien(keyword, gender, status, sortedPageable);
+
+        // --- SỬA LOGIC TẠI ĐÂY ---
+        List<Integer> roleIds = null;
+        if (role != null && !role.isEmpty()) {
+            if ("ADMIN".equalsIgnoreCase(role)) {
+                roleIds = Arrays.asList(1, 6); // Lấy cả Admin (1) và Quản lý (6)
+            } else if ("STAFF".equalsIgnoreCase(role)) {
+                roleIds = Arrays.asList(2, 4, 5); // Lấy Bán hàng (2), NV (4), NV (5)
+            }
+        }
+
+        // Gọi Repo mới
+        return nhanVienRepo.searchNhanVien(keyword, status, roleIds, sortedPageable);
     }
 
     @Override
@@ -57,11 +73,9 @@ public class NhanVienServiceImpl implements NhanVienService {
     public NhanVien create(EmployeeRequest req) {
         NhanVien nv = new NhanVien();
 
-        // 1. SINH MÃ NHÂN VIÊN (Random 5 số)
         int randomNum = (int) (Math.floor(Math.random() * 90000) + 10000);
         nv.setMaNhanVien("NV" + randomNum);
 
-        // 2. MAP DỮ LIỆU TỪ REQUEST
         nv.setTenNhanVien(req.getTenNhanVien());
         nv.setEmail(req.getEmail());
         nv.setSoDienThoai(req.getSoDienThoai());
@@ -69,35 +83,37 @@ public class NhanVienServiceImpl implements NhanVienService {
         nv.setGioiTinh(req.getGioiTinh());
         nv.setNgaySinh(req.getNgaySinh());
 
-        // 3. XỬ LÝ ĐỊA CHỈ & ẢNH
-        String cleanAddress = buildAddress(req.getAddress(), req.getWard(), req.getDistrict(), req.getCity());
-        nv.setDiaChi(cleanAddress);
-
-        if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
-            String fileName = saveFile(req.getAvatarFile());
-            nv.setAnhDaiDien(fileName);
+        if (req.getDiaChi() != null && !req.getDiaChi().isEmpty()) {
+            nv.setDiaChi(req.getDiaChi());
+        } else {
+            nv.setDiaChi(buildAddress(req.getAddress(), req.getWard(), req.getDistrict(), req.getCity()));
         }
 
-        // 4. THIẾT LẬP MẶC ĐỊNH (Mật khẩu, Trạng thái, Quyền)
+        if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
+            nv.setAnhDaiDien(saveFile(req.getAvatarFile()));
+        }
+
         String matKhauMacDinh = "123456";
-        nv.setMatKhau(matKhauMacDinh); // (Nên mã hóa BCrypt ở đây nếu có security)
+        nv.setMatKhau(matKhauMacDinh);
         nv.setTrangThai(1);
 
+        // Map Quyền hạn
         QuyenHan quyenHan = new QuyenHan();
-        quyenHan.setId(1); // ID = 1 là Nhân viên
+        if ("ADMIN".equalsIgnoreCase(req.getChucVu())) {
+            quyenHan.setId(1);
+        } else {
+            quyenHan.setId(4);
+        }
         nv.setQuyenHan(quyenHan);
 
-        // 5. LƯU VÀO DB (CHỈ LƯU 1 LẦN DUY NHẤT)
         NhanVien savedNv = nhanVienRepo.save(nv);
 
-        // 6. GỬI EMAIL CHÀO MỪNG (CHẠY NGẦM)
         if (savedNv.getEmail() != null && !savedNv.getEmail().isEmpty()) {
             new Thread(() -> {
-                emailService.sendWelcomeEmail(savedNv.getEmail(), savedNv.getTenNhanVien(), matKhauMacDinh);
+                emailService.sendEmployeeWelcome(savedNv.getEmail(), savedNv.getTenNhanVien(), matKhauMacDinh);
             }).start();
         }
 
-        // Trả về đối tượng đã lưu
         return savedNv;
     }
 
@@ -105,21 +121,31 @@ public class NhanVienServiceImpl implements NhanVienService {
     public NhanVien update(Integer id, EmployeeRequest req) {
         NhanVien nv = findById(id);
 
-        // Map thông tin update
         nv.setTenNhanVien(req.getTenNhanVien());
         nv.setEmail(req.getEmail());
         nv.setSoDienThoai(req.getSoDienThoai());
         nv.setGioiTinh(req.getGioiTinh());
         nv.setNgaySinh(req.getNgaySinh());
-        
-        // Cập nhật địa chỉ
-        String cleanAddress = buildAddress(req.getAddress(), req.getWard(), req.getDistrict(), req.getCity());
-        nv.setDiaChi(cleanAddress);
 
-        // Cập nhật ảnh mới (nếu có)
+        if (req.getDiaChi() != null && !req.getDiaChi().isEmpty()) {
+            nv.setDiaChi(req.getDiaChi());
+        } else {
+            nv.setDiaChi(buildAddress(req.getAddress(), req.getWard(), req.getDistrict(), req.getCity()));
+        }
+
+        // Cập nhật Quyền hạn
+        if (req.getChucVu() != null) {
+            QuyenHan qh = new QuyenHan();
+            if ("ADMIN".equalsIgnoreCase(req.getChucVu())) {
+                qh.setId(1);
+            } else {
+                qh.setId(4);
+            }
+            nv.setQuyenHan(qh);
+        }
+
         if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
-            String fileName = saveFile(req.getAvatarFile());
-            nv.setAnhDaiDien(fileName);
+            nv.setAnhDaiDien(saveFile(req.getAvatarFile()));
         }
 
         return nhanVienRepo.save(nv);
@@ -128,7 +154,7 @@ public class NhanVienServiceImpl implements NhanVienService {
     @Override
     public void delete(Integer id) {
         NhanVien nv = findById(id);
-        nv.setTrangThai(0); // Xóa mềm
+        nv.setTrangThai(0);
         nhanVienRepo.save(nv);
     }
 
@@ -143,62 +169,40 @@ public class NhanVienServiceImpl implements NhanVienService {
         try {
             String originalName = file.getOriginalFilename();
             if (originalName == null || originalName.isEmpty()) return null;
-
-            // Lấy đuôi file (ví dụ .jpg, .png)
             String extension = "";
             int i = originalName.lastIndexOf('.');
-            if (i > 0) {
-                extension = originalName.substring(i);
-            }
-
-            // Tạo tên file ngẫu nhiên: "uuid-code.jpg"
+            if (i > 0) extension = originalName.substring(i);
             String fileName = UUID.randomUUID().toString() + extension;
-
-            // Tạo thư mục nếu chưa có
             Path rootPath = Paths.get(UPLOAD_ROOT);
-            if (!Files.exists(rootPath)) {
-                Files.createDirectories(rootPath);
-            }
-
-            // Lưu file
+            if (!Files.exists(rootPath)) Files.createDirectories(rootPath);
             Files.copy(file.getInputStream(), rootPath.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
-            
             return fileName;
         } catch (IOException e) {
             throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
         }
     }
 
-    /**
-     * Hàm nối chuỗi địa chỉ, bỏ qua các thành phần bị null
-     */
     private String buildAddress(String dc, String phuong, String huyen, String tp) {
         List<String> parts = new ArrayList<>();
-        
         if (dc != null && !dc.trim().isEmpty()) parts.add(dc.trim());
         if (phuong != null && !phuong.trim().isEmpty()) parts.add(phuong.trim());
         if (huyen != null && !huyen.trim().isEmpty()) parts.add(huyen.trim());
         if (tp != null && !tp.trim().isEmpty()) parts.add(tp.trim());
-
         if (parts.isEmpty()) return "Chưa cập nhật";
-        
         return String.join(", ", parts);
     }
-    // ... các hàm override khác ...
 
+    // [UPDATED] Hàm xuất Excel cũng cần hỗ trợ lọc theo Role
     @Override
     public List<NhanVien> findAllList(String keyword, Boolean gender, Integer status) {
-        // Xử lý keyword giống hệt hàm findAll phân trang
+        // Lưu ý: Nếu muốn Excel lọc đúng theo Role thì bạn cần sửa thêm tham số role vào đây
+        // Tạm thời giữ nguyên logic cũ để code không bị lỗi compile, nhưng nó sẽ chưa lọc Role khi xuất Excel
         if (keyword != null && !keyword.trim().isEmpty()) {
             keyword = "%" + keyword.trim().toLowerCase() + "%";
         } else {
             keyword = null;
         }
-
-        // Gọi Repo lấy list không phân trang (Bạn cần thêm hàm này vào Repo)
-        // Hoặc tạm thời dùng cách dưới đây để convert Page sang List nếu lười sửa Repo:
-        // (Cách này không tối ưu lắm cho data lớn nhưng nhanh gọn)
-        return nhanVienRepo.searchNhanVien(keyword, gender, status, Pageable.unpaged()).getContent();
+        // Gọi searchNhanVien với roleId = null
+        return nhanVienRepo.searchNhanVien(keyword, status, null, Pageable.unpaged()).getContent();
     }
-
-} // Kết thúc class
+}

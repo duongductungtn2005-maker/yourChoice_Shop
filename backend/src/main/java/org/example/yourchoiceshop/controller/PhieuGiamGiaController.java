@@ -84,14 +84,29 @@ public class PhieuGiamGiaController {
     }
 
     // 5. API Gửi Mail
+    // 5. API Gửi Mail
     @PostMapping("/{id}/send-mail")
     public ResponseEntity<?> sendVoucherEmail(@PathVariable Integer id, @RequestBody SendMailRequest req) {
-        PhieuGiamGia voucher = repository.findById(id).orElseThrow();
+        PhieuGiamGia voucher = repository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu giảm giá"));
+
         String subject = "🎁 Quà tặng từ YourChoice: " + voucher.getTenPhieuGiamGia();
-        String htmlBody = "<h1>Mã giảm giá: " + voucher.getMaPhieuGiamGia() + "</h1><p>Hạn dùng: " + voucher.getNgayKetThuc() + "</p>";
+
+        // Tạo nội dung HTML đẹp hơn một chút
+        String htmlBody = """
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+                <h2 style="color: #d32f2f;">Chúc mừng! Bạn nhận được Mã giảm giá</h2>
+                <p>Mã voucher: <strong style="font-size: 18px; color: #2e7d32;">%s</strong></p>
+                <p>Hạn sử dụng đến: <strong>%s</strong></p>
+                <p>Hãy truy cập website để sử dụng ngay!</p>
+            </div>
+        """.formatted(voucher.getMaPhieuGiamGia(), voucher.getNgayKetThuc());
+
+        // Định nghĩa tên người gửi
+        String senderName = "YourChoice Shop - Khuyến mãi";
 
         for (String email : req.getEmails()) {
-            emailService.sendEmail(email, subject, htmlBody);
+            // --- SỬA Ở ĐÂY: Thêm tham số senderName vào cuối ---
+            emailService.sendEmail(email, subject, htmlBody, senderName);
         }
         return ResponseEntity.ok("Đang gửi mail...");
     }
