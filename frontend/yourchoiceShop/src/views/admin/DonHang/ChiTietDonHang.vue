@@ -213,8 +213,9 @@ const fetchOrderDetail = async () => {
     try {
         // Gọi API lấy chi tiết (Thay đổi endpoint nếu BE của bạn khác)
         // Ví dụ: GET /api/v1/hoa-don/detail/HD0001 hoặc /api/v1/hoa-don/HD0001
-        const res = await request.get(`/hoa-don/detail/${orderId}`);
-        order.value = res.data;
+        // ✅ ĐÚNG
+      const res = await request.get(`/hoa-don/${orderId}`);
+      order.value = res.data;
     } catch (error) {
         console.error("Lỗi tải đơn hàng:", error);
         toastError("Không tìm thấy thông tin đơn hàng!");
