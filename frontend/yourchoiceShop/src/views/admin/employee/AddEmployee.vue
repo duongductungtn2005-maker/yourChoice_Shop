@@ -3,7 +3,6 @@
     <div class="header-section">
        <h1 class="page-title">Quản lý nhân viên / Thêm nhân viên</h1>
     </div>
-
     <div class="card">
       <div class="card-body">
         <form @submit.prevent="handleSubmit">
@@ -36,11 +35,20 @@
                     <i class="fas fa-qrcode"></i> Quét QR
                  </button>
               </div>
-
+              <div class="form-row">
+                <div class="form-group half">
+                    <label class="required">Số điện thoại</label>
+                    <input type="text" v-model="employee.soDienThoai" class="form-control">
+                 </div>
+                 <div class="form-group half">
+                    <label class="required">Email</label>
+                    <input type="email" v-model="employee.email" class="form-control">
+                 </div>
+              </div>
               <div class="form-row">
                 <div class="form-group half">
                   <label class="required">Số CCCD</label>
-                  <input type="number" v-model="employee.cccd" class="form-control">
+                  <input type="text" v-model="employee.cccd" class="form-control">
                 </div>
                 <div class="form-group half">
                   <label class="required">Giới tính</label>
@@ -49,33 +57,11 @@
                     <label class="radio-item"><input type="radio" :value="false" v-model="employee.gioiTinh"> Nữ</label>
                   </div>
                 </div>
-              </div>
-
-              <div class="form-row">
                 <div class="form-group half">
                   <label class="required">Ngày sinh</label>
                   <input type="date" v-model="employee.ngaySinh" class="form-control">
                 </div>
-                <div class="form-group half">
-                   <label class="required">Quyền hạn</label>
-                   <select v-model="employee.chucVu" class="form-control">
-                      <option value="STAFF">Nhân viên</option>
-                      <option value="ADMIN">Quản lý (Admin)</option>
-                   </select>
-                </div>
               </div>
-
-              <div class="form-row">
-                 <div class="form-group half">
-                    <label class="required">Email</label>
-                    <input type="email" v-model="employee.email" class="form-control">
-                 </div>
-                 <div class="form-group half">
-                    <label class="required">Số điện thoại</label>
-                    <input type="text" v-model="employee.soDienThoai" class="form-control">
-                 </div>
-              </div>
-
               <div class="form-row">
                 <div class="form-group third">
                    <label>Tỉnh/Thành</label>
@@ -99,7 +85,16 @@
                    </select>
                 </div>
               </div>
-
+              <div class="form-row">
+                
+                <div class="form-group half">
+                   <label class="required">Quyền hạn</label>
+                   <select v-model="employee.chucVu" class="form-control">
+                      <option value="STAFF">Nhân viên</option>
+                      <option value="ADMIN">Quản lý (Admin)</option>
+                   </select>
+                </div>
+              </div>
               <div class="form-group">
                  <label class="required">Địa chỉ cụ thể</label>
                  <input type="text" v-model="employee.diaChiCuThe" class="form-control" placeholder="Số nhà, đường...">
