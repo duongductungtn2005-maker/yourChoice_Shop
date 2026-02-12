@@ -2,6 +2,8 @@ package org.example.yourchoiceshop.controller;
 import org.example.yourchoiceshop.dto.request.PhieuGiamGiaRequest;
 import org.example.yourchoiceshop.dto.request.SendMailRequest;
 import org.example.yourchoiceshop.entity.PhieuGiamGia;
+import org.example.yourchoiceshop.entity.PhieuGiamGiaCaNhan;
+import org.example.yourchoiceshop.repository.PhieuGiamGiaCaNhanRepository;
 import org.example.yourchoiceshop.repository.PhieuGiamGiaRepository;
 import org.example.yourchoiceshop.service.EmailService;
 import org.example.yourchoiceshop.service.impl.PhieuGiamGiaServiceImpl;
@@ -15,13 +17,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/phieu-giam-gia")
 @CrossOrigin("*")
 public class PhieuGiamGiaController {
-
+    @Autowired
+    private PhieuGiamGiaCaNhanRepository pggCaNhanRepo; // Inject Repository vừa tạo
     @Autowired
     private PhieuGiamGiaServiceImpl service;
 
@@ -79,15 +84,48 @@ public class PhieuGiamGiaController {
     }
 
     // 5. API Gửi Mail
+    // 5. API Gửi Mail
     @PostMapping("/{id}/send-mail")
     public ResponseEntity<?> sendVoucherEmail(@PathVariable Integer id, @RequestBody SendMailRequest req) {
-        PhieuGiamGia voucher = repository.findById(id).orElseThrow();
+        PhieuGiamGia voucher = repository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu giảm giá"));
+
         String subject = "🎁 Quà tặng từ YourChoice: " + voucher.getTenPhieuGiamGia();
-        String htmlBody = "<h1>Mã giảm giá: " + voucher.getMaPhieuGiamGia() + "</h1><p>Hạn dùng: " + voucher.getNgayKetThuc() + "</p>";
+
+        // Tạo nội dung HTML đẹp hơn một chút
+        String htmlBody = """
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+                <h2 style="color: #d32f2f;">Chúc mừng! Bạn nhận được Mã giảm giá</h2>
+                <p>Mã voucher: <strong style="font-size: 18px; color: #2e7d32;">%s</strong></p>
+                <p>Hạn sử dụng đến: <strong>%s</strong></p>
+                <p>Hãy truy cập website để sử dụng ngay!</p>
+            </div>
+        """.formatted(voucher.getMaPhieuGiamGia(), voucher.getNgayKetThuc());
+
+        // Định nghĩa tên người gửi
+        String senderName = "YourChoice Shop - Khuyến mãi";
 
         for (String email : req.getEmails()) {
-            emailService.sendEmail(email, subject, htmlBody);
+            // --- SỬA Ở ĐÂY: Thêm tham số senderName vào cuối ---
+            emailService.sendEmail(email, subject, htmlBody, senderName);
         }
         return ResponseEntity.ok("Đang gửi mail...");
+    }
+    @GetMapping("/{id}/customers")
+    public ResponseEntity<?> getCustomersByVoucher(@PathVariable Integer id) {
+        // 1. Lấy danh sách từ bảng trung gian
+        List<PhieuGiamGiaCaNhan> list = pggCaNhanRepo.findByPhieuGiamGiaId(id);
+
+        // 2. Chỉ lấy thông tin khách hàng ra để trả về Frontend
+        // Dùng Map để tạo cấu trúc JSON gọn gàng: { id, hoTen, email }
+        var result = list.stream().map(item -> {
+            var kh = item.getKhachHang();
+            return Map.of(
+                    "id", kh.getId(),
+                    "hoTen", kh.getTenKhachHang(),
+                    "email", kh.getEmail()
+            );
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
     }
 }

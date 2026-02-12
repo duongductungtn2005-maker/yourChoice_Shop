@@ -8,7 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface NhanVienService {
-    Page<NhanVien> findAll(String keyword, Boolean gender, Integer status, Pageable pageable);  
+    // Trong Interface NhanVienService
+    Page<NhanVien> findAll(String keyword, Integer status, String role, Pageable pageable);
     NhanVien create(EmployeeRequest request);
     void delete(Integer id);
     void updateTrangThai(Integer id, Integer trangThai);

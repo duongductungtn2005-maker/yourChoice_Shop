@@ -1,634 +1,421 @@
 <template>
-  <div class="order-detail-page" v-if="order">
-
-    <!-- Breadcrumb -->
-    <div class="breadcrumb">
-      Quản lý đơn hàng / <strong>{{ order.maHoaDon }}</strong>
-    </div>
-
-    <!-- ===== Timeline ===== -->
-    <div class="card">
-      <h3>Lịch sử đơn hàng</h3>
-
-      <div class="timeline">
-        <div v-for="(step, index) in timeline" :key="index" class="timeline-step" :class="{ active: step.active }">
-          <div class="circle">✔</div>
-          <div class="label">{{ step.label }}</div>
-          <div class="time">{{ step.time }}</div>
+  <div class="page-container">
+    
+    <div class="header-section">
+      <div class="header-left">
+        <h1 class="page-title">Chi tiết đơn hàng</h1>
+        <div class="sub-info" v-if="!loading">
+          <span>Mã đơn hàng: <strong class="text-primary">{{ order.maHoaDon }}</strong></span>
+          <span class="divider">|</span>
+          <span class="text-gray">Ngày tạo: {{ formatDate(order.ngayTao) }}</span>
         </div>
       </div>
-
-      <div class="actions">
-        <router-link to="/admin/orders" class="btn-outline">
-          Quay lại
-        </router-link>
-        <button class="btn-primary">+ Thêm nhân viên tiếp nhận</button>
+      <div class="header-actions">
+         <button class="btn btn-outline" @click="$router.push('/admin/orders')">
+            <font-awesome-icon :icon="['fas', 'arrow-left']" /> Quay lại danh sách
+         </button>
       </div>
     </div>
 
-    <!-- ===== Thông tin đơn hàng ===== -->
-    <div class="card">
-      <h3>Thông tin đơn hàng</h3>
+    <div v-if="loading" class="loading-state">
+        <font-awesome-icon :icon="['fas', 'spinner']" spin size="2x" />
+        <p>Đang tải thông tin đơn hàng...</p>
+    </div>
 
-      <div class="info-grid">
-        <div><strong>Mã:</strong> {{ order.maHoaDon }}</div>
-        <div><strong>Khách hàng:</strong> {{ order.tenKhachHang }}</div>
-
-        <div>
-          <strong>Loại:</strong>
-          <span class="type-badge" :class="orderTypeInfo(order.loaiHoaDon).class">
-            {{ orderTypeInfo(order.loaiHoaDon).text }}
-          </span>
-
+    <div v-else class="detail-grid">
+      
+      <div class="col-main">
+        
+        <div class="card status-card">
+           <div class="card-header-icon">
+              <i class="fas fa-truck-fast"></i> <span>Trạng thái đơn hàng</span>
+           </div>
+           <div class="timeline-wrapper">
+              <div class="progress-track">
+                 <div class="progress-bar" :style="{ width: getProgressWidth(order.trangThai) }"></div>
+              </div>
+              <div class="steps-container">
+                 <div 
+                    v-for="(step, index) in steps" 
+                    :key="index"
+                    class="step-item"
+                    :class="{ 'active': index <= getCurrentStepIndex(order.trangThai) }"
+                 >
+                    <div class="step-icon">
+                       <i :class="step.icon"></i>
+                    </div>
+                    <div class="step-label">{{ step.label }}</div>
+                 </div>
+              </div>
+           </div>
         </div>
 
-        <div>
-          <strong>Trạng thái:</strong>
-          <span class="status-badge" :class="statusInfo(order.trangThai).class">{{
-            statusInfo(order.trangThai).text}}</span>
+        <div class="info-row">
+           <div class="card info-card">
+              <div class="card-header-icon">
+                 <i class="fas fa-user"></i> <span>Thông tin khách hàng</span>
+              </div>
+              <div class="info-body">
+                 <div class="info-line">
+                    <span class="label">Tên khách hàng</span>
+                    <span class="value">{{ order.tenKhachHang || 'Khách lẻ' }}</span>
+                 </div>
+                 <div class="info-line">
+                    <span class="label">Số điện thoại</span>
+                    <span class="value">{{ order.sdtKhachHang || '-' }}</span>
+                 </div>
+                 <div class="info-line">
+                    <span class="label">Email</span>
+                    <span class="value">{{ order.emailKhachHang || '-' }}</span>
+                 </div>
+              </div>
+           </div>
+
+           <div class="card info-card">
+              <div class="card-header-icon">
+                 <i class="fas fa-map-marker-alt"></i> <span>Thông tin giao hàng</span>
+              </div>
+              <div class="info-body">
+                 <div class="info-line">
+                    <span class="label">Địa chỉ</span>
+                    <span class="value truncate-2">{{ order.diaChiGiaoHang || 'Tại quầy' }}</span>
+                 </div>
+                 <div class="info-line">
+                    <span class="label">Loại đơn</span>
+                    <span class="value fw-bold text-primary">{{ order.loaiHoaDon }}</span>
+                 </div>
+                 <div class="info-line">
+                    <span class="label">Ghi chú</span>
+                    <span class="value text-gray f-italic">{{ order.ghiChu || 'Không có ghi chú' }}</span>
+                 </div>
+              </div>
+           </div>
         </div>
 
-        <div v-if="order.thongTinNhanHang">
-          <strong>Người nhận:</strong> {{ order.thongTinNhanHang.tenNguoiNhan }}
+        <div class="card product-card">
+           <div class="card-header-icon">
+              <i class="fas fa-box-open"></i> <span>Danh sách sản phẩm ({{ order.chiTietHoaDonList?.length || 0 }})</span>
+           </div>
+           <div class="table-responsive">
+              <table class="custom-table">
+                 <thead>
+                    <tr>
+                       <th width="5%" class="text-center">STT</th>
+                       <th>Tên sản phẩm</th>
+                       <th class="text-center">Kích cỡ</th>
+                       <th class="text-center">Màu sắc</th>
+                       <th width="10%" class="text-center">Số lượng</th>
+                       <th width="15%" class="text-right">Đơn giá</th>
+                       <th width="15%" class="text-right">Thành tiền</th>
+                    </tr>
+                 </thead>
+                 <tbody>
+                    <tr v-for="(item, index) in order.chiTietHoaDonList" :key="index">
+                       <td class="text-center">{{ index + 1 }}</td>
+                       <td class="fw-bold text-navy">{{ item.tenSanPham }}</td>
+                       <td class="text-center"><span class="badge-attr">{{ item.tenKichThuoc }}</span></td>
+                       <td class="text-center"><span class="badge-attr">{{ item.tenMauSac }}</span></td>
+                       <td class="text-center fw-bold">{{ item.soLuong }}</td>
+                       <td class="text-right">{{ formatMoney(item.donGia) }}</td>
+                       <td class="text-right text-price">{{ formatMoney(item.donGia * item.soLuong) }}</td>
+                    </tr>
+                 </tbody>
+              </table>
+           </div>
         </div>
 
-        <div v-if="order.thongTinNhanHang">
-          <strong>SĐT:</strong> {{ order.thongTinNhanHang.sdt }}
-        </div>
-
-        <div v-if="order.thongTinNhanHang" style="grid-column: span 2">
-          <strong>Địa chỉ:</strong> {{ order.thongTinNhanHang.diaChi }}
-        </div>
       </div>
 
-      <div class="info-actions">
-        <button class="btn-outline" @click="openEdit">
-          Cập nhật
-        </button>
+      <div class="col-sidebar">
+         
+         <div class="card summary-card">
+            <div class="card-header-icon">
+               <i class="fas fa-file-invoice-dollar"></i> <span>Tổng kết thanh toán</span>
+            </div>
+            <div class="summary-body">
+               <div class="summary-row">
+                  <span>Tổng tiền hàng</span>
+                  <span>{{ formatMoney(order.tongTienHang) }}</span>
+               </div>
+               <div class="summary-row">
+                  <span>Giảm giá</span>
+                  <span class="text-green">- {{ formatMoney(order.tienGiam) }}</span>
+               </div>
+               <div class="summary-row">
+                  <span>Phí vận chuyển</span>
+                  <span>+ {{ formatMoney(order.phiVanChuyen) }}</span>
+               </div>
+               <div class="summary-divider"></div>
+               <div class="summary-row total-row">
+                  <span>TỔNG TIỀN</span>
+                  <span class="total-price">{{ formatMoney(order.tongTienSauGiam) }}</span>
+               </div>
+            </div>
+         </div>
 
-        <!-- Quay lại trạng thái trước -->
-        <button v-if="order.trangThai > 1 && order.trangThai < 4" class="btn-outline" @click="prevStatus">
-          Quay lại trạng thái trước
-        </button>
+         <div class="card history-card">
+            <div class="card-header-icon">
+               <i class="fas fa-history"></i> <span>Lịch sử thanh toán</span>
+            </div>
+            <div class="history-body">
+               <div v-if="!order.lichSuThanhToanList || order.lichSuThanhToanList.length === 0" class="empty-history">
+                  Chưa có lịch sử thanh toán
+               </div>
+               <div v-else class="history-list">
+                  <div v-for="(hist, hIdx) in order.lichSuThanhToanList" :key="hIdx" class="history-item">
+                     <span class="dot"></span>
+                     <div class="h-info">
+                        <span class="h-date">{{ formatDate(hist.ngayThanhToan) }}</span>
+                        <span class="h-desc">{{ hist.ghiChu || 'Thanh toán' }}</span>
+                     </div>
+                     <span class="h-amount">{{ formatMoney(hist.soTien) }}</span>
+                  </div>
+               </div>
+            </div>
+         </div>
 
-        <!-- Xác nhận → sang trạng thái tiếp -->
-        <button v-if="order.trangThai >= 1 && order.trangThai < 4" class="btn-primary" @click="nextStatus">
-          Xác nhận
-        </button>
-
-        <!-- Đã hoàn thành -->
-        <button v-if="order.trangThai === 4" class="btn-outline" disabled>
-          Đơn đã hoàn thành
-        </button>
-
-        <!-- Hủy đơn -->
-        <button v-if="order.trangThai !== 0 && order.trangThai !== 4" class="btn-danger" @click="cancelOrder">
-          Hủy đơn
-        </button>
+         <div class="action-buttons-col">
+            <button class="btn btn-blue-block" @click="printOrder">
+               <i class="fas fa-print"></i> In hóa đơn
+            </button>
+            <button class="btn btn-orange-block" @click="openEditOrder">
+               <i class="fas fa-edit"></i> Chỉnh sửa đơn hàng
+            </button>
+            
+            <button v-if="order.trangThai === 1 || order.trangThai === 2" class="btn btn-red-outline-block" @click="cancelOrder">
+                Hủy đơn hàng
+            </button>
+         </div>
 
       </div>
 
-
-    </div>
-
-    <!-- ===== Lịch sử thanh toán ===== -->
-    <div class="card">
-      <h3>Lịch sử thanh toán</h3>
-
-      <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr style="text-align: center;">
-            <th>Số tiền</th>
-            <th>Thời gian</th>
-            <th>Hình thức</th>
-            <th>Loại</th>
-            <th>Trạng thái</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(p, i) in order.lichSuThanhToan" :key="i" style="text-align: center;">
-            <td>{{ formatMoney(p.soTien) }}</td>
-            <td>{{ p.ngayThanhToan }}</td>
-            <td><span class="type-badge" :class="LoaiThanhToanInfo(p.hinhThucThanhToan).class">
-                {{ LoaiThanhToanInfo(p.hinhThucThanhToan).text }}
-              </span></td>
-            <td><span class="type-badge" :class="orderTypeInfo(order.loaiHoaDon).class">
-                {{ orderTypeInfo(order.loaiHoaDon).text }}
-              </span>
-            </td>
-            <td><span class="status-badge" :class="statusInfo(order.trangThai).class">
-                {{ statusInfo(order.trangThai).text }}
-              </span>
-
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- ===== Danh sách sản phẩm ===== -->
-    <div class="card">
-      <h3>Danh sách sản phẩm</h3>
-
-      <div class="product" v-for="(sp, i) in order.sanPhamHoaDon" :key="i">
-        <!-- <img src="https://via.placeholder.com/80" /> -->
-        <div class="product-info">
-          <strong>{{ sp.tenSanPham }}</strong>
-          <div>Size: {{ sp.size }} | Màu: {{ sp.mauSac }}</div>
-          <div>x{{ sp.soLuong }}</div>
-        </div>
-        <div class="price">{{ formatMoney(sp.thanhTien) }}</div>
-      </div>
-    </div>
-
-    <!-- ===== Tổng tiền ===== -->
-    <div class="card summary">
-      <div>
-        <div>Giảm giá: <strong>{{ formatMoney(order.giamGia) }}</strong></div>
-        <div>Phí vận chuyển: <strong>{{ formatMoney(order.phiVanChuyen) }}</strong></div>
-      </div>
-
-      <div class="total">
-        <div>Tổng thanh toán:</div>
-        <strong>{{ formatMoney(order.tongTienSauGiam) }}</strong>
-      </div>
-    </div>
-
-  </div>
-  <!-- ===== Modal cập nhật ===== -->
-<div v-if="showEditModal" class="modal-overlay">
-  <div class="modal">
-    <h3>Cập nhật thông tin đơn hàng</h3>
-
-    <div class="form-group">
-      <label>Khách hàng</label>
-      <input v-model="editForm.tenKhachHang" />
-    </div>
-
-    <div class="form-group">
-      <label>SĐT</label>
-      <input v-model="editForm.sdt" />
-    </div>
-
-    <div class="form-group">
-      <label>Loại hóa đơn</label>
-      <select v-model="editForm.loaiHoaDon">
-        <option value="Trực tuyến">Trực tuyến</option>
-        <option value="Tại quầy">Tại quầy</option>
-      </select>
-    </div>
-
-    <!-- Chỉ hiện khi Trực tuyến -->
-    <template v-if="editForm.loaiHoaDon === 'Trực tuyến'">
-      <div class="form-group">
-        <label>Người nhận</label>
-        <input v-model="editForm.tenNguoiNhan" />
-      </div>
-
-      <div class="form-group">
-        <label>Địa chỉ</label>
-        <input v-model="editForm.diaChi" />
-      </div>
-    </template>
-
-    <div class="modal-actions">
-      <button class="btn-outline" @click="showEditModal = false">
-        Hủy
-      </button>
-      <button class="btn-primary" @click="saveEdit">
-        Lưu
-      </button>
     </div>
   </div>
-</div>
-
 </template>
 
-
 <script setup>
+import { ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import Swal from 'sweetalert2';
+import request from '@/services/request'; // Import request service
+import { toastSuccess, toastError } from '@/utils/toast';
 
-import { ref, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { fetchOrderDetail } from '@/api/ChiTietHoaDon'
+const route = useRoute();
+const router = useRouter();
+const orderId = route.params.id; // Lấy ID từ URL (VD: /orders/HD0001 -> orderId = HD0001)
 
-const route = useRoute()
-const router = useRouter()
-const order = ref(null)
-const statusTimes = ref({})
+const loading = ref(true);
+const order = ref({});
 
-onMounted(async () => {
-  try {
-    const id = route.params.id
-    const res = await fetchOrderDetail(id)
-    order.value = res.data
-
-    // Thời gian tạo đơn = trạng thái 1
-    statusTimes.value[1] = order.value.ngayTao
-  } catch (e) {
-    alert('Không tìm thấy đơn hàng')
-    router.push('/admin/orders')
-  }
-})
-
-const now = () =>
-  new Date().toLocaleString('vi-VN')
-
-const nextStatus = () => {
-  if (order.value.trangThai < 4) {
-    order.value.trangThai++
-    statusTimes.value[order.value.trangThai] = now()
-  }
-}
-
-const prevStatus = () => {
-  if (order.value.trangThai > 1) {
-    delete statusTimes.value[order.value.trangThai]
-    order.value.trangThai--
-  }
-}
-
-const cancelOrder = () => {
-  if (confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) {
-    order.value.trangThai = 0
-    statusTimes.value[0] = now()
-  }
-}
-
-
-const STATUS_CONFIG = {
-  0: { text: 'Đã hủy', class: 'status-cancel' },
-  1: { text: 'Chờ xác nhận', class: 'status-pending' },
-  2: { text: 'Chờ giao hàng', class: 'status-wait-ship' },
-  3: { text: 'Đang vận chuyển', class: 'status-shipping' },
-  4: { text: 'Hoàn thành', class: 'status-done' }
-}
-
-const statusInfo = (status) => STATUS_CONFIG[status] || {
-  text: 'Không xác định',
-  class: 'status-unknown'
-}
-
-const ORDER_TYPE_CONFIG = {
-  'Trực tuyến': {
-    text: 'Trực tuyến',
-    class: 'type-online'
-  },
-  'Tại quầy': {
-    text: 'Tại quầy',
-    class: 'type-offline'
-  }
-}
-
-const orderTypeInfo = (type) =>
-  ORDER_TYPE_CONFIG[type] || {
-    text: type || 'Không xác định',
-    class: 'type-unknown'
-  }
-
-const Loai_Thanh_Toan = {
-  'Tiền mặt': {
-    text: 'Tiền mặt',
-    class: 'type-offline'
-  },
-  'Chuyển khoản': {
-    text: 'Chuyển khoản',
-    class: 'type-online'
-  }
-}
-
-const LoaiThanhToanInfo = (type) =>
-  Loai_Thanh_Toan[type] || {
-    text: type || 'Không xác định',
-    class: 'type-unknown'
-  }
-
-onMounted(async () => {
-  try {
-    const id = route.params.id
-    const res = await fetchOrderDetail(id)
-    order.value = res.data
-  } catch (e) {
-    alert('Không tìm thấy đơn hàng')
-    router.push('/admin/orders')
-  }
-})
-
-const timeline = computed(() => {
-  if (!order.value) return []
-
-  return [
-    {
-      label: 'Chờ xác nhận',
-      time: statusTimes.value[1] || '',
-      active: order.value.trangThai >= 1
-    },
-    {
-      label: 'Chờ giao hàng',
-      time: statusTimes.value[2] || '',
-      active: order.value.trangThai >= 2
-    },
-    {
-      label: 'Đang vận chuyển',
-      time: statusTimes.value[3] || '',
-      active: order.value.trangThai >= 3
-    },
-    {
-      label: 'Hoàn thành',
-      time: statusTimes.value[4] || '',
-      active: order.value.trangThai >= 4
+// --- API FETCH DATA ---
+const fetchOrderDetail = async () => {
+    loading.value = true;
+    try {
+        // Gọi API lấy chi tiết (Thay đổi endpoint nếu BE của bạn khác)
+        // Ví dụ: GET /api/v1/hoa-don/detail/HD0001 hoặc /api/v1/hoa-don/HD0001
+        const res = await request.get(`/hoa-don/detail/${orderId}`);
+        order.value = res.data;
+    } catch (error) {
+        console.error("Lỗi tải đơn hàng:", error);
+        toastError("Không tìm thấy thông tin đơn hàng!");
+        router.push('/admin/orders'); // Quay về danh sách nếu lỗi
+    } finally {
+        loading.value = false;
     }
-  ]
-})
+};
 
-const showEditModal = ref(false)
+// --- TIMELINE SETUP ---
+const steps = [
+    { label: 'Chờ xác nhận', icon: 'fas fa-clipboard-list' },
+    { label: 'Chờ giao hàng', icon: 'fas fa-box' },
+    { label: 'Đang giao', icon: 'fas fa-shipping-fast' },
+    { label: 'Hoàn thành', icon: 'fas fa-check-circle' }
+];
 
-const editForm = ref({
-  tenKhachHang: '',
-  sdt: '',
-  loaiHoaDon: '',
-  tenNguoiNhan: '',
-  diaChi: ''
-})
+const getCurrentStepIndex = (status) => {
+    if (status === 0 || status === 6) return -1; // Đã hủy / Hoàn trả
+    if (status >= 1 && status <= 4) return status - 1;
+    if (status === 5) return 3; // Đã thanh toán -> coi như hoàn thành quy trình
+    return 0; 
+};
 
-const openEdit = () => {
-  editForm.value = {
-    tenKhachHang: order.value.tenKhachHang,
-    sdt: order.value.thongTinNhanHang?.sdt || '',
-    loaiHoaDon: order.value.loaiHoaDon,
-    tenNguoiNhan: order.value.thongTinNhanHang?.tenNguoiNhan || '',
-    diaChi: order.value.thongTinNhanHang?.diaChi || ''
-  }
-  showEditModal.value = true
-}
+const getProgressWidth = (status) => {
+    const idx = getCurrentStepIndex(status);
+    if(idx === -1) return '0%';
+    const percent = (idx / (steps.length - 1)) * 100;
+    return `${percent}%`;
+};
 
-const saveEdit = () => {
-  order.value.tenKhachHang = editForm.value.tenKhachHang
-  order.value.loaiHoaDon = editForm.value.loaiHoaDon
+// --- UTILS ---
+const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
+const formatDate = (val) => {
+    if (!val) return '';
+    return new Date(val).toLocaleString('vi-VN', { hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+};
 
-  if (editForm.value.loaiHoaDon === 'Trực tuyến') {
-    order.value.thongTinNhanHang = {
-      tenNguoiNhan: editForm.value.tenNguoiNhan,
-      sdt: editForm.value.sdt,
-      diaChi: editForm.value.diaChi
+// --- ACTIONS ---
+const printOrder = () => {
+    // Gọi API xuất PDF hóa đơn
+    window.open(`http://localhost:8080/api/v1/hoa-don/print/${orderId}`, '_blank');
+};
+
+const openEditOrder = () => {
+    // Chuyển sang trang chỉnh sửa hoặc mở modal
+    Swal.fire('Chức năng đang phát triển', 'Bạn sẽ sớm có thể sửa đơn hàng tại đây', 'info');
+};
+
+const cancelOrder = async () => {
+    const res = await Swal.fire({
+        title: 'Hủy đơn hàng?',
+        text: 'Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý hủy',
+        cancelButtonText: 'Quay lại',
+        confirmButtonColor: '#ef4444'
+    });
+
+    if (res.isConfirmed) {
+        try {
+            await request.put(`/hoa-don/cancel/${orderId}`, null, {
+                params: { lyDo: 'Admin hủy đơn' }
+            });
+            toastSuccess('Đã hủy đơn hàng thành công');
+            fetchOrderDetail(); // Tải lại dữ liệu mới nhất
+        } catch (e) {
+            toastError(e.response?.data?.message || 'Lỗi khi hủy đơn hàng');
+        }
     }
-  } else {
-    order.value.thongTinNhanHang = null
-  }
-
-  showEditModal.value = false
-
-  // TODO: gọi API update
-  // await updateOrder(order.value.maHoaDon, editForm.value)
 }
 
-
-const formatMoney = (v) =>
-  Number(v || 0).toLocaleString('vi-VN') + ' đ'
+onMounted(() => {
+    if (orderId) {
+        fetchOrderDetail();
+    } else {
+        toastError("Mã đơn hàng không hợp lệ");
+        router.push('/admin/orders');
+    }
+});
 </script>
 
-
 <style scoped>
-.status-badge {
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 500;
-  display: inline-block;
+/* GENERAL */
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8fafc; min-height: 100vh; color: #334155; }
+
+/* LOADING */
+.loading-state { 
+    display: flex; flex-direction: column; align-items: center; justify-content: center; 
+    height: 400px; color: #64748b; gap: 15px; 
 }
 
-/* Chờ xác nhận */
-.status-pending {
-  background: #fef3c7;
-  color: #92400e;
+/* HEADER */
+.header-section { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.page-title { margin: 0 0 5px 0; font-size: 24px; font-weight: 700; color: #1e293b; }
+.sub-info { font-size: 14px; color: #64748b; display: flex; align-items: center; gap: 8px; }
+.divider { color: #cbd5e1; }
+.text-primary { color: #2563eb; }
+
+/* BUTTONS HEADER */
+.btn { height: 38px; padding: 0 16px; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; transition: 0.2s; }
+.btn-outline { background: #fff; border-color: #cbd5e1; color: #475569; }
+.btn-outline:hover { background: #f1f5f9; border-color: #94a3b8; color: #0f172a; }
+
+/* LAYOUT GRID */
+.detail-grid { display: grid; grid-template-columns: 2.5fr 1fr; gap: 20px; }
+
+/* CARD GLOBAL STYLE */
+.card { 
+    background: #fff; border: 1px solid #bfdbfe; border-radius: 12px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 20px; overflow: hidden;
 }
-
-/* Chờ giao hàng */
-.status-wait-ship {
-  background: #e0f2fe;
-  color: #0369a1;
+.card-header-icon { 
+    background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; 
+    font-weight: 700; color: #334155; display: flex; align-items: center; gap: 8px; 
 }
+.card-header-icon i { color: #64748b; }
 
-/* Đang vận chuyển */
-.status-shipping {
-  background: #ede9fe;
-  color: #6d28d9;
+/* --- CỘT TRÁI --- */
+
+/* 1. TIMELINE */
+.status-card { padding-bottom: 20px; }
+.timeline-wrapper { padding: 30px 40px 10px 40px; position: relative; }
+.progress-track { 
+    position: absolute; top: 45px; left: 10%; right: 10%; height: 4px; background: #e2e8f0; z-index: 1; border-radius: 4px;
 }
+.progress-bar { height: 100%; background: #10b981; transition: width 0.5s ease; border-radius: 4px; }
 
-/* Hoàn thành */
-.status-done {
-  background: #dcfce7;
-  color: #166534;
+.steps-container { display: flex; justify-content: space-between; position: relative; z-index: 2; }
+.step-item { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #94a3b8; width: 80px; }
+.step-icon { 
+    width: 36px; height: 36px; border-radius: 50%; background: #fff; border: 2px solid #e2e8f0; 
+    display: flex; align-items: center; justify-content: center; font-size: 14px; transition: 0.3s; 
 }
+.step-label { font-size: 12px; font-weight: 600; text-align: center; }
 
-/* Đã hủy */
-.status-cancel {
-  background: #fee2e2;
-  color: #991b1b;
+/* Active Step */
+.step-item.active .step-icon { border-color: #10b981; background: #10b981; color: #fff; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
+.step-item.active .step-label { color: #10b981; }
+
+/* 2. INFO CARDS (CUSTOMER & SHIPPING) */
+.info-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.info-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.info-line { display: flex; justify-content: space-between; font-size: 13px; }
+.info-line .label { color: #64748b; width: 100px; flex-shrink: 0; }
+.info-line .value { color: #1e293b; font-weight: 500; text-align: right; }
+.truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.f-italic { font-style: italic; }
+
+/* 3. PRODUCT TABLE */
+.table-responsive { width: 100%; overflow-x: auto; }
+.custom-table { width: 100%; border-collapse: collapse; }
+.custom-table th { background: #eff6ff; padding: 12px; font-size: 12px; color: #1e40af; border-bottom: 1px solid #bfdbfe; font-weight: 700; white-space: nowrap; }
+.custom-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; vertical-align: middle; }
+.text-navy { color: #1e293b; }
+.text-price { color: #ef4444; font-weight: 600; }
+.badge-attr { background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 11px; border: 1px solid #e2e8f0; color: #475569; }
+
+/* --- CỘT PHẢI --- */
+
+/* SUMMARY */
+.summary-body { padding: 16px; }
+.summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; color: #475569; }
+.summary-divider { height: 1px; background: #e2e8f0; margin: 15px 0; }
+.total-row { color: #0f172a; font-weight: 700; font-size: 15px; margin-bottom: 0; align-items: center; }
+.total-price { color: #ef4444; font-size: 18px; }
+.text-green { color: #10b981; }
+
+/* HISTORY */
+.history-body { padding: 16px; min-height: 100px; }
+.empty-history { color: #94a3b8; font-style: italic; text-align: center; font-size: 13px; margin-top: 20px; }
+.history-item { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13px; }
+.history-item .dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
+.h-info { flex: 1; display: flex; flex-direction: column; }
+.h-date { color: #64748b; font-size: 11px; }
+.h-desc { font-weight: 500; }
+.h-amount { font-weight: 700; color: #0f172a; }
+
+/* ACTION BUTTONS COLUMN */
+.action-buttons-col { display: flex; flex-direction: column; gap: 12px; }
+.btn-blue-block { 
+    width: 100%; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 8px; 
+    font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
 }
+.btn-blue-block:hover { background: #2563eb; }
 
-.status-unknown {
-  background: #e5e7eb;
-  color: #374151;
+.btn-orange-block { 
+    width: 100%; padding: 10px; background: #f97316; color: white; border: none; border-radius: 8px; 
+    font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
 }
+.btn-orange-block:hover { background: #ea580c; }
 
-
-.type-badge {
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 500;
-  display: inline-block;
+.btn-red-outline-block {
+    width: 100%; padding: 8px; background: #fff; color: #ef4444; border: 1px solid #ef4444; border-radius: 8px;
+    font-weight: 600; cursor: pointer; transition: 0.2s;
 }
+.btn-red-outline-block:hover { background: #fef2f2; }
 
-/* Trực tuyến – xanh lá */
-.type-online {
-  background: #dcfce7;
-  color: #166534;
-}
-
-/* Tại quầy – xanh dương */
-.type-offline {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.type-unknown {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-
-.order-detail-page {
-  background: #f1f5f9;
-  padding: 20px;
-}
-
-.breadcrumb {
-  margin-bottom: 16px;
-  color: #64748b;
-}
-
-.card {
-  background: #fff;
-  padding: 16px;
-  border-radius: 12px;
-  margin-bottom: 16px;
-}
-
-.timeline {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin: 16px 0;
-}
-
-.timeline-step {
-  flex: 1;
-  text-align: center;
-  color: #94a3b8;
-  position: relative;
-}
-
-
-.timeline-step.active {
-  color: #16a34a;
-}
-
-.circle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: auto;
-}
-
-.timeline-step.active .circle {
-  background: #22c55e;
-  color: #fff;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.info-actions {
-  margin-top: 12px;
-  display: flex;
-  gap: 8px;
-}
-
-.product {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 12px 0;
-}
-
-.product img {
-  width: 80px;
-  border-radius: 8px;
-}
-
-.price {
-  margin-left: auto;
-  color: #dc2626;
-}
-
-.summary {
-  display: flex;
-  justify-content: space-between;
-}
-
-.badge {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-}
-
-.badge.blue {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.badge.green {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.badge.yellow {
-  background: #fef9c3;
-  color: #854d0e;
-}
-
-.btn-primary {
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 8px;
-}
-
-.btn-outline {
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  padding: 6px 12px;
-  border-radius: 8px;
-}
-
-.btn-danger {
-  background: #dc2626;
-  color: #fff;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 8px;
-}
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-}
-
-.modal {
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  width: 420px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.form-group input,
-.form-group select {
-  padding: 8px 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
+/* UTILS */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.fw-bold { font-weight: 700; }
 </style>

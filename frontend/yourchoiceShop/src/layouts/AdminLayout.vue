@@ -82,14 +82,27 @@
                 </router-link>
             </div>
         </div>
-
-        <router-link to="/admin/customers" class="menu-item" active-class="active-link">
-            <i class="fa-solid fa-user icon"></i> Khách hàng
-        </router-link>
-        
-        <router-link to="/admin/employees" class="menu-item" active-class="active-link">
-            <i class="fa-solid fa-user-tie icon"></i> Nhân viên
-        </router-link>
+        <div class="menu-group">
+            <div 
+                class="menu-item parent" 
+                :class="{ 'active-parent': openMenus.accounts }"
+                @click="toggleMenu('accounts')"
+            >
+                <span>
+                    <i class="fa-solid fa-user-secret icon"></i> Quản lý tài khoản
+                </span>
+                <span class="arrow">{{ openMenus.accounts ? '▲' : '▼' }}</span>
+            </div>
+            
+            <div class="submenu" v-show="openMenus.accounts">
+                <router-link to="/admin/customers" class="submenu-item" active-class="active-sub">
+                    <span class="dot">•</span> Khách hàng
+                </router-link>
+                <router-link to="/admin/employees" class="submenu-item" active-class="active-sub">
+                    <span class="dot">•</span> Nhân viên
+                </router-link>
+            </div>
+        </div>
       </nav>
     </aside>
 
@@ -105,11 +118,19 @@
             </button>
         </div>
 
-        <div class="user-info">
+        <div class="user-info" @click="toggleUserDropdown" :class="{ 'dropdown-open': isUserDropdownOpen }">
             <div class="avatar">
                  <i class="fa-solid fa-user"></i>
             </div>
-            <span class="username" style="margin-left: 8px; font-weight: 600;">Admin</span>
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+            
+            <!-- Dropdown Menu -->
+            <div v-if="isUserDropdownOpen" class="user-dropdown">
+              <div class="dropdown-item admin-label">Admin</div>
+              <button class="dropdown-item logout-btn" @click="handleLogout">
+                <i class="fa-solid fa-sign-out-alt"></i> Đăng xuất
+              </button>
+            </div>
         </div>
       </header>
 
@@ -122,14 +143,30 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
+const router = useRouter();
+
+// State dropdown nhân viên
+const isUserDropdownOpen = ref(false);
+
+const toggleUserDropdown = () => {
+    isUserDropdownOpen.value = !isUserDropdownOpen.value;
+};
+
+const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    isUserDropdownOpen.value = false;
+    router.push('/login');
+};
 
 // 1. Trạng thái đóng/mở menu
 const openMenus = ref({
     products: false, 
-    discounts: false 
+    discounts: false,
+    accounts: false
 });
 
 const toggleMenu = (key) => {
@@ -155,6 +192,12 @@ const isDiscountRoute = computed(() => {
            p.includes('/admin/sales');
 });
 
+const isAccountRoute = computed(() => {
+    const p = route.path;
+    return p.includes('/admin/customers') || 
+           p.includes('/admin/employees');
+});
+
 // Xử lý ảnh lỗi nếu logo không load được
 const handleImageError = (e) => {
     e.target.style.display = 'none'; // Ẩn ảnh lỗi đi
@@ -165,9 +208,12 @@ const handleImageError = (e) => {
 /* --- 1. BIẾN MÀU SẮC --- */
 :root {
   --primary-color: #2b4360; /* Xanh than đậm */
-  --text-gray: #64748b;     /* Màu chữ thường */
-  --bg-hover: #f1f5f9;      /* Màu nền khi hover */
-  --active-bg: #e2e8f0;     /* Màu nền active menu con */
+  --muted-color: #64748b;   /* Màu chữ thường */
+  --bg-light: #f8fafc;      /* Nền nhẹ cho sidebar/submenu */
+  --bg-surface: #f1f5f9;    /* Bề mặt/hover nhẹ */
+  --border-color: #e2e8f0;  /* Màu viền */
+  --card-bg: #ffffff;       /* Thẻ / header bg */
+  --danger-color: #ef4444;  /* Màu cảnh báo */
 }
 
 /* --- 2. LAYOUT CHUNG --- */
@@ -223,21 +269,21 @@ const handleImageError = (e) => {
 .menu-item.parent {
   justify-content: space-between;
 }
-.arrow { font-size: 10px; color: #94a3b8; }
+.arrow { font-size: 10px; color: var(--muted-color); }
 
 /* Trạng thái Active cho Menu Cha (Khi mở hoặc khi con active) */
 .active-parent {
-  color: #2b4360 !important; /* Đậm màu chữ */
+  color: var(--primary-color) !important; /* Đậm màu chữ */
   font-weight: 700;
-  background-color: #f8fafc; /* Nền sáng nhẹ */
+  background-color: var(--bg-surface); /* Nền sáng nhẹ */
 }
 .active-parent .icon {
-  color: #2b4360; /* Đậm màu icon */
+  color: var(--primary-color); /* Đậm màu icon */
 }
 
 /* --- 6. SUBMENU STYLES --- */
 .submenu {
-  background-color: #f8fafc;
+  background-color: var(--bg-light);
   overflow: hidden;
 }
 
@@ -246,20 +292,20 @@ const handleImageError = (e) => {
   align-items: center;
   padding: 10px 20px 10px 56px; /* Thụt đầu dòng */
   text-decoration: none;
-  color: #64748b;
+  color: var(--muted-color);
   font-size: 14px;
-  transition: 0.2s;
+  transition: 0.18s ease;
 }
 
 .submenu-item:hover {
-  color: #2b4360;
+  color: var(--primary-color);
 }
 
 .submenu-item .dot {
   margin-right: 8px;
   font-size: 18px;
   line-height: 0;
-  color: #cbd5e1;
+  color: var(--border-color);
 }
 
 /* Active Submenu */
@@ -277,7 +323,59 @@ const handleImageError = (e) => {
 .header-actions { display: flex; gap: 15px; }
 .icon-btn { background: none; border: none; font-size: 20px; color: #64748b; position: relative; cursor: pointer; }
 .badge-count { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 10px; padding: 2px 5px; border-radius: 10px; }
-.user-info .avatar { width: 36px; height: 36px; background: #2b4360; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+.user-info { display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: 0.2s; position: relative; }
+.user-info:hover { opacity: 0.8; }
+.user-info:hover .avatar { background: #1e293b; }
+.user-info:hover .dropdown-arrow { color: #334155; }
+.user-info .avatar { width: 36px; height: 36px; background: #2b4360; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: 0.2s; }
+.dropdown-arrow { font-size: 14px; color: #64748b; transition: 0.2s; }
+
+/* --- 8. USER DROPDOWN --- */
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  min-width: 150px;
+  margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 1000;
+  overflow: hidden;
+}
+.dropdown-item {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+  border: none;
+  background: none;
+  font-size: 14px;
+  width: 100%;
+  text-align: left;
+  color: #334155;
+}
+.dropdown-item:hover:not(.admin-label) {
+  background-color: #f1f5f9;
+  color: #2b4360;
+}
+.admin-label {
+  background-color: #f8fafc;
+  color: #64748b;
+  cursor: default;
+  font-weight: 500;
+  border-bottom: 1px solid #e2e8f0;
+}
+.logout-btn {
+  color: #ef4444;
+}
+.logout-btn:hover {
+  background-color: #fef2f2 !important;
+  color: #dc2626 !important;
+}
 
 .content-body { padding: 24px; flex: 1; }
 </style>

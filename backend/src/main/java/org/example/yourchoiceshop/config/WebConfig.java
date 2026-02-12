@@ -20,8 +20,8 @@ public class WebConfig implements WebMvcConfigurer {
     // 2. Cấu hình CORS (Để tránh lỗi chặn truy cập từ Frontend)
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173") // Port của VueJS
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
+        registry.addMapping("/**") // Áp dụng cho tất cả API
+                .allowedOrigins("*") // Cho phép tất cả các trang web truy cập
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS"); // Các method cho phép
     }
 }
