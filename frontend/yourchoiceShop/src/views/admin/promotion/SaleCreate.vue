@@ -1,434 +1,394 @@
 <template>
   <div class="page-container">
-    <div class="header-row">
-       <div class="title-group">
-           <h2 class="page-title">Thêm đợt giảm giá mới</h2> 
-           <p class="sub-title">Thiết lập thông tin khuyến mãi và chọn sản phẩm</p>
-       </div>
-       <router-link to="/admin/sales" class="btn-back">
-           <i class="fas fa-arrow-left"></i> Quay lại
-       </router-link>
+    <div class="header">
+        <h3>Đợt giảm giá / Thêm đợt giảm giá</h3>
     </div>
 
-    <div class="main-layout">
-      
-      <div class="card left-panel">
-        <h4 class="card-title">Thông tin chương trình</h4>
-        <div class="form-body">
-            <div class="form-group">
-              <label>Tên chương trình <span class="required">*</span></label>
-              <input v-model="form.tenDotGiamGia" class="custom-input" placeholder="VD: Sale Tết 2026..." />
+    <div class="card section-info">
+        <h4 class="section-title">Thông tin chương trình</h4>
+        <div class="row-3">
+             <div class="form-group">
+                <label>Tên chương trình <span class="required">*</span></label>
+                <input  v-model="form.tenDotGiamGia" placeholder="VD: Sale Black Friday" class="form-control" />
             </div>
-            <div class="form-row">
-                <div class="form-group flex-grow">
-                    <label>Mức giảm <span class="required">*</span></label>
-                    <input v-model.number="form.giaTriGiam" type="number" class="custom-input" placeholder="0" />
-                </div>
-                <div class="form-group" style="width: 120px;">
-                    <label>Đơn vị</label>
-                    <select v-model="form.loaiGiamGia" class="custom-input select-input">
-                        <option value="%">%</option>
+             <div class="form-group">
+                <label>Mức giảm giá <span class="required">*</span></label>
+                <div class="input-group">
+                    <input v-model="form.giaTriGiam" type="number" class="form-control" />
+                    <select v-model="form.loaiGiamGia" class="unit-select">
                         <option value="VND">VND</option>
+                        <option value="%">%</option>
                     </select>
                 </div>
             </div>
-            <div class="form-group">
-              <label>Thời gian áp dụng <span class="required">*</span></label>
-              <div class="date-group-row">
-                  <div class="date-item">
-                      <span class="tiny-label">Từ ngày</span>
-                      <input type="datetime-local" v-model="form.ngayBatDau" class="custom-input date-input" />
-                  </div>
-                  <div class="date-separator">-</div>
-                  <div class="date-item">
-                      <span class="tiny-label">Đến ngày</span>
-                      <input type="datetime-local" v-model="form.ngayKetThuc" class="custom-input date-input" />
-                  </div>
-              </div>
+        </div>
+        <div class="row-3">
+             <div class="form-group">
+                <label>Thời gian bắt đầu <span class="required">*</span></label>
+                <input v-model="form.ngayBatDau" type="datetime-local" class="form-control" />
             </div>
-            <div class="summary-box" :class="{ 'active': selectedIds.length > 0 }">
-                <div class="s-icon"><i class="fas fa-check-circle"></i></div>
-                <div class="s-content">
-                    <span>Đã chọn áp dụng:</span>
-                    <strong>{{ selectedIds.length }} sản phẩm chi tiết</strong>
-                </div>
+             <div class="form-group">
+                <label>Thời gian kết thúc <span class="required">*</span></label>
+                <input v-model="form.ngayKetThuc" type="datetime-local" class="form-control" />
             </div>
-            <button @click="submitForm" class="btn-submit">
-                <i class="fas fa-save"></i> Hoàn tất & Lưu
+        </div>
+        
+        <div class="action-bar">
+            <button type="button" @click="$router.go(-1)" class="btn btn-outline">Hủy</button>
+            <button type="button" @click="createSale" class="btn btn-gradient">Xác nhận & Tạo mới</button>
+        </div>
+    </div>
+
+    <div class="card section-product">
+        <div class="panel-header">
+            <h4>Sản phẩm áp dụng</h4>
+            <div class="selected-count">
+                Đã chọn: <b>{{ form.idChiTietSanPhams.length }}</b> sản phẩm
+            </div>
+        </div>
+
+        <div class="filter-toolbar">
+            <div class="search-box">
+                <i class="fas fa-search icon"></i>
+                <input class="input-den" v-model="filter.keyword" @keyup.enter="loadProducts" placeholder="Tìm tên/mã sản phẩm..." />
+            </div>
+            
+            <select v-model="filter.mauSacId" @change="loadProducts" class="filter-select">
+                <option value="">-- Màu sắc --</option>
+                <option v-for="ms in colors" :key="ms.id" :value="ms.id">{{ ms.tenMauSac || ms.ten }}</option>
+            </select>
+
+            <select v-model="filter.kichThuocId" @change="loadProducts" class="filter-select">
+                <option value="">-- Kích thước --</option>
+                <option v-for="kt in sizes" :key="kt.id" :value="kt.id">{{ kt.tenKichThuoc || kt.ten }}</option>
+            </select>
+
+            <button type="button" class="btn btn-black btn-sm" @click="resetFilter">
+                <i class="fas fa-sync-alt"></i> Đặt lại
             </button>
         </div>
-      </div>
 
-      <div class="card right-panel">
-        <div class="panel-header">
-            <h4>Danh sách sản phẩm</h4>
-            <div class="search-wrap">
-                <i class="fas fa-search"></i>
-                <input v-model="searchParent" placeholder="Tìm tên/mã SP..." />
-            </div>
-        </div>
-
-        <div class="product-list-wrapper custom-scrollbar">
-            <table class="simple-table">
+        <div class="table-responsive">
+            <table class="custom-table">
                 <thead>
                     <tr>
                         <th width="40px" class="text-center">
-                            <input type="checkbox" class="custom-checkbox" 
-                                   :checked="isAllParentsViewed" 
-                                   @change="toggleAllParentsView">
+                            <input type="checkbox" @change="toggleAll" :checked="isAllSelected" />
                         </th>
-                        <th width="50px" class="text-center">STT</th>
-                        <th>Thông tin sản phẩm</th>
+                        <th width="60px" class="text-center">Ảnh</th>
+                        <th>Mã SP</th>
+                        <th>Tên sản phẩm</th>
+                        <th class="text-center">Giá bán</th> 
+                        <th class="text-center">Thương hiệu</th>
+                        <th class="text-center">SL</th>
+                        <th class="text-center">Chất liệu</th>
+                        <th class="text-center">Kích cỡ</th>
+                        <th class="text-center">Màu sắc</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-if="paginatedParents.length === 0">
-                        <td colspan="3" class="text-center empty-text">
-                            Không tìm thấy sản phẩm nào
-                        </td>
+                    <tr v-if="loadingProd">
+                        <td colspan="10" class="text-center py-4">Đang tải dữ liệu...</td>
                     </tr>
-                    <tr 
-                        v-for="(sp, index) in paginatedParents" 
-                        :key="sp.id" 
-                        @click="toggleParentView(sp)"
-                        :class="{ 'row-active': viewedParentIds.includes(sp.id) }"
-                    >
-                        <td class="text-center" @click.stop>
-                            <input type="checkbox" class="custom-checkbox"
-                                   :checked="viewedParentIds.includes(sp.id)"
-                                   @change="toggleParentView(sp)">
+                    <tr v-else-if="products.length === 0">
+                         <td colspan="10" class="text-center empty-state">Không tìm thấy sản phẩm nào.</td>
+                    </tr>
+                    <tr v-else v-for="sp in products" :key="sp.id" :class="{ 'selected-row': form.idChiTietSanPhams.includes(sp.id) }">
+                        <td class="text-center">
+                            <input type="checkbox" :value="sp.id" v-model="form.idChiTietSanPhams" />
                         </td>
-                        <td class="text-center text-muted">
-                            {{ (productPage - 1) * productPageSize + index + 1 }}
+                        <td class="text-center">
+                            <div class="img-wrapper">
+                                <img v-if="sp.hinhAnh" :src="'http://localhost:8080/api/v1/product-images/' + sp.hinhAnh" class="thumb-img" @error="handleImgError" />
+                                <div v-else class="img-placeholder"><i class="fas fa-image"></i></div>
+                            </div>
                         </td>
+                        <td class="prod-code">{{ sp.maCtsp }}</td>
                         <td>
-                            <div class="p-name">{{ sp.tenSanPham }}</div>
-                            <div class="p-code">{{ sp.maSanPham }}</div>
+                            <div class="prod-name" :title="sp.sanPham?.tenSanPham">{{ sp.sanPham?.tenSanPham }}</div>
+                        </td>
+                        
+                        <td class="text-center">
+                            <div class="price-box">
+                                <div class="old-price">{{ formatCurrency(sp.giaBan) }}</div>
+                                <div class="new-price">{{ calculateNewPrice(sp.giaBan) }}</div>
+                                <div v-if="form.giaTriGiam > 0" class="discount-badge">
+                                    -{{ calculateDiscountPercent(sp.giaBan) }}%
+                                </div>
+                            </div>
+                        </td>
+
+                        <td class="text-center">
+                            {{ sp.thuongHieu?.tenThuongHieu || sp.sanPham?.thuongHieu?.tenThuongHieu || '-' }}
+                        </td>
+                        <td class="text-center font-weight-bold">{{ sp.soLuong }}</td>
+                        <td class="text-center">
+                            {{ sp.chatLieu?.tenChatLieu || sp.sanPham?.chatLieu?.tenChatLieu || '-' }}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge-size">{{ sp.kichThuoc?.tenKichThuoc }}</span>
+                        </td>
+                        
+                        <td class="text-center">
+                            <div class="color-wrapper justify-center">
+                                <span class="color-dot" :style="{ backgroundColor: getColorCode(sp.mauSac?.tenMauSac) }"></span>
+                                {{ sp.mauSac?.tenMauSac }}
+                            </div>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <div class="panel-footer-pagination" v-if="filteredParents.length > 0">
+        <div class="pagination-footer">
             <div class="page-info">
-                {{ (productPage - 1) * productPageSize + 1 }} - 
-                {{ Math.min(productPage * productPageSize, filteredParents.length) }} 
-                trên {{ filteredParents.length }}
+                Hiển thị 
+                <select v-model="pageSize" @change="handlePageSizeChange">
+                    <option :value="5">5</option>
+                    <option :value="10">10</option>
+                    <option :value="20">20</option>
+                </select> 
+                bản ghi
             </div>
+            
             <div class="page-controls">
+                <button class="page-btn" :disabled="page === 0" @click="changePage(page - 1)">‹</button>
+                
                 <button 
+                    v-for="p in visiblePages" 
+                    :key="p" 
                     class="page-btn" 
-                    :disabled="productPage === 1" 
-                    @click="productPage--"
+                    :class="{ 'active': p === page + 1 }"
+                    @click="changePage(p - 1)"
                 >
-                    <i class="fas fa-chevron-left"></i>
+                    {{ p }}
                 </button>
-                <button 
-                    class="page-btn" 
-                    :disabled="productPage >= totalProductPages" 
-                    @click="productPage++"
-                >
-                    <i class="fas fa-chevron-right"></i>
-                </button>
+
+                <button class="page-btn" :disabled="page >= totalPages - 1" @click="changePage(page + 1)">›</button>
             </div>
         </div>
-      </div>
     </div>
-
-    <transition name="fade">
-        <div class="card bottom-panel" v-if="viewedParentIds.length > 0">
-            <div class="panel-header-bottom">
-                <div class="left-group">
-                    <h4>Chi tiết biến thể sản phẩm</h4>
-                    <span class="sub-text">Danh sách các biến thể thuộc các sản phẩm đã tích chọn ở trên</span>
-                </div>
-            </div>
-
-            <div class="table-responsive custom-scrollbar">
-                <table class="custom-table">
-                    <thead>
-                        <tr>
-                            <th width="40px" class="text-center">
-                                <input type="checkbox" class="custom-checkbox"
-                                       :checked="isAllDisplayedVariantsSelected"
-                                       @change="toggleSelectAllDisplayed">
-                            </th>
-                            <th width="50px" class="text-center">STT</th>
-                            <th>Mã Biến thể</th>
-                            <th>Sản phẩm gốc</th>
-                            <th>Thuộc tính</th>
-                            <th>Giá bán</th>
-                            <th class="text-center">Kho</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="(d, index) in displayedVariants" :key="d.id" :class="{ 'selected-row': selectedIds.includes(d.id) }">
-                            <td class="text-center">
-                                <input type="checkbox" :value="d.id" v-model="selectedIds" class="custom-checkbox">
-                            </td>
-                            <td class="text-center text-muted">{{ index + 1 }}</td>
-                            <td class="text-code">{{ d.maSanPham }}</td>
-                            <td style="font-weight: 500;">{{ d.tenSanPham }}</td>
-                            <td>
-                                <span class="variant-tag">{{ d.mauSac }}</span>
-                                <span class="variant-tag">{{ d.kichThuoc }}</span>
-                            </td>
-                            <td class="text-price">{{ formatCurrency(d.giaBan) }}</td>
-                            <td class="text-center">{{ d.soLuong }}</td>
-                        </tr>
-                        <tr v-if="displayedVariants.length === 0">
-                            <td colspan="7" class="text-center empty-state">Đang tải dữ liệu...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, computed, onMounted, reactive } from 'vue';
 import request from '@/services/request';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
+import { toastSuccess, toastError, Toast } from '@/utils/toast';
 
 const router = useRouter();
-const route = useRoute();
-const id = route.params.id; // Có thể undefined nếu là trang Create
 
-// --- STATE ---
-const form = ref({
-    maDotGiamGia: '', tenDotGiamGia: '', giaTriGiam: 0, loaiGiamGia: '%',
-    ngayBatDau: '', ngayKetThuc: '', trangThai: 1, idChiTietSanPhams: [] 
+const form = reactive({
+    tenDotGiamGia: '', giaTriGiam: 0, loaiGiamGia: 'VND',
+    ngayBatDau: '', ngayKetThuc: '', trangThai: 1,
+    idChiTietSanPhams: [] 
 });
 
-const parentProducts = ref([]);
-const viewedParentIds = ref([]);
-const variantCache = ref({});
-const selectedIds = ref([]);
-const searchParent = ref('');
+const products = ref([]);
+const loadingProd = ref(false);
+const page = ref(0);
+const pageSize = ref(10);
+const totalPages = ref(0);
 
-// --- PAGINATION STATE ---
-const productPage = ref(1);
-const productPageSize = ref(7); // Số lượng SP hiển thị mỗi trang (Chỉnh số này nếu muốn ít/nhiều hơn)
+const filter = reactive({ keyword: '', mauSacId: '', kichThuocId: '' });
+const colors = ref([]);
+const sizes = ref([]);
 
-// --- LOAD DATA ---
-onMounted(async () => {
+const loadFilterOptions = async () => {
     try {
-        const resProd = await request.get('/san-pham/active'); 
-        parentProducts.value = resProd.data;
+        const [resMS, resKT] = await Promise.all([
+            request.get('/mau-sac/list', { params: { trangThai: 1 } }),
+            request.get('/kich-thuoc/list', { params: { trangThai: 1 } })
+        ]);
+        colors.value = resMS.data || [];
+        sizes.value = resKT.data || [];
+    } catch (e) { console.error("Lỗi load bộ lọc", e); }
+};
 
-        // Nếu có ID (Trang Update) thì load thêm info
-        if (id) {
-            const resDetail = await request.get(`/dot-giam-gia/${id}`);
-            form.value = resDetail.data;
-            const resSelected = await request.get(`/dot-giam-gia/${id}/products`);
-            selectedIds.value = resSelected.data.map(p => p.id); 
+const loadProducts = async () => {
+    loadingProd.value = true;
+    try {
+        const params = {
+            page: page.value, size: pageSize.value, keyword: filter.keyword,
+            idMauSac: filter.mauSacId || null, idKichThuoc: filter.kichThuocId || null,
+            trangThai: 1 
+        };
+        const res = await request.get('/chi-tiet-san-pham', { params });
+        products.value = res.data.content;
+        totalPages.value = res.data.totalPages;
+    } catch (e) { console.error(e); } finally { loadingProd.value = false; }
+};
+
+// Pagination Logic
+const changePage = (p) => { if (p >= 0 && p < totalPages.value) { page.value = p; loadProducts(); } };
+const handlePageSizeChange = () => { page.value = 0; loadProducts(); };
+
+const visiblePages = computed(() => {
+    let pages = [];
+    // Logic hiển thị các trang xung quanh trang hiện tại
+    for (let i = 1; i <= totalPages.value; i++) {
+        if (i === 1 || i === totalPages.value || (i >= page.value && i <= page.value + 2)) {
+            pages.push(i);
         }
-    } catch (e) { console.error(e); }
-});
-
-// --- FILTER & PAGINATION LOGIC ---
-const filteredParents = computed(() => {
-    if (!searchParent.value) return parentProducts.value;
-    const lower = searchParent.value.toLowerCase();
-    return parentProducts.value.filter(p => 
-        p.tenSanPham.toLowerCase().includes(lower) || 
-        p.maSanPham.toLowerCase().includes(lower)
-    );
-});
-
-// Reset về trang 1 khi tìm kiếm
-watch(searchParent, () => {
-    productPage.value = 1;
-});
-
-// Tính toán danh sách hiển thị theo trang
-const paginatedParents = computed(() => {
-    const start = (productPage.value - 1) * productPageSize.value;
-    const end = start + productPageSize.value;
-    return filteredParents.value.slice(start, end);
-});
-
-// Tổng số trang
-const totalProductPages = computed(() => {
-    return Math.ceil(filteredParents.value.length / productPageSize.value);
-});
-
-// --- HELPER FETCH VARIANTS ---
-const fetchVariants = async (parentId) => {
-    if (variantCache.value[parentId]) return variantCache.value[parentId];
-    try {
-        const res = await request.get(`/chi-tiet-san-pham/by-product/${parentId}`);
-        const parent = parentProducts.value.find(p => p.id === parentId);
-        const variants = res.data.map(v => ({ ...v, tenSanPham: parent?.tenSanPham || '' }));
-        variantCache.value[parentId] = variants;
-        return variants;
-    } catch (e) { console.error(e); return []; }
-};
-
-// --- LOGIC TOGGLE PARENT ---
-const toggleParentView = async (sp) => {
-    const idx = viewedParentIds.value.indexOf(sp.id);
-    if (idx > -1) viewedParentIds.value.splice(idx, 1);
-    else {
-        viewedParentIds.value.push(sp.id);
-        if (!variantCache.value[sp.id]) await fetchVariants(sp.id);
     }
-};
-
-// Checkbox "Chọn tất cả" (Chỉ tác động lên trang hiện tại hoặc tất cả tùy logic, ở đây chọn tất cả kết quả tìm kiếm)
-const isAllParentsViewed = computed(() => {
-    if (filteredParents.value.length === 0) return false;
-    return filteredParents.value.every(p => viewedParentIds.value.includes(p.id));
+    // Lọc trùng (nếu có)
+    return [...new Set(pages)].sort((a, b) => a - b);
 });
 
-const toggleAllParentsView = async (e) => {
-    const checked = e.target.checked;
-    if (checked) {
-        const allIds = filteredParents.value.map(p => p.id);
-        viewedParentIds.value = [...new Set([...viewedParentIds.value, ...allIds])];
-        for (const id of allIds) { if (!variantCache.value[id]) await fetchVariants(id); }
+const resetFilter = () => { filter.keyword = ''; filter.mauSacId = ''; filter.kichThuocId = ''; page.value = 0; loadProducts(); };
+
+const isAllSelected = computed(() => products.value.length > 0 && products.value.every(p => form.idChiTietSanPhams.includes(p.id)));
+const toggleAll = (e) => {
+    const currentIds = products.value.map(p => p.id);
+    if (e.target.checked) {
+        const newIds = currentIds.filter(id => !form.idChiTietSanPhams.includes(id));
+        form.idChiTietSanPhams.push(...newIds);
     } else {
-        const allIds = filteredParents.value.map(p => p.id);
-        viewedParentIds.value = viewedParentIds.value.filter(id => !allIds.includes(id));
+        form.idChiTietSanPhams = form.idChiTietSanPhams.filter(id => !currentIds.includes(id));
     }
 };
 
-// --- DISPLAY & SELECT VARIANTS ---
-const displayedVariants = computed(() => {
-    let list = [];
-    viewedParentIds.value.forEach(parentId => {
-        if (variantCache.value[parentId]) list = list.concat(variantCache.value[parentId]);
-    });
-    return list;
-});
-
-const isAllDisplayedVariantsSelected = computed(() => {
-    if (displayedVariants.value.length === 0) return false;
-    const ids = displayedVariants.value.map(v => v.id);
-    return ids.every(id => selectedIds.value.includes(id));
-});
-
-const toggleSelectAllDisplayed = (e) => {
-    const checked = e.target.checked;
-    const ids = displayedVariants.value.map(v => v.id);
-    if (checked) selectedIds.value = [...new Set([...selectedIds.value, ...ids])];
-    else selectedIds.value = selectedIds.value.filter(id => !ids.includes(id));
+const calculateNewPrice = (oldPrice) => {
+    if (!form.giaTriGiam) return formatCurrency(oldPrice);
+    let price = Number(oldPrice); let giam = Number(form.giaTriGiam);
+    let final = form.loaiGiamGia === 'VND' ? (price - giam) : (price * (100 - giam) / 100);
+    return formatCurrency(Math.max(0, final));
 };
 
-// --- SUBMIT ---
-const submitForm = async () => {
-    if (!form.value.tenDotGiamGia) return alert("Vui lòng nhập tên");
-    if (new Date(form.value.ngayBatDau) >= new Date(form.value.ngayKetThuc)) return alert("Ngày kết thúc lỗi!");
-    form.value.idChiTietSanPhams = selectedIds.value;
+const calculateDiscountPercent = (oldPrice) => {
+    if(form.loaiGiamGia === '%') return form.giaTriGiam;
+    let percent = Math.round((Number(form.giaTriGiam) / Number(oldPrice)) * 100);
+    return percent > 100 ? 100 : (percent < 0 ? 0 : percent);
+}
+
+const createSale = async () => {
+    if(!form.tenDotGiamGia.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên chương trình' });
+    if(form.giaTriGiam <= 0) return Toast.fire({ icon: 'warning', title: 'Mức giảm phải > 0' });
+    if(!form.ngayBatDau || !form.ngayKetThuc) return Toast.fire({ icon: 'warning', title: 'Chọn đầy đủ thời gian' });
+    if(form.idChiTietSanPhams.length === 0) return Toast.fire({ icon: 'warning', title: 'Chưa chọn sản phẩm nào' });
 
     try {
-        if (id) await request.put(`/dot-giam-gia/${id}`, form.value);
-        else await request.post('/dot-giam-gia', form.value);
-        alert("Thành công!");
-        router.push('/admin/sales');
-    } catch (e) { alert("Lỗi: " + (e.response?.data?.message || e.message)); }
+        await request.post('/dot-giam-gia', form);
+        localStorage.setItem('saleSuccessMessage', 'Tạo đợt giảm giá thành công!');
+        router.push({ name: 'admin-sale-list' });
+    } catch (e) {
+        console.error(e);
+        toastError(e.response?.data?.message || 'Có lỗi xảy ra');
+    }
 };
 
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+const handleImgError = (e) => { e.target.src = "https://via.placeholder.com/50?text=No+Img"; };
+
+const getColorCode = (name) => {
+    const map = { 'Đen': '#000', 'Trắng': '#fff', 'Xanh': '#3b82f6', 'Đỏ': '#ef4444', 'Vàng': '#eab308', 'Hồng': '#ec4899', 'Xám': '#6b7280' };
+    return map[name] || '#e5e7eb';
+};
+
+onMounted(() => { loadFilterOptions(); loadProducts(); });
 </script>
 
 <style scoped>
-/* GLOBAL & LAYOUT */
-.page-container { padding: 24px; background: #f8f9fa; min-height: 100vh; font-family: 'Inter', sans-serif; color: #334155; }
-.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.page-title { margin: 0; font-size: 22px; font-weight: 700; color: #1e293b; }
-.sub-title { margin: 4px 0 0; font-size: 13px; color: #64748b; }
-.btn-back { color: #64748b; text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 6px; font-size: 14px; transition: 0.2s; }
-.btn-back:hover { color: #2b4360; }
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; min-height: 100vh; }
+.header { margin-bottom: 20px; }
+.header h3 { font-weight: 700; color: #2b4360; font-size: 24px; }
 
-.main-layout { display: grid; grid-template-columns: 550px 1fr; gap: 24px; align-items: start; }
-
-/* CARD */
-.card { background: white; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #f1f5f9; overflow: hidden; }
-.left-panel { height: fit-content; padding: 24px; } 
-.right-panel { height: 600px; display: flex; flex-direction: column; } 
-
-/* FORM */
-.card-title { margin: 0 0 20px 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
-.form-group { margin-bottom: 18px; }
-.form-group label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #475569; }
-.required { color: #ef4444; margin-left: 3px; }
-.custom-input { width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; color: #1e293b; background: #fff; height: 42px; box-sizing: border-box; }
-.custom-input:focus { border-color: #2b4360; box-shadow: 0 0 0 3px rgba(43, 67, 96, 0.1); }
-.form-row { display: flex; gap: 12px; }
-.flex-grow { flex: 1; }
-.select-input { background-color: #f8fafc; font-weight: 600; cursor: pointer; }
-
-.date-group-row { display: flex; align-items: flex-end; gap: 10px; width: 100%; }
-.date-item { flex: 1; width: 100%; }
-.date-input { width: 100% !important; min-width: 0; }
-.date-separator { padding-bottom: 10px; color: #cbd5e1; font-weight: bold; }
-.tiny-label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
-
-.summary-box { background: #f8fafc; border: 1px dashed #cbd5e1; padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 12px; margin: 24px 0; transition: 0.3s; }
-.summary-box.active { background: #f0fdf4; border-color: #86efac; }
-.s-icon { width: 32px; height: 32px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-.active .s-icon { color: #16a34a; }
-.s-content span { display: block; font-size: 12px; color: #64748b; }
-.s-content strong { font-size: 14px; color: #1e293b; }
-.btn-submit { width: 100%; padding: 12px; border: none; border-radius: 6px; background: #2b4360; color: white; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
-.btn-submit:hover { background: #1e2f45; transform: translateY(-1px); }
-
-/* RIGHT PANEL & PAGINATION */
-.panel-header { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; background: #fff; display: flex; justify-content: space-between; align-items: center; }
-.search-wrap input { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid #e2e8f0; border-radius: 20px; outline: none; font-size: 13px; transition: 0.2s; }
-.search-wrap { position: relative; width: 250px; }
-.search-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px; }
-
-.product-list-wrapper { flex: 1; overflow-y: auto; background: #fff; }
-
-/* === STYLES CHO PAGINATION FOOTER === */
-.panel-footer-pagination {
-    border-top: 1px solid #f1f5f9;
-    padding: 12px 20px;
-    background: #fff;
-    display: flex;
-    justify-content: flex-end; /* Căn phải */
-    align-items: center;
-    gap: 15px;
+/* === CARD STYLE === */
+.card { 
+    background: #fff; border-radius: 16px; border: 1px solid #bfdbfe !important; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 24px; margin-bottom: 24px;
 }
-.page-info { font-size: 13px; color: #64748b; }
-.page-controls { display: flex; gap: 8px; }
-.page-btn {
-    width: 30px; height: 30px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    border-radius: 6px;
-    cursor: pointer;
-    color: #64748b;
+.section-title { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 20px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+
+/* Form */
+.row-3 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #334155; }
+.required { color: #ef4444; }
+.form-control { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; }
+.form-control::placeholder {
+
+    color: #000000 !important;  /* Màu đen */
+    opacity: 0.5 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+
+}
+.input-group { display: flex; }
+.input-group input { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.unit-select { border: 1px solid #e2e8f0; border-left: none; background: #f8fafc; padding: 0 15px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; font-weight: 600; cursor: pointer; }
+
+/* Action Bar */
+.action-bar { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e2e8f0; }
+.btn { padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid transparent; font-size: 14px; }
+.btn-outline { background: #fff; border-color: #cbd5e1; color: #475569; }
+.btn-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); }
+
+/* === UPDATE: Nút Đặt lại màu đen === */
+.btn-black { background: #1e293b; color: #fff; border-color: #1e293b; }
+.btn-black:hover { background: #0f172a; }
+
+/* Filter Toolbar */
+.filter-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; align-items: center; }
+.search-box { position: relative; width: 250px; }
+.search-box .icon { position: absolute; left: 10px; top: 11px; color: #94a3b8; }
+.search-box input { width: 100%; padding: 8px 10px 8px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; }
+.filter-select { padding: 0 10px; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 140px; height: 38px; cursor: pointer; }
+.btn-sm { padding: 8px 16px; font-size: 13px; height: 38px; }
+
+/* === TABLE STYLING === */
+.table-responsive { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; }
+.custom-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.custom-table th { background: #eff6ff; color: #1e40af; padding: 12px; font-weight: 700; white-space: nowrap; border-bottom: none; }
+.custom-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #334155; }
+.selected-row { background-color: #f0f9ff; }
+
+/* Utilities */
+.text-center { text-align: center !important; }
+.justify-center { justify-content: center; }
+.font-weight-bold { font-weight: 600; }
+
+/* Product Columns */
+.img-wrapper { width: 40px; height: 40px; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; margin: 0 auto; }
+.thumb-img { width: 100%; height: 100%; object-fit: cover; }
+.prod-name { font-weight: 600; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.prod-code { font-family: monospace; color: #2563eb; }
+
+/* === UPDATE: Price Column Box === */
+.price-box { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.old-price { text-decoration: line-through; color: #94a3b8; font-size: 11px; }
+.new-price { color: #dc2626; font-weight: 700; font-size: 13px; }
+.discount-badge { 
+    background-color: #ef4444; color: white; 
+    border-radius: 10px; padding: 2px 6px; 
+    font-size: 10px; font-weight: 700; 
+    display: inline-block; margin-top: 2px;
+}
+
+/* Attributes */
+.badge-size { background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #475569; font-weight: 600; }
+.color-wrapper { display: flex; align-items: center; gap: 6px; }
+.color-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid #e2e8f0; }
+
+/* === UPDATE: Pagination Style (Giống quản lý) === */
+.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 13px; color: #64748b; }
+.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 5px; margin: 0 5px; outline: none; cursor: pointer; }
+
+.page-controls { display: flex; gap: 5px; }
+.page-btn { 
+    min-width: 32px; height: 32px; 
+    border: 1px solid #e2e8f0; background: #fff; 
+    border-radius: 4px; cursor: pointer; 
+    color: #64748b; font-weight: 500;
     display: flex; align-items: center; justify-content: center;
-    transition: 0.2s;
 }
-.page-btn:hover:not(:disabled) { background: #f1f5f9; color: #2b4360; }
-.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* TABLE */
-.simple-table, .custom-table { width: 100%; border-collapse: collapse; }
-.simple-table th, .custom-table th { position: sticky; top: 0; background: #f8fafc; color: #64748b; font-weight: 600; font-size: 12px; text-transform: uppercase; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; z-index: 5; text-align: left; }
-.simple-table td, .custom-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: middle; }
-.simple-table tr:hover { background: #f8fafc; cursor: pointer; }
-.simple-table tr.row-active { background: #eff6ff; }
-.simple-table tr.row-active td:first-child { border-left: 3px solid #2b4360; } 
-
-.p-name { font-weight: 600; color: #334155; margin-bottom: 2px; }
-.p-code { font-size: 12px; color: #94a3b8; background: #f1f5f9; display: inline-block; padding: 2px 6px; border-radius: 4px; }
-.empty-text { padding: 40px; color: #94a3b8; font-style: italic; }
-
-/* BOTTOM PANEL */
-.bottom-panel { margin-top: 24px; border-top: 4px solid #2b4360; grid-column: 1 / -1; }
-.panel-header-bottom { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; }
-.text-price { font-weight: 600; color: #dc2626; }
-.variant-tag { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 6px; color: #475569; }
-.custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #2b4360; }
-.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.page-btn:hover:not(:disabled) { border-color: #0f172a; color: #0f172a; }
+.page-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #f8fafc; }
+/* Màu chữ placeholder đen xì, rõ nét */
+.input-den::placeholder {
+    color: #000000 !important;  /* Màu đen */
+    opacity: 1 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+}
 </style>

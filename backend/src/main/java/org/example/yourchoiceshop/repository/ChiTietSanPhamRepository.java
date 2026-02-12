@@ -7,17 +7,29 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import java.math.BigDecimal;
 import java.util.List;
 
+@Repository
 public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, Integer> {
+
     // Lấy tất cả con theo cha
     List<ChiTietSanPham> findBySanPhamId(Integer sanPhamId);
 
-    // Tính tổng tồn kho (Optional - để hiển thị thống kê)
+    // Tính tổng tồn kho
     @Query("SELECT SUM(c.soLuong) FROM ChiTietSanPham c WHERE c.sanPham.id = :id")
     Integer sumSoLuongBySanPhamId(@Param("id") Integer id);
 
-    @Query("SELECT ct FROM ChiTietSanPham ct WHERE ct.sanPham.id = :productId AND ct.trangThai = 1")
-    List<ChiTietSanPham> findAllBySanPhamId(@Param("productId") Integer productId);
+    // --- [THÊM MỚI] HÀM LỌC SẢN PHẨM ---
+    @Query("SELECT c FROM ChiTietSanPham c WHERE " +
+            "(:keyword IS NULL OR :keyword = '' OR c.sanPham.tenSanPham LIKE %:keyword% OR c.maCtsp LIKE %:keyword%) " +
+            "AND (:idMauSac IS NULL OR c.mauSac.id = :idMauSac) " +
+            "AND (:idKichThuoc IS NULL OR c.kichThuoc.id = :idKichThuoc) " +
+            "AND (:trangThai IS NULL OR c.trangThai = :trangThai)")
+    Page<ChiTietSanPham> searchByCriteria(
+            @Param("keyword") String keyword,
+            @Param("idMauSac") Integer idMauSac,
+            @Param("idKichThuoc") Integer idKichThuoc,
+            @Param("trangThai") Integer trangThai,
+            Pageable pageable
+    );
 }

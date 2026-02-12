@@ -1,44 +1,26 @@
 package org.example.yourchoiceshop.dto.request;
 
-import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-
+import java.util.List; // Thêm import List
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
 public class PhieuGiamGiaRequest {
-
     private String maPhieuGiamGia;
-    
     private String tenPhieuGiamGia;
-    
-    // "PhanTram" hoặc "TienMat"
-    private String loaiPhieu; 
-    
-    // "CongKhai" hoặc "CaNhan" (MỚI)
-    private String kieu; 
-    
+    private String loaiPhieu; // "PhanTram" hoặc "TienMat"
     private BigDecimal giaTriGiam;
-    
     private BigDecimal giaTriGiamToiDa;
-    
     private BigDecimal donHangToiThieu;
-    
     private Integer soLuong;
-    
     private LocalDateTime ngayBatDau;
-    
     private LocalDateTime ngayKetThuc;
-    
     private Integer trangThai;
-
-    // Danh sách ID khách hàng để gửi mail (Chỉ dùng khi kieu = "CaNhan")
-    private List<Integer> customerIds;
+    private String kieu;
+    private List<Integer> customerIds; // Danh sách ID khách hàng
 }

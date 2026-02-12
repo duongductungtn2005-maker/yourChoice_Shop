@@ -1,24 +1,89 @@
 <template>
   <div v-if="isOpen" class="modal-overlay">
     <div class="modal-content">
-      <h2 class="modal-title">Cập nhập chi tiết sản phẩm</h2>
+      <h2 class="modal-title">Cập nhật chi tiết sản phẩm</h2>
 
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-col">
-             <div class="form-group"><label>Mã <span class="text-red">*</span></label><input type="text" v-model="form.maCtsp" class="form-input" disabled></div>
-             <div class="form-group"><label>Cổ áo</label><select v-model="form.idCoAo" class="form-select"><option v-for="i in options.coAo" :value="i.id" :key="i.id">{{ i.tenCoAo }}</option></select></div>
-             <div class="form-group"><label>Tay áo</label><select v-model="form.idTayAo" class="form-select"><option v-for="i in options.tayAo" :value="i.id" :key="i.id">{{ i.tenTayAo }}</option></select></div>
-             <div class="form-group"><label>Xuất xứ</label><select v-model="form.idXuatXu" class="form-select"><option v-for="i in options.xuatXu" :value="i.id" :key="i.id">{{ i.tenXuatXu }}</option></select></div>
-             <div class="form-group"><label>Giá bán <span class="text-red">*</span></label><input type="number" v-model="form.giaBan" class="form-input"></div>
+             <div class="form-group">
+                <label>Mã <span class="text-red">*</span></label>
+                <input type="text" v-model="form.maCtsp" class="form-input" disabled>
+             </div>
+             
+             <div class="form-group">
+                <label>Cổ áo</label>
+                <select v-model="form.idCoAo" class="form-select">
+                   <option v-for="i in options.coAo" :value="i.id" :key="i.id">{{ i.tenCoAo }}</option>
+                </select>
+             </div>
+             
+             <div class="form-group">
+                <label>Tay áo</label>
+                <select v-model="form.idTayAo" class="form-select">
+                   <option v-for="i in options.tayAo" :value="i.id" :key="i.id">{{ i.tenTayAo }}</option>
+                </select>
+             </div>
+             
+             <div class="form-group">
+                <label>Xuất xứ</label>
+                <select v-model="form.idXuatXu" class="form-select">
+                   <option v-for="i in options.xuatXu" :value="i.id" :key="i.id">{{ i.tenXuatXu }}</option>
+                </select>
+             </div>
+
+             <div class="form-group">
+                <label>Giá bán <span class="text-red">*</span></label>
+                <input 
+                   type="number" 
+                   v-model="form.giaBan" 
+                   class="form-input"
+                   :class="{ 'is-invalid': errors.giaBan }"
+                   @blur="validateField('giaBan')"
+                   @input="validateField('giaBan')"
+                >
+                <span v-if="errors.giaBan" class="error-msg">{{ errors.giaBan }}</span>
+             </div>
           </div>
 
           <div class="form-col">
-             <div class="form-group"><label>Thương hiệu</label><select v-model="form.idThuongHieu" class="form-select"><option v-for="i in options.thuongHieu" :value="i.id" :key="i.id">{{ i.tenThuongHieu }}</option></select></div>
-             <div class="form-group"><label>Chất liệu</label><select v-model="form.idChatLieu" class="form-select"><option v-for="i in options.chatLieu" :value="i.id" :key="i.id">{{ i.tenChatLieu }}</option></select></div>
-             <div class="form-group"><label>Kích thước</label><select v-model="form.idKichThuoc" class="form-select"><option v-for="i in options.kichThuoc" :value="i.id" :key="i.id">{{ i.tenKichThuoc }}</option></select></div>
-             <div class="form-group"><label>Màu sắc</label><select v-model="form.idMauSac" class="form-select"><option v-for="i in options.mauSac" :value="i.id" :key="i.id">{{ i.tenMauSac }}</option></select></div>
-             <div class="form-group"><label>Số lượng tồn <span class="text-red">*</span></label><input type="number" v-model="form.soLuong" class="form-input"></div>
+             <div class="form-group">
+                <label>Thương hiệu</label>
+                <select v-model="form.idThuongHieu" class="form-select">
+                   <option v-for="i in options.thuongHieu" :value="i.id" :key="i.id">{{ i.tenThuongHieu }}</option>
+                </select>
+             </div>
+             <div class="form-group">
+                <label>Chất liệu</label>
+                <select v-model="form.idChatLieu" class="form-select">
+                   <option v-for="i in options.chatLieu" :value="i.id" :key="i.id">{{ i.tenChatLieu }}</option>
+                </select>
+             </div>
+             <div class="form-group">
+                <label>Kích thước</label>
+                <select v-model="form.idKichThuoc" class="form-select">
+                   <option v-for="i in options.kichThuoc" :value="i.id" :key="i.id">{{ i.tenKichThuoc }}</option>
+                </select>
+             </div>
+             <div class="form-group">
+                <label>Màu sắc</label>
+                <select v-model="form.idMauSac" class="form-select">
+                   <option v-for="i in options.mauSac" :value="i.id" :key="i.id">{{ i.tenMauSac }}</option>
+                </select>
+             </div>
+
+             <div class="form-group">
+                <label>Số lượng tồn <span class="text-red">*</span></label>
+                <input 
+                   type="number" 
+                   v-model="form.soLuong" 
+                   class="form-input"
+                   :class="{ 'is-invalid': errors.soLuong }"
+                   @blur="validateField('soLuong')"
+                   @input="validateField('soLuong')"
+                >
+                <span v-if="errors.soLuong" class="error-msg">{{ errors.soLuong }}</span>
+             </div>
           </div>
         </div>
 
@@ -30,7 +95,6 @@
         <div class="media-section">
             <label class="label-img">Hình ảnh & QR biến thể:</label>
             <div class="media-row">
-                
                 <div class="box-qr">
                     <QrcodeVue 
                         v-if="form.maCtsp" 
@@ -59,7 +123,10 @@
 
       <div class="modal-footer">
          <button class="btn btn-close" @click="$emit('close')">Đóng</button>
-         <button class="btn btn-save" @click="save">Lưu thay đổi</button>
+         <button class="btn btn-save" @click="save" :disabled="loading">
+            <font-awesome-icon v-if="loading" :icon="['fas', 'spinner']" spin />
+            {{ loading ? 'Đang lưu...' : 'Lưu thay đổi' }}
+         </button>
       </div>
     </div>
   </div>
@@ -68,15 +135,19 @@
 <script setup>
 import { reactive, watch, ref } from 'vue';
 import axios from 'axios';
-// IMPORT THƯ VIỆN QR
 import QrcodeVue from 'qrcode.vue';
+import Swal from 'sweetalert2';
+// 1. Import Toast Utils
+import { validate } from '@/utils/validate';
+import { toastSuccess, toastError, Toast } from '@/utils/toast';
 
 const props = defineProps(['isOpen', 'variantData', 'parentData', 'options']);
-const emit = defineEmits(['close', 'save']);
+const emit = defineEmits(['close', 'save']); // Event 'save' dùng để reload lại bảng ở cha
 const API_URL = 'http://localhost:8080/api/v1'; 
 
 const fileInput = ref(null);
 const uploading = ref(false);
+const loading = ref(false); // State loading khi lưu
 
 const form = reactive({
     id: null, maCtsp: '', 
@@ -86,14 +157,41 @@ const form = reactive({
     listAnh: [] 
 });
 
-// WATCH
+// State lỗi
+const errors = reactive({
+    giaBan: null,
+    soLuong: null
+});
+
+// Logic Validate
+const validateField = (field) => {
+    if (field === 'giaBan') {
+        errors.giaBan = validate.isRequired(form.giaBan) || validate.isPositiveNumber(form.giaBan);
+    }
+    if (field === 'soLuong') {
+        errors.soLuong = validate.isRequired(form.soLuong) || (Number(form.soLuong) < 0 ? 'Số lượng không được âm' : null);
+    }
+};
+
+const isFormValid = () => {
+    validateField('giaBan');
+    validateField('soLuong');
+    return !errors.giaBan && !errors.soLuong;
+};
+
+// Map dữ liệu khi mở Modal
 watch(() => props.isOpen, (newVal) => {
     if (newVal && props.variantData) {
+        // Reset lỗi
+        errors.giaBan = null;
+        errors.soLuong = null;
+        loading.value = false;
+
         const val = props.variantData;
         const parent = props.parentData || {}; 
 
         form.id = val.id;
-        form.maCtsp = val.maCtsp; // QR sẽ tự động sinh ra từ mã này
+        form.maCtsp = val.maCtsp;
         form.giaBan = val.giaBan;
         form.giaNhap = val.giaNhap;
         form.soLuong = val.soLuong;
@@ -103,6 +201,7 @@ watch(() => props.isOpen, (newVal) => {
         
         form.listAnh = val.listAnh ? [...val.listAnh] : [];
 
+        // Map các thuộc tính cha
         const th = props.options.thuongHieu?.find(o => o.tenThuongHieu === parent.tenThuongHieu);
         form.idThuongHieu = th ? th.id : null;
         const cl = props.options.chatLieu?.find(o => o.tenChatLieu === parent.tenChatLieu);
@@ -117,7 +216,7 @@ watch(() => props.isOpen, (newVal) => {
     }
 });
 
-// UPLOAD ẢNH
+// Upload Ảnh
 const triggerFileInput = () => { fileInput.value.click(); };
 
 const handleUploadImage = async (event) => {
@@ -135,7 +234,7 @@ const handleUploadImage = async (event) => {
         form.listAnh.push(res.data.url);
     } catch (e) {
         console.error("Lỗi upload:", e);
-        alert("Lỗi upload ảnh! Vui lòng thử lại.");
+        toastError("Lỗi upload ảnh! Vui lòng thử lại.");
     } finally {
         uploading.value = false;
         event.target.value = '';
@@ -143,7 +242,44 @@ const handleUploadImage = async (event) => {
 };
 
 const removeImage = (index) => { form.listAnh.splice(index, 1); };
-const save = () => { emit('save', form); };
+
+// --- HÀM LƯU (CẬP NHẬT) ---
+// File: ProductDetailEditModal.vue
+
+const save = async () => { 
+    // 1. Check Validate
+    if (!isFormValid()) {
+        Toast.fire({
+            icon: 'warning',
+            title: 'Dữ liệu không hợp lệ',
+            text: 'Vui lòng kiểm tra lại giá bán và số lượng.'
+        });
+        return; 
+    }
+
+    loading.value = true;
+    try {
+        // 2. Gọi API Update
+        await axios.put(`${API_URL}/chi-tiet-san-pham/${form.id}`, form);
+
+        // 3. Thông báo thành công
+        toastSuccess('Cập nhật thành công!');
+
+        // --- SỬA DÒNG NÀY ---
+        // Cũ: emit('save');  <-- Sai: Không gửi dữ liệu về cha
+        // Mới: Gửi biến 'form' về để cha biết dòng nào vừa sửa xong
+        emit('save', form); 
+        
+        // Đóng modal
+        emit('close');
+
+    } catch (e) {
+        console.error(e);
+        toastError(e.response?.data?.message || 'Lỗi cập nhật sản phẩm');
+    } finally {
+        loading.value = false;
+    }
+};
 </script>
 
 <style scoped>
@@ -155,14 +291,18 @@ const save = () => { emit('save', form); };
 .form-group { margin-bottom: 12px; display: flex; flex-direction: column; }
 .form-group label { font-weight: 600; font-size: 13px; margin-bottom: 5px; color: #334155; }
 .text-red { color: red; }
-.form-input, .form-select { padding: 9px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-size: 14px; width: 100%; }
+.form-input, .form-select { padding: 9px; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-size: 14px; width: 100%; transition: 0.2s; }
+.form-input:focus, .form-select:focus { border-color: #0f172a; }
 .form-input:disabled { background: #f1f5f9; color: #64748b; }
 .form-area { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; height: 70px; resize: none; width: 100%; outline: none; }
 .mt-3 { margin-top: 15px; }
 .modal-footer { display: flex; justify-content: center; gap: 15px; margin-top: 25px; border-top: 1px solid #f1f5f9; padding-top: 20px; }
-.btn { padding: 9px 25px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; font-size: 14px; }
-.btn-close { background: #334155; color: #fff; }
-.btn-save { background: #fff; border: 2px solid #334155; color: #334155; }
+.btn { padding: 9px 25px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
+.btn-close { background: #fff; border: 1px solid #334155; color: #334155; }
+.btn-close:hover { background: #f8fafc; }
+.btn-save { background: #0f172a; color: #fff; }
+.btn-save:hover { background: #1e293b; }
+.btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
 
 /* CSS Media */
 .media-section { margin-top: 20px; }
@@ -178,7 +318,7 @@ const save = () => { emit('save', form); };
     background: #f8fafc; 
     overflow: hidden; 
     position: relative;
-    padding: 2px; /* Thêm padding để QR ko dính viền */
+    padding: 2px;
 }
 .box-qr { font-size: 11px; color: #64748b; text-align: center; border-style: solid; background: #fff; }
 
@@ -190,6 +330,10 @@ const save = () => { emit('save', form); };
 .box-add { cursor: pointer; color: #94a3b8; font-size: 18px; transition: all 0.2s; }
 .box-add:hover { border-color: #2563eb; color: #2563eb; background: #fff; }
 .no-img-text { font-size: 13px; color: #94a3b8; font-style: italic; margin-left: 10px; margin-top: 5px; }
+
+/* CSS Validate */
+.is-invalid { border-color: #ef4444 !important; background-color: #fef2f2; }
+.error-msg { color: #ef4444; font-size: 12px; margin-top: 4px; text-align: left; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 </style>

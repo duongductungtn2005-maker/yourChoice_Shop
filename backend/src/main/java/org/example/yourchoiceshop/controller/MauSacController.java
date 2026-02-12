@@ -12,13 +12,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.io.ByteArrayInputStream;
+import java.util.List;
+
+import org.example.yourchoiceshop.repository.MauSacRepository; // Import Repo
 @RestController
 @RequestMapping("/api/v1/mau-sac")
 @RequiredArgsConstructor
 @CrossOrigin("*")
 public class MauSacController {
     private final MauSacServiceImpl service;
-
+    private final MauSacRepository repository; // 1. Tiêm thêm Repository
     @GetMapping
     public ResponseEntity<Page<MauSac>> getAll(
             @RequestParam(defaultValue = "0") int page,
@@ -53,5 +56,14 @@ public class MauSacController {
                 .headers(headers)
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(new InputStreamResource(in));
+    }
+    @GetMapping("/list")
+    public ResponseEntity<List<MauSac>> getListForDropdown(
+            @RequestParam(required = false) Integer trangThai
+    ) {
+        if (trangThai != null) {
+            return ResponseEntity.ok(repository.findAllByTrangThai(trangThai));
+        }
+        return ResponseEntity.ok(repository.findAll());
     }
 }

@@ -1,390 +1,472 @@
 <template>
-  <div class="orders-page">
-    <!-- Header -->
-    <div class="page-header">
-      <h2>Quản lý đơn hàng</h2>
-      <div class="actions">
-        <button class="btn-outline">📷 Quét mã</button>
+  <div class="page-container">
+    <h1 class="page-title">Quản lý đơn hàng</h1>
+
+    <div class="control-panel">
+      <div class="controls-row">
+        <div class="filter-group">
+          <div class="search-box">
+            <i class="fas fa-magnifying-glass search-icon"></i>
+            <input 
+              class="input-den"
+              type="text" 
+              v-model="filter.keyword" 
+              placeholder="Tìm mã đơn, tên khách..." 
+              @keyup.enter="fetchData"
+            >
+          </div>
+
+          <div class="date-group">
+            <input type="date" class="form-control-date" v-model="filter.fromDate" @change="fetchData" />
+            <span class="arrow">➜</span>
+            <input type="date" class="form-control-date" v-model="filter.toDate" @change="fetchData" />
+          </div>
+
+          <div class="radio-group">
+            <label class="radio-item">
+              <input type="radio" value="" v-model="filter.orderType" @change="fetchData"> 
+              <span>Tất cả</span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" value="Trực tuyến" v-model="filter.orderType" @change="fetchData"> 
+              <span>Online</span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" value="Tại quầy" v-model="filter.orderType" @change="fetchData"> 
+              <span>Tại quầy</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="action-group">
+          <button class="btn btn-navy" @click="resetFilter">
+            <i class="fas fa-sync-alt"></i> Đặt lại
+          </button>
+          <button class="btn btn-outline" @click="handleExportExcel">
+            <font-awesome-icon :icon="['fas','file-excel']" /> Xuất Excel
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Filters -->
-    <div class="filter-box">
-      <input class="input" placeholder="Tìm kiếm hóa đơn" v-model="keyword" />
-      <input type="date" class="input" v-model="fromDate" />
-      <input type="date" class="input" v-model="toDate" />
+    <div class="table-container">
+      
+      <div class="table-header-section">
+          <div class="section-title">
+              <div class="icon-title"><i class="fas fa-file-invoice"></i></div>
+              <div class="text-title">
+                  <h3>Danh sách hóa đơn</h3>
+                  <span class="sub-text">Lọc nhanh theo trạng thái</span>
+              </div>
+          </div>
 
-      <div class="radio-group">
-        <label>
-          <input type="radio" value="ALL" v-model="orderType" />
-          Tất cả
-        </label>
-
-        <label>
-          <input type="radio" value="Trực tuyến" v-model="orderType" />
-          Trực tuyến
-        </label>
-
-        <label>
-          <input type="radio" value="Tại quầy" v-model="orderType" />
-          Tại quầy
-        </label>
+          <div class="status-tabs">
+            <button 
+                v-for="(label, key) in STATUS_TABS" 
+                :key="key" 
+                :class="['tab-btn', { 'active-gradient': filter.activeTab === key }]" 
+                @click="changeTab(key)"
+            >
+                {{ label }}
+            </button>
+          </div>
       </div>
 
-
-      <!-- <button class="btn-outline">⬇ Xuất Excel</button> -->
-    </div>
-
-    <!-- Tabs -->
-    <div class="tabs">
-      <span v-for="tab in tabs" :key="tab" :class="['tab', { active: tab === activeTab }]" @click="activeTab = tab">
-        {{ tab }}
-      </span>
-    </div>
-
-    <!-- Table -->
-    <div class="table-wrapper">
-      <table>
+      <table class="custom-table">
         <thead>
           <tr>
-            <th>STT</th>
-            <th>Mã</th>
-            <th>Tổng SP</th>
-            <th>Tổng số tiền</th>
-            <th>Tên khách hàng</th>
-            <th>Ngày tạo</th>
-            <th>Loại hóa đơn</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
+            <th width="5%">STT</th>
+            <th width="10%">Mã HĐ</th>
+            <th width="8%">Số SP</th>
+            <th width="12%">Tổng tiền</th>
+            <th width="15%">Khách hàng</th>
+            <th width="12%">Ngày tạo</th>
+            <th width="10%">Loại</th>
+            <th width="15%">Trạng thái</th>
+            <th width="8%">Chi tiết</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(order, index) in paginatedOrders" :key="order.code">
+          <tr v-if="loading">
+            <td colspan="9" class="empty-state">Đang tải dữ liệu...</td>
+          </tr>
+          <tr v-else-if="orders.length === 0">
+            <td colspan="9" class="empty-state">Không tìm thấy đơn hàng nào.</td>
+          </tr>
+
+          <tr v-else v-for="(order, index) in orders" :key="order.maHoaDon">
             <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-            <td>{{ order.code }}</td>
-            <td>{{ order.totalItems }}</td>
-            <td>{{ order.totalPrice }}</td>
-            <td>{{ order.customer }}</td>
-            <td>{{ order.createdAt }}</td>
+            <td class="code-text">{{ order.maHoaDon }}</td>
+            <td>{{ order.tongSanPham }}</td>
+            <td class="text-price">{{ formatMoney(order.tongTienSauGiam) }}</td>
+            
             <td>
-              <span class="badge" :class="order.type === 'Trực tuyến' ? 'green' : 'blue'">
-                {{ order.type }}
+              <div class="customer-info">
+                {{ order.tenKhachHang || 'Khách lẻ' }}
+              </div>
+            </td>
+            
+            <td class="time-col">{{ formatDate(order.ngayTao) }}</td>
+            
+            <td>
+              <span class="badge-type-lg" :class="order.loaiHoaDon === 'Trực tuyến' ? 'bg-purple' : 'bg-blue'">
+                {{ order.loaiHoaDon === 'Trực tuyến' ? 'Online' : 'Tại quầy' }}
               </span>
             </td>
+            
             <td>
-              <span v-if="STATUS_INFO[order.status]" class="badge" :class="STATUS_INFO[order.status].class">
-                {{ STATUS_INFO[order.status].text }}
-              </span>
-
-              <span v-else class="badge gray">
-                Không xác định
+              <span class="badge-status" :class="getStatusClass(order.trangThai)">
+                {{ getStatusText(order.trangThai) }}
               </span>
             </td>
-
-
-            <td>
-              <router-link :to="{ name: 'admin-order-detail', params: { id: order.code } }" class="submenu-item">
-                ✏️
-              </router-link>
+            
+            <td class="action-col">
+              <div class="action-wrapper">
+                <router-link 
+                  :to="{ name: 'admin-order-detail', params: { id: order.maHoaDon } }" 
+                  class="icon-btn" 
+                  title="Xem chi tiết"
+                >
+                  <i class="far fa-eye"></i> 
+                </router-link>
+              </div>
             </td>
           </tr>
         </tbody>
       </table>
-      <div class="pagination">
-        <button class="btn-outline" :disabled="currentPage === 1" @click="currentPage--">
-          ◀
-        </button>
 
-        <span>
-          Trang {{ currentPage }} / {{ totalPages }}
-        </span>
-
-        <button class="btn-outline" :disabled="currentPage === totalPages" @click="currentPage++">
-          ▶
-        </button>
+      <div class="pagination-footer">
+        <div class="page-info">
+          Hiển thị 
+          <select v-model="pageSize" @change="handlePageSizeChange">
+            <option :value="5">5</option>
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+          </select> 
+          kết quả / trang
+        </div>
+        <div class="page-controls">
+          <button :disabled="currentPage === 1" @click="changePage(currentPage - 1)">‹</button>
+          <button 
+            v-for="p in visiblePages" 
+            :key="p" 
+            :class="{ active: p === currentPage }" 
+            @click="changePage(p)"
+          >
+            {{ p }}
+          </button>
+          <button :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">›</button>
+        </div>
       </div>
-
     </div>
+
+    <div v-if="showScanModal" class="modal-overlay" @click.self="closeScanModal">
+      <div class="modal-content scan-modal">
+        <div class="modal-header">
+          <h3 style="margin:0">Quét mã QR Hóa đơn</h3>
+          <button @click="closeScanModal" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div id="qr-reader" style="width: 100%;"></div>
+          <p class="scan-hint">Di chuyển camera vào mã QR trên hóa đơn</p>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue'
-import { fetchOrders } from '@/api/HoaDonApi'
+import { ref, onMounted, nextTick, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { fetchOrders, exportOrders } from '@/api/HoaDonApi'
+import { Html5QrcodeScanner } from "html5-qrcode"
+import Swal from 'sweetalert2'
 
-/* ================== DATA ================== */
-const allOrders = ref([])
+const router = useRouter()
 const orders = ref([])
-
-const activeTab = ref('TẤT CẢ')
-const keyword = ref('')
-const fromDate = ref(null)
-const toDate = ref(null)
-const orderType = ref('ALL')
-
-/* ================== PAGINATION ================== */
+const loading = ref(false)
 const currentPage = ref(1)
-const pageSize = ref(5)
+const pageSize = ref(10)
+const totalPages = ref(1)
+const filter = ref({ keyword: '', fromDate: '', toDate: '', orderType: '', activeTab: 'ALL' })
+const showScanModal = ref(false)
+let html5QrcodeScanner = null 
 
-const totalPages = computed(() => {
-  const total = Math.ceil(orders.value.length / pageSize.value)
-  return total > 0 ? total : 1
-})
-
-
-const paginatedOrders = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return orders.value.slice(start, end)
-})
-
-/* ================== CONST ================== */
-const tabs = [
-  'TẤT CẢ',
-  'ĐÃ HỦY',
-  'CHỜ XÁC NHẬN',
-  'CHỜ GIAO HÀNG',
-  'ĐANG VẬN CHUYỂN',
-  'HOÀN THÀNH'
-]
-
-const STATUS_MAP = {
-  'TẤT CẢ': null,
-  'ĐÃ HỦY': 0,
-  'CHỜ XÁC NHẬN': 1,
-  'CHỜ GIAO HÀNG': 2,
-  'ĐANG VẬN CHUYỂN': 3,
-  'HOÀN THÀNH': 4
+// --- LOGIC ---
+const resetFilter = () => {
+    filter.value = { keyword: '', fromDate: '', toDate: '', orderType: '', activeTab: 'ALL' };
+    currentPage.value = 1;
+    fetchData();
 }
 
-const STATUS_INFO = {
-  0: { text: 'Đã hủy', class: 'red' },
-  1: { text: 'Chờ xác nhận', class: 'yellow' },
-  2: { text: 'Chờ giao hàng', class: 'blue' },
-  3: { text: 'Đang vận chuyển', class: 'purple' },
-  4: { text: 'Hoàn thành', class: 'green' }
+const openScanModal = () => {
+    showScanModal.value = true;
+    nextTick(() => { startScanner(); });
 }
 
-/* ================== METHODS ================== */
-const loadOrders = async () => {
-  const res = await fetchOrders()
-  allOrders.value = res.data.content.map(o => ({
-    code: o.maHoaDon,
-    totalItems: o.tongSanPham,
-    totalPrice: o.tongTienSauGiam,
-    customer: o.tenKhachHang,
-    createdAt: o.ngayTao,
-    type: o.loaiHoaDon,
-    status: o.trangThai
-  }))
-  applyFilter()
+const closeScanModal = () => {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(error => console.error("Failed to clear html5QrcodeScanner. ", error));
+    }
+    showScanModal.value = false;
 }
 
-const applyFilter = () => {
-  let result = [...allOrders.value]
-
-  if (keyword.value.trim()) {
-    const kw = keyword.value.toLowerCase()
-    result = result.filter(o =>
-      o.code.toLowerCase().includes(kw) ||
-      o.customer.toLowerCase().includes(kw)
-    )
-  }
-
-  if (fromDate.value) {
-    result = result.filter(o => new Date(o.createdAt) >= new Date(fromDate.value))
-  }
-
-  if (toDate.value) {
-    result = result.filter(o => new Date(o.createdAt) <= new Date(toDate.value))
-  }
-
-  const status = STATUS_MAP[activeTab.value]
-  if (status !== null) {
-    result = result.filter(o => o.status === status)
-  }
-
-  if (orderType.value !== 'ALL') {
-    result = result.filter(o => o.type === orderType.value)
-  }
-
-  orders.value = result
+const startScanner = () => {
+    html5QrcodeScanner = new Html5QrcodeScanner( "qr-reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false );
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 }
 
-/* ================== WATCH ================== */
-watch(
-  [keyword, fromDate, toDate, orderType, activeTab],
-  () => {
-    currentPage.value = 1
-    applyFilter()
+const onScanSuccess = (decodedText, decodedResult) => {
+    closeScanModal();
+    if(decodedText) {
+        router.push({ name: 'admin-order-detail', params: { id: decodedText } });
+    }
+}
+
+const onScanFailure = (error) => {}
+
+const handleExportExcel = async () => {
+  const result = await Swal.fire({
+    title: 'Xác nhận',
+    text: 'Bạn có muốn tải xuống danh sách đơn hàng không?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Có',
+    cancelButtonText: 'Hủy'
+  });
+  if (!result.isConfirmed) return;
+
+  try {
+    const params = {
+      keyword: filter.value.keyword,
+      type: filter.value.orderType || null,
+      fromDate: filter.value.fromDate || null,
+      toDate: filter.value.toDate || null,
+      status: filter.value.activeTab === 'ALL' ? null : filter.value.activeTab
+    }
+    const response = await exportOrders(params);
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    const fileName = `DanhSachDonHang_${new Date().toISOString().slice(0,10)}.xlsx`;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+    Toast.fire({ icon: 'success', title: 'Xuất Excel thành công' });
+  } catch (error) {
+    console.error(error);
+    Swal.fire('Lỗi', error.response?.data?.message || 'Lỗi hệ thống', 'error');
   }
-)
+}
 
+const fetchData = async () => {
+    loading.value = true;
+    try {
+        const params = {
+            page: currentPage.value,
+            size: pageSize.value,
+            keyword: filter.value.keyword,
+            type: filter.value.orderType || null,
+            fromDate: filter.value.fromDate || null,
+            toDate: filter.value.toDate || null,
+            status: filter.value.activeTab === 'ALL' ? null : filter.value.activeTab
+        }
+        const res = await fetchOrders(params);
+        orders.value = res.data.content;
+        totalPages.value = res.data.totalPages > 0 ? res.data.totalPages : 1;
+    } catch (error) {
+        console.error("Lỗi:", error);
+        orders.value = [];
+    } finally {
+        loading.value = false;
+    }
+}
+const changeTab = (key) => { filter.value.activeTab = key; currentPage.value = 1; fetchData(); }
+const changePage = (page) => { if (page >= 1 && page <= totalPages.value) { currentPage.value = page; fetchData(); } }
+const handlePageSizeChange = () => { currentPage.value = 1; fetchData(); }
 
+const visiblePages = computed(() => {
+    const pages = [];
+    for (let i = 1; i <= totalPages.value; i++) {
+        if (i === 1 || i === totalPages.value || (i >= currentPage.value - 1 && i <= currentPage.value + 1)) {
+            pages.push(i);
+        }
+    }
+    return pages;
+});
+const formatMoney = (val) => val ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val) : '0 đ';
+const formatDate = (val) => {
+  if (!val) return '';
+  let date = Array.isArray(val) ? new Date(val[0], val[1] - 1, val[2], val[3]||0, val[4]||0) : new Date(val);
+  return isNaN(date.getTime()) ? '' : date.toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
 
-/* ================== MOUNT ================== */
-onMounted(loadOrders)
+// Cấu hình Tabs & Trạng thái
+const STATUS_TABS = { 
+    'ALL': 'Tất cả', 
+    '1': 'Chờ xác nhận', 
+    '2': 'Chờ giao hàng', 
+    '3': 'Đang vận chuyển', 
+    '4': 'Hoàn thành', 
+    '0': 'Đã hủy'
+}
+
+const STATUS_CONFIG = { 
+    0: {text:'Đã hủy', class:'st-red'}, 
+    1: {text:'Chờ xác nhận', class:'st-yellow'}, 
+    2: {text:'Chờ giao', class:'st-blue'}, 
+    3: {text:'Đang giao', class:'st-orange'}, 
+    4: {text:'Hoàn thành', class:'st-green'},
+    5: {text:'Đã thanh toán', class:'st-purple'},
+    6: {text:'Hoàn trả', class:'st-gray'}
+}
+const getStatusText = (s) => STATUS_CONFIG[s]?.text || 'Khác';
+const getStatusClass = (s) => STATUS_CONFIG[s]?.class || 'st-gray';
+
+onMounted(() => { fetchData(); })
 </script>
 
-
-
 <style scoped>
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
+/* === GLOBAL === */
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; color: #333; font-size: 14px; }
+.page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
+
+/* === CARDS === */
+.control-panel, .table-container { 
+    background: white; border-radius: 16px; border: 1px solid #bfdbfe !important; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; padding: 24px; 
+}
+.table-container { padding: 0; overflow: hidden; }
+
+/* === HEADER SECTION TRONG BẢNG (MỚI) === */
+.table-header-section {
+    padding: 20px 24px 10px 24px;
+    border-bottom: 1px solid #f1f5f9;
 }
 
-.badge.red {
-  background: #fee2e2;
-  color: #991b1b;
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
 }
 
-.badge.yellow {
-  background: #fef9c3;
-  color: #854d0e;
+.icon-title {
+    width: 40px; height: 40px;
+    background: #ffe4e6; /* Đỏ nhạt */
+    color: #e11d48; /* Đỏ đậm */
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
 }
 
-.badge.blue {
-  background: #e0f2fe;
-  color: #0369a1;
+.text-title h3 { margin: 0; font-size: 16px; font-weight: 700; color: #0f172a; }
+.sub-text { font-size: 13px; color: #64748b; }
+
+/* === TABS STYLE (MỚI: Dạng Pill, Gradient Active) === */
+.status-tabs { 
+    display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; 
 }
 
-.badge.purple {
-  background: #ede9fe;
-  color: #5b21b6;
+.tab-btn { 
+    padding: 8px 20px; 
+    border: 1px solid #e2e8f0; 
+    background: #fff; 
+    border-radius: 30px; /* Bo tròn kiểu viên thuốc */
+    color: #64748b; 
+    font-weight: 600; 
+    font-size: 13px; 
+    cursor: pointer; 
+    transition: all 0.2s; 
+    white-space: nowrap; 
+}
+.tab-btn:hover { background: #f1f5f9; color: #0f172a; }
+
+/* Active: Gradient Xanh Đen */
+.tab-btn.active-gradient { 
+    background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); 
+    color: #fff; 
+    border-color: transparent; 
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); 
 }
 
-.badge.green {
-  background: #dcfce7;
-  color: #166534;
-}
+/* === FILTERS === */
+.controls-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+.filter-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.action-group { display: flex; gap: 10px; }
 
-
-.orders-page {
-  background: #f1f5f9;
+.search-box { position: relative; width: 250px; }
+.search-icon { position: absolute; left: 12px; top: 11px; color: #94a3b8; }
+.search-box input { 
+    width: 100%; padding: 8px 10px 8px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; height: 40px;
+    font-weight: 700; color: #0f172a;
 }
+.search-box input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
 
-/* Header */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
+.date-group { display: flex; align-items: center; gap: 8px; }
+.form-control-date { height: 40px; padding: 0 10px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; color: #334155; }
+.arrow { color: #94a3b8; font-size: 12px; }
 
-.actions {
-  display: flex;
-  gap: 8px;
-}
+.radio-group { display: flex; gap: 15px; margin-left: 10px; }
+.radio-item { display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 500; color: #475569; }
+.radio-item input { width: 16px; height: 16px; cursor: pointer; accent-color: #0f172a; }
 
-/* Filters */
-.filter-box {
-  background: #fff;
-  padding: 16px;
-  border-radius: 12px;
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
+/* === BUTTONS === */
+.btn { height: 40px; padding: 0 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.btn-outline { background: #ffffff; border: 1px solid #e2e8f0; color: #475569; }
+.btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+.btn-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); }
+.btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
+.btn-orange { background: #f97316; color: #ffffff; border: 1px solid #f97316; }
+.btn-orange:hover { background: #ea580c; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3); }
+.btn-navy { background-color: #0f172a; color: #fff; box-shadow: 0 4px 6px rgba(15, 23, 42, 0.2); }
+.btn-navy:hover { background-color: #1e293b; transform: translateY(-1px); }
 
-.input {
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
+/* === TABLE === */
+.custom-table { width: 100%; border-collapse: collapse; }
+.custom-table th { background: #eff6ff !important; color: #1e40af; padding: 16px; text-align: center; font-weight: 700; text-transform: uppercase; border-bottom: none !important; }
+.custom-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; text-align: center !important; }
 
-.radio-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+.text-code { color: #2563eb; font-weight: 600; font-family: monospace; font-size: 13px; }
+.text-price { color: #ef4444; font-weight: 700; }
 
-/* Buttons */
-.btn-primary {
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-}
+/* === BADGES === */
+.badge-status { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.st-green { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+.st-red { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.st-yellow { background: #fef9c3; color: #854d0e; border-color: #fde68a; }
+.st-blue { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+.st-orange { background: #ffedd5; color: #c2410c; border-color: #fed7aa; }
+.st-purple { background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe; }
+.st-gray { background: #f3f4f6; color: #4b5563; border-color: #e5e7eb; }
 
-.btn-outline {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-}
+/* BADGE TYPE LARGE (TO HƠN) */
+.badge-type-lg { font-size: 12px; padding: 6px 14px; border-radius: 20px; font-weight: 600; display: inline-block; }
+.bg-purple { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
+.bg-blue { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
 
-/* Tabs */
-.tabs {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 12px;
-  font-size: 14px;
-}
+/* ACTIONS */
+.action-wrapper { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.icon-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; color: #64748b; text-decoration: none; }
+.icon-btn:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
 
-.tab {
-  cursor: pointer;
-  color: #64748b;
-  padding-bottom: 6px;
-}
+/* PAGINATION */
+.pagination-footer { display: flex; justify-content: space-between; align-items: center; padding: 15px 24px; border-top: 1px solid #f1f5f9; }
+.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 5px; margin: 0 5px; }
+.page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; }
+.page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
 
-.tab.active {
-  color: #2563eb;
-  border-bottom: 2px solid #2563eb;
-}
-
-/* Table */
-.table-wrapper {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  padding: 12px;
-  border-bottom: 1px solid #e2e8f0;
-  text-align: left;
-  font-size: 14px;
-}
-
-th {
-  background: #f8fafc;
-  color: #475569;
-}
-
-/* Badges */
-.badge {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.badge.blue {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.badge.green {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.badge.yellow {
-  background: #fef9c3;
-  color: #854d0e;
-}
+/* MODAL SCANNER */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.modal-content.scan-modal { background: white; width: 500px; padding: 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+.modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+.close-btn { border: none; background: none; font-size: 20px; cursor: pointer; color: #64748b; }
+.scan-hint { text-align: center; margin-top: 10px; color: #64748b; font-size: 13px; font-style: italic; }
+.empty-state { padding: 40px; color: #64748b; font-style: italic; text-align: center !important; }
+.input-den::placeholder { color: #000000 !important; opacity: 1 !important; font-weight: 500; }
 </style>
