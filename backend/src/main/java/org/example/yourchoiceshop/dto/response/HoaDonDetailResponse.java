@@ -7,14 +7,12 @@ import java.util.List;
 
 @Data
 public class HoaDonDetailResponse {
-    // Dành cho màn chi tiết (ChiTietDonHang.vue)
     private String maHoaDon;
     private String tenKhachHang;
     private String loaiHoaDon;
     private Integer trangThai;
     private LocalDateTime ngayTao;
 
-    // Thông tin tài chính
     private BigDecimal tongTien;
     private BigDecimal giamGia;
     private BigDecimal phiVanChuyen;
