@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <h1 class="page-title">Quản lý tài khoản / Quản lý nhân viên</h1>
+    <h1 class="page-title">Quản lý nhân viên</h1>
 
     <div class="control-panel">
       <div class="controls-row">
@@ -15,7 +15,6 @@
               @keyup.enter="fetchEmployees"
             >
           </div>
-
           <select v-model="filters.role" @change="handleFilterChange" class="form-select">
             <option :value="null">-- Chức vụ --</option>
             <option :value="'ADMIN'">Admin</option>
@@ -43,6 +42,7 @@
           </button>
         </div>
       </div>
+      
     </div>
 
     <div class="table-container">
@@ -53,8 +53,9 @@
             <th width="8%" class="text-center">Ảnh</th>
             <th width="10%">Mã NV</th>
             <th width="15%">Họ tên</th>
-            <th width="15%">Email</th>
             <th width="10%">SĐT</th>
+            <th width="15%">Email</th>
+            
             <th width="15%">Địa chỉ</th>
             <th class="text-center" width="10%">Chức vụ</th>
             <th class="text-center" width="10%">Trạng thái</th>
@@ -84,8 +85,9 @@
 
             <td class="code-text">{{ emp.maNhanVien }}</td>
             <td class="name-text">{{ emp.tenNhanVien }}</td>
-            <td class="text-gray">{{ emp.email }}</td>
             <td>{{ emp.soDienThoai }}</td>
+            <td class="text-gray">{{ emp.email }}</td>
+            
             
             <td class="text-address">
               <span class="truncate-text" :title="formatAddress(emp.diaChi)">
@@ -107,10 +109,6 @@
 
             <td class="text-center action-col">
               <div class="action-wrapper">
-                <button class="icon-btn" @click="editEmployee(emp)" title="Xem chi tiết">
-                  <i class="far fa-eye"></i>
-                </button>
-
                 <label class="switch" title="Bật/Tắt trạng thái">
                   <input 
                     type="checkbox" 
@@ -119,6 +117,9 @@
                   >
                   <span class="slider round"></span>
                 </label>
+                <button class="icon-btn" @click="editEmployee(emp)" title="Xem chi tiết">
+                  <i class="far fa-eye"></i>
+                </button>
               </div>
             </td>
           </tr>
@@ -306,11 +307,11 @@ onMounted(() => { fetchEmployees(); });
 
 /* FLEX LAYOUT */
 .controls-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
-.filter-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.filter-group { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
 .action-group { display: flex; gap: 10px; }
 
 /* INPUTS & SEARCH */
-.search-box { position: relative; width: 250px; }
+.search-box {  position: relative; width: 250px; }
 .search-icon { position: absolute; left: 12px; top: 11px; color: #94a3b8; }
 .search-box input { width: 100%; padding: 8px 10px 8px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; height: 40px; }
 .search-box input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
@@ -336,23 +337,52 @@ onMounted(() => { fetchEmployees(); });
 /* TABLE STYLES */
 .custom-table { width: 100%; border-collapse: collapse; }
 .custom-table th {
-    background: #eff6ff !important; color: #1e40af; padding: 16px; text-align: left;
-     font-weight: 700; text-transform: uppercase; border-bottom: none !important; white-space: nowrap;
+    background: #f5f5f5 !important; color: #000000; padding: 16px; text-align: left;
+     font-weight: 700; text-transform: uppercase; border-bottom: 1px solid #e2e8f0 !important; white-space: nowrap;
 }
 .custom-table th.text-center { text-align: center; }
 .custom-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-size: 14px; }
 
 .text-center { text-align: center; }
-.code-text { color: #2563eb; font-weight: 600; font-family: monospace; font-size: 13px; }
-.name-text { font-weight: 600; color: #1e293b; }
-.text-gray { color: #64748b; }
+.code-text { font-weight: 400; font-size: 13px; }
+.name-text { font-weight: 400; color: #1e293b; }
 .text-address { max-width: 200px; color: #475569; font-size: 13px; }
-.truncate-text { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
+.truncate-text {
+    /* 1. Kích thước: Giảm max-width xuống chút để nhường chỗ cho cột Ảnh */
+    min-width: 180px;       /* Đảm bảo không quá bé */
+
+    /* 2. Logic cắt dòng (giữ nguyên) */
+    white-space: normal;    /* Cho phép xuống dòng */
+    display: -webkit-box;   
+    -webkit-line-clamp: 3;  /* Số dòng muốn hiện */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+
+    /* 3. Căn chỉnh */
+    line-height: 1.4;
+    font-size: 13px;        /* Giảm size chữ 1 xíu cho gọn bảng */
+    color: #334155;
+}
 .empty-state { padding: 40px; color: #64748b; font-style: italic; }
 
 /* AVATAR */
 .avatar-wrapper { display: flex; justify-content: center; }
-.avatar-img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; }
+.col-img {
+    width: 60px; /* Cố định chiều rộng cột */
+    text-align: center;
+    padding: 8px !important;
+}
+
+/* Định dạng ảnh avatar tròn, gọn */
+.avatar-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover; /* Giúp ảnh không bị méo */
+    border: 1px solid #e2e8f0;
+    display: block;
+    margin: 0 auto;
+}
 
 /* BADGES */
 .badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
