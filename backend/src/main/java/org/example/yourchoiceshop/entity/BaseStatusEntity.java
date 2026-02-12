@@ -1,7 +1,7 @@
 package org.example.yourchoiceshop.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.*; // Gom gọn import
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor // Cần thiết cho JPA
 @AllArgsConstructor
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
