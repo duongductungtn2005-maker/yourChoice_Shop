@@ -6,12 +6,11 @@ import java.time.LocalDateTime;
 
 @Data
 public class HoaDonResponse {
-    // Dành cho màn danh sách (QuanLyDonHang.vue)
-    private String maHoaDon;        // Map vào 'code'
-    private Integer tongSanPham;    // Map vào 'totalItems'
-    private BigDecimal tongTienSauGiam; // Map vào 'totalPrice'
-    private String tenKhachHang;    // Map vào 'customer'
-    private LocalDateTime ngayTao;  // Map vào 'createdAt'
-    private String loaiHoaDon;      // Map vào 'type'
-    private Integer trangThai;      // Map vào 'status'
+    private String maHoaDon;        
+    private Integer tongSanPham;    
+    private BigDecimal tongTienSauGiam; 
+    private String tenKhachHang;    
+    private LocalDateTime ngayTao;  
+    private String loaiHoaDon;      
+    private Integer trangThai;      
 }
