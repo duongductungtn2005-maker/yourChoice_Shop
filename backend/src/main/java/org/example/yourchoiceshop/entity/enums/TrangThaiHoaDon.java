@@ -9,7 +9,8 @@ public enum TrangThaiHoaDon {
     CHO_XAC_NHAN(1),
     CHO_GIAO_HANG(2),
     DANG_VAN_CHUYEN(3),
-    HOAN_THANH(4);
+    CHO_THANH_TOAN(4),
+    HOAN_THANH(5);
 
     private final int value;
 

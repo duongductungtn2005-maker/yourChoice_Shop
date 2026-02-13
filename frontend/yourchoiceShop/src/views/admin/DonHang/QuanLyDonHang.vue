@@ -308,25 +308,34 @@ const formatDate = (val) => {
 
 // Cấu hình Tabs & Trạng thái
 const STATUS_TABS = { 
-    'ALL': 'Tất cả', 
-    '1': 'Chờ xác nhận', 
-    '2': 'Chờ giao hàng', 
-    '3': 'Đang vận chuyển', 
-    '4': 'Hoàn thành', 
-    '0': 'Đã hủy'
+  'ALL': 'Tất cả', 
+  '1': 'Chờ xác nhận', 
+  '2': 'Chờ giao', 
+  '3': 'Đang giao', 
+  '4': 'Chờ thanh toán',
+  '5': 'Hoàn thành',
+  '0': 'Đã hủy'
 }
+
 
 const STATUS_CONFIG = { 
     0: {text:'Đã hủy', class:'st-red'}, 
     1: {text:'Chờ xác nhận', class:'st-yellow'}, 
     2: {text:'Chờ giao', class:'st-blue'}, 
     3: {text:'Đang giao', class:'st-orange'}, 
-    4: {text:'Hoàn thành', class:'st-green'},
-    5: {text:'Đã thanh toán', class:'st-purple'},
-    6: {text:'Hoàn trả', class:'st-gray'}
+    4: {text:'Chờ thanh toán', class:'st-purple'},
+    5: {text:'Hoàn thành', class:'st-green'}
 }
-const getStatusText = (s) => STATUS_CONFIG[s]?.text || 'Khác';
-const getStatusClass = (s) => STATUS_CONFIG[s]?.class || 'st-gray';
+const getStatusText = (s) => {
+  const key = Number(s)
+  return STATUS_CONFIG[key]?.text || 'Không xác định'
+}
+
+const getStatusClass = (s) => {
+  const key = Number(s)
+  return STATUS_CONFIG[key]?.class || 'st-gray'
+}
+
 
 onMounted(() => { fetchData(); })
 </script>
