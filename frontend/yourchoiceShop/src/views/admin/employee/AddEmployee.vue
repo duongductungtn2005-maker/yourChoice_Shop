@@ -46,10 +46,7 @@
                  </div>
               </div>
               <div class="form-row">
-                <div class="form-group half">
-                  <label class="required">Số CCCD</label>
-                  <input type="text" v-model="employee.cccd" class="form-control">
-                </div>
+
                 <div class="form-group half">
                   <label class="required">Giới tính</label>
                   <div class="radio-group">
@@ -129,12 +126,13 @@ import request from '@/services/request';
 import axios from 'axios'; 
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { toastSuccess, toastError, Toast } from '@/utils/toast';
+import Swal from 'sweetalert2'; // Import thư viện
 
 const router = useRouter();
 const route = useRoute(); 
 const isEditMode = computed(() => !!route.params.id);
 
-// STATE
+// --- STATE ---
 const employee = reactive({ 
     tenNhanVien: '', cccd: '', gioiTinh: true, ngaySinh: '', 
     email: '', soDienThoai: '', diaChiCuThe: '', 
@@ -142,59 +140,65 @@ const employee = reactive({
 });
 const address = reactive({ provinceId: '', districtId: '', wardCode: '' });
 
-// ẢNH
+// --- FILE/IMAGE ---
 const fileInput = ref(null);
 const selectedFile = ref(null);
 const previewImage = ref(null); 
 
-// QR & LOCATION DATA
+// --- QR & LOCATION DATA ---
 const showScanner = ref(false);
 let html5QrcodeScanner = null;
 const locationData = reactive({ provinces: [], districts: [], wards: [] });
 
-// --- HÀM HỖ TRỢ LOCATION (CẦN CHO QR) ---
+// ============================================================
+// 1. CÁC HÀM HỖ TRỢ XỬ LÝ CHUỖI (Đưa lên đầu để tránh lỗi)
+// ============================================================
+
 const getNameFromId = (id, list) => { const item = list.find(x => x.code == id); return item ? item.name : ""; };
 
+// Hàm bỏ dấu tiếng Việt (để so sánh chính xác hơn)
+const removeAccents = (str) => {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+};
+
+// Hàm chuẩn hóa tên (Bỏ Tiền tố + Lowercase + Bỏ dấu)
 const normalizeName = (str) => {
     if (!str) return "";
-    str = str.toLowerCase().trim();
-    const prefixes = ['tỉnh ', 'thành phố ', 'tp. ', 'tp ', 'quận ', 'huyện ', 'thị xã ', 'tx. ', 'xã ', 'phường ', 'thị trấn ', 'tt. '];
-    for (const p of prefixes) {
-        if (str.startsWith(p)) return str.replace(p, '').trim();
+    let clean = str.toLowerCase().trim();
+    // Bỏ các từ hành chính thông dụng
+    clean = clean.replace(/(tỉnh|thành phố|tp\.?|quận|huyện|thị xã|tx\.?|xã|phường|thị trấn|tt\.?)\s*/g, '');
+    return removeAccents(clean).trim();
+};
+
+// Hàm tìm Code trong danh sách
+const findLocationCode = (inputName, listData) => {
+    if (!inputName || !listData || listData.length === 0) return "";
+    
+    const target = normalizeName(inputName);
+
+    // Tìm trong list, chuẩn hóa cả tên trong list để so sánh
+    const found = listData.find(item => normalizeName(item.name) === target);
+    
+    // Nếu vẫn không thấy, thử tìm kiểu "chứa trong" (dành cho trường hợp tên dài/ngắn)
+    if (!found) {
+        return listData.find(item => normalizeName(item.name).includes(target))?.code || "";
     }
-    return str;
+
+    return found ? found.code : "";
 };
 
-const findLocationCode = (inputName, list) => {
-    if (!inputName || !list || list.length === 0) return "";
-    const coreInput = normalizeName(inputName);
-    const exactMatch = list.find(x => x.name.toLowerCase() === inputName.toLowerCase());
-    if (exactMatch) return exactMatch.code;
-    const coreMatch = list.find(x => normalizeName(x.name) === coreInput);
-    if (coreMatch) return coreMatch.code;
-    const relativeMatch = list.find(x => x.name.toLowerCase().includes(coreInput) || coreInput.includes(x.name.toLowerCase()));
-    if (relativeMatch) return relativeMatch.code;
-    return "";
-};
-
-// VALIDATION
-const validateForm = () => {
-    if (!employee.tenNhanVien.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên nhân viên' });
-    if (!employee.cccd) return Toast.fire({ icon: 'warning', title: 'Thiếu số CCCD' });
-    if (!employee.ngaySinh) return Toast.fire({ icon: 'warning', title: 'Thiếu ngày sinh' });
-    if (!employee.soDienThoai) return Toast.fire({ icon: 'warning', title: 'Thiếu số điện thoại' });
-    if (!employee.email) return Toast.fire({ icon: 'warning', title: 'Thiếu Email' });
-    return true;
-};
-
-// API LOCATION
+// ============================================================
+// 2. LOGIC API LOCATION
+// ============================================================
 const fetchProvinces = async () => { try { const res = await axios.get('https://provinces.open-api.vn/api/?depth=1'); locationData.provinces = res.data; } catch (e) {} };
+
 const onProvinceChange = async () => {
     address.districtId = ''; address.wardCode = ''; locationData.districts = []; locationData.wards = [];
     if(address.provinceId) { 
         try { const res = await axios.get(`https://provinces.open-api.vn/api/p/${address.provinceId}?depth=2`); locationData.districts = res.data.districts; } catch (e) {}
     }
 };
+
 const onDistrictChange = async () => {
     address.wardCode = ''; locationData.wards = [];
     if(address.districtId) { 
@@ -202,17 +206,9 @@ const onDistrictChange = async () => {
     }
 };
 
-// XỬ LÝ ẢNH
-const triggerFileInput = () => fileInput.value.click();
-const handleFileChange = (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    selectedFile.value = file;
-    previewImage.value = URL.createObjectURL(file);
-  }
-};
-
-// --- LOGIC QR CODE (ĐÃ KHÔI PHỤC) ---
+// ============================================================
+// 3. LOGIC QR CODE
+// ============================================================
 const startScan = () => { 
     showScanner.value = true; 
     setTimeout(() => { 
@@ -227,69 +223,132 @@ const stopScan = () => {
 };
 
 const onScanSuccess = async (decodedText) => {
-    stopScan();
+    stopScan(); 
     const parts = decodedText.split('|');
-    if (parts.length >= 6) {
-        employee.cccd = parts[0];
-        employee.tenNhanVien = parts[2];
-        employee.gioiTinh = parts[4].trim() === 'Nam';
+    if (parts.length < 6) return toastError('QR không đúng định dạng CCCD!');
+
+    try {
+        // Điền thông tin cơ bản
+        employee.cccd = parts[0]; 
+        employee.tenNhanVien = parts[2]; 
         
+        // Ngày sinh
         const rawDate = parts[3];
-        if (rawDate && rawDate.length === 8) {
+        if (rawDate?.length === 8) {
             employee.ngaySinh = `${rawDate.substring(4,8)}-${rawDate.substring(2,4)}-${rawDate.substring(0,2)}`;
         }
-        
-        const fullAddress = parts[5]; 
+        employee.gioiTinh = parts[4].trim() === 'Nam';
+
+        // Xử lý địa chỉ
+        const fullAddress = parts[5];
         if (fullAddress) {
             const addrParts = fullAddress.split(',').map(p => p.trim());
             
             if (addrParts.length >= 3) {
-                const pName = addrParts[addrParts.length - 1]; 
-                const dName = addrParts[addrParts.length - 2]; 
-                const wName = addrParts[addrParts.length - 3]; 
+                // Lấy 3 cấp từ cuối lên
+                const pName = addrParts[addrParts.length - 1];
+                const dName = addrParts[addrParts.length - 2];
+                const wName = addrParts[addrParts.length - 3];
                 
+                // Phần còn lại là chi tiết
+                employee.diaChiCuThe = addrParts.slice(0, addrParts.length - 3).join(', ');
+
+                // Tự động chọn Dropdown (Await để chạy tuần tự)
                 const pCode = findLocationCode(pName, locationData.provinces);
                 if (pCode) {
                     address.provinceId = pCode;
-                    await onProvinceChange(); 
-                    
+                    await onProvinceChange(); // Chờ load huyện
+
                     const dCode = findLocationCode(dName, locationData.districts);
                     if (dCode) {
                         address.districtId = dCode;
-                        await onDistrictChange(); 
-                        
+                        await onDistrictChange(); // Chờ load xã
+
                         const wCode = findLocationCode(wName, locationData.wards);
-                        if (wCode) {
-                            address.wardCode = wCode;
-                        }
+                        if (wCode) address.wardCode = wCode;
                     }
                 }
-                const detailParts = addrParts.slice(0, addrParts.length - 3);
-                employee.diaChiCuThe = detailParts.join(', ');
             } else {
                 employee.diaChiCuThe = fullAddress;
             }
         }
-        toastSuccess(`Đã quét xong! Xin chào: ${employee.tenNhanVien}`);
-    } else {
-        toastError('Mã QR không đúng định dạng CCCD!');
+        toastSuccess(`Đã quét xong: ${employee.tenNhanVien}`);
+    } catch (error) {
+        console.error(error);
+        toastError('Lỗi xử lý QR');
     }
 };
 
-// LOAD DATA EDIT
+// ============================================================
+// 4. CÁC HÀM XỬ LÝ FORM & ẢNH
+// ============================================================
+const triggerFileInput = () => fileInput.value.click();
+const handleFileChange = (event) => {
+  const file = event.target.files[0];
+  if (file) { selectedFile.value = file; previewImage.value = URL.createObjectURL(file); }
+};
+
+const validateForm = () => {
+    if (!employee.tenNhanVien.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên nhân viên' });
+    if (!employee.cccd) return Toast.fire({ icon: 'warning', title: 'Thiếu số CCCD' });
+    if (!employee.ngaySinh) return Toast.fire({ icon: 'warning', title: 'Thiếu ngày sinh' });
+    if (!employee.soDienThoai) return Toast.fire({ icon: 'warning', title: 'Thiếu số điện thoại' });
+    if (!employee.email) return Toast.fire({ icon: 'warning', title: 'Thiếu Email' });
+    return true;
+};
+
 const loadEmployeeData = async () => {
     if (!isEditMode.value) return;
     try {
         const res = await request.get(`/nhan-vien/${route.params.id}`);
         const data = res.data;
-        Object.assign(employee, data);
+        Object.assign(employee, data); // Copy dữ liệu vào form
+        
+        // Nếu muốn map ngược địa chỉ từ DB vào Dropdown, cần logic parseAddressString ở đây
+        // Nhưng nếu chỉ cần hiển thị thì giữ nguyên logic cũ của bạn
+        
         if (data.anhDaiDien) previewImage.value = `http://localhost:8080/api/v1/nhan-vien/images/${data.anhDaiDien}`;
     } catch (e) { console.error(e); }
 };
 
-// SUBMIT
 const handleSubmit = async () => {
+    // 1. Validate Form
     if (!validateForm()) return;
+
+    // 2. Hiển thị Popup với 2 lựa chọn chính + nút X
+    const result = await Swal.fire({
+        title: 'Xác nhận thêm nhân viên',
+        text: `Bạn có muốn gửi mail cho nhân viên này không?`,
+        icon: 'question',
+        
+        showCloseButton: true,   // <--- Thêm dấu X ở góc phải
+        showCancelButton: false, // <--- Ẩn nút Hủy bỏ ở dưới
+        showDenyButton: true,    // Vẫn giữ nút lựa chọn thứ 2
+        
+        confirmButtonText: '<i class="fas fa-paper-plane"></i> Gửi Email',
+        confirmButtonColor: '#3085d6', // Màu xanh
+        
+        denyButtonText: '<i class="fas fa-user-plus"></i> KHÔNG Gửi Email',
+        denyButtonColor: '#f39c12',    // Màu cam/vàng
+        
+        allowOutsideClick: false // Không cho click ra ngoài, bắt buộc chọn hoặc bấm X
+    });
+
+    // Nếu bấm dấu X (Dismiss) thì dừng lại
+    if (result.isDismissed) return;
+
+    // Xác định xem có gửi mail hay không dựa vào nút vừa bấm
+    // isConfirmed = Nút Xanh (Gửi mail)
+    // isDenied = Nút Cam (Không gửi mail)
+    const isSendEmail = result.isConfirmed; 
+
+    // 3. Hiển thị Loading
+    Swal.fire({
+        title: 'Đang xử lý...',
+        text: isSendEmail ? 'Đang thêm và gửi email kích hoạt...' : 'Đang thêm nhân viên...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
 
     try {
         const fd = new FormData();
@@ -299,28 +358,45 @@ const handleSubmit = async () => {
         fd.append("soDienThoai", employee.soDienThoai);
         fd.append("gioiTinh", employee.gioiTinh); 
         fd.append("ngaySinh", employee.ngaySinh);
-        fd.append("chucVu", employee.chucVu); 
+        fd.append("chucVu", 'STAFF');
 
+        // Gửi cờ (flag) lên server
+        fd.append("isSendEmail", isSendEmail); 
+
+        // Xử lý địa chỉ
         const p = getNameFromId(address.provinceId, locationData.provinces);
         const d = getNameFromId(address.districtId, locationData.districts);
         const w = getNameFromId(address.wardCode, locationData.wards);
-        
         const fullAddr = [employee.diaChiCuThe, w, d, p].filter(Boolean).join(", ");
         fd.append("diaChi", fullAddr);
 
         if (selectedFile.value) fd.append("avatarFile", selectedFile.value);
 
-        if (isEditMode.value) {
-            await request.put(`/nhan-vien/${route.params.id}`, fd);
-            toastSuccess('Cập nhật nhân viên thành công!');
-        } else {
-            await request.post("/nhan-vien", fd);
-            toastSuccess('Thêm nhân viên mới thành công!');
-        }
+        // Gọi API
+        await request.post('/nhan-vien', fd);
+
+        // 4. Thông báo thành công
+        Swal.close(); 
+        await Swal.fire({
+            icon: 'success',
+            title: 'Thành công!',
+            text: isSendEmail 
+                ? 'Đã thêm nhân viên và gửi email kích hoạt.' 
+                : 'Đã thêm nhân viên thành công (Không gửi mail).',
+            timer: 2000,
+            showConfirmButton: false
+        });
+
         router.push({ name: "admin-employee-list" });
+
     } catch (e) {
+        Swal.close();
         console.error(e);
-        toastError(e.response?.data?.message || 'Có lỗi xảy ra!');
+        Swal.fire({
+            icon: 'error',
+            title: 'Thất bại',
+            text: e.response?.data?.message || 'Có lỗi xảy ra!',
+        });
     }
 };
 
