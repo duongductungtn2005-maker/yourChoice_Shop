@@ -3,43 +3,49 @@
     <h1 class="page-title">Quản lý Đợt giảm giá</h1>
 
     <div class="control-panel">
-      <div class="controls-row">
-        
-        <div class="filter-group">
+      <div class="filter-row">
            <div class="search-box">
               <i class="fas fa-magnifying-glass search-icon"></i>
               <input 
-              class="input-den"
+                class="input-den form-control"
                 v-model="filter.keyword" 
                 placeholder="Tìm tên, mã đợt..." 
                 @keyup.enter="fetchData" 
               />
            </div>
 
-           <div class="date-group">
-              <div class="date-input-wrapper">
-                 <input class="input-den" type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Bắt đầu" v-model="filter.startDate">
-              </div>
-              <span class="divider">-</span>
-              <div class="date-input-wrapper">
-                 <input class="input-den" type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Kết thúc" v-model="filter.endDate">
-              </div>
+           <div class="date-input-wrapper">
+              <input 
+                class="input-den form-control" 
+                type="text" 
+                onfocus="(this.type='datetime-local')" 
+                onblur="(this.type='text')" 
+                placeholder="Ngày bắt đầu" 
+                v-model="filter.startDate"
+              />
+              <i class="far fa-calendar-alt date-icon"></i>
            </div>
            
-           <select v-model="filter.status" @change="fetchData" class="form-select">
+           <div class="date-input-wrapper">
+              <input 
+                class="input-den form-control" 
+                type="text" 
+                onfocus="(this.type='datetime-local')" 
+                onblur="(this.type='text')" 
+                placeholder="Ngày kết thúc" 
+                v-model="filter.endDate"
+              />
+              <i class="far fa-calendar-alt date-icon"></i>
+           </div>
+           
+           <select v-model="filter.status" @change="fetchData" class="form-select form-control">
               <option value="">-- Trạng thái --</option>
               <option value="1">Đang diễn ra</option>
               <option value="0">Đã kết thúc</option>
            </select>
+      </div>
 
-           <select v-model="filter.loaiGiamGia" @change="fetchData" class="form-select">
-              <option value="">-- Loại giảm --</option>
-              <option value="%">%</option>
-              <option value="VND">VND</option>
-           </select>
-        </div>
-
-        <div class="action-group">
+      <div class="action-row">
            <button class="btn btn-navy" @click="resetFilter">
               <i class="fas fa-sync-alt"></i> Đặt lại
            </button>
@@ -51,8 +57,6 @@
            <router-link :to="{ name: 'admin-sale-create' }" class="btn btn-gradient">
               <i class="fas fa-plus"></i> Tạo mới
            </router-link>
-        </div>
-
       </div>
     </div>
 
@@ -61,29 +65,32 @@
         <thead>
           <tr>
             <th>STT</th>
-            <th>Mã đợt</th> <th>Tên đợt</th>
-            <th class="text-center">Giá trị</th>
-            <th class="text-center">Loại giảm</th> <th>Ngày bắt đầu</th> <th>Ngày kết thúc</th> <th class="text-center">Trạng thái</th>
-            <th class="text-center">Thao tác</th>
+            <th>Mã đợt</th> 
+            <th>Tên đợt</th>
+            <th>Giá trị</th> <th>Loại giảm</th> 
+            <th>Ngày bắt đầu</th> 
+            <th>Ngày kết thúc</th> 
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="list.length === 0">
-             <td colspan="9" class="text-center empty-state">Không có dữ liệu</td>
+             <td colspan="9" class="empty-state">Không có dữ liệu</td>
           </tr>
           <tr v-for="(item, index) in list" :key="item.id" :class="{'row-disabled': item.trangThai === 0}">
             
-            <td class="text-center">{{ (currentPage * pageSize) + index + 1 }}</td>
+            <td>{{ (currentPage * pageSize) + index + 1 }}</td>
             
             <td class="code-text">{{ item.maDotGiamGia || '---' }}</td>
             
             <td style="color: #2b4360; font-weight: 500;">{{ item.tenDotGiamGia }}</td>
             
-            <td class="text-center font-bold" style="color: #ef4444;">
-                {{ item.loaiGiamGia === '%' ? item.giaTriGiam : formatCurrency(item.giaTriGiam) }}
+            <td class="font-bold" style="color: rgb(43, 67, 96);">
+                {{ item.loaiGiamGia === '%' ? item.giaTriGiam + '%' : formatCurrency(item.giaTriGiam) }}
             </td>
 
-            <td class="text-center">
+            <td>
                 <span class="badge badge-light">{{ item.loaiGiamGia === '%' ? '%' : 'VND' }}</span>
             </td>
 
@@ -91,13 +98,12 @@
             
             <td>{{ formatDate(item.ngayKetThuc) }}</td>
 
-            <td class="text-center">
+            <td>
                 <span class="badge" :class="getStatusClass(item)">{{ getStatusLabel(item) }}</span>
             </td>
 
-            <td class="text-center action-col">
+            <td class="action-col">
               <div class="action-wrapper">
-                  
                   <button class="icon-btn" title="Xem sản phẩm" @click="openModal(item)">
                       <i class="far fa-eye"></i>
                   </button>
@@ -177,7 +183,7 @@
                             </td>
                         </tr>
                         <tr v-if="modalProducts.length === 0">
-                            <td colspan="5" class="text-center empty-state">Chưa có sản phẩm nào trong đợt này</td>
+                            <td colspan="5" class="empty-state">Chưa có sản phẩm nào trong đợt này</td>
                         </tr>
                     </tbody>
                 </table>
@@ -194,8 +200,7 @@ import Swal from 'sweetalert2';
 import { toastSuccess, toastError } from '@/utils/toast';
 
 const list = ref([]);
-// [FIXED] Đổi tên biến valueType -> loaiGiamGia để khớp với DB
-const filter = ref({ keyword: '', startDate: '', endDate: '', status: '', loaiGiamGia: '' });
+const filter = ref({ keyword: '', startDate: '', endDate: '', status: '' });
 const currentPage = ref(0);
 const pageSize = ref(5);
 const totalPages = ref(0);
@@ -215,9 +220,8 @@ const fetchData = async () => {
     } catch (e) { console.error(e); }
 };
 
-// [NEW] Reset Filter
 const resetFilter = () => {
-    filter.value = { keyword: '', startDate: '', endDate: '', status: '', loaiGiamGia: '' };
+    filter.value = { keyword: '', startDate: '', endDate: '', status: '' };
     currentPage.value = 0;
     fetchData();
 };
@@ -308,111 +312,166 @@ onMounted(() => {
 .page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; color: #333; font-size: 14px; }
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 
-/* === UPDATE: CARD STYLING & BORDER === */
+/* === CARD STYLING === */
 .control-panel, .table-container { 
     background: white; 
-    border-radius: 16px; 
-    border: 1px solid #bfdbfe !important; /* Viền xanh */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-radius: 12px; 
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     margin-bottom: 20px;
     padding: 24px; 
 }
-.table-container { padding: 0; overflow: hidden; }
+.table-container { padding: 20px; }
 
-/* === UPDATE: FLEX LAYOUT === */
-.controls-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
-.filter-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.action-group { display: flex; gap: 10px; }
-
-/* INPUTS */
-.search-box { position: relative; width: 250px; } 
-.search-icon { position: absolute; left: 12px; top: 11px; color: #94a3b8; }
-.search-box input { width: 100%; padding: 8px 10px 8px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; height: 40px; }
-.search-box input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-.search-box input::placeholder {
-    color: #000000; /* Màu đen tuyệt đối */
-    opacity: 1;     /* Đảm bảo hiển thị rõ 100% trên mọi trình duyệt */
+/* === GRID LAYOUT FOR FILTERS === */
+.filter-row { 
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 cột bằng nhau */
+    gap: 15px;
+    width: 100%;
 }
 
-.date-group { display: flex; gap: 8px; align-items: center; }
-.date-input-wrapper { position: relative; }
-.date-icon { position: absolute; left: 10px; top: 10px; color: #94a3b8; pointer-events: none; }
-.date-input-wrapper input { padding-left: 35px; width: 160px; height: 40px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; }
-.form-select { height: 40px; border-radius: 6px; border: 1px solid #e2e8f0; outline: none; padding: 0 10px; color: #334155; min-width: 150px; cursor: pointer; }
+/* === FLEX LAYOUT FOR ACTIONS === */
+.action-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+/* INPUTS & SELECTS */
+.form-control {
+    width: 100%;
+    height: 40px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    outline: none;
+    padding: 0 10px;
+    box-sizing: border-box; 
+}
+
+.search-box { position: relative; width: 100%; } 
+.search-icon { position: absolute; left: 12px; top: 12px; color: #94a3b8; }
+.search-box input { padding-left: 36px; }
+
+.search-box input:focus, .form-control:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+/* === DATE INPUT WITH ICON === */
+.date-input-wrapper { position: relative; width: 100%; }
+.date-icon { 
+    position: absolute; 
+    right: 12px; /* Icon bên phải */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8; 
+    pointer-events: none; /* Để click xuyên qua vào input */
+}
+.date-input-wrapper input { padding-right: 35px; } /* Tránh text đè icon */
+
+.input-den::placeholder { color: #94a3b8 !important; opacity: 1 !important; font-weight: normal; }
 
 /* BUTTONS */
-.btn { height: 40px; padding: 0 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
-.btn-secondary { background: #334155; color: #fff; } .btn-secondary:hover { background: #1e293b; }
-.btn-outline { background: #fff; border: 1px solid #e2e8f0; color: #475569; } .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
-.btn-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); }
-.btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
+.btn { 
+    height: 40px; 
+    border-radius: 6px; 
+    font-weight: 600; 
+    cursor: pointer; 
+    font-size: 13px; 
+    border: 1px solid transparent; 
+    transition: 0.2s; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 8px; 
+    text-decoration: none;
+    min-width: 130px; 
+}
+
+.btn-navy { background-color: #334155; color: #ffffff; box-shadow: 0 2px 4px rgba(51, 65, 85, 0.2); }
+.btn-navy:hover { background-color: #1e293b; transform: translateY(-1px); }
+
+.btn-outline { background: #fff; border: 1px solid #cbd5e1; color: #475569; }
+.btn-outline:hover { background: #f8fafc; border-color: #94a3b8; color: #0f172a; }
+
+.btn-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);  color: #fff; box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2); }
+.btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(255, 252, 252, 0.3); }
 
 /* === TABLE STYLES === */
-.custom-table { width: 100%; border-collapse: collapse; }
+.custom-table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .custom-table th {
-  background: #eff6ff !important; /* Xanh nhạt */
-  color: #1e40af;
-  padding: 16px;
-  text-align: center;
- 
+  background: white !important; 
+  color: #333;
+  padding: 12px;
+  text-align: center; /* Căn giữa tiêu đề */
   font-weight: 700;
-  text-transform: uppercase;
-  border-bottom: none !important; /* Xóa dòng kẻ */
+  font-size: 13px;
+  border-bottom: 1px solid #f1f5f9;
   white-space: nowrap;
 }
-.custom-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; text-align: center; vertical-align: middle; font-size: 14px; color: #333; }
+
+.custom-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  font-size: 14px;
+  color: #334155;
+  text-align: center; /* Căn giữa nội dung */
+}
+
+.code-text { font-family: monospace; font-weight: 600; color: #475569; }
+.font-bold { font-weight: 700; }
 
 /* BADGES */
-.badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.badge-active { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-.badge-stopped { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-.badge-expired { background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0; }
-.badge-light { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
+.badge { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; display: inline-block;}
+.badge-active { background: #ecfdf5; color: #059669; }
+.badge-stopped { background: #eff6ff; color: #2563eb; }
+.badge-expired { background: #fee2e2; color: #ef4444; }
+.badge-light { background: #f3f4f6; color: #4b5563; }
 
 /* ACTIONS */
-.action-wrapper { display: flex; align-items: center; justify-content: center; gap: 10px; }
-.icon-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; color: #64748b; transition: all 0.2s; }
-.icon-btn:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+.action-wrapper { display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-.switch { position: relative; display: inline-block; width: 36px; height: 20px; margin: 0; flex-shrink: 0; }
+/* ĐÃ SỬA: Icon Button - Bo góc và có viền (Giống file Voucher) */
+.icon-btn { 
+    width: 32px; 
+    height: 32px; 
+    border: 1px solid #cbd5e1; /* Thêm viền */
+    border-radius: 8px; /* Bo góc */
+    background: white; 
+    cursor: pointer; 
+    color: #64748b; 
+    font-size: 14px; 
+    transition: 0.2s; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+}
+.icon-btn:hover { 
+    border-color: #3b82f6; 
+    color: #3b82f6; 
+}
+
+/* Switch */
+.switch { position: relative; display: inline-block; width: 40px; height: 22px; margin: 0; flex-shrink: 0; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
-.slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2); }
-input:checked + .slider { background-color: #10b981; }
-input:checked + .slider:before { transform: translateX(16px); }
+.slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2); }
+input:checked + .slider { background-color: #10b981; } /* Màu đỏ khi active */
+input:checked + .slider:before { transform: translateX(18px); }
 input:disabled + .slider { background-color: #e2e8f0; cursor: not-allowed; }
 
 /* PAGINATION */
-.pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px 24px; border-top: 1px solid #f1f5f9; }
-.page-info { font-size: 13px; color: #64748b; font-weight: 500; }
-.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 5px; margin: 0 5px; outline: none; cursor: pointer; }
-.page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; color: #64748b; }
+.pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 15px; border-top: 1px solid #f1f5f9; }
+.page-info { font-size: 13px; color: #64748b; }
+.page-controls button { width: 30px; height: 30px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; color: #64748b; font-size: 12px; }
 .page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
 .page-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state { padding: 40px; font-size: 14px; color: #64748b; font-style: italic; }
 
 /* MODAL */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-content { background: white; width: 800px; max-height: 85vh; overflow-y: auto; border-radius: 8px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-.modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 15px; }
-.close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8; transition: 0.2s; }
-.close-btn:hover { color: #ef4444; }
-.img-placeholder { width: 40px; height: 40px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #cbd5e1; border-radius: 4px; }
-.variant-badge { background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: #64748b; }
-.font-bold { font-weight: 600; }
-.btn-navy {
-    background-color: #0f172a; /* Xanh than đậm */
-    color: #ffffff;
-    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.2);
-}
-.btn-navy:hover {
-    background-color: #1e293b;
-    transform: translateY(-1px);
-}
-/* Màu chữ placeholder đen xì, rõ nét */
-.input-den::placeholder {
-    color: #000000 !important;  /* Màu đen */
-    opacity: 1 !important;      /* Chống mờ */
-    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
-}
+.modal-content { background: white; width: 800px; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 20px; }
+.modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+.close-btn { border: none; background: none; font-size: 20px; cursor: pointer; color: #64748b; }
+.img-placeholder { width: 40px; height: 40px; background: #f1f5f9; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #cbd5e1; }
+.variant-badge { background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: #64748b; font-weight: 500; }
 </style>
