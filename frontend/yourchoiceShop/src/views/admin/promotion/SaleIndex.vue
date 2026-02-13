@@ -1,6 +1,8 @@
 <template>
   <div class="page-container">
-    <h1 class="page-title">Quản lý Đợt giảm giá</h1>
+    <div class="header-section">
+      <h1 class="page-title">Quản lý đợt giảm giá</h1>
+    </div>
 
     <div class="control-panel">
       <div class="filter-row">
@@ -309,19 +311,15 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; color: #333; font-size: 14px; }
-.page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
-
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #ebecee;; min-height: 100vh; color: #333; font-size: 14px; }
+.page-title { margin: 0; font-size: 24px; font-weight: 700; color: #1e293b; }
+.header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 /* === CARD STYLING === */
 .control-panel, .table-container { 
-    background: white; 
-    border-radius: 12px; 
-    border: none;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-    margin-bottom: 20px;
-    padding: 24px; 
+    background: white; border-radius: 16px; border: 1px solid #bfdbfe !important; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; padding: 24px; 
 }
-.table-container { padding: 20px; }
+.table-container { padding: 0; overflow: hidden; }
 
 /* === GRID LAYOUT FOR FILTERS === */
 .filter-row { 
@@ -399,7 +397,7 @@ onMounted(() => {
 /* === TABLE STYLES === */
 .custom-table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .custom-table th {
-  background: white !important; 
+  background: #f5f5f5; 
   color: #333;
   padding: 12px;
   text-align: center; /* Căn giữa tiêu đề */
@@ -461,8 +459,8 @@ input:checked + .slider:before { transform: translateX(18px); }
 input:disabled + .slider { background-color: #e2e8f0; cursor: not-allowed; }
 
 /* PAGINATION */
-.pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 15px; border-top: 1px solid #f1f5f9; }
-.page-info { font-size: 13px; color: #64748b; }
+.pagination-footer { display: flex; justify-content: space-between; align-items: center; padding: 15px 24px; border-top: 1px solid #f1f5f9; }
+.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 5px; margin: 0 5px; }
 .page-controls button { width: 30px; height: 30px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; color: #64748b; font-size: 12px; }
 .page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
 .page-controls button:disabled { opacity: 0.5; cursor: not-allowed; }

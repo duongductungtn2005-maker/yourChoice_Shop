@@ -407,7 +407,7 @@ onMounted(async () => { await fetchProvinces(); if (isEditMode.value) await load
 
 <style scoped>
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
-.create-employee-page { font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
+.create-employee-page { font-family: 'Segoe UI', sans-serif; background-color:#ebecee; /* Gray-100: Màu xám chuẩn */; min-height: 100vh; padding: 20px; }
 .header-section { margin-bottom: 20px; }
 
 /* === UPDATE CSS: Card Styling to match EmployeeList === */

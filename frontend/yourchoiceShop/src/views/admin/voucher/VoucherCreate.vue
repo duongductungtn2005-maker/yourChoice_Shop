@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="header-row">
        <div class="header-title">
-          <h3>Phiếu giảm giá / Tạo phiếu giảm giá</h3>
+          <h3 style="color: #1e293b">Phiếu giảm giá / Tạo phiếu giảm giá</h3>
        </div>
        <button type="button" @click="$router.go(-1)" class="btn btn-back">
           <i class="fas fa-arrow-left"></i> Quay lại
@@ -402,7 +402,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; min-height: 100vh; }
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #ebecee;; min-height: 100vh; }
 
 /* HEADER */
 .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }

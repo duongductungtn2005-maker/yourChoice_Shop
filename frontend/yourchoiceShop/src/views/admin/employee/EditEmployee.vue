@@ -317,7 +317,7 @@ onMounted(() => { loadData(); });
 
 <style scoped>
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
-.edit-employee-page { font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
+.edit-employee-page { font-family: 'Segoe UI', sans-serif; background-color:#ebecee; /* Gray-100: Màu xám chuẩn */; min-height: 100vh; padding: 20px; }
 .header-section { margin-bottom: 20px; }
 
 /* === UPDATE CSS: Card Styling === */

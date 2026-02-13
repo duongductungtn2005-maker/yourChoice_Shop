@@ -55,17 +55,6 @@
 
               <div class="form-row">
                 <div class="form-group half">
-                  <label class="required">Tên tài khoản</label>
-                  <input type="text" v-model="form.username" class="form-control" placeholder="Nhập tên tài khoản...">
-                </div>
-                <div class="form-group half">
-                  <label class="required">Mật khẩu</label>
-                  <input type="password" v-model="form.password" class="form-control" placeholder="Nhập mật khẩu...">
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group half">
                   <label class="required">Ngày sinh</label>
                   <input type="date" v-model="form.ngaySinh" class="form-control">
                 </div>
@@ -105,17 +94,6 @@
                        <div class="form-group half">
                           <label>Số nhà / Đường</label>
                           <input type="text" v-model="addr.diaChiNhanHang" class="form-control" placeholder="VD: 12A Nguyễn Trãi..." @input="updatePreviewAddress(idx)">
-                       </div>
-                    </div>
-
-                    <div class="form-row">
-                       <div class="form-group half">
-                          <label>Tên người nhận</label>
-                          <input type="text" v-model="addr.tenNguoiNhan" class="form-control" placeholder="Họ tên người nhận">
-                       </div>
-                       <div class="form-group half">
-                          <label>SĐT người nhận</label>
-                          <input type="text" v-model="addr.sdtNguoiNhan" class="form-control" placeholder="SĐT liên hệ">
                        </div>
                     </div>
 
@@ -171,6 +149,7 @@ import request from '@/services/request';
 import { useRouter } from 'vue-router';
 import { toastSuccess, toastError, Toast } from '@/utils/toast';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 const router = useRouter();
 const loading = ref(false);
@@ -179,12 +158,12 @@ const previewImage = ref(null);
 const avatarFile = ref(null);
 
 const form = reactive({
-  maKhachHang: '', tenKhachHang: '', username: '', password: '', email: '', soDienThoai: '',
+  maKhachHang: '', tenKhachHang: '', email: '', soDienThoai: '',
   gioiTinh: true, ngaySinh: '', trangThai: 1,
   addresses: [
     { 
       tinhId: '', huyenId: '', xaId: '', diaChiNhanHang: '', 
-      tenDiaChi: '', tenNguoiNhan: '', sdtNguoiNhan: '',
+      tenDiaChi: '',
       diaChiMacDinh: true, previewText: '' 
     }
   ]
@@ -208,7 +187,7 @@ const handleFileUpload = (event) => {
 const addNewAddress = () => {
   form.addresses.push({ 
       tinhId: '', huyenId: '', xaId: '', diaChiNhanHang: '', 
-      tenDiaChi: '', tenNguoiNhan: '', sdtNguoiNhan: '',
+      tenDiaChi: '',
       diaChiMacDinh: false, previewText: ''
   });
   districtsList.value.push([]);
@@ -282,6 +261,29 @@ const submitForm = async () => {
   if (!form.tenKhachHang.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên khách hàng' });
   if (!form.soDienThoai) return Toast.fire({ icon: 'warning', title: 'Thiếu số điện thoại' });
 
+  // Dialog xác nhận gửi email
+  const result = await Swal.fire({
+    title: 'Xác nhận thêm khách hàng',
+    text: 'Bạn có muốn gửi mail cho khách hàng này không?',
+    icon: 'question',
+    html: '<p style="margin: 0; font-size: 14px;">Bạn có muốn gửi mail cho khách hàng này không?</p>',
+    showCancelButton: true,
+    showCloseButton: true,
+    allowOutsideClick: true,
+    confirmButtonText: '✉️ Gửi Email',
+    cancelButtonText: '❌ KHÔNG Gửi Email',
+    confirmButtonColor: '#3b82f6',
+    cancelButtonColor: '#f59e0b'
+  });
+
+  // Nếu người dùng nhấn X hoặc nhấn ra ngoài dialog, dừng lại không tạo khách hàng
+  if (result.dismiss === 'close' || result.dismiss === 'backdrop') {
+    return;
+  }
+
+  // Xác định có gửi email hay không
+  const sendEmail = result.isConfirmed ? true : false;
+
   loading.value = true;
   try {
     const formData = new FormData();
@@ -294,6 +296,7 @@ const submitForm = async () => {
     if (form.ngaySinh) formData.append('ngaySinh', form.ngaySinh);
     formData.append('trangThai', form.trangThai);
     if (form.maKhachHang) formData.append('maKhachHang', form.maKhachHang);
+    formData.append('sendEmail', sendEmail ? 'true' : 'false');
 
     if (form.addresses && form.addresses.length > 0) {
       const mappedAddresses = form.addresses.map((addr, index) => {
@@ -331,7 +334,7 @@ const submitForm = async () => {
 
 <style scoped>
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
-.create-customer-page { font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
+.create-customer-page { font-family: 'Segoe UI', sans-serif; background: #ebecee; min-height: 100vh; padding: 20px; }
 .header-section { margin-bottom: 20px; }
 
 /* === UPDATE CSS: Card Styling (Viền xanh) === */

@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="header-row">
        <div class="header-title">
-          <h3>Thêm đợt giảm giá</h3>
+          <h3 style="color: #1e293b;">Thêm đợt giảm giá</h3>
        </div>
        <button type="button" @click="$router.go(-1)" class="btn btn-back">
           <i class="fas fa-arrow-left"></i> Quay lại
@@ -452,7 +452,7 @@ onMounted(() => { fetchFilterOptions(); loadParentProducts(); });
 </script>
 
 <style scoped>
-.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; }
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #ebecee;; min-height: 100vh; }
 .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .header-title h3 { font-weight: 700; color: #2b4360; font-size: 24px; margin: 0; }
 .btn-back { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); border: 1px solid #cbd5e1; color: #ffffff; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.2s; }

@@ -24,8 +24,15 @@
             <i class="fas fa-search search-icon"></i>
           </div>
           
-          <div class="icon-item user-icon">
+          <div class="icon-item user-icon" @click="toggleUserDropdown" :class="{ 'dropdown-open': isUserDropdownOpen }">
             <i class="far fa-user"></i>
+            
+            <!-- User Dropdown -->
+            <div v-if="isUserDropdownOpen" class="user-dropdown">
+              <router-link to="/login" class="dropdown-btn login-btn" @click="isUserDropdownOpen = false">
+                <i class="fas fa-sign-in-alt"></i> Đăng nhập
+              </router-link>
+            </div>
           </div>
           
           <div class="icon-item cart-icon">
@@ -79,9 +86,14 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 
 const isScrolled = ref(false);
+const isUserDropdownOpen = ref(false);
 
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 50;
+};
+
+const toggleUserDropdown = () => {
+  isUserDropdownOpen.value = !isUserDropdownOpen.value;
 };
 
 // Xử lý ảnh lỗi logo
@@ -152,6 +164,48 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 
 .icon-item { font-size: 20px; cursor: pointer; position: relative; transition: 0.2s; color: #334155; }
 .icon-item:hover { color: #1e3a8a; }
+
+.user-icon { position: relative; }
+
+/* USER DROPDOWN */
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: -20px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  min-width: 140px;
+  margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  color: #334155;
+  text-decoration: none;
+  transition: 0.2s;
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.dropdown-btn:hover {
+  background-color: #f1f5f9;
+  color: #1e3a8a;
+}
+
+.login-btn {
+  color: #1e3a8a;
+  font-weight: 500;
+}
 
 .cart-badge {
   position: absolute; top: -6px; right: -8px;

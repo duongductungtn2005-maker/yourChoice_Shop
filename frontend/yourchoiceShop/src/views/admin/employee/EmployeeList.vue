@@ -295,7 +295,15 @@ onMounted(() => { fetchEmployees(); });
 
 <style scoped>
 /* === CSS CHUẨN ĐỒNG BỘ === */
-.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; color: #333; font-size: 14px; }
+.page-container { 
+    padding: 20px; 
+    font-family: 'Segoe UI', sans-serif; 
+    /* ĐỔI THÀNH MÀU XÁM TRUNG TÍNH (Không ám xanh) */
+    background-color:#ebecee; /* Gray-100: Màu xám chuẩn */
+    min-height: 100vh; 
+    color: #333; 
+    font-size: 14px; 
+}
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 
 /* CARD STYLING */
