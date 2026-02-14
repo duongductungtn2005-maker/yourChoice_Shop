@@ -1,36 +1,43 @@
 <template>
-  <div class="orders-page">
-    <h2 class="page-title">Quản lý đơn hàng</h2>
+  <div class="page-container">
+    <h1 class="page-title">Quản lý đơn hàng</h1>
 
     <div class="control-panel">
-      <div class="search-group">
-        <i class="fas fa-search search-icon"></i>
-        <input 
-          class="search-input" 
-          placeholder="Tìm kiếm hoá đơn..." 
-          v-model="filter.keyword" 
-          @keyup.enter="fetchData"
-        />
-      </div>
+      <div class="controls-row">
+        <div class="filter-group">
+          <div class="search-box">
+            <i class="fas fa-magnifying-glass search-icon"></i>
+            <input 
+              class="input-den"
+              type="text" 
+              v-model="filter.keyword" 
+              placeholder="Tìm mã đơn, tên khách..." 
+              @keyup.enter="fetchData"
+            >
+          </div>
 
-      <div class="action-group">
-        <button class="btn btn-outline" @click="openScanModal">
-          <i class="fas fa-qrcode"></i> Quét mã
-        </button>
+          <div class="date-group">
+            <input type="date" class="form-control-date" v-model="filter.fromDate" @change="fetchData" />
+            <span class="arrow">➜</span>
+            <input type="date" class="form-control-date" v-model="filter.toDate" @change="fetchData" />
+          </div>
 
-        <button class="btn btn-primary" @click="handleCreateOrder">
-          <i class="fas fa-plus"></i> Tạo hoá đơn
-        </button>
-      </div>
-    </div>
-
-    <div class="filter-panel">
-      <div class="filter-left">
-        <div class="date-group">
-          <input type="date" class="date-input" v-model="filter.fromDate" @change="fetchData" />
-          <span class="arrow">➜</span>
-          <input type="date" class="date-input" v-model="filter.toDate" @change="fetchData" />
+          <div class="radio-group">
+            <label class="radio-item">
+              <input type="radio" value="" v-model="filter.orderType" @change="fetchData"> 
+              <span>Tất cả</span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" value="Trực tuyến" v-model="filter.orderType" @change="fetchData"> 
+              <span>Online</span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" value="Tại quầy" v-model="filter.orderType" @change="fetchData"> 
+              <span>Tại quầy</span>
+            </label>
+          </div>
         </div>
+
 
       <div class="radio-group">
         <label>
@@ -47,60 +54,85 @@
           <input type="radio" value="Tại quầy" v-model="orderType" />
           Tại quầy
         </label>
-      </div>
+        <div class="action-group">
+          <button class="btn btn-navy" @click="resetFilter">
+            <i class="fas fa-sync-alt"></i> Đặt lại
+          </button>
+          <button class="btn btn-outline" @click="handleExportExcel">
+            <font-awesome-icon :icon="['fas','file-excel']" /> Xuất Excel
+          </button>
+        </div>
 
-      <div class="filter-right">
-        <button class="btn btn-outline" @click="handleExportExcel">
-          <font-awesome-icon :icon="['fas','file-excel']" /> Xuất Excel
-        </button>
       </div>
     </div>
 
-    <div class="tabs">
-      <span 
-        v-for="(label, key) in STATUS_TABS" 
-        :key="key" 
-        :class="['tab', { active: filter.activeTab === key }]" 
-        @click="changeTab(key)"
-      >
-        {{ label }}
-      </span>
-    </div>
+    <div class="table-container">
+      
+      <div class="table-header-section">
+          <div class="section-title">
+              <div class="icon-title"><i class="fas fa-file-invoice"></i></div>
+              <div class="text-title">
+                  <h3>Danh sách hóa đơn</h3>
+                  <span class="sub-text">Lọc nhanh theo trạng thái</span>
+              </div>
+          </div>
 
-    <div class="table-wrapper">
-      <table>
+          <div class="status-tabs">
+            <button 
+                v-for="(label, key) in STATUS_TABS" 
+                :key="key" 
+                :class="['tab-btn', { 'active-gradient': filter.activeTab === key }]" 
+                @click="changeTab(key)"
+            >
+                {{ label }}
+            </button>
+          </div>
+      </div>
+
+      <table class="custom-table">
         <thead>
           <tr>
-            <th>STT</th>
-            <th>Mã HĐ</th>
-            <th>Tổng SP</th>
-            <th>Tổng tiền</th>
-            <th>Tên khách hàng</th>
-            <th>Ngày tạo</th>
-            <th>Loại hoá đơn</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
+            <th width="5%">STT</th>
+            <th width="10%">Mã HĐ</th>
+            <th width="8%">Số SP</th>
+            <th width="12%">Tổng tiền</th>
+            <th width="15%">Khách hàng</th>
+            <th width="12%">Ngày tạo</th>
+            <th width="10%">Loại</th>
+            <th width="15%">Trạng thái</th>
+            <th width="8%">Chi tiết</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="loading">
-             <td colspan="9" style="text-align: center; padding: 20px;">Đang tải dữ liệu...</td>
+            <td colspan="9" class="empty-state">Đang tải dữ liệu...</td>
+          </tr>
+          <tr v-else-if="orders.length === 0">
+            <td colspan="9" class="empty-state">Không tìm thấy đơn hàng nào.</td>
           </tr>
 
           <tr v-else v-for="(order, index) in orders" :key="order.maHoaDon">
             <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-            <td style="color: #334155;">{{ order.maHoaDon }}</td>
+            <td class="code-text">{{ order.maHoaDon }}</td>
             <td>{{ order.tongSanPham }}</td>
-            <td style="color: #dc2626;">{{ formatMoney(order.tongTienSauGiam) }}</td>
-            <td><span class="badge-customer">{{ order.tenKhachHang || 'Khách lẻ' }}</span></td>
-            <td class="col-ngay-tao">{{ formatDate(order.ngayTao) }}</td>
+            <td class="text-price">{{ formatMoney(order.tongTienSauGiam) }}</td>
+            
             <td>
-              <span class="badge" :class="order.loaiHoaDon === 'Trực tuyến' ? 'purple' : 'green'">
-                {{ order.loaiHoaDon }}
+              <div class="customer-info">
+                {{ order.tenKhachHang || 'Khách lẻ' }}
+              </div>
+            </td>
+            
+            <td class="time-col">{{ formatDate(order.ngayTao) }}</td>
+            
+            <td>
+              <span class="badge-type-lg" :class="order.loaiHoaDon === 'Trực tuyến' ? 'bg-purple' : 'bg-blue'">
+                {{ order.loaiHoaDon === 'Trực tuyến' ? 'Online' : 'Tại quầy' }}
               </span>
             </td>
+            
             <td>
-              <span class="badge" :class="getStatusClass(order.trangThai)">
+              <span class="badge-status" :class="getStatusClass(order.trangThai)">
                 {{ getStatusText(order.trangThai) }}
               </span>
             </td>
@@ -110,32 +142,45 @@
               <router-link :to="{ name: 'admin-order-detail', params: { id: order.code } }" class="submenu-item">
                 ✏️
               </router-link>
+
+            
+            <td class="action-col">
+              <div class="action-wrapper">
+                <router-link 
+                  :to="{ name: 'admin-order-detail', params: { id: order.maHoaDon } }" 
+                  class="icon-btn" 
+                  title="Xem chi tiết"
+                >
+                  <i class="far fa-eye"></i> 
+                </router-link>
+              </div>
+
             </td>
           </tr>
         </tbody>
       </table>
-      
+
       <div class="pagination-footer">
         <div class="page-info">
-            Hiển thị 
-            <select v-model="pageSize" @change="handlePageSizeChange">
-                <option :value="5">5</option>
-                <option :value="10">10</option>
-                <option :value="20">20</option>
-            </select> 
-            đơn hàng / trang
+          Hiển thị 
+          <select v-model="pageSize" @change="handlePageSizeChange">
+            <option :value="5">5</option>
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+          </select> 
+          kết quả / trang
         </div>
         <div class="page-controls">
-            <button :disabled="currentPage === 1" @click="changePage(currentPage - 1)">‹</button>
-            <button
-              v-for="p in visiblePages"
-              :key="p"
-              :class="{ active: p === currentPage }"
-              @click="changePage(p)"
-            >
-              {{ p }}
-            </button>
-            <button :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">›</button>
+          <button :disabled="currentPage === 1" @click="changePage(currentPage - 1)">‹</button>
+          <button 
+            v-for="p in visiblePages" 
+            :key="p" 
+            :class="{ active: p === currentPage }" 
+            @click="changePage(p)"
+          >
+            {{ p }}
+          </button>
+          <button :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">›</button>
         </div>
       </div>
     </div>
@@ -143,8 +188,8 @@
     <div v-if="showScanModal" class="modal-overlay" @click.self="closeScanModal">
       <div class="modal-content scan-modal">
         <div class="modal-header">
-          <h3>Quét mã QR Hóa đơn</h3>
-          <button @click="closeScanModal" class="close-btn">&times;</button>
+          <h3 style="margin:0">Quét mã QR Hóa đơn</h3>
+          <button @click="closeScanModal" class="close-btn"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
           <div id="qr-reader" style="width: 100%;"></div>
@@ -157,7 +202,6 @@
 </template>
 
 <script setup>
-// --- PHẦN SCRIPT GIỮ NGUYÊN KHÔNG THAY ĐỔI ---
 import { ref, onMounted, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchOrders, exportOrders } from '@/api/HoaDonApi'
@@ -168,11 +212,18 @@ const router = useRouter()
 const orders = ref([])
 const loading = ref(false)
 const currentPage = ref(1)
-const pageSize = ref(5)
+const pageSize = ref(10)
 const totalPages = ref(1)
 const filter = ref({ keyword: '', fromDate: '', toDate: '', orderType: '', activeTab: 'ALL' })
 const showScanModal = ref(false)
 let html5QrcodeScanner = null 
+
+// --- LOGIC ---
+const resetFilter = () => {
+    filter.value = { keyword: '', fromDate: '', toDate: '', orderType: '', activeTab: 'ALL' };
+    currentPage.value = 1;
+    fetchData();
+}
 
 const openScanModal = () => {
     showScanModal.value = true;
@@ -194,7 +245,6 @@ const startScanner = () => {
 const onScanSuccess = (decodedText, decodedResult) => {
     closeScanModal();
     if(decodedText) {
-        alert("Đã tìm thấy đơn hàng: " + decodedText);
         router.push({ name: 'admin-order-detail', params: { id: decodedText } });
     }
 }
@@ -206,6 +256,7 @@ const STATUS_INFO = {
   3: { text: 'Đang vận chuyển', class: 'purple' },
   4: { text: 'Hoàn thành', class: 'green' }
 }
+
 
 /* ================== METHODS ================== */
 const loadOrders = async () => {
@@ -220,6 +271,43 @@ const loadOrders = async () => {
     status: o.trangThai
   }))
   applyFilter()
+
+const handleExportExcel = async () => {
+  const result = await Swal.fire({
+    title: 'Xác nhận',
+    text: 'Bạn có muốn tải xuống danh sách đơn hàng không?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Có',
+    cancelButtonText: 'Hủy'
+  });
+  if (!result.isConfirmed) return;
+
+  try {
+    const params = {
+      keyword: filter.value.keyword,
+      type: filter.value.orderType || null,
+      fromDate: filter.value.fromDate || null,
+      toDate: filter.value.toDate || null,
+      status: filter.value.activeTab === 'ALL' ? null : filter.value.activeTab
+    }
+    const response = await exportOrders(params);
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    const fileName = `DanhSachDonHang_${new Date().toISOString().slice(0,10)}.xlsx`;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+    Toast.fire({ icon: 'success', title: 'Xuất Excel thành công' });
+  } catch (error) {
+    console.error(error);
+    Swal.fire('Lỗi', error.response?.data?.message || 'Lỗi hệ thống', 'error');
+  }
 }
 
 const fetchData = async () => {
@@ -248,7 +336,6 @@ const changeTab = (key) => { filter.value.activeTab = key; currentPage.value = 1
 const changePage = (page) => { if (page >= 1 && page <= totalPages.value) { currentPage.value = page; fetchData(); } }
 const handlePageSizeChange = () => { currentPage.value = 1; fetchData(); }
 
-// Trang hiển thị giống màn Sản phẩm
 const visiblePages = computed(() => {
     const pages = [];
     for (let i = 1; i <= totalPages.value; i++) {
@@ -264,115 +351,177 @@ const formatDate = (val) => {
   let date = Array.isArray(val) ? new Date(val[0], val[1] - 1, val[2], val[3]||0, val[4]||0) : new Date(val);
   return isNaN(date.getTime()) ? '' : date.toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
-const STATUS_TABS = { 'ALL': 'TẤT CẢ', '0': 'ĐÃ HỦY', '1': 'CHỜ XÁC NHẬN', '2': 'CHỜ GIAO HÀNG', '3': 'ĐANG VẬN CHUYỂN', '4': 'ĐÃ GIAO HÀNG', '5': 'ĐÃ THANH TOÁN', '6': 'HOÀN THÀNH' }
-const STATUS_CONFIG = { 0: {text:'Đã hủy',class:'red'}, 1: {text:'Chờ xác nhận',class:'yellow'}, 2: {text:'Chờ giao hàng',class:'blue'}, 3: {text:'Đang vận chuyển',class:'orange'}, 4: {text:'Hoàn thành',class:'pink'} }
-const getStatusText = (s) => STATUS_CONFIG[s]?.text || 'Unknown';
-const getStatusClass = (s) => STATUS_CONFIG[s]?.class || 'gray';
+
+// Cấu hình Tabs & Trạng thái
+const STATUS_TABS = { 
+  'ALL': 'Tất cả', 
+  '1': 'Chờ xác nhận', 
+  '2': 'Chờ giao', 
+  '3': 'Đang giao', 
+  '4': 'Chờ thanh toán',
+  '5': 'Hoàn thành',
+  '0': 'Đã hủy'
+}
+
+
+const STATUS_CONFIG = { 
+    0: {text:'Đã hủy', class:'st-red'}, 
+    1: {text:'Chờ xác nhận', class:'st-yellow'}, 
+    2: {text:'Chờ giao', class:'st-blue'}, 
+    3: {text:'Đang giao', class:'st-orange'}, 
+    4: {text:'Chờ thanh toán', class:'st-purple'},
+    5: {text:'Hoàn thành', class:'st-green'}
+}
+const getStatusText = (s) => {
+  const key = Number(s)
+  return STATUS_CONFIG[key]?.text || 'Không xác định'
+}
+
+const getStatusClass = (s) => {
+  const key = Number(s)
+  return STATUS_CONFIG[key]?.class || 'st-gray'
+}
+
+
 onMounted(() => { fetchData(); })
 </script>
 
 <style scoped>
-/* --- STYLES CŨ (LAYOUT) GIỮ NGUYÊN --- */
-.orders-page { background: #f8fafc; padding: 20px; min-height: 100vh; font-family: 'Segoe UI', sans-serif; }
-.page-title { font-size: 24px; font-weight: 700; color: #1e293b; margin-bottom: 20px; }
-.control-panel { background: white; padding: 15px 20px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
-.search-group { position: relative; width: 40%; }
-.search-input { width: 100%; padding: 10px 10px 10px 35px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; outline: none; transition: 0.3s; }
-.search-input:focus { border-color: #2563eb; } /* Đổi màu focus sang xanh cho đồng bộ */
-.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
-.action-group { display: flex; gap: 10px; }
-.filter-panel { background: white; padding: 15px 20px; border-radius: 0 0 8px 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.filter-left { display: flex; gap: 20px; align-items: center; }
-.date-group { display: flex; align-items: center; gap: 10px; }
-.date-input { padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; color: #475569; }
-.col-ngay-tao { color: #000; }
-.arrow { color: #cbd5e1; font-size: 12px; }
-.radio-group { display: flex; align-items: center; gap: 15px; font-size: 14px; color: #475569; }
-.radio-group label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
-.radio-label { font-weight: 500; color: #334155; }
+/* === GLOBAL === */
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; color: #333; font-size: 14px; }
+.page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 
-/* --- BUTTON STYLES MỚI (GIỐNG MÀN CỔ ÁO) --- */
-.btn { 
-    height: 38px; /* Chiều cao cố định cho các nút bằng nhau */
-    padding: 0 16px; 
-    border-radius: 4px; 
-    font-weight: 500; 
-    cursor: pointer; 
-    font-size: 14px; 
-    border: 1px solid transparent; 
-    transition: 0.2s;
-    display: flex; /* Flex để căn giữa icon và chữ */
+/* === CARDS === */
+.control-panel, .table-container { 
+    background: white; border-radius: 16px; border: 1px solid #bfdbfe !important; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; padding: 24px; 
+}
+.table-container { padding: 0; overflow: hidden; }
+
+/* === HEADER SECTION TRONG BẢNG (MỚI) === */
+.table-header-section {
+    padding: 20px 24px 10px 24px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.section-title {
+    display: flex;
     align-items: center;
-    gap: 8px; /* Khoảng cách giữa icon và chữ */
+    gap: 12px;
+    margin-bottom: 20px;
 }
 
-/* Nút chính (Tạo mới) - Màu xanh đậm */
-.btn-primary {
-  background-color: #0f172a; 
-  color: #ffffff;
-  border-color: #0f172a;
+.icon-title {
+    width: 40px; height: 40px;
+    background: #ffe4e6; /* Đỏ nhạt */
+    color: #e11d48; /* Đỏ đậm */
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
 }
-.btn-primary:hover {
-  background-color: #1e293b;
-  border-color: #1e293b;
+
+.text-title h3 { margin: 0; font-size: 16px; font-weight: 700; color: #0f172a; }
+.sub-text { font-size: 13px; color: #64748b; }
+
+/* === TABS STYLE (MỚI: Dạng Pill, Gradient Active) === */
+.status-tabs { 
+    display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; 
 }
-/* Nút phụ (Quét mã, Xuất Excel) - Nền trắng, viền xám */
-.btn-outline { 
+
+.tab-btn { 
+    padding: 8px 20px; 
+    border: 1px solid #e2e8f0; 
     background: #fff; 
-    border-color: #cbd5e1; 
-    color: #475569; 
+    border-radius: 30px; /* Bo tròn kiểu viên thuốc */
+    color: #64748b; 
+    font-weight: 600; 
+    font-size: 13px; 
+    cursor: pointer; 
+    transition: all 0.2s; 
+    white-space: nowrap; 
 }
-.btn-outline:hover { 
-    background: #f1f5f9; 
-    border-color: #94a3b8;
-}
-/* --- CÁC STYLE KHÁC GIỮ NGUYÊN --- */
-.tabs { background: white; padding: 0 20px; border-radius: 8px; display: flex; gap: 25px; margin-bottom: 2px; border-bottom: 1px solid #f1f5f9; }
-.tab { padding: 15px 0; color: #64748b; font-weight: 500; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; transition: 0.3s; }
-.tab:hover { color: #3b82f6; }
-.tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
-.table-wrapper { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-table { width: 100%; border-collapse: collapse; }
-th { background: #E9F1FB; color: #1E3A8A; font-weight: 700; font-size: 13px; padding: 15px; text-align: center; border-bottom: 1px solid #e2e8f0; }
-td { padding: 15px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 14px; font-weight: 400; text-align: center; vertical-align: middle; }
-.badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; display: inline-block; }
-.badge.red { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-.badge.yellow { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
-.badge.blue { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
-.badge.orange { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
-.badge.pink { background: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; }
-.badge.green { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-.badge.purple { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
-.badge-customer { background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 12px; font-size: 13px; border: 1px solid #e2e8f0; }
-/* --- ACTION BUTTON STYLE (Giống màn Cổ áo) --- */
-.action-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 18px;
-  color: #475569; /* Màu xám xanh */
-  transition: all 0.2s ease;
-  text-decoration: none; /* Quan trọng: Bỏ gạch chân vì là thẻ a/router-link */
-  display: inline-flex; /* Để căn chỉnh icon tốt hơn */
-  align-items: center;
-  justify-content: center;
+.tab-btn:hover { background: #f1f5f9; color: #0f172a; }
+
+/* Active: Gradient Xanh Đen */
+.tab-btn.active-gradient { 
+    background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); 
+    color: #fff; 
+    border-color: transparent; 
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); 
 }
 
-.action-btn:hover {
-  color: #0f172a; /* Màu đậm hơn khi hover */
-  transform: scale(1.1); /* Phóng to nhẹ */
-}
+/* === FILTERS === */
+.controls-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+.filter-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.action-group { display: flex; gap: 10px; }
 
-/* Pagination (đồng bộ màn Sản phẩm) */
-.pagination-footer { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-top: 1px solid #f1f5f9; }
-.page-info { font-size: 14px; color: #64748b; }
-.page-info select { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin: 0 5px; outline: none; }
-.page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; color: #64748b; }
+.search-box { position: relative; width: 250px; }
+.search-icon { position: absolute; left: 12px; top: 11px; color: #94a3b8; }
+.search-box input { 
+    width: 100%; padding: 8px 10px 8px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; height: 40px;
+    font-weight: 700; color: #0f172a;
+}
+.search-box input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+.date-group { display: flex; align-items: center; gap: 8px; }
+.form-control-date { height: 40px; padding: 0 10px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; color: #334155; }
+.arrow { color: #94a3b8; font-size: 12px; }
+
+.radio-group { display: flex; gap: 15px; margin-left: 10px; }
+.radio-item { display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 500; color: #475569; }
+.radio-item input { width: 16px; height: 16px; cursor: pointer; accent-color: #0f172a; }
+
+/* === BUTTONS === */
+.btn { height: 40px; padding: 0 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.btn-outline { background: #ffffff; border: 1px solid #e2e8f0; color: #475569; }
+.btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+.btn-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); }
+.btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
+.btn-orange { background: #f97316; color: #ffffff; border: 1px solid #f97316; }
+.btn-orange:hover { background: #ea580c; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3); }
+.btn-navy { background-color: #0f172a; color: #fff; box-shadow: 0 4px 6px rgba(15, 23, 42, 0.2); }
+.btn-navy:hover { background-color: #1e293b; transform: translateY(-1px); }
+
+/* === TABLE === */
+.custom-table { width: 100%; border-collapse: collapse; }
+.custom-table th { background: #eff6ff !important; color: #1e40af; padding: 16px; text-align: center; font-weight: 700; text-transform: uppercase; border-bottom: none !important; }
+.custom-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; text-align: center !important; }
+
+.text-code { color: #2563eb; font-weight: 600; font-family: monospace; font-size: 13px; }
+.text-price { color: #ef4444; font-weight: 700; }
+
+/* === BADGES === */
+.badge-status { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.st-green { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+.st-red { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.st-yellow { background: #fef9c3; color: #854d0e; border-color: #fde68a; }
+.st-blue { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+.st-orange { background: #ffedd5; color: #c2410c; border-color: #fed7aa; }
+.st-purple { background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe; }
+.st-gray { background: #f3f4f6; color: #4b5563; border-color: #e5e7eb; }
+
+/* BADGE TYPE LARGE (TO HƠN) */
+.badge-type-lg { font-size: 12px; padding: 6px 14px; border-radius: 20px; font-weight: 600; display: inline-block; }
+.bg-purple { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
+.bg-blue { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+
+/* ACTIONS */
+.action-wrapper { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.icon-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; color: #64748b; text-decoration: none; }
+.icon-btn:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+
+/* PAGINATION */
+.pagination-footer { display: flex; justify-content: space-between; align-items: center; padding: 15px 24px; border-top: 1px solid #f1f5f9; }
+.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 5px; margin: 0 5px; }
+.page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; }
 .page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
-.page-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal-content.scan-modal { background: white; width: 500px; padding: 20px; border-radius: 12px; }
-.modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
-.close-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
-.scan-hint { text-align: center; margin-top: 10px; color: #64748b; font-size: 14px; }
+
+/* MODAL SCANNER */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.modal-content.scan-modal { background: white; width: 500px; padding: 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+.modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+.close-btn { border: none; background: none; font-size: 20px; cursor: pointer; color: #64748b; }
+.scan-hint { text-align: center; margin-top: 10px; color: #64748b; font-size: 13px; font-style: italic; }
+.empty-state { padding: 40px; color: #64748b; font-style: italic; text-align: center !important; }
+.input-den::placeholder { color: #000000 !important; opacity: 1 !important; font-weight: 500; }
 </style>

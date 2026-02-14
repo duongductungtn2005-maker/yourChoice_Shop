@@ -1,5 +1,6 @@
 package org.example.yourchoiceshop.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -40,5 +41,6 @@ public class DiaChiKhachHang extends PrimaryEntity {
 
     @ManyToOne
     @JoinColumn(name = "id_khach_hang")
+    @JsonBackReference // Ngăn không cho in lại KhachHang bên trong DiaChi (tránh lặp)
     private KhachHang khachHang;
 }

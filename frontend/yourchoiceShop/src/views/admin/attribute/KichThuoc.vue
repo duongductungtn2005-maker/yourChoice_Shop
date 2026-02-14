@@ -1,120 +1,155 @@
 <template>
-  <div class="attribute-page">
-    <div class="header-section">
-            <h1 class="page-title">Quản lý sản phẩm / Kích thước</h1>
+  <div class="page-container">
+    <h1 class="page-title">Quản lý sản phẩm / Kích thước</h1>
 
+    <div class="control-panel">
+      <div class="controls-row">
+        <div class="filter-group">
+          <div class="search-box">
+            <i class="fas fa-magnifying-glass search-icon"></i>
+            <input 
+            class="input-den"
+              type="text" 
+              v-model="filter.keyword" 
+              placeholder="Tìm kiếm kích thước..." 
+              @keyup.enter="fetchData"
+            >
+          </div>
+        </div>
+
+        <div class="action-group">
+          <button class="btn btn-navy" @click="resetFilter">
+            <font-awesome-icon :icon="['fas', 'sync-alt']" /> Đặt lại
+          </button>
+          <button class="btn btn-outline" @click="exportExcel">
+            <font-awesome-icon :icon="['fas', 'file-excel']" /> Xuất Excel
+          </button>
+          <button class="btn btn-gradient" @click="openModal()">
+            <i class="fas fa-plus"></i> Tạo mới
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-         <div class="toolbar">
-            <div class="search-wrap">
-               <span class="search-icon">🔍</span>
-               <input 
-                 type="text" 
-                 v-model="filter.keyword" 
-                 placeholder="Tìm kiếm kích thước..." 
-                 @keyup.enter="fetchData"
-               >
-            </div>
-            <div class="action-group">
-               <button class="btn btn-outline" @click="exportExcel">
-                <font-awesome-icon :icon="['fas', 'file-excel']" /> Xuất Excel
-            </button>
-               <button class="btn btn-primary" @click="openModal()">+ Tạo mới</button>
-            </div>
-         </div>
-      </div>
+    <div class="table-container">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th class="text-center">STT</th>
+            <th>Tên Kích Thước</th>
+            <th class="text-center">Trạng thái</th>
+            <th class="text-center">Ngày tạo</th>
+            <th class="text-center">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="loading">
+            <td colspan="5" class="text-center empty-state">Đang tải dữ liệu...</td>
+          </tr>
+          <tr v-else-if="items.length === 0">
+            <td colspan="5" class="text-center empty-state">Không có dữ liệu</td>
+          </tr>
 
-      <div class="table-responsive">
-        <table>
-          <thead>
-            <tr>
-              <th class="text-center" width="10%">STT</th>
-              <th class="text-center" width="40%">Tên Kích Thước</th>
-              <th class="text-center" width="20%">Trạng thái</th>
-              <th class="text-center" width="20%">Ngày tạo</th>
-              <th class="text-center" width="10%">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="loading"><td colspan="5" class="text-center py-4">Đang tải dữ liệu...</td></tr>
-            <tr v-else-if="items.length === 0"><td colspan="5" class="text-center py-4">Không có dữ liệu.</td></tr>
-            <tr v-else v-for="(item, index) in items" :key="item.id">
-              <td class="text-center">{{ (page - 1) * pageSize + index + 1 }}</td>
-              <td class="text-center font-medium text-primary">{{ item.tenKichThuoc }}</td>
-              <td class="text-center">
-                 <span :class="['badge', item.trangThai === 1 ? 'badge-success' : 'badge-danger']">
-                    {{ item.trangThai === 1 ? 'Hoạt động' : 'Ngừng' }}
-                 </span>
-              </td>
-              <td class="text-center col-ngay-tao">{{ formatDate(item.ngayTao) }}</td>
-              <td class="text-center">
-    <button class="action-btn" @click="openModal(item)" title="Sửa">
-    <font-awesome-icon :icon="['far', 'pen-to-square']" />
-</button>
-
-    <label class="switch" title="Bật/Tắt trạng thái">
-        <input 
-            type="checkbox" 
-            :checked="item.trangThai === 1" 
-            @click="handleToggleStatus(item, $event)"
-        >
-        <span class="slider round"></span>
-    </label>
-</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+          <tr v-else v-for="(item, index) in items" :key="item.id">
+            <td class="text-center">{{ (page - 1) * pageSize + index + 1 }}</td>
+            
+            <td class="code-text">
+              {{ item.tenKichThuoc }}
+            </td>
+            
+            <td class="text-center">
+              <span class="badge" :class="item.trangThai === 1 ? 'badge-active' : 'badge-stopped'">
+                {{ item.trangThai === 1 ? 'Hoạt động' : 'Ngưng' }}
+              </span>
+            </td>
+            
+            <td class="text-center time-col">{{ formatDate(item.ngayTao) }}</td>
+            
+            <td class="text-center action-col">
+              <div class="action-wrapper">
+                <button class="icon-btn" @click="openModal(item)" title="Sửa">
+                  <i class="far fa-eye"></i>
+                </button>
+                
+                <label class="switch" title="Bật/Tắt trạng thái">
+                  <input 
+                    type="checkbox" 
+                    :checked="item.trangThai === 1" 
+                    @click="handleToggleStatus(item, $event)"
+                  >
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       <div class="pagination-footer">
-         <div class="page-info">
-            Hiển thị <select v-model="pageSize" @change="handlePageSizeChange"><option :value="5">5</option><option :value="10">10</option></select> kết quả
-         </div>
-         <div class="page-controls">
-            <button :disabled="page === 1" @click="changePage(page - 1)">‹</button>
-            <button v-for="p in visiblePages" :key="p" :class="{ active: p === page }" @click="changePage(p)">{{ p }}</button>
-            <button :disabled="page === totalPages" @click="changePage(page + 1)">›</button>
-         </div>
+        <div class="page-info">
+          Hiển thị 
+          <select v-model="pageSize" @change="handlePageSizeChange">
+            <option :value="5">5</option>
+            <option :value="10">10</option>
+          </select> 
+          kết quả / trang
+        </div>
+        <div class="page-controls">
+          <button :disabled="page === 1" @click="changePage(page - 1)">‹</button>
+          <button 
+            v-for="p in visiblePages" 
+            :key="p" 
+            :class="{ active: p === page }" 
+            @click="changePage(p)"
+          >
+            {{ p }}
+          </button>
+          <button :disabled="page === totalPages" @click="changePage(page + 1)">›</button>
+        </div>
       </div>
     </div>
 
-    <div class="modal-backdrop" v-if="showModal">
-       <div class="modal-dialog-custom">
-          <div class="modal-content-custom">
-             <div class="modal-header-custom">
-                <h3>{{ isEdit ? 'Cập nhật kích thước' : 'Thêm mới kích thước' }}</h3>
-             </div>
-             <div class="modal-body-custom">
-                <form @submit.prevent="saveData">
-                   <div class="form-group">
-                      <input 
-                        type="text" 
-                        v-model="form.ten" 
-                        class="form-control-custom" 
-                        placeholder="Nhập tên kích thước (VD: S, M, L, XL...)" 
-                        ref="nameInput"
-                      >
-                   </div>
-                   <div class="form-group" v-if="isEdit" style="margin-top: 15px;">
-                      <label style="font-size: 13px; font-weight: 500;">Trạng thái:</label>
-                      <div class="radio-group">
-                         <label class="radio-item"><input type="radio" :value="1" v-model="form.trangThai"> Hoạt động</label>
-                         <label class="radio-item"><input type="radio" :value="0" v-model="form.trangThai"> Ngừng</label>
-                      </div>
-                   </div>
-                </form>
-             </div>
-             <div class="modal-footer-custom">
-    <button type="button" class="btn-custom btn-white-outline" @click="showModal = false">Đóng</button>
-    
-    <button type="button" class="btn-custom btn-dark-blue" @click="saveData">
-        {{ isEdit ? 'Lưu' : 'Thêm' }}
-    </button>
-</div>
+    <div class="modal-overlay" v-if="showModal" @click.self="showModal = false">
+      <div class="modal-content" style="width: 450px;">
+        <div class="modal-header">
+          <h3 style="margin:0">{{ isEdit ? 'Cập nhật kích thước' : 'Thêm mới kích thước' }}</h3>
+          <button @click="showModal = false" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div class="modal-body">
+          <form @submit.prevent="saveData">
+            <div class="form-group text-left">
+              <label class="form-label">Tên kích thước <span class="required">*</span></label>
+              <input 
+                type="text" 
+                v-model="form.ten" 
+                class="form-control-custom" 
+                :class="{ 'is-invalid': errors.ten }"
+                placeholder="Nhập tên kích thước (VD: S, M, L...)" 
+                ref="nameInput"
+                @blur="validateField('ten')" 
+                @input="validateField('ten')"
+              >
+              <span v-if="errors.ten" class="error-msg">{{ errors.ten }}</span>
+            </div>
+
+            <div class="form-group text-left" v-if="isEdit" style="margin-top: 15px;">
+              <label class="form-label">Trạng thái:</label>
+              <div class="radio-group" style="display: flex; gap: 20px;">
+                <label><input type="radio" :value="1" v-model="form.trangThai"> Hoạt động</label>
+                <label><input type="radio" :value="0" v-model="form.trangThai"> Ngừng</label>
+              </div>
+            </div>
+          </form>
+
+          <div class="modal-actions" style="margin-top: 25px; justify-content: flex-end; gap: 10px; display: flex;">
+            <button class="btn btn-outline" @click="showModal = false">Đóng</button>
+            <button class="btn btn-gradient" @click="saveData">
+              {{ isEdit ? 'Lưu thay đổi' : 'Thêm mới' }}
+            </button>
           </div>
-       </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -123,6 +158,8 @@
 import { ref, reactive, onMounted, computed, nextTick } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import { validate } from '@/utils/validate'; 
+import { toastSuccess, toastError } from '@/utils/toast'; 
 
 // --- STATE ---
 const items = ref([]);
@@ -136,12 +173,24 @@ const showModal = ref(false);
 const isEdit = ref(false);
 const currentId = ref(null);
 const form = reactive({ ten: '', trangThai: 1 });
+const errors = reactive({ ten: null }); 
 const nameInput = ref(null);
 
-// API URL CHO KÍCH THƯỚC
 const API_URL = 'http://localhost:8080/api/v1/kich-thuoc';
 
-// --- FETCH DATA ---
+// --- VALIDATE LOGIC ---
+const validateField = (field) => {
+    if (field === 'ten') {
+        errors.ten = validate.isRequired(form.ten); 
+    }
+};
+
+const isFormValid = () => {
+    validateField('ten');
+    return !errors.ten;
+};
+
+// --- API FETCH ---
 const fetchData = async () => {
     loading.value = true;
     try {
@@ -153,15 +202,11 @@ const fetchData = async () => {
     } catch (e) { console.error(e); } finally { loading.value = false; }
 };
 
-// --- CHỨC NĂNG XUẤT EXCEL ---
+// --- EXPORT EXCEL ---
 const exportExcel = async () => {
     const confirmRes = await Swal.fire({
-        title: 'Xác nhận',
-        text: 'Bạn có muốn tải xuống danh sách kích thước không?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Có',
-        cancelButtonText: 'Hủy'
+        title: 'Xác nhận', text: 'Bạn có muốn tải xuống danh sách kích thước không?', icon: 'question',
+        showCancelButton: true, confirmButtonText: 'Có', cancelButtonText: 'Hủy'
     });
     if (!confirmRes.isConfirmed) return;
 
@@ -172,20 +217,21 @@ const exportExcel = async () => {
         const dateStr = new Date().toISOString().slice(0,10);
         link.setAttribute('download', `DS_KichThuoc_${dateStr}.xlsx`);
         document.body.appendChild(link); link.click(); document.body.removeChild(link); window.URL.revokeObjectURL(url);
-
+        
         const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
         Toast.fire({ icon: 'success', title: 'Xuất Excel thành công' });
-
     } catch (e) {
         console.error("Lỗi xuất Excel:", e);
-        Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể xuất file Excel.' });
+        Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể xuất file Excel. Vui lòng thử lại sau.' });
     }
 };
 
+// --- MODAL HANDLERS ---
 const openModal = (item = null) => {
+    errors.ten = null; 
     if (item) {
         isEdit.value = true; currentId.value = item.id;
-        form.ten = item.tenKichThuoc; // Đổi thành tenKichThuoc
+        form.ten = item.tenKichThuoc;
         form.trangThai = item.trangThai;
     } else {
         isEdit.value = false; currentId.value = null;
@@ -196,111 +242,52 @@ const openModal = (item = null) => {
 };
 
 const saveData = async () => {
-    if (!form.ten.trim()) {
-        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
-        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập tên kích thước!' });
-        return;
-    }
-
+    if (!isFormValid()) return;
     try {
-        const checkRes = await axios.get(API_URL, {
-            params: { keyword: form.ten.trim(), page: 0, size: 100 }
-        });
+        const checkRes = await axios.get(API_URL, { params: { keyword: form.ten.trim(), page: 0, size: 100 } });
         const listCheck = checkRes.data.content || [];
-        
-        // Check trùng với tenKichThuoc
         const isDuplicate = listCheck.some(item => 
-            item.tenKichThuoc.toLowerCase() === form.ten.trim().toLowerCase() && 
-            item.id !== currentId.value
+            item.tenKichThuoc.toLowerCase() === form.ten.trim().toLowerCase() && item.id !== currentId.value
         );
+        if (isDuplicate) { errors.ten = `Tên "${form.ten}" đã tồn tại!`; return; }
 
-        if (isDuplicate) {
-            Swal.fire({
-                icon: 'error', title: 'Tên đã tồn tại!', 
-                text: `Kích thước "${form.ten}" đã có trong hệ thống.`,
-                confirmButtonColor: '#ef4444'
-            });
-            return;
-        }
-    } catch (e) { console.error(e); }
+        const result = await Swal.fire({
+            title: `Xác nhận ${isEdit.value ? 'cập nhật' : 'thêm mới'}?`,
+            icon: 'question', showCancelButton: true, confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy'
+        });
 
-    const result = await Swal.fire({
-        title: `<h3 style="color:#1e293b; margin:0; font-size:20px;">Xác nhận ${isEdit.value ? 'Cập nhật' : 'Thêm mới'}?</h3>`,
-        icon: 'warning', 
-        iconColor: '#facc15', 
-        showCancelButton: true, 
-        confirmButtonText: 'Có', 
-        cancelButtonText: 'Không',
-        // QUAN TRỌNG: confirmButton dùng class 'solid' (đậm), cancelButton dùng 'outline' (trắng)
-        customClass: { confirmButton: 'swal-btn-solid', cancelButton: 'swal-btn-outline', popup: 'swal-rounded' }, 
-        buttonsStyling: false, 
-        reverseButtons: true
-    });
-
-    if (result.isConfirmed) {
-        try {
+        if (result.isConfirmed) {
             const payload = { ten: form.ten, trangThai: form.trangThai };
-            
-            if (isEdit.value) {
-                await axios.put(`${API_URL}/${currentId.value}`, payload);
-            } else {
-                await axios.post(API_URL, payload);
-            }
-            showModal.value = false; fetchData();
-            Swal.fire({ icon: 'success', title: 'Thành công', showConfirmButton: false, timer: 1500, customClass: { popup: 'swal-rounded' } });
-        } catch (e) {
-            Swal.fire({ icon: 'error', title: 'Thất bại', text: e.response?.data?.message || 'Lỗi hệ thống', customClass: { popup: 'swal-rounded' } });
+            if (isEdit.value) await axios.put(`${API_URL}/${currentId.value}`, payload);
+            else await axios.post(API_URL, payload);
+            showModal.value = false; 
+            fetchData();
+            toastSuccess(isEdit.value ? 'Cập nhật thành công!' : 'Thêm mới thành công!');
         }
-    }
+    } catch (e) { toastError(e.response?.data?.message || 'Có lỗi xảy ra!'); }
 };
-
+const resetFilter = () => {
+    filter.keyword = '';
+    page.value = 1;
+    fetchData();
+};
 const handleToggleStatus = async (item, event) => {
-    event.preventDefault(); // Chặn đổi trạng thái ngay lập tức
-
-    const currentStatus = item.trangThai;
-    const newStatus = currentStatus === 1 ? 0 : 1;
+    event.preventDefault();
+    const newStatus = item.trangThai === 1 ? 0 : 1;
     const actionText = newStatus === 1 ? 'Kích hoạt' : 'Ngừng hoạt động';
-    const confirmBtnColor = newStatus === 1 ? '#10b981' : '#ef4444'; 
-
     const result = await Swal.fire({
-        title: `<h3 style="color:#1e293b; font-size:18px;">Xác nhận ${actionText}?</h3>`,
-        text: `Bạn có chắc muốn ${actionText.toLowerCase()} tay áo "${item.tenTayAo}"?`, // Dùng tenTayAo
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Đồng ý',
-        cancelButtonText: 'Hủy',
-        confirmButtonColor: confirmBtnColor,
-        customClass: { popup: 'swal-rounded' }
+        title: `Xác nhận ${actionText}?`,
+        text: `Bạn có chắc muốn ${actionText.toLowerCase()} "${item.tenKichThuoc}"?`,
+        icon: 'question', showCancelButton: true, confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy'
     });
 
     if (result.isConfirmed) {
         try {
-            if (newStatus === 0) {
-                // Tắt -> Gọi Delete (Xóa mềm)
-                await axios.delete(`${API_URL}/${item.id}`);
-            } else {
-                // Bật -> Gọi Put (Cập nhật trạng thái = 1)
-                await axios.put(`${API_URL}/${item.id}`, { 
-                    ten: item.tenTayAo, // Gửi đúng tên Tay Áo
-                    trangThai: 1 
-                });
-            }
-
-            // Cập nhật giao diện
+            if (newStatus === 0) await axios.delete(`${API_URL}/${item.id}`);
+            else await axios.put(`${API_URL}/${item.id}`, { ten: item.tenKichThuoc, trangThai: 1 });
             item.trangThai = newStatus;
-            
-            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-            Toast.fire({ icon: 'success', title: `Đã ${actionText.toLowerCase()} thành công!` });
-
-        } catch (e) {
-            console.error(e);
-            Swal.fire({
-                icon: 'error',
-                title: 'Lỗi',
-                text: 'Không thể thay đổi trạng thái. Vui lòng thử lại.',
-                customClass: { popup: 'swal-rounded' }
-            });
-        }
+            toastSuccess(`Đã ${actionText.toLowerCase()} thành công!`);
+        } catch (e) { toastError('Không thể thay đổi trạng thái.'); }
     }
 };
 
@@ -310,117 +297,116 @@ const handlePageSizeChange = () => { page.value = 1; fetchData(); };
 const visiblePages = computed(() => {
     let p = []; for (let i = 1; i <= totalPages.value; i++) if (i===1 || i===totalPages.value || (i>=page.value-1 && i<=page.value+1)) p.push(i); return p;
 });
-const formatDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit',year:'numeric'}) : '';
+const formatDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN') : '';
 
 onMounted(() => { fetchData(); });
 </script>
 
-<style>
-/* CSS SWEETALERT */
-/* --- CSS TOGGLE SWITCH --- */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
-  margin-left: 12px; /* TẠO KHOẢNG CÁCH VỚI NÚT SỬA */
+<style scoped>
+/* === CSS CHUẨN ĐỒNG BỘ === */
+.btn-navy {
+    background-color: #0f172a; /* Xanh than đậm */
+    color: #ffffff;
+    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.2);
 }
-
-.switch input { 
-  opacity: 0;
-  width: 0;
-  height: 0;
+.btn-navy:hover {
+    background-color: #1e293b;
+    transform: translateY(-1px);
 }
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #cbd5e1;
-  transition: .4s;
-  border-radius: 34px;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 14px;
-  width: 14px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2);
-}
-
-input:checked + .slider {
-  background-color: #10b981;
-}
-
-input:checked + .slider:before {
-  transform: translateX(16px);
-}
-.swal-rounded { border-radius: 12px !important; }
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; color: #333; font-size: 14px; }
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 
-.swal-btn-outline { background-color: #fff !important; color: #1e293b !important; border: 1px solid #1e293b !important; padding: 8px 24px; border-radius: 6px; font-weight: 500; cursor: pointer; margin-left: 10px; }
-.swal-btn-outline:hover { background-color: #f1f5f9 !important; }
-.swal-btn-solid { background-color: #1e293b !important; color: #fff !important; border: none !important; padding: 8px 24px; border-radius: 6px; font-weight: 500; cursor: pointer; }
-.swal-btn-solid:hover { background-color: #334155 !important; }
-.swal-btn-danger { background-color: #ef4444 !important; color: #fff !important; padding: 8px 24px; border-radius: 6px; font-weight: 500; cursor: pointer; margin-left: 10px; }
-</style>
+/* CARD STYLING */
+.control-panel, .table-container { 
+    background: white; border-radius: 16px; border: 1px solid #bfdbfe !important; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; padding: 24px; 
+}
+.table-container { padding: 0; overflow: hidden; }
 
-<style scoped>
-.attribute-page { font-family: 'Segoe UI', sans-serif; color: #333; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
-.header-section { margin-bottom: 20px; }
-.breadcrumb { font-size: 14px; color: #64748b; } .breadcrumb .active { font-weight: 500; color: #0f172a; }
-.card { background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 28px; border: 1px solid rgba(30,58,138,0.06); transition: box-shadow 0.2s ease; }
-.card:hover { box-shadow: 0 10px 28px rgba(0,0,0,0.1); }
-.toolbar { display: flex; justify-content: space-between; margin-bottom: 20px; }
-.search-wrap { position: relative; width: 300px; }
-.search-wrap input { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid #e2e8f0; border-radius: 4px; outline: none; }
-.search-wrap .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
-.btn { padding: 8px 16px; border-radius: 4px; font-weight: 500; cursor: pointer; border: 1px solid transparent; }
-.btn-primary { background: #0f172a; color: #fff; }
-.btn-outline { background: #fff; border-color: #cbd5e1; color: #475569; }
+/* FLEX LAYOUT */
+.controls-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+.filter-group { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .action-group { display: flex; gap: 10px; }
-.table-responsive { overflow-x: auto; border: 1px solid rgba(30,58,138,0.08); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-table { width: 100%; border-collapse: collapse; }
-th { background: #E9F1FB; padding: 18px 20px; font-weight: 700; color: #1E3A8A; border-bottom: 2px solid #1E3A8A; font-size: 13px; text-transform: uppercase; }
-td { padding: 18px 20px; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 400; vertical-align: middle; transition: background-color 0.2s ease; }
-table tbody tr:hover td { background-color: #f8fafc; }
-.text-center { text-align: center; } .font-medium { font-weight: 500; } .text-primary { color: #0f172a; } .text-gray { color: #64748b; } .col-ngay-tao { color: #000; }
-.badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
-.badge-success { background: #dcfce7; color: #166534; } .badge-danger { background: #fee2e2; color: #991b1b; }
-.pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f1f5f9; }
+
+/* INPUTS & SEARCH */
+.search-box { position: relative; width: 250px; }
+.search-icon { position: absolute; left: 12px; top: 11px; color: #94a3b8; }
+.search-box input { 
+    width: 100%; 
+    padding: 8px 10px 8px 36px; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 6px; 
+    outline: none; 
+    height: 40px; 
+    /* ĐÃ CHỈNH SỬA: Thêm font-weight để chữ đậm hơn */
+    font-weight: 700;
+}
+.search-box input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+/* BUTTONS */
+.btn { 
+    height: 40px; padding: 0 20px; border-radius: 6px; font-weight: 600; cursor: pointer; 
+    font-size: 13px; border: 1px solid transparent; transition: 0.2s; display: inline-flex; 
+    align-items: center; gap: 8px; text-decoration: none;
+}
+.btn-outline { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
+.btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+.btn-gradient { 
+    background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; 
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); 
+}
+.btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
+
+/* TABLE STYLES */
+.custom-table { width: 100%; border-collapse: collapse; }
+.custom-table th {
+    background: #eff6ff !important; color: #1e40af; padding: 16px; text-align: center;
+     font-weight: 700; text-transform: uppercase; border-bottom: none !important;
+}
+.custom-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; text-align: center; vertical-align: middle; }
+
+/* BADGES */
+.badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.badge-active { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.badge-stopped { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.badge-expired { background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0; }
+
+/* ACTIONS */
+.action-wrapper { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.icon-btn { 
+    width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; 
+    background: white; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; color: #64748b; 
+}
+.icon-btn:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+
+/* TOGGLE SWITCH */
+.switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: #10b981; }
+input:checked + .slider:before { transform: translateX(16px); }
+
+/* PAGINATION */
+.pagination-footer { display: flex; justify-content: space-between; align-items: center; padding: 15px 24px; border-top: 1px solid #f1f5f9; }
+.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 5px; margin: 0 5px; }
 .page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; }
 .page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
-.modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1050; display: flex; justify-content: center; align-items: flex-start; padding-top: 100px; }
-.modal-dialog-custom { width: 450px; background: transparent; }
-.modal-content-custom { background: #fff; border-radius: 12px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center; }
-.modal-header-custom h3 { margin: 0 0 20px 0; color: #1e293b; font-size: 22px; font-weight: 700; }
-.modal-body-custom { margin-bottom: 25px; }
-.form-control-custom { width: 100%; padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; outline: none; transition: 0.2s; }
-.form-control-custom:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-.modal-footer-custom { display: flex; justify-content: center; gap: 15px; }
-.btn-custom { padding: 10px 35px; border-radius: 8px; font-weight: 500; font-size: 15px; cursor: pointer; transition: 0.2s; min-width: 100px; }
-.btn-dark-blue { background-color: #1e293b; color: #fff; border: none; }
-.btn-white-outline { background-color: #fff; color: #1e293b; border: 1px solid #1e293b; }
-.btn-white-outline:hover { background-color: #f8fafc; }
-.radio-group { display: flex; justify-content: center; gap: 20px; }
-.radio-item { font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-.action-btn { 
-    background: none; 
-    border: none; 
-    cursor: pointer; 
-    font-size: 18px; 
-    color: #475569; 
-    transition: 0.2s; 
-}
 
-.action-btn:hover { 
-    color: #0f172a; 
-    transform: scale(1.1); 
+/* MODAL & OTHERS */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.modal-content { background: white; padding: 24px; border-radius: 12px; }
+.modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+.close-btn { border: none; background: none; font-size: 18px; cursor: pointer; color: #64748b; }
+.empty-state { padding: 40px; color: #64748b; font-style: italic; }
+.form-control-custom { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-top: 5px; outline: none; }
+.form-control-custom:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+.error-msg { color: #ef4444; font-size: 12px; margin-top: 5px; display: block; }
+.is-invalid { border-color: #ef4444; }
+/* Màu chữ placeholder đen xì, rõ nét */
+.input-den::placeholder {
+    color: #000000 !important;  /* Màu đen */
+    opacity: 1 !important;      /* Chống mờ */
+    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
 }
 </style>

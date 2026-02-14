@@ -29,35 +29,47 @@ public class ChiTietSanPham extends BaseStatusEntity {
     // --- SẢN PHẨM CHA ---
     @ManyToOne
     @JoinColumn(name = "id_san_pham")
-    // Dòng này giúp lấy được thông tin Sản phẩm cha, nhưng BỎ QUA danh sách con của nó
-    // (Tránh lỗi lặp vô tận JSON mà vẫn hiển thị được tên sản phẩm)
     @JsonIgnoreProperties(value = {"chiTietSanPhams", "listChiTietSanPham", "hibernateLazyInitializer", "handler"})
     private SanPham sanPham;
 
-    // --- MÀU SẮC ---
+    // --- CÁC THUỘC TÍNH (Đã có) ---
     @ManyToOne
     @JoinColumn(name = "id_mau_sac")
     private MauSac mauSac;
 
-    // --- KÍCH THƯỚC ---
     @ManyToOne
     @JoinColumn(name = "id_kich_thuoc")
     private KichThuoc kichThuoc;
 
-    // --- CHẤT LIỆU (THÊM MỚI ĐỂ FIX LỖI STARTUP) ---
     @ManyToOne
     @JoinColumn(name = "id_chat_lieu")
     private ChatLieu chatLieu;
+
+    // --- CÁC THUỘC TÍNH (THÊM MỚI ĐỂ FIX LỖI) ---
+    @ManyToOne
+    @JoinColumn(name = "id_thuong_hieu")
+    private ThuongHieu thuongHieu;
+
+    @ManyToOne
+    @JoinColumn(name = "id_co_ao")
+    private CoAo coAo;
+
+    @ManyToOne
+    @JoinColumn(name = "id_tay_ao")
+    private TayAo tayAo;
+
+    @ManyToOne
+    @JoinColumn(name = "id_xuat_xu")
+    private XuatXu xuatXu;
     // ----------------------------------------------
 
     // --- HÌNH ẢNH ---
     @OneToMany(mappedBy = "chiTietSanPham")
-    // @JsonIgnore // Có thể mở comment nếu muốn ẩn ảnh để nhẹ JSON
     private List<HinhAnh> hinhAnhs;
 
     // --- ĐỢT GIẢM GIÁ ---
     @ManyToOne
     @JoinColumn(name = "id_dot_giam_gia")
-    @JsonIgnore // Ngắt vòng lặp vô tận với Đợt giảm giá
+    @JsonIgnore
     private DotGiamGia dotGiamGia;
 }

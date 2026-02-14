@@ -1,9 +1,11 @@
 package org.example.yourchoiceshop.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
-// import java.sql.Date;
-import java.time.LocalDate; // Nhớ import dòng này
+import java.time.LocalDate;
+import java.util.List;
+
 @Entity
 @Table(name = "khach_hang")
 @Getter
@@ -11,10 +13,6 @@ import java.time.LocalDate; // Nhớ import dòng này
 @NoArgsConstructor
 @AllArgsConstructor
 public class KhachHang extends BaseStatusEntity {
-
-    // Đã xóa: id (do PrimaryEntity quản lý)
-    // Đã xóa: ngayTao, trangThai... (do BaseStatusEntity quản lý)
-    // Chỉ giữ lại thông tin riêng của Khách hàng:
 
     @Column(name = "ma_khach_hang", unique = true)
     private String maKhachHang;
@@ -39,10 +37,14 @@ public class KhachHang extends BaseStatusEntity {
 
     @Column(name = "ngay_sinh")
     private LocalDate ngaySinh;
+
     @Column(name = "trang_thai")
     private Integer trangThai;
 
-    // --- BỔ SUNG TRƯỜNG NÀY ---
-    @Column(name = "avatar") // Hoặc "anh_dai_dien" tùy DB của bạn
+    @Column(name = "avatar")
     private String avatar;
+
+    @OneToMany(mappedBy = "khachHang", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private List<DiaChiKhachHang> listDiaChi;
 }
