@@ -16,7 +16,7 @@ public class HoaDonDetailResponse {
 
     // Thông tin tài chính
     private BigDecimal tongTien;
-    private BigDecimal giamGia;
+    private BigDecimal tienGiam;
     private BigDecimal phiVanChuyen;
     private BigDecimal tongTienSauGiam;
 
