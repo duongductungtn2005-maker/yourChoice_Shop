@@ -33,6 +33,16 @@
               <div class="section-header-row">
                  <h3 class="section-title">Thông tin chi tiết</h3>
               </div>
+              <div class="form-row">
+                <div class="form-group half">
+                    <label class="required">Số điện thoại</label>
+                    <input type="text" v-model="employee.soDienThoai" class="form-control">
+                 </div>
+                 <div class="form-group half">
+                    <label class="required">Email</label>
+                    <input type="email" v-model="employee.email" class="form-control">
+                 </div>
+              </div>
 
               <div class="form-row">
                 <div class="form-group half">
@@ -46,33 +56,11 @@
                     <label class="radio-item"><input type="radio" :value="false" v-model="employee.gioiTinh"> Nữ</label>
                   </div>
                 </div>
-              </div>
-
-              <div class="form-row">
                 <div class="form-group half">
                   <label class="required">Ngày sinh</label>
                   <input type="date" v-model="employee.ngaySinh" class="form-control">
                 </div>
-                <div class="form-group half">
-                   <label class="required">Quyền hạn</label>
-                   <select v-model="employee.chucVu" class="form-control">
-                      <option value="STAFF">Nhân viên</option>
-                      <option value="ADMIN">Quản lý (Admin)</option>
-                   </select>
-                </div>
               </div>
-
-              <div class="form-row">
-                 <div class="form-group half">
-                    <label class="required">Email</label>
-                    <input type="email" v-model="employee.email" class="form-control">
-                 </div>
-                 <div class="form-group half">
-                    <label class="required">Số điện thoại</label>
-                    <input type="text" v-model="employee.soDienThoai" class="form-control">
-                 </div>
-              </div>
-
               <div class="form-row">
                 <div class="form-group third">
                    <label>Tỉnh/Thành</label>
@@ -96,7 +84,15 @@
                    </select>
                 </div>
               </div>
-
+              <div class="form-row">
+                <div class="form-group half">
+                   <label class="required">Quyền hạn</label>
+                   <select v-model="employee.chucVu" class="form-control">
+                      <option value="STAFF">Nhân viên</option>
+                      <option value="ADMIN">Quản lý (Admin)</option>
+                   </select>
+                </div>
+              </div>
               <div class="form-group">
                  <label class="required">Địa chỉ cụ thể</label>
                  <input type="text" v-model="employee.diaChiCuThe" class="form-control" placeholder="Số nhà, đường...">
@@ -157,6 +153,7 @@ const loadData = async () => {
             previewImage.value = `http://localhost:8080/api/v1/nhan-vien/images/${data.anhDaiDien}`;
         }
 
+        // 3. Xử lý địa chỉ (QUAN TRỌNG: Cần await)
         if (data.diaChi && data.diaChi !== 'Chưa cập nhật') {
             await parseAddressString(data.diaChi);
         } else {
@@ -168,44 +165,94 @@ const loadData = async () => {
     }
 };
 
+// Hàm chuẩn hóa chuỗi: Bỏ dấu, bỏ viết hoa, bỏ tiền tố hành chính
+const normalizeName = (str) => {
+    if (!str) return '';
+    return str.toLowerCase()
+        // Bỏ các từ: Tỉnh, Thành phố, TP., Quận, Huyện, Xã, Phường... (kể cả có hoặc không có dấu chấm/cách)
+        .replace(/(tỉnh|thành phố|tp\.?|quận|huyện|thị xã|tx\.?|xã|phường|thị trấn|tt\.?)\s*/g, '')
+        .trim();
+};
+
+const findLocationCode = (inputName, listData) => {
+    if (!inputName || !listData || listData.length === 0) return "";
+    
+    const searchKey = normalizeName(inputName);
+    
+    // Thử tìm chính xác
+    let found = listData.find(item => normalizeName(item.name) === searchKey);
+    
+    // Nếu chưa thấy, thử tìm "chứa trong"
+    if (!found) {
+        found = listData.find(item => normalizeName(item.name).includes(searchKey));
+    }
+    
+    // LỖI CŨ CỦA BẠN NẰM Ở ĐÂY: return found ? item.code : "";
+    // SỬA THÀNH:
+    return found ? found.code : ""; 
+};
+
+// Hàm tách chuỗi địa chỉ và tự động fill Dropdown
 const parseAddressString = async (fullAddr) => {
+    if (!fullAddr) return;
+
+    // Tách chuỗi bằng dấu phẩy
     const parts = fullAddr.split(',').map(s => s.trim());
+    
+    // Nếu địa chỉ quá ngắn (không đủ 3 cấp: Xã, Huyện, Tỉnh), chỉ điền vào ô chi tiết
     if (parts.length < 3) {
         employee.diaChiCuThe = fullAddr;
         return;
     }
 
+    // Lấy ngược từ cuối lên: Tỉnh (cuối) -> Huyện (kế cuối) -> Xã (kế nữa)
     const pName = parts[parts.length - 1]; 
     const dName = parts[parts.length - 2]; 
     const wName = parts[parts.length - 3]; 
-    
+
+    // --- BƯỚC 1: XỬ LÝ TỈNH ---
+    // Tìm ID Tỉnh trong danh sách đã load sẵn (locationData.provinces)
     const pCode = findLocationCode(pName, locationData.provinces);
+    
     if (pCode) {
         address.provinceId = pCode;
+        
         try {
+            // --- BƯỚC 2: XỬ LÝ HUYỆN ---
+            // Gọi API lấy danh sách Huyện của Tỉnh này
             const resD = await axios.get(`https://provinces.open-api.vn/api/p/${pCode}?depth=2`);
             locationData.districts = resD.data.districts;
             
+            // Tìm ID Huyện trong danh sách vừa tải về
             const dCode = findLocationCode(dName, locationData.districts);
+            
             if (dCode) {
                 address.districtId = dCode;
+                
+                // --- BƯỚC 3: XỬ LÝ XÃ ---
+                // Gọi API lấy danh sách Xã của Huyện này
                 const resW = await axios.get(`https://provinces.open-api.vn/api/d/${dCode}?depth=2`);
                 locationData.wards = resW.data.wards;
 
+                // Tìm ID Xã trong danh sách vừa tải về
                 const wCode = findLocationCode(wName, locationData.wards);
-                if (wCode) address.wardCode = wCode;
+                if (wCode) {
+                    address.wardCode = wCode;
+                }
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error("Lỗi khi load Huyện/Xã:", e);
+        }
     }
-    employee.diaChiCuThe = parts.slice(0, parts.length - 3).join(', ');
-};
 
-const findLocationCode = (inputName, list) => {
-    if (!inputName || !list) return "";
-    const normalize = (str) => str.toLowerCase().replace(/(tỉnh|thành phố|tp\.|quận|huyện|thị xã|xã|phường|thị trấn)\s+/g, "").trim();
-    const coreInput = normalize(inputName);
-    const item = list.find(x => normalize(x.name) === coreInput || x.name.toLowerCase().includes(coreInput));
-    return item ? item.code : "";
+    // Phần còn lại ở đầu chuỗi là địa chỉ cụ thể (Số nhà, đường...)
+    // VD: [Số 1, Ngõ A, Phường B, Quận C, Tỉnh D] -> Lấy "Số 1, Ngõ A"
+    // Slice từ đầu đến phần tử thứ (length - 3)
+    if (parts.length > 3) {
+        employee.diaChiCuThe = parts.slice(0, parts.length - 3).join(', ');
+    } else {
+        employee.diaChiCuThe = ""; // Trường hợp chỉ có đúng Xã, Huyện, Tỉnh thì ô chi tiết để trống
+    }
 };
 
 const getNameFromId = (id, list) => { const item = list.find(x => x.code == id); return item ? item.name : ""; };
@@ -270,7 +317,7 @@ onMounted(() => { loadData(); });
 
 <style scoped>
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
-.edit-employee-page { font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
+.edit-employee-page { font-family: 'Segoe UI', sans-serif; background-color:#ebecee; /* Gray-100: Màu xám chuẩn */; min-height: 100vh; padding: 20px; }
 .header-section { margin-bottom: 20px; }
 
 /* === UPDATE CSS: Card Styling === */

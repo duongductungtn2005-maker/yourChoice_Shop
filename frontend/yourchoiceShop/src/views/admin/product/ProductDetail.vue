@@ -2,14 +2,9 @@
   <div class="product-detail-page">
     
     <div class="header-section">
-      <div class="breadcrumb">
-        <span class="root-link" @click="$router.push('/admin/products')">Quản lý sản phẩm</span>
-        <span class="divider">/</span>
-        <span class="sub-link">Chi tiết sản phẩm</span>
-        <span class="divider">/</span>
-        <span class="current-item">{{ productInfo.tenSanPham || 'Đang tải...' }}</span>
-      </div>
       
+      <h1 class="page-title">Quản lý sản phẩm / Chi tiết sản phẩm / {{ productInfo.tenSanPham || 'Đang tải...' }}</h1>
+
       <div class="header-actions">
          <button class="btn btn-outline" @click="$router.push('/admin/products')">
             <font-awesome-icon :icon="['fas', 'arrow-left']" /> Quay lại danh sách
@@ -84,16 +79,16 @@
               <th width="40" class="text-center">
                   <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll">
               </th>
-              <th width="60">Ảnh</th>
-              <th>Mã SP</th>
-              <th>Mã SKU</th>
-              <th>Thương hiệu</th>
-              <th>Màu sắc</th>
-              <th>Kích thước</th>
-              <th width="140">Giá bán</th>
-              <th width="100">Tồn kho</th>
-              <th>Trạng thái</th>
-              <th width="120">
+              <th width="60" style="color:#000000;">Ảnh</th>
+              <th style="color:#000000;">Mã SP</th>
+              <th style="color:#000000;">Mã SKU</th>
+              <th style="color:#000000;">Thương hiệu</th>
+              <th style="color:#000000;">Màu sắc</th>
+              <th style="color:#000000;">Kích thước</th>
+              <th width="140" style="color:#000000;">Giá bán</th>
+              <th width="100" style="color:#000000;">Tồn kho</th>
+              <th style="color:#000000;">Trạng thái</th>
+              <th width="120" style="color:#000000;">
                   <button v-if="selectedIds.length > 0" class="btn-save-mini" @click="handleBulkUpdate" title="Lưu tất cả thay đổi">
                       <font-awesome-icon :icon="['fas', 'save']" /> Lưu ({{ selectedIds.length }})
                   </button>
@@ -401,11 +396,11 @@ onMounted(() => { fetchAllAttributes(); fetchData(); });
 
 <style scoped>
 /* GLOBAL & FONTS */
-.product-detail-page { font-family: 'Segoe UI', sans-serif; color: #334155; padding-bottom: 40px; background-color: #f8fafc; min-height: 100vh; padding: 20px;}
+.product-detail-page { font-family: 'Segoe UI', sans-serif; color: #334155; padding-bottom: 40px; background-color: #ebecee; min-height: 100vh; padding: 20px;}
 
 /* HEADER SECTION (Breadcrumb) */
 .header-section { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.breadcrumb { font-size: 16px; display: flex; align-items: center; }
+.page-title { margin: 0; font-size: 24px; font-weight: 700; color: #1e293b; }
 .root-link { font-weight: 700; color: #2b4360; cursor: pointer; }
 .sub-link { color: #64748b; }
 .current-item { color: #2563eb; font-weight: 700; }
@@ -461,12 +456,12 @@ onMounted(() => { fetchAllAttributes(); fetchData(); });
 
 .table-responsive { width: 100%; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-th { background: #E9F1FB; padding: 15px 10px; font-weight: 700; font-size: 13px; color: #1E3A8A; border-bottom: none !important; text-align: center; }
-td { padding: 15px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: middle; color: #334155; text-align: center; }
+th { background: #f5f5f5 !important; color: #000000; padding: 15px 10px; font-weight: 700; font-size: 13px; border-bottom: none !important; text-align: center; }
+td { padding: 15px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: middle; color: #000000; text-align: center; }
 
 .fw-bold { font-weight: 700; }
 .font-mono { font-family: monospace; } 
-.text-primary { color: #2563eb; } 
+.text-primary { color: #000000; } 
 .text-price { color: #ef4444; font-weight: 600; }
 .text-gray-500 { color: #6b7280; font-size: 13px; }
 

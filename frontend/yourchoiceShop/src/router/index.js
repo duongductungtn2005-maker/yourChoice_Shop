@@ -9,8 +9,13 @@ import ThuongHieuIndex from '../views/admin/attribute/ThuongHieuIndex.vue'
 import CustomerCreate from '@/views/admin/customer/CustomerCreate.vue';
 import CustomerDetail from '@/views/admin/customer/CustomerDetail.vue';
 
+// --- ROUTER CONFIGURATION ---
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior(to, from, savedPosition) {
+    // Luôn cuộn lên đầu trang khi chuyển route
+    return { top: 0 }
+  },
   routes: [
     // ==========================================
     // 1. ROUTE ĐĂNG NHẬP
@@ -20,25 +25,54 @@ const router = createRouter({
       name: 'login',
       component: () => import('../views/LoginView.vue')
     },
+
+    // ==========================================
+    // 2. KHU VỰC CLIENT (BÁN HÀNG ONLINE)
+    // ==========================================
     {
       path: '/',
       component: () => import('../layouts/ClientLayout.vue'),
       children: [
         {
-          path: '', // Đường dẫn gốc (Trang chủ)
+          path: '', // Trang chủ
           name: 'home',
           component: () => import('../views/client/HomeView.vue')
         },
+        {
+          path: 'products', // Danh sách sản phẩm
+          name: 'products',
+          component: () => import('../views/client/ProductView.vue')
+        },
+        {
+          path: 'product/:id', // Chi tiết sản phẩm
+          name: 'product-detail',
+          component: () => import('../views/client/ProductDetailView.vue')
+        },
+        {
+          path: 'coupons', // Kho Voucher
+          name: 'coupons',
+          component: () => import('../views/client/CouponView.vue')
+        },
+        {
+          path: 'news', // Tin tức
+          name: 'news',
+          component: () => import('../views/client/NewsView.vue')
+        },
+        {
+          path: 'contact', // Liên hệ
+          name: 'contact',
+          component: () => import('../views/client/ContactView.vue')
+        }
       ]
     },
 
     // ==========================================
-    // 2. KHU VỰC ADMIN
+    // 3. KHU VỰC ADMIN
     // ==========================================
     {
       path: '/admin',
       component: () => import('../layouts/AdminLayout.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true }, // Cần đăng nhập
       children: [
         // --- Dashboard ---
         {
@@ -79,16 +113,14 @@ const router = createRouter({
         {
           path: 'employees/create', 
           name: 'admin-employee-create',
-          // File này nằm trong folder /employee/
           component: () => import('../views/admin/employee/AddEmployee.vue')
         },
         {
-    path: 'employees/edit/:id', 
-    name: 'admin-employee-edit',      
-    // Sử dụng hàm import trực tiếp (Lazy load)
-    component: () => import('../views/admin/employee/EditEmployee.vue') 
-},
-       
+          path: 'employees/edit/:id', 
+          name: 'admin-employee-edit',      
+          component: () => import('../views/admin/employee/EditEmployee.vue') 
+        },
+        
         // --- QUẢN LÝ SẢN PHẨM ---
         {
           path: 'products',
@@ -143,7 +175,6 @@ const router = createRouter({
         {
           path: 'pos',
           name: 'admin-pos',
-          // Chọn 1 trong 2 file bạn đang dùng (tôi giữ lại BanHangTaiQuay.vue vì có vẻ mới hơn)
           component: () => import('../views/admin/pos/BanHangTaiQuay.vue'), 
           meta: { layout: 'full' } 
         },
@@ -159,14 +190,15 @@ const router = createRouter({
           name: 'admin-sale-create',
           component: () => import('../views/admin/promotion/SaleCreate.vue')
         },
+        
       ]
     },
 
     // ==========================================
-    // 3. CATCH ALL (404)
+    // 4. CATCH ALL (404)
     // ==========================================
-    { path: '/', redirect: '/login' },
-    { path: '/:pathMatch(.*)*', redirect: '/login' }
+    // { path: '/:pathMatch(.*)*', redirect: '/login' } 
+    // Tạm thời comment dòng này nếu bạn muốn test trang chủ mà chưa login
   ]
 })
 

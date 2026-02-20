@@ -1,5 +1,9 @@
 <template>
   <div class="login-page">
+    <button class="btn-back" @click="handleGoBack" title="Trở lại">
+      <i class="fa-solid fa-arrow-left"></i> Trở lại
+    </button>
+    
     <div class="login-card">
       <div class="logo">
         <h2>YourChoice Shop</h2>
@@ -11,7 +15,7 @@
           <label>Tài khoản</label>
           <input 
             type="text" 
-            placeholder="admin" 
+            placeholder="Nhập tài khoản" 
             v-model="username" 
             class="form-control"
           />
@@ -21,7 +25,7 @@
           <label>Mật khẩu</label>
           <input 
             type="password" 
-            placeholder="••••••" 
+            placeholder="Nhập mật khẩu" 
             v-model="password"
             class="form-control"
           />
@@ -46,6 +50,10 @@ const handleLogin = () => {
   // Sau này sẽ gọi API Login ở đây
   router.push('/admin/products');
 };
+
+const handleGoBack = () => {
+  router.push('/');
+};
 </script>
 
 <style scoped>
@@ -55,6 +63,7 @@ const handleLogin = () => {
   justify-content: center;
   align-items: center;
   background-color: #f1f5f9;
+  position: relative;
 }
 
 .login-card {
@@ -114,5 +123,33 @@ const handleLogin = () => {
 }
 .btn-login:hover {
   background-color: #1e293b;
+}
+
+.btn-back {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #0f172a;
+  transition: 0.2s;
+}
+
+.btn-back:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #1e293b;
+}
+
+.btn-back i {
+  font-size: 14px;
 }
 </style>
