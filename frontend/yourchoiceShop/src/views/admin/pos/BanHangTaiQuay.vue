@@ -5,64 +5,66 @@
     <!-- CART -->
     <div class="cart-header">
       <h3>Sản phẩm trong hóa đơn</h3>
-      <button class="btn-add" @click="showModal = true">+ Thêm sản phẩm</button>
+      <button class="btn-add" @click="openProductModal">
+        + Thêm sản phẩm
+      </button>
     </div>
 
     <div class="cart-items">
-  <div v-if="cart.length === 0" class="empty-cart">
-    Chưa có sản phẩm nào
-  </div>
+      <div v-if="cart.length === 0" class="empty-cart">
+        Chưa có sản phẩm nào
+      </div>
 
-  <table v-else class="table">
-    <thead>
-      <tr>
-        <th>Mã SP</th>
-        <th>Tên SP</th>
-        <th>Thương hiệu</th>
-        <th>Chất liệu</th>
-        <th>Giá bán</th>
-        <th>Số lượng</th>
-        <th>Thành tiền</th>
-        <th></th>
-      </tr>
-    </thead>
+      <table v-else class="table">
+        <thead>
+          <tr>
+            <th>Mã SP</th>
+            <th>Tên SP</th>
+            <th>Thương hiệu</th>
+            <th>Chất liệu</th>
+            <th>Giá bán</th>
+            <th>Số lượng</th>
+            <th>Thành tiền</th>
+            <th></th>
+          </tr>
+        </thead>
 
-    <tbody>
-      <tr v-for="(item, index) in cart" :key="item.id">
-        <td>{{ item.code }}</td>
-        <td>{{ item.name }}</td>
-        <td>{{ item.brand }}</td>
-        <td>{{ item.material }}</td>
-        <td class="p-price">{{ formatMoney(item.price) }}</td>
+        <tbody>
+          <tr v-for="(item, index) in cart" :key="item.id">
+            <td>{{ item.code }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.brand }}</td>
+            <td>{{ item.material }}</td>
+            <td class="p-price">{{ formatMoney(item.price) }}</td>
 
-        <td>
-          <div class="item-control">
-            <button @click="item.qty--" :disabled="item.qty === 1">-</button>
-            <span>{{ item.qty }}</span>
-            <button @click="item.qty++" :disabled="item.qty === item.tonKho">+</button>
-          </div>
-        </td>
+            <td>
+              <div class="item-control">
+                <button @click="item.qty--" :disabled="item.qty === 1">-</button>
+                <span>{{ item.qty }}</span>
+                <button @click="item.qty++" :disabled="item.qty === item.tonKho">+</button>
+              </div>
+            </td>
 
-        <td class="p-price">
-          {{ formatMoney(item.price * item.qty) }}
-        </td>
+            <td class="p-price">
+              {{ formatMoney(item.price * item.qty) }}
+            </td>
 
-        <td>
-          <button class="btn-remove" @click="cart.splice(index, 1)">×</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+            <td>
+              <button class="btn-remove" @click="cart.splice(index, 1)">×</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
 
     <!-- DISCOUNT -->
     <div class="discount-box">
       <div class="discount-header">
         <h4>Giảm giá</h4>
-        <button class="btn-add" @click="showDiscountModal = true">
-          + Thêm giảm giá
-        </button>
+<button class="btn-add" @click="openDiscountModal">
+  + Thêm giảm giá
+</button>
       </div>
 
       <div v-if="discounts.length === 0" class="empty-cart">
@@ -84,7 +86,7 @@
     <div class="customer-box">
       <div class="customer-header">
         <h4>Thông tin khách hàng</h4>
-        <button class="btn-outline" @click="showCustomerModal = true">
+        <button class="btn-outline" @click="openCustomerModal">
           Chọn tài khoản
         </button>
       </div>
@@ -116,180 +118,156 @@
         </span>
       </div>
 
-      <button class="btn-pay" @click="handlePayment">
-        THANH TOÁN ({{ formatMoney(totalPrice) }})
-      </button>
+<button class="btn-pay" @click="handleCreateOrder">
+  TẠO HÓA ĐƠN ({{ formatMoney(totalPrice) }})
+</button>
     </div>
 
   </div>
   <!-- MODAL SẢN PHẨM -->
-<div v-if="showModal" class="modal">
-  <div class="modal-content large">
-    <h3>Chọn sản phẩm</h3>
+  <div v-if="showModal" class="modal">
+    <div class="modal-content large">
+      <h3>Chọn sản phẩm</h3>
 
-    <!-- FILTER -->
-    <div class="filter-bar">
-      <input
-        v-model="productKeyword"
-        class="search-input"
-        placeholder="Tìm theo mã / tên sản phẩm"
-      />
+      <!-- FILTER -->
+      <div class="filter-bar">
+        <input v-model="productKeyword" class="search-input" placeholder="Tìm theo mã / tên sản phẩm" />
 
-      <div class="price-filter">
-        <span>{{ formatMoney(priceRange[0]) }}</span>
-        <input
-          type="range"
-          min="0"
-          max="1000000"
-          step="50000"
-          v-model.number="priceRange[1]"
-        />
-        <span>{{ formatMoney(priceRange[1]) }}</span>
+        <div class="price-filter">
+          <span>{{ formatMoney(priceRange[0]) }}</span>
+          <input type="range" min="0" max="1000000" step="50000" v-model.number="priceRange[1]" />
+          <span>{{ formatMoney(priceRange[1]) }}</span>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <table class="table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Mã SP</th>
+            <th>Tên SP</th>
+            <th>Thương hiệu</th>
+            <th>Chất liệu</th>
+            <th>Giá bán</th>
+            <th>Tồn</th>
+            <th>Số lượng</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr v-for="p in filteredProducts" :key="p.id">
+            <td>
+              <input type="checkbox" v-model="p.checked" />
+            </td>
+            <td>{{ p.code }}</td>
+            <td>{{ p.name }}</td>
+            <td>{{ p.brand }}</td>
+            <td>{{ p.material }}</td>
+            <td class="p-price">{{ formatMoney(p.price) }}</td>
+            <td>{{ p.tonKho }}</td>
+            <td>
+              <input type="number" v-model.number="p.qty" min="1" :max="p.tonKho" :disabled="!p.checked" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="modal-actions">
+        <button class="btn-primary" @click="confirmAddProduct">Thêm</button>
+        <button class="btn-cancel" @click="showModal = false">Hủy</button>
       </div>
     </div>
+  </div>
 
-    <!-- TABLE -->
-    <table class="table">
-      <thead>
-        <tr>
-          <th></th>
-          <th>Mã SP</th>
-          <th>Tên SP</th>
-          <th>Thương hiệu</th>
-          <th>Chất liệu</th>
-          <th>Giá bán</th>
-          <th>Tồn</th>
-          <th>Số lượng</th>
-        </tr>
-      </thead>
+  <!-- MODAL GIẢM GIÁ -->
+  <div v-if="showDiscountModal" class="modal">
+    <div class="modal-content large">
+      <h3>Chọn mã giảm giá</h3>
 
-      <tbody>
-        <tr v-for="p in filteredProducts" :key="p.id">
-          <td>
-            <input type="checkbox" v-model="p.checked" />
-          </td>
-          <td>{{ p.code }}</td>
-          <td>{{ p.name }}</td>
-          <td>{{ p.brand }}</td>
-          <td>{{ p.material }}</td>
-          <td class="p-price">{{ formatMoney(p.price) }}</td>
-          <td>{{ p.tonKho }}</td>
-          <td>
-            <input
-              type="number"
-              v-model.number="p.qty"
-              min="1"
-              :max="p.tonKho"
-              :disabled="!p.checked"
-            />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+      <!-- SEARCH -->
+      <input v-model="discountKeyword" class="search-input" placeholder="Tìm theo mã hoặc tên chương trình" />
 
-    <div class="modal-actions">
-      <button class="btn-primary" @click="confirmAddProduct">Thêm</button>
-      <button class="btn-cancel" @click="showModal = false">Hủy</button>
+      <table class="table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Mã</th>
+            <th>Tên</th>
+            <th>Giá trị</th>
+            <th>Thời hạn</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="d in filteredDiscounts" :key="d.id">
+            <td>
+              <input type="checkbox" v-model="d.checked" />
+            </td>
+            <td>{{ d.code }}</td>
+            <td>{{ d.name }}</td>
+            <td class="p-price">
+              {{ d.type === 'percent'
+                ? `-${d.value}%`
+                : formatMoney(d.value) }}
+            </td>
+            <td>
+              {{ d.startDate }} <br />
+              {{ d.endDate }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="modal-actions">
+        <button class="btn-primary" @click="confirmAddDiscount">
+          Áp dụng
+        </button>
+        <button class="btn-cancel" @click="showDiscountModal = false">
+          Hủy
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- MODAL GIẢM GIÁ -->
-<div v-if="showDiscountModal" class="modal">
-  <div class="modal-content large">
-    <h3>Chọn mã giảm giá</h3>
+  <!-- MODAL KHÁCH HÀNG -->
+  <div v-if="showCustomerModal" class="modal">
+    <div class="modal-content large">
+      <h3>Chọn khách hàng</h3>
 
-    <!-- SEARCH -->
-    <input
-      v-model="discountKeyword"
-      class="search-input"
-      placeholder="Tìm theo mã hoặc tên chương trình"
-    />
+      <input v-model="customerKeyword" class="search-input" placeholder="Tìm tên, SĐT, email..." />
 
-    <table class="table">
-      <thead>
-        <tr>
-          <th></th>
-          <th>Mã</th>
-          <th>Tên</th>
-          <th>Giá trị</th>
-          <th>Thời hạn</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="d in filteredDiscounts" :key="d.id">
-          <td>
-            <input type="checkbox" v-model="d.checked" />
-          </td>
-          <td>{{ d.code }}</td>
-          <td>{{ d.name }}</td>
-          <td class="p-price">
-            {{ d.type === 'percent'
-              ? `-${d.value}%`
-              : formatMoney(d.value) }}
-          </td>
-          <td>  
-            {{ d.startDate }} <br />
-            {{ d.endDate }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Mã KH</th>
+            <th>Họ tên</th>
+            <th>SĐT</th>
+            <th>Email</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="c in filteredCustomers" :key="c.id">
+            <td>{{ c.code }}</td>
+            <td>{{ c.name }}</td>
+            <td>{{ c.phone }}</td>
+            <td>{{ c.email }}</td>
+            <td>
+              <button class="btn-select" @click="selectCustomer(c)">
+                Chọn
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-    <div class="modal-actions">
-      <button class="btn-primary" @click="confirmAddDiscount">
-        Áp dụng
-      </button>
-      <button class="btn-cancel" @click="showDiscountModal = false">
-        Hủy
-      </button>
+      <div class="modal-actions">
+        <button class="btn-cancel" @click="showCustomerModal = false">
+          Đóng
+        </button>
+      </div>
     </div>
   </div>
-</div>
-
-<!-- MODAL KHÁCH HÀNG -->
-<div v-if="showCustomerModal" class="modal">
-  <div class="modal-content large">
-    <h3>Chọn khách hàng</h3>
-
-    <input
-      v-model="customerKeyword"
-      class="search-input"
-      placeholder="Tìm tên, SĐT, email..."
-    />
-
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Mã KH</th>
-          <th>Họ tên</th>
-          <th>SĐT</th>
-          <th>Email</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="c in filteredCustomers" :key="c.id">
-          <td>{{ c.code }}</td>
-          <td>{{ c.name }}</td>
-          <td>{{ c.phone }}</td>
-          <td>{{ c.email }}</td>
-          <td>
-            <button class="btn-select" @click="selectCustomer(c)">
-              Chọn
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="modal-actions">
-      <button class="btn-cancel" @click="showCustomerModal = false">
-        Đóng
-      </button>
-    </div>
-  </div>
-</div>
 
 </template>
 
@@ -317,25 +295,9 @@ const customer = ref({
 const showCustomerModal = ref(false)
 const customerKeyword = ref('')
 
-const customers = ref([
-  {
-    id: 1,
-    code: 'KH001',
-    name: 'Nguyễn Văn A',
-    phone: '0912345678',
-    email: 'a@gmail.com',
-    address: 'Hà Nội'
-  },
-  {
-    id: 2,
-    code: 'KH002',
-    name: 'Marika',
-    phone: '1000000000',
-    email: 'marika@gmail.com',
-    address: ''
-  }
-])
+import { getKhachHang } from '@/api/KhachHangApi'
 
+const customers = ref([])
 const filteredCustomers = computed(() =>
   customers.value.filter(c =>
     [c.name, c.phone, c.email]
@@ -344,13 +306,33 @@ const filteredCustomers = computed(() =>
       .includes(customerKeyword.value.toLowerCase())
   )
 )
+const loadCustomers = async () => {
+  const res = await getKhachHang({
+    page: 0,
+    size: 50,
+    trangThai: 1
+  })
+
+  customers.value = res.data.content.map(c => ({
+    id: c.id,
+    code: c.maKhachHang,
+    name: c.tenKhachHang,
+    phone: c.soDienThoai,
+    email: c.email
+  }))
+}
+
+const openCustomerModal = async () => {
+  await loadCustomers()
+  showCustomerModal.value = true
+}
 
 const selectCustomer = (c) => {
   customer.value = {
     name: c.name,
     phone: c.phone,
     email: c.email,
-    address: c.address
+    address: ''
   }
   showCustomerModal.value = false
 }
@@ -361,42 +343,36 @@ const cart = ref([])
 /* ================= MODAL SẢN PHẨM ================= */
 const showModal = ref(false)
 
-const products = ref([
-  {
-    id: 1,
-    code: 'SP001',
-    name: 'Giày Sneaker A',
-    brand: 'Nike',
-    material: 'Da',
-    price: 250000,
-    tonKho: 10,
-    checked: false,
-    qty: 1
-  },
-  {
-    id: 2,
-    code: 'SP002',
-    name: 'Giày Sneaker B',
-    brand: 'Adidas',
-    material: 'Vải',
-    price: 300000,
-    tonKho: 5,
-    checked: false,
-    qty: 1
-  },
-  {
-    id: 3,
-    code: 'SP003',
-    name: 'Giày Sneaker C',
-    brand: 'Puma',
-    material: 'Canvas',
-    price: 400000,
-    tonKho: 8,
-    checked: false,
-    qty: 1
-  }
-])
+import { onMounted } from 'vue'
+import { getChiTietSanPham } from '@/api/ChiTietSanPhamApi'
 
+const products = ref([])
+
+const loadProducts = async () => {
+  const res = await getChiTietSanPham({ page: 0, size: 100, trangThai: 1 })
+
+  products.value = res.data.content.map(p => {
+    const inCart = cart.value.find(i => i.id === p.id)
+    const remain = p.soLuong - (inCart?.qty || 0)
+
+    return {
+      id: p.id,
+      code: p.maCtsp,
+      name: p.sanPham.tenSanPham,
+      brand: p.thuongHieu?.tenThuongHieu,
+      material: p.chatLieu?.tenChatLieu,
+      price: p.giaBan,
+      tonKho: remain,
+      qty: 1,
+      checked: false
+    }
+  })
+}
+
+const openProductModal = async () => {
+  await loadProducts()
+  showModal.value = true
+}
 
 const confirmAddProduct = () => {
   products.value.forEach(p => {
@@ -408,15 +384,15 @@ const confirmAddProduct = () => {
       exist.qty = Math.min(exist.qty + p.qty, p.tonKho)
     } else {
       cart.value.push({
-  id: p.id,
-  code: p.code,
-  name: p.name,
-  brand: p.brand,
-  material: p.material,
-  price: p.price,
-  qty: p.qty,
-  tonKho: p.tonKho
-})
+        id: p.id,
+        code: p.code,
+        name: p.name,
+        brand: p.brand,
+        material: p.material,
+        price: p.price,
+        qty: p.qty,
+        tonKho: p.tonKho
+      })
 
     }
 
@@ -450,6 +426,28 @@ const discounts = ref([])
 const showDiscountModal = ref(false)
 const discountKeyword = ref('')
 
+import { getPhieuGiamGia } from '@/api/PhieuGiamGiaApi'
+
+const discountList = ref([])
+
+const loadDiscounts = async () => {
+const res = await getPhieuGiamGia({
+  page: 0,
+  size: 50,
+  trangThai: 1
+})
+
+discountList.value = res.data.content.map(d => ({
+  id: d.id,
+  code: d.maPhieuGiamGia,
+  name: d.tenPhieuGiamGia,
+  type: d.loaiPhieu === 'PERCENT' ? 'percent' : 'money',
+  value: d.giaTriGiam,
+  startDate: d.ngayBatDau,
+  endDate: d.ngayKetThuc,
+  checked: false
+}))
+}
 
 const filteredDiscounts = computed(() =>
   discountList.value.filter(d =>
@@ -460,30 +458,10 @@ const filteredDiscounts = computed(() =>
   )
 )
 
-
-const discountList = ref([
-  {
-    id: 1,
-    code: 'GG50K',
-    name: 'Giảm 50.000 cho đơn hàng',
-    type: 'money',
-    value: 50000,
-    startDate: '2024-01-01',
-    endDate: '2026-12-31',
-    checked: false
-  },
-  {
-    id: 2,
-    code: 'GG10PT',
-    name: 'Giảm 10% toàn bộ sản phẩm',
-    type: 'percent',
-    value: 10,
-    startDate: '2024-01-01',
-    endDate: '2030-12-31',
-    checked: false
-  }
-])
-
+const openDiscountModal = async () => {
+  await loadDiscounts()
+  showDiscountModal.value = true
+}
 
 const confirmAddDiscount = () => {
   discountList.value.forEach(d => {
@@ -506,21 +484,26 @@ const totalProductPrice = computed(() =>
   cart.value.reduce((s, i) => s + i.price * i.qty, 0)
 )
 
-const totalDiscount = computed(() =>
-  discounts.value.reduce((sum, d) => {
+const totalDiscount = computed(() => {
+  let discount = 0
+
+  discounts.value.forEach(d => {
     if (d.type === 'percent') {
-      return sum + totalProductPrice.value * d.value / 100
+      discount += totalProductPrice.value * d.value / 100
+    } else {
+      discount += d.value
     }
-    return sum + d.value
-  }, 0)
-)
+  })
+
+  return Math.min(discount, totalProductPrice.value)
+})
 
 const totalPrice = computed(() =>
   Math.max(totalProductPrice.value - totalDiscount.value, 0)
 )
 
 /* ================= THANH TOÁN ================= */
-const handlePayment = async () => {
+const handleCreateOrder = async () => {
   if (!cart.value.length) {
     alert('Giỏ hàng đang trống!')
     return
@@ -531,15 +514,23 @@ const handlePayment = async () => {
     return
   }
 
-  if (!confirm(`Xác nhận thanh toán ${formatMoney(totalPrice.value)}?`)) return
+  if (!confirm('Xác nhận tạo hóa đơn?')) return
 
   try {
     const payload = {
       tenKhachHang: customer.value.name,
       soDienThoai: customer.value.phone,
       diaChi: customer.value.address,
+      email: customer.value.email,
+
+      tongTien: totalProductPrice.value,
+      tienGiamGia: totalDiscount.value,
+      tongTienSauGiam: totalPrice.value,
+
+      phieuGiamGiaIds: discounts.value.map(d => d.id),
+
       items: cart.value.map(i => ({
-        idSanPham: i.id,
+        idChiTietSanPham: i.id,
         soLuong: i.qty,
         donGia: i.price
       }))
@@ -547,14 +538,16 @@ const handlePayment = async () => {
 
     await createOrder(payload)
 
-    alert('Thanh toán thành công!')
+    alert('Tạo hóa đơn thành công!')
+
     cart.value = []
+    discounts.value = []
     customer.value = { name: '', phone: '', email: '', address: '' }
 
     router.push({ name: 'admin-order-list' })
   } catch (err) {
     console.error(err)
-    alert('Lỗi thanh toán!')
+    alert('Lỗi khi tạo hóa đơn!')
   }
 }
 
@@ -567,7 +560,6 @@ const formatMoney = (val) =>
 </script>
 
 <style scoped>
-
 .filter-bar {
   display: flex;
   gap: 20px;
