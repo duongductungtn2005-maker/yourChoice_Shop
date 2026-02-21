@@ -82,14 +82,27 @@
                 </router-link>
             </div>
         </div>
-
-        <router-link to="/admin/customers" class="menu-item" active-class="active-link">
-            <i class="fa-solid fa-user icon"></i> Khách hàng
-        </router-link>
-        
-        <router-link to="/admin/employees" class="menu-item" active-class="active-link">
-            <i class="fa-solid fa-user-tie icon"></i> Nhân viên
-        </router-link>
+        <div class="menu-group">
+            <div 
+                class="menu-item parent" 
+                :class="{ 'active-parent': openMenus.accounts }"
+                @click="toggleMenu('accounts')"
+            >
+                <span>
+                    <i class="fa-solid fa-user-secret icon"></i> Quản lý tài khoản
+                </span>
+                <span class="arrow">{{ openMenus.accounts ? '▲' : '▼' }}</span>
+            </div>
+            
+            <div class="submenu" v-show="openMenus.accounts">
+                <router-link to="/admin/customers" class="submenu-item" active-class="active-sub">
+                    <span class="dot">•</span> Khách hàng
+                </router-link>
+                <router-link to="/admin/employees" class="submenu-item" active-class="active-sub">
+                    <span class="dot">•</span> Nhân viên
+                </router-link>
+            </div>
+        </div>
       </nav>
     </aside>
 
@@ -105,11 +118,19 @@
             </button>
         </div>
 
-        <div class="user-info">
+        <div class="user-info" @click="toggleUserDropdown" :class="{ 'dropdown-open': isUserDropdownOpen }">
             <div class="avatar">
                  <i class="fa-solid fa-user"></i>
             </div>
-            <span class="username" style="margin-left: 8px; font-weight: 600;">Admin</span>
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+            
+            <!-- Dropdown Menu -->
+            <div v-if="isUserDropdownOpen" class="user-dropdown">
+              <div class="dropdown-item admin-label">Admin</div>
+              <button class="dropdown-item logout-btn" @click="handleLogout">
+                <i class="fa-solid fa-sign-out-alt"></i> Đăng xuất
+              </button>
+            </div>
         </div>
       </header>
 
@@ -122,14 +143,30 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
+const router = useRouter();
+
+// State dropdown nhân viên
+const isUserDropdownOpen = ref(false);
+
+const toggleUserDropdown = () => {
+    isUserDropdownOpen.value = !isUserDropdownOpen.value;
+};
+
+const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    isUserDropdownOpen.value = false;
+    router.push('/login');
+};
 
 // 1. Trạng thái đóng/mở menu
 const openMenus = ref({
     products: false, 
-    discounts: false 
+    discounts: false,
+    accounts: false
 });
 
 const toggleMenu = (key) => {
@@ -153,6 +190,12 @@ const isDiscountRoute = computed(() => {
     const p = route.path;
     return p.includes('/admin/vouchers') || 
            p.includes('/admin/sales');
+});
+
+const isAccountRoute = computed(() => {
+    const p = route.path;
+    return p.includes('/admin/customers') || 
+           p.includes('/admin/employees');
 });
 
 // Xử lý ảnh lỗi nếu logo không load được
@@ -185,20 +228,21 @@ const handleImageError = (e) => {
 .brand-name { font-weight: 700; font-size: 20px; color: #2b4360; }
 
 /* --- 4. MENU STYLES --- */
-.menu { padding: 15px 0; }
+.menu { padding: 15px 12px; }
 
 /* MENU ITEM CHUNG */
 .menu-item {
-  padding: 12px 24px;
+  padding: 12px 16px; /* Padding nhỏ hơn xíu để vừa khung */
   display: flex;
   align-items: center;
-  color: #64748b; /* Màu nhạt mặc định */
+  color: #64748b; /* Màu chữ thường */
   cursor: pointer;
   text-decoration: none;
   font-weight: 500;
-  font-size: 15px;
-  transition: all 0.2s;
-  border-right: 3px solid transparent; /* Viền ẩn bên phải */
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border-radius: 8px; /* Bo góc item */
+  margin-bottom: 4px; /* Khoảng cách giữa các item */
 }
 
 .menu-item .icon {
@@ -210,18 +254,22 @@ const handleImageError = (e) => {
 }
 
 .menu-item:hover {
-  background-color: #f8fafc;
+  background-color: #f1f5f9; /* Hover nhẹ */
   color: #2b4360;
 }
-
 /* Trạng thái Active cho Menu Đơn (Dashboard, POS...) */
 .active-link {
-  background-color: #f1f5f9;
-  color: #2b4360 !important; /* Xanh than đậm */
+  /* HIỆU ỨNG PHÁT SÁNG */
+  background-color: #e0f2fe !important; /* Xanh dương rất nhạt (Sky-100) */
+  /* Hoặc dùng màu hồng nhạt như hình mẫu: background-color: #ffe4e6 !important; */
+  
+  color: #0284c7 !important; /* Xanh dương đậm hơn (Sky-600) */
   font-weight: 700;
-  border-right-color: #2b4360; /* Hiện viền phải */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-
+.active-link .icon {
+  color: #0284c7 !important; /* Icon cũng đổi màu theo */
+}
 /* --- 5. PARENT MENU STYLES --- */
 .menu-item.parent {
   justify-content: space-between;
@@ -234,24 +282,29 @@ const handleImageError = (e) => {
   font-weight: 700;
   background-color: var(--bg-surface); /* Nền sáng nhẹ */
 }
-.active-parent .icon {
-  color: var(--primary-color); /* Đậm màu icon */
+.active-parent {
+  color: #2b4360 !important;
+  font-weight: 700;
+  background-color: #f8fafc; /* Nền xám rất nhẹ khi mở */
 }
-
 /* --- 6. SUBMENU STYLES --- */
 .submenu {
-  background-color: var(--bg-light);
-  overflow: hidden;
+  margin-left: 12px; /* Thụt lề cả khối submenu */
+  padding-left: 12px;
+  border-left: 1px solid #e2e8f0; /* Đường kẻ dọc hướng dẫn */
+  margin-bottom: 10px;
 }
 
 .submenu-item {
   display: flex;
   align-items: center;
-  padding: 10px 20px 10px 56px; /* Thụt đầu dòng */
+  padding: 8px 12px;
   text-decoration: none;
-  color: var(--muted-color);
+  color: #64748b;
   font-size: 14px;
-  transition: 0.18s ease;
+  transition: 0.2s ease;
+  border-radius: 6px;
+  margin-top: 2px;
 }
 
 .submenu-item:hover {
@@ -259,20 +312,23 @@ const handleImageError = (e) => {
 }
 
 .submenu-item .dot {
-  margin-right: 8px;
-  font-size: 18px;
-  line-height: 0;
-  color: var(--border-color);
+  margin-right: 10px;
+  font-size: 6px; /* Dấu chấm nhỏ hơn */
+  color: #cbd5e1;
+  transform: translateY(-1px);
 }
 
 /* Active Submenu */
 .active-sub {
-  color: #2b4360;
+  /* HIỆU ỨNG PHÁT SÁNG CHO CON */
+  background-color: #e0f2fe !important; /* Xanh dương nhạt */
+  color: #0284c7 !important;
   font-weight: 600;
-  background-color: #e2e8f0;
 }
+
 .active-sub .dot {
-  color: #2b4360;
+  color: #0284c7; /* Dấu chấm đổi màu */
+  transform: scale(1.5); /* Dấu chấm to lên xíu */
 }
 
 /* --- 7. HEADER --- */
@@ -280,7 +336,59 @@ const handleImageError = (e) => {
 .header-actions { display: flex; gap: 15px; }
 .icon-btn { background: none; border: none; font-size: 20px; color: #64748b; position: relative; cursor: pointer; }
 .badge-count { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 10px; padding: 2px 5px; border-radius: 10px; }
-.user-info .avatar { width: 36px; height: 36px; background: #2b4360; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+.user-info { display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: 0.2s; position: relative; }
+.user-info:hover { opacity: 0.8; }
+.user-info:hover .avatar { background: #1e293b; }
+.user-info:hover .dropdown-arrow { color: #334155; }
+.user-info .avatar { width: 36px; height: 36px; background: #2b4360; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: 0.2s; }
+.dropdown-arrow { font-size: 14px; color: #64748b; transition: 0.2s; }
 
-.content-body { padding: 24px; flex: 1; }
+/* --- 8. USER DROPDOWN --- */
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  min-width: 150px;
+  margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 1000;
+  overflow: hidden;
+}
+.dropdown-item {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+  border: none;
+  background: none;
+  font-size: 14px;
+  width: 100%;
+  text-align: left;
+  color: #334155;
+}
+.dropdown-item:hover:not(.admin-label) {
+  background-color: #f1f5f9;
+  color: #2b4360;
+}
+.admin-label {
+  background-color: #f8fafc;
+  color: #64748b;
+  cursor: default;
+  font-weight: 500;
+  border-bottom: 1px solid #e2e8f0;
+}
+.logout-btn {
+  color: #ef4444;
+}
+.logout-btn:hover {
+  background-color: #fef2f2 !important;
+  color: #dc2626 !important;
+}
+
+.content-body { padding: 24px; flex: 1;background-color:#ebecee; }
 </style>

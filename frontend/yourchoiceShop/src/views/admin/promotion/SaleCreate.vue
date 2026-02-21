@@ -1,71 +1,97 @@
 <template>
   <div class="page-container">
-    <div class="header">
-        <h3>Đợt giảm giá / Thêm đợt giảm giá</h3>
+    <div class="header-row">
+       <div class="header-title">
+          <h3 style="color: #1e293b;">Thêm đợt giảm giá</h3>
+       </div>
+       <button type="button" @click="$router.go(-1)" class="btn btn-back">
+          <i class="fas fa-arrow-left"></i> Quay lại
+       </button>
     </div>
 
-    <div class="card section-info">
-        <h4 class="section-title">Thông tin chương trình</h4>
-        <div class="row-3">
-             <div class="form-group">
-                <label>Tên chương trình <span class="required">*</span></label>
-                <input  v-model="form.tenDotGiamGia" placeholder="VD: Sale Black Friday" class="form-control" />
+    <div class="split-layout">
+      
+      <div class="card left-panel">
+        <h4 class="panel-title">Thông tin đợt giảm giá</h4>
+        
+        <div class="form-container">
+            <div class="form-group">
+                <label>Mã đợt (Tự động sinh)</label>
+                <input value="Mã tự sinh (DGG-...)" class="form-control input-den" disabled style="background-color: #f8fafc; color: #64748b;" />
             </div>
-             <div class="form-group">
-                <label>Mức giảm giá <span class="required">*</span></label>
-                <div class="input-group">
-                    <input v-model="form.giaTriGiam" type="number" class="form-control" />
-                    <select v-model="form.loaiGiamGia" class="unit-select">
-                        <option value="VND">VND</option>
-                        <option value="%">%</option>
-                    </select>
+
+            <div class="form-group">
+                <label>Tên đợt giảm giá <span class="required">*</span></label>
+                <input v-model="form.tenDotGiamGia" placeholder="Nhập tên đợt giảm giá..." class="form-control input-den" />
+            </div>
+
+            <div class="form-group">
+                <label>Loại giảm giá</label>
+                <div class="radio-group">
+                    <label class="radio-item">
+                        <input type="radio" value="%" v-model="form.loaiGiamGia" />
+                        <span>% Phần trăm</span>
+                    </label>
                 </div>
             </div>
-        </div>
-        <div class="row-3">
-             <div class="form-group">
-                <label>Thời gian bắt đầu <span class="required">*</span></label>
-                <input v-model="form.ngayBatDau" type="datetime-local" class="form-control" />
+
+            <div class="form-group">
+                <label>Giá trị giảm (%) <span class="required">*</span></label>
+                <input v-model="form.giaTriGiam" type="number" class="form-control input-den" placeholder="Nhập % giảm..." />
             </div>
-             <div class="form-group">
-                <label>Thời gian kết thúc <span class="required">*</span></label>
-                <input v-model="form.ngayKetThuc" type="datetime-local" class="form-control" />
+
+            <div class="form-group">
+                <label>Ngày bắt đầu <span class="required">*</span></label>
+                <input v-model="form.ngayBatDau" type="datetime-local" class="form-control input-den" />
+            </div>
+
+            <div class="form-group">
+                <label>Ngày kết thúc <span class="required">*</span></label>
+                <input v-model="form.ngayKetThuc" type="datetime-local" class="form-control input-den" />
             </div>
         </div>
         
-        <div class="action-bar">
-            <button type="button" @click="$router.go(-1)" class="btn btn-outline">Hủy</button>
-            <button type="button" @click="createSale" class="btn btn-gradient">Xác nhận & Tạo mới</button>
+        <div class="form-footer">
+            <button type="button" @click="createSale" class="btn btn-create">
+                <i class="fas fa-plus"></i> Tạo đợt giảm giá
+            </button>
         </div>
-    </div>
+      </div>
 
-    <div class="card section-product">
+      <div class="card right-panel">
         <div class="panel-header">
-            <h4>Sản phẩm áp dụng</h4>
+            <h4>Chọn sản phẩm áp dụng</h4>
             <div class="selected-count">
-                Đã chọn: <b>{{ form.idChiTietSanPhams.length }}</b> sản phẩm
+                Đã chọn: <b>{{ selectedParentIds.length }}</b> sản phẩm
             </div>
         </div>
 
         <div class="filter-toolbar">
             <div class="search-box">
-                <i class="fas fa-search icon"></i>
-                <input class="input-den" v-model="filter.keyword" @keyup.enter="loadProducts" placeholder="Tìm tên/mã sản phẩm..." />
+                <i class="fas fa-magnifying-glass search-icon"></i>
+                <input 
+                    class="input-den" 
+                    v-model="filter.keyword" 
+                    @keyup.enter="loadParentProducts" 
+                    placeholder="Tìm tên hoặc mã sản phẩm..." 
+                />
             </div>
             
-            <select v-model="filter.mauSacId" @change="loadProducts" class="filter-select">
-                <option value="">-- Màu sắc --</option>
-                <option v-for="ms in colors" :key="ms.id" :value="ms.id">{{ ms.tenMauSac || ms.ten }}</option>
-            </select>
+            <div class="filter-group">
+                 <select v-model="filter.mauSacId" @change="loadParentProducts" class="filter-select">
+                    <option value="">-- Màu sắc --</option>
+                    <option v-for="ms in options.mauSac" :key="ms.id" :value="ms.id">{{ ms.tenMauSac }}</option>
+                </select>
 
-            <select v-model="filter.kichThuocId" @change="loadProducts" class="filter-select">
-                <option value="">-- Kích thước --</option>
-                <option v-for="kt in sizes" :key="kt.id" :value="kt.id">{{ kt.tenKichThuoc || kt.ten }}</option>
-            </select>
+                <select v-model="filter.kichThuocId" @change="loadParentProducts" class="filter-select">
+                    <option value="">-- Kích thước --</option>
+                    <option v-for="kt in options.kichThuoc" :key="kt.id" :value="kt.id">{{ kt.tenKichThuoc }}</option>
+                </select>
 
-            <button type="button" class="btn btn-black btn-sm" @click="resetFilter">
-                <i class="fas fa-sync-alt"></i> Đặt lại
-            </button>
+                 <button type="button" class="filter-btn" @click="resetFilter" title="Làm mới bộ lọc">
+                    <i class="fas fa-filter"></i>
+                </button>
+            </div>
         </div>
 
         <div class="table-responsive">
@@ -73,101 +99,140 @@
                 <thead>
                     <tr>
                         <th width="40px" class="text-center">
-                            <input type="checkbox" @change="toggleAll" :checked="isAllSelected" />
+                            <input type="checkbox" @change="toggleAllParent" :checked="isAllParentSelected" />
                         </th>
                         <th width="60px" class="text-center">Ảnh</th>
-                        <th>Mã SP</th>
+                        <th width="100px" class="text-center">Mã SP</th>
                         <th>Tên sản phẩm</th>
-                        <th class="text-center">Giá bán</th> 
-                        <th class="text-center">Thương hiệu</th>
-                        <th class="text-center">SL</th>
-                        <th class="text-center">Chất liệu</th>
-                        <th class="text-center">Kích cỡ</th>
-                        <th class="text-center">Màu sắc</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="loadingProd">
-                        <td colspan="10" class="text-center py-4">Đang tải dữ liệu...</td>
+                        <td colspan="4" class="text-center py-4">Đang tải dữ liệu...</td>
                     </tr>
-                    <tr v-else-if="products.length === 0">
-                         <td colspan="10" class="text-center empty-state">Không tìm thấy sản phẩm nào.</td>
+                    <tr v-else-if="parentProducts.length === 0">
+                         <td colspan="4" class="text-center empty-state">Không tìm thấy sản phẩm nào.</td>
                     </tr>
-                    <tr v-else v-for="sp in products" :key="sp.id" :class="{ 'selected-row': form.idChiTietSanPhams.includes(sp.id) }">
+                    <tr v-else v-for="sp in parentProducts" :key="sp.id" :class="{ 'selected-row': selectedParentIds.includes(sp.id) }">
                         <td class="text-center">
-                            <input type="checkbox" :value="sp.id" v-model="form.idChiTietSanPhams" />
+                            <input type="checkbox" :value="sp.id" v-model="selectedParentIds" @change="handleSelectParent(sp.id)" />
                         </td>
                         <td class="text-center">
                             <div class="img-wrapper">
                                 <img v-if="sp.hinhAnh" :src="'http://localhost:8080/api/v1/product-images/' + sp.hinhAnh" class="thumb-img" @error="handleImgError" />
-                                <div v-else class="img-placeholder"><i class="fas fa-image"></i></div>
+                                <div v-else class="img-placeholder"><i class="far fa-image"></i></div>
                             </div>
                         </td>
-                        <td class="prod-code">{{ sp.maCtsp }}</td>
+                        <td class="text-center code-text">{{ sp.maSanPham }}</td>
                         <td>
-                            <div class="prod-name" :title="sp.sanPham?.tenSanPham">{{ sp.sanPham?.tenSanPham }}</div>
-                        </td>
-                        
-                        <td class="text-center">
-                            <div class="price-box">
-                                <div class="old-price">{{ formatCurrency(sp.giaBan) }}</div>
-                                <div class="new-price">{{ calculateNewPrice(sp.giaBan) }}</div>
-                                <div v-if="form.giaTriGiam > 0" class="discount-badge">
-                                    -{{ calculateDiscountPercent(sp.giaBan) }}%
-                                </div>
-                            </div>
-                        </td>
-
-                        <td class="text-center">
-                            {{ sp.thuongHieu?.tenThuongHieu || sp.sanPham?.thuongHieu?.tenThuongHieu || '-' }}
-                        </td>
-                        <td class="text-center font-weight-bold">{{ sp.soLuong }}</td>
-                        <td class="text-center">
-                            {{ sp.chatLieu?.tenChatLieu || sp.sanPham?.chatLieu?.tenChatLieu || '-' }}
-                        </td>
-                        <td class="text-center">
-                            <span class="badge-size">{{ sp.kichThuoc?.tenKichThuoc }}</span>
-                        </td>
-                        
-                        <td class="text-center">
-                            <div class="color-wrapper justify-center">
-                                <span class="color-dot" :style="{ backgroundColor: getColorCode(sp.mauSac?.tenMauSac) }"></span>
-                                {{ sp.mauSac?.tenMauSac }}
-                            </div>
+                            <div class="prod-name" :title="sp.tenSanPham">{{ sp.tenSanPham }}</div>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <div class="pagination-footer">
-            <div class="page-info">
-                Hiển thị 
-                <select v-model="pageSize" @change="handlePageSizeChange">
-                    <option :value="5">5</option>
-                    <option :value="10">10</option>
-                    <option :value="20">20</option>
-                </select> 
-                bản ghi
-            </div>
-            
-            <div class="page-controls">
-                <button class="page-btn" :disabled="page === 0" @click="changePage(page - 1)">‹</button>
-                
-                <button 
-                    v-for="p in visiblePages" 
-                    :key="p" 
-                    class="page-btn" 
-                    :class="{ 'active': p === page + 1 }"
-                    @click="changePage(p - 1)"
-                >
-                    {{ p }}
-                </button>
+        <div class="pagination-centered">
+            <button class="page-btn" :disabled="page === 0" @click="changePage(page - 1)">‹</button>
+            <span class="page-counter">Trang {{ page + 1 }} / {{ totalPages }}</span>
+            <button class="page-btn" :disabled="page >= totalPages - 1" @click="changePage(page + 1)">›</button>
+        </div>
+      </div>
+    </div>
 
-                <button class="page-btn" :disabled="page >= totalPages - 1" @click="changePage(page + 1)">›</button>
+    <div class="card bottom-panel mt-3" v-if="selectedVariants.length > 0">
+        <div class="panel-header">
+            <h4>Danh sách chi tiết sản phẩm được chọn ({{ selectedVariants.length }})</h4>
+            <div class="action-right">
+                <button v-if="selectedDetailIds.length > 0" class="btn-sm btn-outline-danger mr-2" @click="removeSelectedDetails">
+                    <i class="fas fa-trash-alt"></i> Xóa đã chọn ({{ selectedDetailIds.length }})
+                </button>
             </div>
         </div>
+
+        <div class="detail-filter-bar">
+            <select v-model="detailFilter.thuongHieu" class="detail-select">
+                <option value="">-- Thương hiệu --</option>
+                <option v-for="th in options.thuongHieu" :key="th.id" :value="th.tenThuongHieu">{{ th.tenThuongHieu }}</option>
+            </select>
+            <select v-model="detailFilter.chatLieu" class="detail-select">
+                <option value="">-- Chất liệu --</option>
+                <option v-for="cl in options.chatLieu" :key="cl.id" :value="cl.tenChatLieu">{{ cl.tenChatLieu }}</option>
+            </select>
+            <select v-model="detailFilter.kichThuoc" class="detail-select">
+                <option value="">-- Kích cỡ --</option>
+                <option v-for="kt in options.kichThuoc" :key="kt.id" :value="kt.tenKichThuoc">{{ kt.tenKichThuoc }}</option>
+            </select>
+            <select v-model="detailFilter.mauSac" class="detail-select">
+                <option value="">-- Màu sắc --</option>
+                <option v-for="ms in options.mauSac" :key="ms.id" :value="ms.tenMauSac">{{ ms.tenMauSac }}</option>
+            </select>
+            <button class="btn-icon-filter" @click="resetDetailFilter" title="Đặt lại bộ lọc">
+                <i class="fas fa-filter"></i>
+            </button>
+        </div>
+
+        <div class="table-responsive">
+             <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th width="40px" class="text-center">
+                            <input type="checkbox" @change="toggleAllDetail" :checked="isAllDetailSelected" />
+                        </th>
+                        <th width="50px" class="text-center">STT</th>
+                        <th width="60px" class="text-center">Ảnh</th>
+                        <th class="text-center">Mã sản phẩm</th>
+                        <th class="text-center">Tên sản phẩm</th>
+                        <th class="text-center">Giá bán</th>
+                        <th class="text-center">Thương hiệu</th>
+                        <th class="text-center">Chất liệu</th>
+                        <th class="text-center">Kích cỡ</th>
+                        <th class="text-center">Màu sắc</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-if="paginatedDetails.length === 0">
+                        <td colspan="10" class="text-center empty-state">Không tìm thấy kết quả lọc.</td>
+                    </tr>
+                    <tr v-for="(v, index) in paginatedDetails" :key="v.id">
+                        <td class="text-center">
+                            <input type="checkbox" :value="v.id" v-model="selectedDetailIds">
+                        </td>
+                        <td class="text-center">{{ (detailPage - 1) * detailPageSize + index + 1 }}</td>
+                        <td class="text-center">
+                            <div class="img-wrapper-sm">
+                                <img v-if="v.hinhAnh" :src="'http://localhost:8080/api/v1/product-images/' + v.hinhAnh" class="thumb-img" @error="handleImgError" />
+                                <div v-else class="img-placeholder"><i class="far fa-image"></i></div>
+                            </div>
+                        </td>
+                        <td class="code-text text-center">{{ v.maCtsp }}</td>
+                        <td class="text-center">{{ v.tenSanPham }}</td>
+                        <td class="text-center font-bold">{{ formatCurrency(v.giaBan) }}</td>
+                        
+                        <td class="text-center">{{ v.tenThuongHieu }}</td>
+                        <td class="text-center">{{ v.tenChatLieu }}</td>
+                        
+                        <td class="text-center">
+                            <span class="badge-size">{{ v.tenKichThuoc }}</span>
+                        </td>
+                        <td class="text-center">
+                             <div class="color-dot-wrapper justify-center">
+                                <span class="color-dot" :style="{ backgroundColor: getColorCode(v.tenMauSac) }"></span> 
+                                <span class="ml-1">{{ v.tenMauSac }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+             </table>
+        </div>
+
+        <div class="pagination-centered">
+            <button class="page-btn" :disabled="detailPage === 1" @click="changeDetailPage(detailPage - 1)">‹</button>
+            <span class="page-counter">Trang {{ detailPage }} / {{ detailTotalPages }}</span>
+            <button class="page-btn" :disabled="detailPage === detailTotalPages" @click="changeDetailPage(detailPage + 1)">›</button>
+        </div>
     </div>
+
   </div>
 </template>
 
@@ -175,97 +240,195 @@
 import { ref, computed, onMounted, reactive } from 'vue';
 import request from '@/services/request';
 import { useRouter } from 'vue-router';
-import { toastSuccess, toastError, Toast } from '@/utils/toast';
+import Swal from 'sweetalert2';
 
+const Toast = Swal.mixin({
+    toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
+});
 const router = useRouter();
 
+// === FORM STATE ===
 const form = reactive({
-    tenDotGiamGia: '', giaTriGiam: 0, loaiGiamGia: 'VND',
-    ngayBatDau: '', ngayKetThuc: '', trangThai: 1,
-    idChiTietSanPhams: [] 
+    tenDotGiamGia: '', giaTriGiam: 0, loaiGiamGia: '%', 
+    ngayBatDau: '', ngayKetThuc: '', trangThai: 1, idChiTietSanPhams: [] 
 });
 
-const products = ref([]);
+// === DATA STATE ===
+const parentProducts = ref([]);
+const selectedParentIds = ref([]); 
+const selectedVariants = ref([]); 
+const selectedDetailIds = ref([]); 
+
+// Loading & Pagination Parent
 const loadingProd = ref(false);
 const page = ref(0);
-const pageSize = ref(10);
+const pageSize = ref(10); 
 const totalPages = ref(0);
 
+// Filters
 const filter = reactive({ keyword: '', mauSacId: '', kichThuocId: '' });
-const colors = ref([]);
-const sizes = ref([]);
+const options = reactive({ mauSac: [], kichThuoc: [], thuongHieu: [], chatLieu: [] });
 
-const loadFilterOptions = async () => {
+// Detail List State
+const detailFilter = reactive({ thuongHieu: '', chatLieu: '', kichThuoc: '', mauSac: '' });
+const detailPage = ref(1);
+const detailPageSize = 5;
+
+// --- API LOAD OPTIONS ---
+const fetchFilterOptions = async () => {
     try {
-        const [resMS, resKT] = await Promise.all([
-            request.get('/mau-sac/list', { params: { trangThai: 1 } }),
-            request.get('/kich-thuoc/list', { params: { trangThai: 1 } })
+        const [ms, kt, th, cl] = await Promise.all([
+            request.get('/mau-sac?size=100&status=1'),
+            request.get('/kich-thuoc?size=100&status=1'),
+            request.get('/thuong-hieu?size=100&status=1'),
+            request.get('/chat-lieu?size=100&status=1')
         ]);
-        colors.value = resMS.data || [];
-        sizes.value = resKT.data || [];
-    } catch (e) { console.error("Lỗi load bộ lọc", e); }
+        options.mauSac = ms.data.content || ms.data || [];
+        options.kichThuoc = kt.data.content || kt.data || [];
+        options.thuongHieu = th.data.content || th.data || [];
+        options.chatLieu = cl.data.content || cl.data || [];
+    } catch (e) { console.error("Lỗi tải bộ lọc:", e); }
 };
 
-const loadProducts = async () => {
+// --- API LOAD PARENT PRODUCTS ---
+const loadParentProducts = async () => {
     loadingProd.value = true;
     try {
-        const params = {
-            page: page.value, size: pageSize.value, keyword: filter.keyword,
-            idMauSac: filter.mauSacId || null, idKichThuoc: filter.kichThuocId || null,
-            trangThai: 1 
-        };
-        const res = await request.get('/chi-tiet-san-pham', { params });
-        products.value = res.data.content;
+        const res = await request.get('/products', { 
+            params: {
+                page: page.value, size: pageSize.value, keyword: filter.keyword, status: 1 
+            }
+        });
+        parentProducts.value = res.data.content;
         totalPages.value = res.data.totalPages;
     } catch (e) { console.error(e); } finally { loadingProd.value = false; }
 };
 
-// Pagination Logic
-const changePage = (p) => { if (p >= 0 && p < totalPages.value) { page.value = p; loadProducts(); } };
-const handlePageSizeChange = () => { page.value = 0; loadProducts(); };
+const changePage = (p) => { if (p >= 0 && p < totalPages.value) { page.value = p; loadParentProducts(); } };
+const resetFilter = () => { filter.keyword = ''; filter.mauSacId = ''; filter.kichThuocId = ''; page.value = 0; loadParentProducts(); };
 
-const visiblePages = computed(() => {
-    let pages = [];
-    // Logic hiển thị các trang xung quanh trang hiện tại
-    for (let i = 1; i <= totalPages.value; i++) {
-        if (i === 1 || i === totalPages.value || (i >= page.value && i <= page.value + 2)) {
-            pages.push(i);
+// --- LOGIC FETCH VARIANTS & MAPPING DATA (ĐÃ SỬA) ---
+const fetchVariantsByProductId = async (parentId) => {
+    try {
+        const res = await request.get(`/products/${parentId}/variants`);
+        const variants = Array.isArray(res.data) ? res.data : (res.data.content || []);
+        
+        // Tìm thông tin cha để fill nếu thiếu
+        const parent = parentProducts.value.find(p => p.id === parentId);
+
+        return variants.map(v => ({
+            id: v.id,
+            maCtsp: v.maCtsp,
+            tenSanPham: v.sanPham?.tenSanPham || parent?.tenSanPham || 'Sản phẩm',
+            
+            // --- FIX: Ưu tiên lấy trường phẳng (Flat) từ API ---
+            tenThuongHieu: v.tenThuongHieu || parent?.tenThuongHieu || v.sanPham?.tenThuongHieu || '-',
+            tenChatLieu: v.tenChatLieu || parent?.tenChatLieu || v.sanPham?.tenChatLieu || '-',
+            
+            // Mấy cái này thường nằm trong object con thì giữ nguyên hoặc thêm fallback
+            tenKichThuoc: v.kichThuoc?.tenKichThuoc || v.tenKichThuoc || '-',
+            tenMauSac: v.mauSac?.tenMauSac || v.tenMauSac || '-',
+            
+            // Map Ảnh
+            hinhAnh: v.listAnh && v.listAnh.length > 0 ? v.listAnh[0] : (v.hinhAnh || parent?.hinhAnh || ''),
+            
+            giaBan: v.giaBan,
+            parentId: parentId 
+        }));
+    } catch (e) { console.error(e); return []; }
+};
+
+const handleSelectParent = async (parentId) => {
+    if (selectedParentIds.value.includes(parentId)) {
+        const variants = await fetchVariantsByProductId(parentId);
+        if (variants.length === 0) return Toast.fire({ icon: 'warning', title: 'Sản phẩm này không có biến thể!' });
+
+        variants.forEach(v => {
+            if (!selectedVariants.value.some(ex => ex.id === v.id)) selectedVariants.value.push(v);
+        });
+    } else {
+        selectedVariants.value = selectedVariants.value.filter(v => v.parentId !== parentId);
+    }
+};
+
+const toggleAllParent = async (e) => {
+    const currentIds = parentProducts.value.map(p => p.id);
+    if (e.target.checked) {
+        for (const id of currentIds) {
+            if (!selectedParentIds.value.includes(id)) {
+                selectedParentIds.value.push(id);
+                await handleSelectParent(id);
+            }
+        }
+    } else {
+        for (const id of currentIds) {
+            const idx = selectedParentIds.value.indexOf(id);
+            if (idx > -1) {
+                selectedParentIds.value.splice(idx, 1);
+                handleSelectParent(id);
+            }
         }
     }
-    // Lọc trùng (nếu có)
-    return [...new Set(pages)].sort((a, b) => a - b);
+};
+
+const isAllParentSelected = computed(() => parentProducts.value.length > 0 && parentProducts.value.every(p => selectedParentIds.value.includes(p.id)));
+
+// --- LOGIC DETAIL LIST ---
+const filteredDetails = computed(() => {
+    return selectedVariants.value.filter(v => {
+        const matchTH = !detailFilter.thuongHieu || v.tenThuongHieu === detailFilter.thuongHieu;
+        const matchCL = !detailFilter.chatLieu || v.tenChatLieu === detailFilter.chatLieu;
+        const matchKC = !detailFilter.kichThuoc || v.tenKichThuoc === detailFilter.kichThuoc;
+        const matchMS = !detailFilter.mauSac || v.tenMauSac === detailFilter.mauSac;
+        return matchTH && matchCL && matchKC && matchMS;
+    });
 });
 
-const resetFilter = () => { filter.keyword = ''; filter.mauSacId = ''; filter.kichThuocId = ''; page.value = 0; loadProducts(); };
+const detailTotalPages = computed(() => Math.ceil(filteredDetails.value.length / detailPageSize) || 1);
 
-const isAllSelected = computed(() => products.value.length > 0 && products.value.every(p => form.idChiTietSanPhams.includes(p.id)));
-const toggleAll = (e) => {
-    const currentIds = products.value.map(p => p.id);
+const paginatedDetails = computed(() => {
+    const start = (detailPage.value - 1) * detailPageSize;
+    return filteredDetails.value.slice(start, start + detailPageSize);
+});
+
+const changeDetailPage = (p) => { if(p >= 1 && p <= detailTotalPages.value) detailPage.value = p; };
+const resetDetailFilter = () => { 
+    detailFilter.thuongHieu = ''; detailFilter.chatLieu = ''; 
+    detailFilter.kichThuoc = ''; detailFilter.mauSac = ''; 
+    detailPage.value = 1; 
+};
+
+const isAllDetailSelected = computed(() => {
+    if (paginatedDetails.value.length === 0) return false;
+    return paginatedDetails.value.every(v => selectedDetailIds.value.includes(v.id));
+});
+
+const toggleAllDetail = (e) => {
+    const currentIds = paginatedDetails.value.map(v => v.id);
     if (e.target.checked) {
-        const newIds = currentIds.filter(id => !form.idChiTietSanPhams.includes(id));
-        form.idChiTietSanPhams.push(...newIds);
+        selectedDetailIds.value = [...new Set([...selectedDetailIds.value, ...currentIds])];
     } else {
-        form.idChiTietSanPhams = form.idChiTietSanPhams.filter(id => !currentIds.includes(id));
+        selectedDetailIds.value = selectedDetailIds.value.filter(id => !currentIds.includes(id));
     }
 };
 
-const calculateNewPrice = (oldPrice) => {
-    if (!form.giaTriGiam) return formatCurrency(oldPrice);
-    let price = Number(oldPrice); let giam = Number(form.giaTriGiam);
-    let final = form.loaiGiamGia === 'VND' ? (price - giam) : (price * (100 - giam) / 100);
-    return formatCurrency(Math.max(0, final));
+const removeSelectedDetails = () => {
+    selectedVariants.value = selectedVariants.value.filter(v => !selectedDetailIds.value.includes(v.id));
+    selectedDetailIds.value = [];
 };
 
-const calculateDiscountPercent = (oldPrice) => {
-    if(form.loaiGiamGia === '%') return form.giaTriGiam;
-    let percent = Math.round((Number(form.giaTriGiam) / Number(oldPrice)) * 100);
-    return percent > 100 ? 100 : (percent < 0 ? 0 : percent);
-}
+const clearAllSelection = () => {
+    selectedVariants.value = [];
+    selectedParentIds.value = [];
+    selectedDetailIds.value = [];
+};
 
+// --- SUBMIT ---
 const createSale = async () => {
-    if(!form.tenDotGiamGia.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên chương trình' });
+    if(!form.tenDotGiamGia.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên đợt giảm giá' });
     if(form.giaTriGiam <= 0) return Toast.fire({ icon: 'warning', title: 'Mức giảm phải > 0' });
-    if(!form.ngayBatDau || !form.ngayKetThuc) return Toast.fire({ icon: 'warning', title: 'Chọn đầy đủ thời gian' });
+    if(!form.ngayBatDau || !form.ngayKetThuc) return Toast.fire({ icon: 'warning', title: 'Chọn thời gian' });
+    form.idChiTietSanPhams = selectedVariants.value.map(v => v.id);
     if(form.idChiTietSanPhams.length === 0) return Toast.fire({ icon: 'warning', title: 'Chưa chọn sản phẩm nào' });
 
     try {
@@ -274,121 +437,126 @@ const createSale = async () => {
         router.push({ name: 'admin-sale-list' });
     } catch (e) {
         console.error(e);
-        toastError(e.response?.data?.message || 'Có lỗi xảy ra');
+        Toast.fire({ icon: 'error', title: e.response?.data?.message || 'Có lỗi xảy ra' });
     }
 };
 
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
-const handleImgError = (e) => { e.target.src = "https://via.placeholder.com/50?text=No+Img"; };
-
+const handleImgError = (e) => { e.target.src = "https://via.placeholder.com/50?text=IMG"; };
 const getColorCode = (name) => {
-    const map = { 'Đen': '#000', 'Trắng': '#fff', 'Xanh': '#3b82f6', 'Đỏ': '#ef4444', 'Vàng': '#eab308', 'Hồng': '#ec4899', 'Xám': '#6b7280' };
+    const map = { 'Đen': '#000', 'Trắng': '#fff', 'Xanh': '#3b82f6', 'Đỏ': '#ef4444', 'Vàng': '#eab308', 'Hồng': '#ec4899', 'Xám': '#6b7280', 'Cam': '#f97316', 'Tím': '#a855f7' };
     return map[name] || '#e5e7eb';
 };
 
-onMounted(() => { loadFilterOptions(); loadProducts(); });
+onMounted(() => { fetchFilterOptions(); loadParentProducts(); });
 </script>
 
 <style scoped>
-.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; min-height: 100vh; }
-.header { margin-bottom: 20px; }
-.header h3 { font-weight: 700; color: #2b4360; font-size: 24px; }
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #ebecee;; min-height: 100vh; }
+.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header-title h3 { font-weight: 700; color: #2b4360; font-size: 24px; margin: 0; }
+.btn-back { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); border: 1px solid #cbd5e1; color: #ffffff; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.2s; }
+.btn-back:hover {background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #ffffff; }
 
-/* === CARD STYLE === */
-.card { 
-    background: #fff; border-radius: 16px; border: 1px solid #bfdbfe !important; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 24px; margin-bottom: 24px;
+/* LAYOUT: Chỉnh kích thước card trái to hơn */
+.split-layout { 
+    display: grid; 
+    grid-template-columns: 500px 1fr; /* Trái 500px */
+    gap: 20px; 
+    height: 700px; 
 }
-.section-title { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 20px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+.card { background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); padding: 20px; border: 1px solid #bfdbfe; display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
 
-/* Form */
-.row-3 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #334155; }
+/* LEFT PANEL */
+.panel-title { font-size: 16px; font-weight: 700; color: #334155; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; flex-shrink: 0; }
+.form-container { flex: 1; overflow-y: auto; padding-right: 5px; }
+.form-group { margin-bottom: 15px; }
+.form-group label {  margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #475569; }
 .required { color: #ef4444; }
-.form-control { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; }
-.form-control::placeholder {
-
-    color: #000000 !important;  /* Màu đen */
-    opacity: 0.5 !important;      /* Chống mờ */
-    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
-
+.form-control { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; transition: 0.2s; font-size: 14px; }
+.form-control:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+/* Container chứa cả cụm radio */
+.radio-group {
+    display: flex;
+    align-items: center;
+    padding: 5px 0; /* Tạo chút khoảng trống trên dưới cho thoáng */
 }
-.input-group { display: flex; }
-.input-group input { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-.unit-select { border: 1px solid #e2e8f0; border-left: none; background: #f8fafc; padding: 0 15px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; font-weight: 600; cursor: pointer; }
 
-/* Action Bar */
-.action-bar { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e2e8f0; }
-.btn { padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid transparent; font-size: 14px; }
-.btn-outline { background: #fff; border-color: #cbd5e1; color: #475569; }
-.btn-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); }
+/* Từng item radio */
+.radio-item {
+    display: grid;
+    grid-template-columns: auto 1fr; /* Cột 1 là nút, cột 2 là chữ */
+    align-items: center;             /* Căn giữa theo trục dọc của Grid */
+    gap: 8px;
+    cursor: pointer;
+}
 
-/* === UPDATE: Nút Đặt lại màu đen === */
-.btn-black { background: #1e293b; color: #fff; border-color: #1e293b; }
-.btn-black:hover { background: #0f172a; }
+.radio-item input[type="radio"] {
+    /* Ép kích thước chuẩn để không bị trình duyệt nhảy size */
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    
+    /* Chiêu cuối: Dùng transform để nhích cái nút lên 1-2px nếu font chữ của mày 
+       có "chân" làm cảm giác nút bị thấp hơn */
+    transform: translateY(-1px); 
+    
+    cursor: pointer;
+    accent-color: #0f172a;
+}
 
-/* Filter Toolbar */
-.filter-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; align-items: center; }
-.search-box { position: relative; width: 250px; }
-.search-box .icon { position: absolute; left: 10px; top: 11px; color: #94a3b8; }
-.search-box input { width: 100%; padding: 8px 10px 8px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; }
-.filter-select { padding: 0 10px; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 140px; height: 38px; cursor: pointer; }
-.btn-sm { padding: 8px 16px; font-size: 13px; height: 38px; }
+.radio-item span {
+    font-size: 14px;
+    line-height: 1; /* Rất quan trọng để triệt tiêu khoảng cách thừa trên dưới chữ */
+    display: inline-block;
+    vertical-align: middle;
+}
+.form-footer { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e2e8f0; flex-shrink: 0; }
+.btn-create { width: 100%; background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; padding: 12px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 15px; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); transition: all 0.2s; }
+.btn-create:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
 
-/* === TABLE STYLING === */
-.table-responsive { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; }
-.custom-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.custom-table th { background: #eff6ff; color: #1e40af; padding: 12px; font-weight: 700; white-space: nowrap; border-bottom: none; }
-.custom-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #334155; }
+/* RIGHT PANEL */
+.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0; }
+.panel-header h4 { margin: 0; font-size: 16px; font-weight: 700; color: #334155; }
+.selected-count b { color: #2563eb; }
+.filter-toolbar { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
+.search-box { position: relative; flex: 1; }
+.search-icon { position: absolute; left: 12px; top: 11px; color: #94a3b8; }
+.search-box input { width: 100%; padding: 8px 10px 8px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; height: 38px; font-weight: 600; color: #334155; }
+.filter-group { display: flex; gap: 8px; }
+.filter-select { padding: 0 10px; border: 1px solid #e2e8f0; border-radius: 6px; min-width: 110px; height: 38px; cursor: pointer; color: #475569; outline: none; }
+.filter-btn { width: 38px; height: 38px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center; }
+.table-responsive { flex: 1; overflow-y: auto; border: 1px solid #f1f5f9; border-radius: 8px; margin-bottom: 10px; min-height: 0; }
+.custom-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.custom-table th { background: #ffffff; color: #000000d9; padding: 12px; font-weight: 700; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10; text-align: center; }
+.custom-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; text-align: center; }
 .selected-row { background-color: #f0f9ff; }
-
-/* Utilities */
-.text-center { text-align: center !important; }
-.justify-center { justify-content: center; }
-.font-weight-bold { font-weight: 600; }
-
-/* Product Columns */
-.img-wrapper { width: 40px; height: 40px; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; margin: 0 auto; }
+.img-wrapper { width: 40px; height: 40px; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
+.img-wrapper-sm { width: 35px; height: 35px; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
 .thumb-img { width: 100%; height: 100%; object-fit: cover; }
-.prod-name { font-weight: 600; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-.prod-code { font-family: monospace; color: #2563eb; }
+.prod-code { font-family: monospace; color: #2563eb; font-weight: 600; }
+.prod-name { font-weight: 600; color: #1e293b; }
 
-/* === UPDATE: Price Column Box === */
-.price-box { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.old-price { text-decoration: line-through; color: #94a3b8; font-size: 11px; }
-.new-price { color: #dc2626; font-weight: 700; font-size: 13px; }
-.discount-badge { 
-    background-color: #ef4444; color: white; 
-    border-radius: 10px; padding: 2px 6px; 
-    font-size: 10px; font-weight: 700; 
-    display: inline-block; margin-top: 2px;
-}
-
-/* Attributes */
+/* BOTTOM PANEL */
+.bottom-panel { height: auto; min-height: 200px; margin-top: 30px; overflow: visible; }
+.detail-filter-bar { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+.detail-select { padding: 0 10px; border: 1px solid #e2e8f0; border-radius: 6px; height: 36px; min-width: 130px; cursor: pointer; color: #475569; outline: none; }
+.btn-icon-filter { width: 36px; height: 36px; border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 6px; cursor: pointer; color: #64748b; }
+.btn-icon-filter:hover { background: #e2e8f0; }
+.pagination-centered { display: flex; justify-content: center; align-items: center; margin-top: 15px; gap: 10px; flex-shrink: 0;}
+.page-counter { font-size: 13px; color: #64748b; font-weight: 500; }
 .badge-size { background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #475569; font-weight: 600; }
-.color-wrapper { display: flex; align-items: center; gap: 6px; }
-.color-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid #e2e8f0; }
-
-/* === UPDATE: Pagination Style (Giống quản lý) === */
-.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-.pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 13px; color: #64748b; }
-.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 5px; margin: 0 5px; outline: none; cursor: pointer; }
-
-.page-controls { display: flex; gap: 5px; }
-.page-btn { 
-    min-width: 32px; height: 32px; 
-    border: 1px solid #e2e8f0; background: #fff; 
-    border-radius: 4px; cursor: pointer; 
-    color: #64748b; font-weight: 500;
-    display: flex; align-items: center; justify-content: center;
-}
-.page-btn:hover:not(:disabled) { border-color: #0f172a; color: #0f172a; }
-.page-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; }
-.page-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #f8fafc; }
-/* Màu chữ placeholder đen xì, rõ nét */
-.input-den::placeholder {
-    color: #000000 !important;  /* Màu đen */
-    opacity: 1 !important;      /* Chống mờ */
-    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
-}
+.color-dot-wrapper { display: flex; align-items: center; gap: 5px; }
+.color-dot { display: block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid #e2e8f0; }
+.btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 4px; cursor: pointer; font-weight: 600; }
+.btn-outline-danger { background: white; border: 1px solid #ef4444; color: #ef4444; }
+.btn-outline-danger:hover { background: #fee2e2; }
+.btn-danger { background: #ef4444; border: 1px solid #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.input-den::placeholder { color: #000 !important; opacity: 0.6 !important; font-weight: 500; }
+.text-right { text-align: right !important; }
+.font-bold { font-weight: 700; }
+.page-btn { min-width: 30px; height: 30px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; cursor: pointer; color: #64748b; margin-left: 5px; }
+.mr-2 { margin-right: 10px; }
 </style>

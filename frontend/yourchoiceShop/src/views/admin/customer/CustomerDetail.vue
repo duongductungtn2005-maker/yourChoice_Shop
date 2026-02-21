@@ -305,7 +305,7 @@ onMounted(() => {
 /* CSS Tương tự các màn trước */
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 
-.customer-detail-page { background: #f8fafc; min-height: 100vh; padding: 20px; font-family: 'Segoe UI', sans-serif; }
+.customer-detail-page { background: #ebecee; min-height: 100vh; padding: 20px; font-family: 'Segoe UI', sans-serif; }
 .header-section { margin-bottom: 20px; } .breadcrumb { font-size: 14px; color: #64748b; }
 .active { font-weight: 600; color: #0f172a; margin-left: 5px; } .cursor-pointer { cursor: pointer; }
 .main-container { display: grid; grid-template-columns: 350px 1fr; gap: 20px; align-items: start; }

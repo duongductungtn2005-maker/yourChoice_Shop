@@ -42,6 +42,7 @@
             <font-awesome-icon :icon="['fas', 'plus']" /> Thêm mới
           </button>
         </div>
+
       </div>
     </div>
 
@@ -57,7 +58,7 @@
             <th width="20%">Địa chỉ</th>
             <th class="text-center" width="8%">Giới tính</th>
             <th class="text-center" width="10%">Trạng thái</th>
-            <th class="text-center" width="7%">Hành động</th>
+            <th class="text-center" width="7%">Thao tác</th>
           </tr>
         </thead>
         <tbody>
@@ -258,7 +259,7 @@ onMounted(() => { fetchData(); });
 
 <style scoped>
 /* === CSS CHUẨN ĐỒNG BỘ === */
-.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; color: #333; font-size: 14px; }
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #ebecee; min-height: 100vh; color: #333; font-size: 14px; }
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 
 /* CARD STYLING */
@@ -300,17 +301,17 @@ onMounted(() => { fetchData(); });
 /* TABLE STYLES */
 .custom-table { width: 100%; border-collapse: collapse; }
 .custom-table th {
-    background: #eff6ff !important; color: #1e40af; padding: 16px; text-align: left;
-     font-weight: 700; text-transform: uppercase; border-bottom: none !important; white-space: nowrap;
+    background: #f5f5f5 !important; color: #000000; padding: 16px; text-align: left;
+     font-weight: 700; text-transform: uppercase; border-bottom: 1px solid #e0eaf5 !important; white-space: nowrap;
 }
 .custom-table th.text-center { text-align: center; }
 .custom-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-size: 14px; }
 
 .text-center { text-align: center; }
-.code-text { color: #2563eb; font-weight: 600; font-family: monospace; font-size: 13px; }
-.name-text { font-weight: 600; color: #1e293b; }
-.text-gray { color: #64748b; }
-.text-address { max-width: 250px; color: #475569; font-size: 13px; line-height: 1.4; }
+.code-text { color: #000000; font-weight: 600; font-family: monospace; font-size: 13px; }
+.name-text { font-weight: 600; color: #000000; }
+.text-gray { color: #000000; }
+.text-address { max-width: 250px; color: #000000; font-size: 13px; line-height: 1.4; }
 .truncate-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
 .empty-state { padding: 40px; color: #64748b; font-style: italic; }
 

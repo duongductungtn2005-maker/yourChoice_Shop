@@ -1,53 +1,70 @@
 <template>
   <div class="page-container">
-    <h1 class="page-title">Quản lý Phiếu giảm giá</h1>
+    <div class="header-section">
+      <h1 class="page-title">Quản lý phiếu giảm giá</h1>
+    </div>
 
     <div class="control-panel">
-      <div class="controls-row">
-        
-        <div class="filter-group">
-           <div class="search-box">
+      <div class="filter-row">
+            <div class="search-box">
               <i class="fas fa-magnifying-glass search-icon"></i>
-              <input class="input-den" v-model="filter.keyword" placeholder="Tìm kiếm theo mã, tên..." @keyup.enter="fetchData" />
-           </div>
+              <input 
+                class="input-den form-control"
+                v-model="filter.keyword" 
+                placeholder="Tìm theo tên hoặc mã..." 
+                @keyup.enter="fetchData" 
+              />
+            </div>
 
-           <div class="date-group">
-              <div class="date-input-wrapper">
-                 <input class="input-den" type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Ngày bắt đầu" v-model="filter.startDate">
-              </div>
-              <span class="divider">-</span>
-              <div class="date-input-wrapper">
-                 <input class="input-den" type="text" onfocus="(this.type='datetime-local')" onblur="(this.type='text')" placeholder="Ngày kết thúc" v-model="filter.endDate">
-              </div>
-           </div>
-           
-           <select v-model="filter.scope" @change="fetchData" class="form-select">
+            <div class="date-input-wrapper">
+              <input 
+                class="input-den form-control" 
+                type="text" 
+                onfocus="(this.type='datetime-local')" 
+                onblur="(this.type='text')" 
+                placeholder="Ngày bắt đầu" 
+                v-model="filter.startDate"
+              />
+              <i class="far fa-calendar-alt date-icon"></i>
+            </div>
+            
+            <div class="date-input-wrapper">
+              <input 
+                class="input-den form-control" 
+                type="text" 
+                onfocus="(this.type='datetime-local')" 
+                onblur="(this.type='text')" 
+                placeholder="Ngày kết thúc" 
+                v-model="filter.endDate"
+              />
+              <i class="far fa-calendar-alt date-icon"></i>
+            </div>
+            
+            <select v-model="filter.scope" @change="fetchData" class="form-select form-control">
               <option value="">-- Kiểu --</option>
               <option value="CongKhai">Công khai</option>
               <option value="CaNhan">Cá nhân</option>
-           </select>
+            </select>
 
-           <select v-model="filter.status" @change="fetchData" class="form-select">
+            <select v-model="filter.status" @change="fetchData" class="form-select form-control">
               <option value="">-- Trạng thái --</option>
               <option value="1">Đang hoạt động</option>
               <option value="0">Ngưng hoạt động</option>
-           </select>
-        </div>
+            </select>
+      </div>
 
-        <div class="action-group">
-           <button class="btn btn-navy" @click="resetFilter">
+      <div class="action-row">
+            <button class="btn btn-navy" @click="resetFilter">
               <i class="fas fa-sync-alt"></i> Đặt lại
-           </button>
+            </button>
 
-           <button class="btn btn-outline" @click="exportExcel">
+            <button class="btn btn-outline" @click="exportExcel">
               <font-awesome-icon :icon="['fas','file-excel']" /> Xuất Excel
-           </button>
-           
-           <router-link :to="{ name: 'admin-voucher-create' }" class="btn btn-gradient">
+            </button>
+            
+            <router-link :to="{ name: 'admin-voucher-create' }" class="btn btn-gradient">
               <i class="fas fa-plus"></i> Tạo mới
-           </router-link>
-        </div>
-
+            </router-link>
       </div>
     </div>
 
@@ -55,26 +72,27 @@
       <table class="custom-table">
         <thead>
           <tr>
-            <th>STT</th>
+            <th width="50">STT</th>
             <th>Mã</th>
             <th>Tên phiếu</th>
             <th>Kiểu</th>
-            <th class="text-center">Số lượng</th>
+            <th>Số lượng</th>
             <th>Giá trị</th>
-            <th>Thời gian</th>
+            <th>Ngày Bắt đầu</th>
+            <th>Ngày Kết thúc</th>
             <th>Trạng thái</th>
-            <th class="text-center">Hành động</th> 
+            <th>Thao tác</th> 
           </tr>
         </thead>
         <tbody>
           <tr v-if="list.length === 0">
-             <td colspan="9" class="text-center empty-state">Không có dữ liệu</td>
+             <td colspan="10" class="empty-state">Không có dữ liệu</td>
           </tr>
           <tr v-for="(item, index) in list" :key="item.id" :class="{'row-disabled': item.trangThai === 0}">
             
             <td>{{ (currentPage * pageSize) + index + 1 }}</td>
             <td class="code-text">{{ item.maPhieuGiamGia }}</td>
-            <td class="code-text">{{ item.tenPhieuGiamGia }}</td>
+            <td class="name-text">{{ item.tenPhieuGiamGia }}</td>
             
             <td>
               <span class="badge" :class="getScope(item).class">
@@ -82,30 +100,32 @@
               </span>
             </td>
 
-            <td class="text-center">{{ item.soLuong }}</td>
-            
             <td>
+                <span v-if="item.soLuong === null" class="infinity-text">Vô hạn</span>
+                <span v-else>{{ item.soLuong }}</span>
+            </td>
+            
+            <td class="font-bold" style="color: rgb(43, 67, 96);">
                 {{ item.loaiPhieu === 'PhanTram' ? item.giaTriGiam + '%' : formatCurrency(item.giaTriGiam) }}
             </td>
 
-            <td class="time-col">
-              <div>{{ formatDate(item.ngayBatDau) }}</div>
-              <div>{{ formatDate(item.ngayKetThuc) }}</div>
-            </td>
+            <td>{{ formatDate(item.ngayBatDau) }}</td>
+            <td>{{ formatDate(item.ngayKetThuc) }}</td>
 
             <td>
                 <span class="badge" :class="getStatusClass(item)">{{ getStatusLabel(item) }}</span>
             </td>
             
-            <td class="text-center action-col">
+            <td class="action-col">
               <div class="action-wrapper"> 
                   <button 
-                    v-if="getScope(item).isPrivate && !isExpired(item.ngayKetThuc)" 
-                    class="icon-btn" title="Gửi mail" @click="openSendMailModal(item)"
+                    v-if="getScope(item).isPrivate" 
+                    class="icon-btn" 
+                    title="Gửi Email" 
+                    @click="openSendMailModal(item)"
                   >
                     <i class="far fa-envelope"></i>
                   </button>
-
                   <label class="switch" title="Bật/Tắt trạng thái">
                       <input 
                         type="checkbox" 
@@ -115,10 +135,6 @@
                       >
                       <span class="slider round"></span>
                   </label>
-
-                  <button class="icon-btn" title="Chi tiết/Sửa" @click="editVoucher(item)">
-                    <i class="far fa-eye"></i>
-                  </button>
               </div>
             </td>
           </tr>
@@ -158,7 +174,7 @@
         <div class="modal-body">
            <div class="search-box" style="width:100%; margin-bottom:15px;">
               <i class="fas fa-magnifying-glass search-icon"></i>
-              <input v-model="customerKeyword" placeholder="Tìm email khách hàng..." />
+              <input v-model="customerKeyword" placeholder="Tìm email khách hàng..." style="width:100%" />
            </div>
            <div class="customer-list-box">
               <table class="custom-table">
@@ -191,6 +207,7 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter(); 
 const list = ref([]);
+// Bỏ loaiGiamGia khỏi filter
 const filter = ref({ keyword: '', startDate: '', endDate: '', scope: '', status: '' });
 const currentPage = ref(0);
 const pageSize = ref(5);
@@ -213,8 +230,15 @@ const getScope = (item) => {
     };
 };
 
-const getStatusLabel = (item) => item.trangThai === 0 ? 'Ngưng' : (isExpired(item.ngayKetThuc) ? 'Hết hạn' : 'Đang diễn ra');
-const getStatusClass = (item) => item.trangThai === 0 ? 'badge-stopped' : (isExpired(item.ngayKetThuc) ? 'badge-expired' : 'badge-active');
+const getStatusLabel = (item) => {
+    if (item.trangThai === 0 || isExpired(item.ngayKetThuc)) return 'Đã kết thúc'; // Gộp trạng thái dừng và hết hạn
+    return 'Đang hoạt động';
+};
+
+const getStatusClass = (item) => {
+    if (item.trangThai === 0 || isExpired(item.ngayKetThuc)) return 'badge-stopped'; // Màu xám/đỏ nhạt cho trạng thái dừng
+    return 'badge-active';
+};
 
 const canReactivate = (item) => getScope(item).isPrivate ? !isExpired(item.ngayKetThuc) : true;
 
@@ -234,9 +258,6 @@ const resetFilter = () => {
 };
 
 const editVoucher = (item) => {
-    // console.log("Edit voucher:", item.id);
-    // Swal.fire("Tính năng", "Chức năng sửa phiếu giảm giá ID: " + item.id, "info");
-    // Nếu đã có route sửa thì uncomment dòng dưới:
     // router.push({ name: 'admin-voucher-edit', params: { id: item.id } });
 };
 
@@ -313,7 +334,8 @@ const confirmSendMail = async () => {
 const changePage = (p) => { currentPage.value = p; fetchData(); };
 const handlePageSizeChange = () => { currentPage.value = 0; fetchData(); };
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
-const formatDate = (val) => val ? new Date(val).toLocaleString('vi-VN') : '';
+// Chỉ hiển thị ngày tháng năm
+const formatDate = (val) => val ? new Date(val).toLocaleDateString('vi-VN') : ''; 
 const exportExcel = async () => {
   const result = await Swal.fire({
     title: 'Xác nhận',
@@ -331,7 +353,7 @@ const exportExcel = async () => {
     const url = window.URL.createObjectURL(new Blob([res.data]));
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `DS_PhongPhieu_${new Date().toISOString().slice(0,10)}.xlsx`);
+    link.setAttribute('download', `DS_PhieuGiamGia_${new Date().toISOString().slice(0,10)}.xlsx`);
     document.body.appendChild(link); link.click(); document.body.removeChild(link); window.URL.revokeObjectURL(url);
 
     const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
@@ -343,7 +365,6 @@ const exportExcel = async () => {
 };
 
 onMounted(() => {
-    // Kiểm tra và hiển thị thông báo nếu có từ localStorage (dùng cho Create xong redirect về)
     const successMsg = localStorage.getItem('voucherSuccessMessage');
     if (successMsg) {
         const Toast = Swal.mixin({
@@ -361,57 +382,67 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; color: #333; font-size: 14px; }
-.page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
-
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background:#ebecee;min-height: 100vh; color: #333; font-size: 14px; }
+.page-title { margin: 0; font-size: 24px; font-weight: 700; color: #1e293b; }
+.header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 /* === CARD STYLING === */
 .control-panel, .table-container { 
-    background: white; 
-    border-radius: 16px; 
-    border: 1px solid #bfdbfe !important; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    margin-bottom: 20px;
-    padding: 24px; /* Tăng padding để thoáng hơn */
+    background: white; border-radius: 16px; border: 1px solid #bfdbfe !important; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; padding: 24px; 
 }
 .table-container { padding: 0; overflow: hidden; }
 
-/* === FLEX LAYOUT CHO CONTROLS === */
-.controls-row { 
-    display: flex; 
-    justify-content: space-between; /* Đẩy 2 nhóm sang 2 bên */
-    align-items: center; 
-    flex-wrap: wrap; 
-    gap: 15px; 
+/* === GRID LAYOUT FOR FILTERS === */
+/* Tạo Grid 5 cột bằng nhau cho các ô input (Tìm kiếm, Ngày BĐ, Ngày KT, Kiểu, Trạng thái) */
+.filter-row { 
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); 
+    gap: 15px;
+    width: 100%;
 }
 
-/* Nhóm Bộ lọc (Bên trái) */
-.filter-group { 
-    display: flex; 
-    gap: 12px; 
-    align-items: center; 
-    flex-wrap: wrap; 
+/* === FLEX LAYOUT FOR ACTIONS === */
+/* Tạo dòng mới cho nút bấm, căn phải */
+.action-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
 }
 
-/* Nhóm Nút bấm (Bên phải) */
-.action-group { 
-    display: flex; 
-    gap: 10px; 
+/* CSS chung cho input và select để chúng đồng bộ chiều cao */
+.form-control {
+    width: 100%;
+    height: 40px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    outline: none;
+    padding: 0 10px;
+    box-sizing: border-box; 
 }
 
 /* INPUTS & SELECTS */
-.search-box { position: relative; width: 250px; } /* Thu nhỏ search box một chút */
-.search-icon { position: absolute; left: 12px; top: 11px; color: #94a3b8; }
-.search-box input { width: 100%; padding: 8px 10px 8px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; height: 40px; }
-.search-box input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+.search-box { position: relative; width: 100%; } 
+.search-icon { position: absolute; left: 12px; top: 12px; color: #94a3b8; }
+.search-box input { padding-left: 36px; }
 
-.date-group { display: flex; gap: 8px; align-items: center; }
-.date-input-wrapper input { padding: 8px 10px; width: 140px; height: 40px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; }
-.form-select { height: 40px; border-radius: 6px; border: 1px solid #e2e8f0; outline: none; padding: 0 10px; color: #334155; min-width: 150px; cursor: pointer; }
+.search-box input:focus, .form-control:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+/* DATE INPUT WITH ICON */
+.date-input-wrapper { position: relative; width: 100%; }
+.date-icon { 
+    position: absolute; 
+    right: 12px; 
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8; 
+    pointer-events: none;
+}
+.date-input-wrapper input { padding-right: 35px; }
 
 /* === BUTTONS === */
 .btn { 
     height: 40px; 
-    padding: 0 20px; 
     border-radius: 6px; 
     font-weight: 600; 
     cursor: pointer; 
@@ -420,99 +451,110 @@ onMounted(() => {
     transition: 0.2s; 
     display: inline-flex; 
     align-items: center; 
+    justify-content: center; 
     gap: 8px; 
     text-decoration: none;
+    min-width: 130px; 
 }
 
-.btn-secondary { background: #334155; color: #fff; } 
-.btn-secondary:hover { background: #1e293b; }
+.btn-navy {
+    background-color: #334155; 
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(51, 65, 85, 0.2);
+}
+.btn-navy:hover { background-color: #1e293b; transform: translateY(-1px); }
 
-.btn-outline { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
-.btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+.btn-outline { background: #fff; border: 1px solid #cbd5e1; color: #475569; }
+.btn-outline:hover { background: #f8fafc; border-color: #94a3b8; color: #0f172a; }
 
 .btn-gradient { 
     background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); 
     color: #fff; 
-    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); 
+    
 }
-.btn-gradient:hover { 
-    transform: translateY(-1px); 
-    box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); 
-}
+.btn-gradient:hover { transform: translateY(-1px); }
 
 /* === TABLE STYLES === */
-.custom-table { width: 100%; border-collapse: collapse; }
+.custom-table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .custom-table th {
-  background: #eff6ff !important; /* Xanh nhạt */
-  color: #1e40af;
-  padding: 16px;
-  text-align: center;
-  
+  background:#f5f5f5;
+  color: #333;
+  padding: 12px;
+  text-align: center; /* Căn giữa tiêu đề */
   font-weight: 700;
-  text-transform: uppercase;
-  border-bottom: none !important; /* Xóa dòng kẻ */
+  font-size: 13px;
+  border-bottom: 1px solid #f1f5f9;
   white-space: nowrap;
 }
 
 .custom-table td {
-  padding: 14px 16px;
+  padding: 16px 12px;
   border-bottom: 1px solid #f1f5f9;
-  text-align: center;
   vertical-align: middle;
   font-size: 14px;
-  font-weight: 400;
-  color: #333;
+  color: #334155;
+  text-align: center; /* Căn giữa nội dung */
 }
 
-/* BADGES */
-.badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.badge-public, .badge-active { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-.badge-stopped { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-.badge-expired { background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0; }
-.badge-private, .badge-stopped, .badge-expired { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
+/* BADGES - MÀU SẮC YÊU CẦU */
+.badge { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; display: inline-block;}
+.badge-public, .badge-active { background: #ecfdf5; color: #059669; }
+.badge-private, .badge-stopped, .badge-expired { background: #eff6ff; color: #2563eb; }
+.badge-light { background: #f3f4f6; color: #4b5563; }
+
+.code-text { font-family: monospace; font-weight: 600; color: #475569; }
+.name-text { font-weight: 500; }
+.font-bold { font-weight: 700; }
+.infinity-text { font-style: italic; color: #64748b; font-weight: 500; }
 
 /* ACTIONS */
-.action-wrapper { display: flex; align-items: center; justify-content: center; gap: 10px; }
-.icon-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; color: #64748b; transition: all 0.2s; }
-.icon-btn:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+/* Căn chỉnh 2 nút gần nhau và căn giữa */
+.action-wrapper { display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-.switch { position: relative; display: inline-block; width: 36px; height: 20px; margin: 0; flex-shrink: 0; }
+/* ĐÃ SỬA: Icon Button - Bo góc và có viền */
+.icon-btn { 
+    width: 32px; 
+    height: 32px; 
+    border: 1px solid #cbd5e1; /* Thêm viền */
+    border-radius: 8px; /* Bo góc */
+    background: white; 
+    cursor: pointer; 
+    color: #64748b; 
+    font-size: 14px; 
+    transition: 0.2s; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+}
+.icon-btn:hover { 
+    border-color: #3b82f6; 
+    color: #3b82f6; 
+}
+
+/* Switch Toggle */
+.switch { position: relative; display: inline-block; width: 40px; height: 22px; margin: 0; flex-shrink: 0; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
-.slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2); }
+.slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2); }
 input:checked + .slider { background-color: #10b981; }
-input:checked + .slider:before { transform: translateX(16px); }
+input:checked + .slider:before { transform: translateX(18px); }
 input:disabled + .slider { background-color: #e2e8f0; cursor: not-allowed; }
 
 /* PAGINATION */
-.pagination-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px 24px; border-top: 1px solid #f1f5f9; }
-.page-info { font-size: 13px; color: #64748b; font-weight: 500; }
-.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 5px; margin: 0 5px; outline: none; cursor: pointer; }
-.page-controls button { width: 32px; height: 32px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; color: #64748b; }
+.pagination-footer { display: flex; justify-content: space-between; align-items: center; padding: 15px 24px; border-top: 1px solid #f1f5f9; }
+.page-info select { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 5px; margin: 0 5px; }
+.page-controls button { width: 30px; height: 30px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; color: #64748b; font-size: 12px; }
 .page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
 .page-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
-.empty-state { padding: 40px; font-size: 14px; color: #64748b; font-style: italic; }
 
-/* MODAL */
+/* Placeholder */
+.input-den::placeholder { color: #94a3b8 !important; opacity: 1 !important; font-weight: normal; }
+
+/* Modal Styles */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
 .modal-content { background: white; width: 600px; padding: 20px; border-radius: 8px; }
 .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
 .customer-list-box { max-height: 300px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 15px; }
 .modal-actions { display: flex; justify-content: space-between; align-items: center; }
 .close-btn { border: none; background: none; font-size: 18px; cursor: pointer; color: #64748b; }
-.btn-navy {
-    background-color: #0f172a; /* Xanh than đậm */
-    color: #ffffff;
-    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.2);
-}
-.btn-navy:hover {
-    background-color: #1e293b;
-    transform: translateY(-1px);
-}
-/* Màu chữ placeholder đen xì, rõ nét */
-.input-den::placeholder {
-    color: #000000 !important;  /* Màu đen */
-    opacity: 1 !important;      /* Chống mờ */
-    font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
-}
 </style>
