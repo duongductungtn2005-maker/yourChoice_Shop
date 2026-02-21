@@ -41,13 +41,13 @@
               <button class="btn btn-outline" :class="{ 'btn-active': activeFilter === 'WEEK' }" @click="applyQuickFilter('WEEK')">Tuần</button>
               <button class="btn btn-outline" :class="{ 'btn-active': activeFilter === 'MONTH' }" @click="applyQuickFilter('MONTH')">Tháng</button>
               <button class="btn btn-outline" :class="{ 'btn-active': activeFilter === 'YEAR' }" @click="applyQuickFilter('YEAR')">Năm</button>
-              <button class="btn btn-primary" :class="{ 'btn-active-primary': activeFilter === 'CUSTOM' }" @click="applyCustomFilter">Tùy chỉnh</button>
+              <button class="btn btn-primary" :class="{ 'btn-active-primary': activeFilter === 'CUSTOM' }" @click="activeFilter = 'CUSTOM'; applyCustomFilter()">Tùy chỉnh</button>
             </div>
             
-            <div class="date-picker-group">
-              <input type="date" v-model="filter.fromDate" class="date-input" @change="activeFilter = 'CUSTOM'" />
+            <div class="date-picker-group" v-if="activeFilter === 'CUSTOM'">
+              <input type="date" v-model="filter.fromDate" class="date-input" @change="applyCustomFilter" />
               <span class="separator">-</span>
-              <input type="date" v-model="filter.toDate" class="date-input" @change="activeFilter = 'CUSTOM'" />
+              <input type="date" v-model="filter.toDate" class="date-input" @change="applyCustomFilter" />
             </div>
         </div>
         
@@ -101,11 +101,10 @@
             <span>dòng</span>
           </div>
           <div class="page-controls">
-            <button class="page-btn">&lt;</button>
-            <button class="page-btn active">1</button>
+            <button class="page-btn" :disabled="filter.page === 0" @click="changeTopPage(filter.page - 1)">&lt;</button>
+            <button class="page-btn active">{{ filter.page + 1 }}</button>
             <span class="page-dots">...</span>
-            <button class="page-btn">10</button>
-            <button class="page-btn">&gt;</button>
+            <button class="page-btn" @click="changeTopPage(filter.page + 1)">&gt;</button>
           </div>
         </div>
       </div>
@@ -129,10 +128,9 @@
       <div class="table-card table-low-stock">
         <div class="card-header header-flex">
           <h3 class="title-danger">Danh sách sản phẩm sắp hết hàng</h3>
-          
           <div class="threshold-control">
              <span class="threshold-label">Ngưỡng tồn:</span>
-             <input type="number" min="0" v-model="lowStockThreshold" @change="fetchLowStock" class="threshold-input" />
+             <input type="number" min="1" max="100" v-model="lowStockThreshold" @change="validateAndFetchLowStock" class="threshold-input" />
              <span class="badge-danger">Số lượng: {{ lowStockProducts.length }}</span>
           </div>
         </div>
@@ -176,6 +174,24 @@
             </tbody>
           </table>
         </div>
+        
+        <div class="pagination">
+          <div class="page-size">
+            <span>Xem</span>
+            <select class="select-box" v-model="lowStockFilter.size" @change="fetchLowStock">
+               <option :value="5">5</option>
+               <option :value="10">10</option>
+            </select>
+            <span>dòng</span>
+          </div>
+          <div class="page-controls">
+            <button class="page-btn" :disabled="lowStockFilter.page === 0" @click="changeLowStockPage(lowStockFilter.page - 1)">&lt;</button>
+            <button class="page-btn active">{{ lowStockFilter.page + 1 }}</button>
+            <span class="page-dots">...</span>
+            <button class="page-btn" @click="changeLowStockPage(lowStockFilter.page + 1)">&gt;</button>
+          </div>
+        </div>
+
       </div>
 
       <div class="dark-card">
@@ -207,7 +223,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { statisticApi } from '@/api/statisticApi' // Đảm bảo đường dẫn này đúng với dự án của bạn
+import { statisticApi } from '@/api/statisticApi' 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Pie } from 'vue-chartjs'
 ChartJS.register(ArcElement, Tooltip, Legend)
@@ -217,9 +233,10 @@ const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currenc
 const formatNumber = (val) => new Intl.NumberFormat('vi-VN').format(val || 0)
 
 // --- STATES CHÍNH ---
-const activeFilter = ref('ALL') // Trạng thái của nút bộ lọc
-const filter = ref({ fromDate: null, toDate: null, status: 4, page: 0, size: 5 })
-const lowStockThreshold = ref(10) // Ngưỡng tồn kho mặc định
+const activeFilter = ref('ALL') 
+const filter = ref({ fromDate: null, toDate: null, status: 5, page: 0, size: 5 }) // 5 = Hoàn thành
+const lowStockThreshold = ref(10) 
+const lowStockFilter = ref({ page: 0, size: 5 }) 
 
 const topProducts = ref([])         
 const lowStockProducts = ref([])    
@@ -239,7 +256,7 @@ const summaryCards = ref([
 const chartData = ref({
   labels: [],
   datasets: [{
-    backgroundColor: ['#ff4d4f', '#ffa940', '#ffc53d', '#73d13d', '#36cfc9', '#4096ff', '#9254de', '#f759ab'],
+    backgroundColor: [],
     data: [],
     borderWidth: 1,
     hoverOffset: 4
@@ -254,22 +271,43 @@ const chartOptions = ref({
   }
 })
 
-// --- LOGIC TÍNH TOÁN NGÀY THÁNG ---
-const getStartOfDay = (date) => new Date(date.setHours(0,0,0,0)).toISOString().slice(0,19);
-const getEndOfDay = (date) => new Date(date.setHours(23,59,59,999)).toISOString().slice(0,19);
+// --- TÍNH TOÁN THỜI GIAN CHUẨN GIỜ ĐỊA PHƯƠNG (VIỆT NAM) ---
+// Thay thế hoàn toàn toISOString() bằng hàm build chuỗi thủ công để tránh lệch múi giờ
+const formatToLocalDateTime = (date, isEnd = false) => {
+  const d = new Date(date);
+  if (isEnd) d.setHours(23, 59, 59, 999);
+  else d.setHours(0, 0, 0, 0);
+  
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
+const formatYYYYMMDD = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 const getTimeframes = () => {
   const now = new Date();
+  const todayStart = formatToLocalDateTime(now);
+  const todayEnd = formatToLocalDateTime(now, true);
+  
   const d = new Date();
-  
-  const todayStart = getStartOfDay(new Date());
-  const todayEnd = getEndOfDay(new Date());
-  
   const weekStartObj = new Date(d.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1)));
-  const weekStart = getStartOfDay(weekStartObj);
+  const weekStart = formatToLocalDateTime(weekStartObj);
   
-  const monthStart = getStartOfDay(new Date(now.getFullYear(), now.getMonth(), 1));
-  const yearStart = getStartOfDay(new Date(now.getFullYear(), 0, 1));
+  const monthStartObj = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthStart = formatToLocalDateTime(monthStartObj);
+  
+  const yearStartObj = new Date(now.getFullYear(), 0, 1);
+  const yearStart = formatToLocalDateTime(yearStartObj);
   
   return [
     { fromDate: todayStart, toDate: todayEnd },
@@ -284,18 +322,18 @@ const applyQuickFilter = (type) => {
   activeFilter.value = type;
   const now = new Date();
   let start = '';
-  const end = now.toISOString().split('T')[0];
+  const end = formatYYYYMMDD(now); // Lấy đúng ngày hôm nay YYYY-MM-DD
 
   if (type === 'DAY') {
     start = end;
   } else if (type === 'WEEK') {
     const d = new Date();
     const firstDay = new Date(d.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1)));
-    start = firstDay.toISOString().split('T')[0];
+    start = formatYYYYMMDD(firstDay);
   } else if (type === 'MONTH') {
-    start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    start = formatYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 1));
   } else if (type === 'YEAR') {
-    start = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+    start = formatYYYYMMDD(new Date(now.getFullYear(), 0, 1));
   }
 
   filter.value.fromDate = start;
@@ -304,17 +342,23 @@ const applyQuickFilter = (type) => {
   applyCustomFilter();
 }
 
-// --- LOGIC GỌI API ---
+// --- GỌI API ---
 const fetchSummaryCards = async () => {
   isLoadingCards.value = true;
   try {
     const frames = getTimeframes();
-    const requests = frames.map(f => statisticApi.getRevenue({ fromDate: f.fromDate, toDate: f.toDate, status: 4 }));
+    // Gửi status = 5 (Hoàn thành) để thống nhất lấy dữ liệu chuẩn
+    const requests = frames.map(f => statisticApi.getRevenue({ fromDate: f.fromDate, toDate: f.toDate, status: 5 }));
     const responses = await Promise.all(requests);
     responses.forEach((res, index) => {
-      if(res.data && res.data.summary) {
-        summaryCards.value[index].revenue = res.data.summary.totalRevenue;
-        summaryCards.value[index].successOrders = res.data.summary.totalOrders;
+      // Dò tìm đúng key chứa dữ liệu bất kể Backend gói data kiểu gì
+      const data = res.data?.summary || res.data?.data || res.data; 
+      if(data) {
+        summaryCards.value[index].revenue = data.totalRevenue || data.doanhThu || 0;
+        summaryCards.value[index].successOrders = data.successOrders || data.totalOrders || data.soLuongDon || 0;
+        summaryCards.value[index].products = data.totalProducts || data.soLuongSanPham || 0;
+        summaryCards.value[index].cancelOrders = data.cancelOrders || data.donHuy || 0;
+        summaryCards.value[index].returnOrders = data.returnOrders || data.donTra || 0;
       }
     });
   } catch (error) { console.error(error) } finally { isLoadingCards.value = false; }
@@ -322,24 +366,52 @@ const fetchSummaryCards = async () => {
 
 const fetchChartStatus = async (customPayload) => {
   try {
-    const res = await statisticApi.getOrderStatus(customPayload);
-    if(res.data && res.data.length > 0) {
+    // Biểu đồ lấy TẤT CẢ trạng thái (Bỏ filter status = 5 đi)
+    const payloadForChart = { ...customPayload, status: null };
+    const res = await statisticApi.getOrderStatus(payloadForChart);
+    const dataList = res.data?.data || res.data;
+
+    if(dataList && dataList.length > 0) {
         hasChartData.value = true;
-        const statusMap = { 1: 'Chờ xác nhận', 2: 'Chờ giao hàng', 3: 'Đang giao', 4: 'Hoàn thành', 5: 'Đã hủy', 6: 'Trả hàng' };
-        chartData.value.labels = res.data.map(i => statusMap[i.trangThai] || 'Khác');
-        chartData.value.datasets[0].data = res.data.map(i => i.soLuong);
+        
+        // Map chuẩn trạng thái từ Backend
+        const statusMap = { 
+            0: 'Đã hủy', 1: 'Chờ xác nhận', 2: 'Chờ giao', 
+            3: 'Đang giao', 4: 'Chờ thanh toán', 5: 'Hoàn thành' 
+        };
+        const colorMap = {
+            0: '#ef4444', 1: '#eab308', 2: '#3b82f6', 
+            3: '#f97316', 4: '#a855f7', 5: '#10b981'
+        };
+
+        chartData.value.labels = dataList.map(i => statusMap[i.trangThai] || 'Khác');
+        chartData.value.datasets[0].data = dataList.map(i => i.soLuong);
+        chartData.value.datasets[0].backgroundColor = dataList.map(i => colorMap[i.trangThai] || '#cbd5e1');
     } else { hasChartData.value = false; }
   } catch (error) { console.error(error) }
+}
+
+const validateAndFetchLowStock = () => {
+    if (lowStockThreshold.value < 1) lowStockThreshold.value = 1;
+    if (lowStockThreshold.value > 100) lowStockThreshold.value = 100;
+    fetchLowStock();
 }
 
 const fetchLowStock = async () => {
     isLoadingLowStock.value = true;
     try {
-        // Gửi tham số ngưỡng tồn kho xuống Backend (Cần backend cập nhật DTO nhận tham số này)
-        const payload = { threshold: lowStockThreshold.value };
+        const payload = { 
+            threshold: lowStockThreshold.value,
+            size: lowStockFilter.value.size,
+            page: lowStockFilter.value.page 
+        };
         const resLow = await statisticApi.getLowStock(payload); 
-        if(resLow.data) {
-           lowStockProducts.value = resLow.data.filter(item => item != null);
+        const dataList = resLow.data?.data || resLow.data;
+
+        if(dataList && Array.isArray(dataList)) {
+           lowStockProducts.value = dataList.filter(item => item != null);
+        } else {
+           lowStockProducts.value = [];
         }
     } catch (error) {
         console.error(error);
@@ -349,44 +421,49 @@ const fetchLowStock = async () => {
 }
 
 const applyCustomFilter = async () => {
-  if (filter.value.fromDate && filter.value.toDate) {
-      activeFilter.value = 'CUSTOM';
-  }
-  
   const payload = {
     fromDate: filter.value.fromDate ? `${filter.value.fromDate}T00:00:00` : null,
     toDate: filter.value.toDate ? `${filter.value.toDate}T23:59:59` : null,
-    status: 4,
-    size: filter.value.size
+    status: 5, // CHỈ TÍNH SẢN PHẨM Ở ĐƠN HOÀN THÀNH
+    size: filter.value.size,
+    page: filter.value.page
   }
   
-  // Tải lại bảng Sản phẩm bán chạy
   try {
     const resTop = await statisticApi.getProductStats(payload);
-    if(resTop.data && resTop.data.chartData) {
-        topProducts.value = resTop.data.chartData.filter(item => item != null);
-    } else if (Array.isArray(resTop.data)) {
-        topProducts.value = resTop.data.filter(item => item != null);
+    const dataList = resTop.data?.chartData || resTop.data?.data || resTop.data;
+
+    if (Array.isArray(dataList)) {
+        topProducts.value = dataList.filter(item => item != null);
+    } else {
+        topProducts.value = [];
     }
   } catch (error) { console.error(error); }
 
-  // Tải lại Biểu đồ
   fetchChartStatus({ fromDate: payload.fromDate, toDate: payload.toDate });
 }
 
-// LOGIC XUẤT EXCEL (Tải file Blob)
+const changeTopPage = (newPage) => {
+    filter.value.page = newPage;
+    applyCustomFilter();
+}
+const changeLowStockPage = (newPage) => {
+    lowStockFilter.value.page = newPage;
+    fetchLowStock();
+}
+
 const handleExportExcel = async () => {
   try {
     const payload = {
       fromDate: filter.value.fromDate ? `${filter.value.fromDate}T00:00:00` : null,
       toDate: filter.value.toDate ? `${filter.value.toDate}T23:59:59` : null,
-      status: 4
+      status: 5 // CHỈ XUẤT DOANH THU ĐƠN HOÀN THÀNH
     }
     const res = await statisticApi.exportRevenueExcel(payload);
     const url = window.URL.createObjectURL(new Blob([res.data]));
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'BaoCaoDoanhThu.xlsx');
+    link.setAttribute('download', `BaoCao_ThongKe_${formatYYYYMMDD(new Date())}.xlsx`);
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -397,8 +474,8 @@ const handleExportExcel = async () => {
 
 onMounted(() => {
   fetchSummaryCards();
-  fetchLowStock(); // Tải bảng sắp hết hàng lúc đầu
-  applyCustomFilter(); // Tải dữ liệu ban đầu cho Bảng Top và Biểu đồ
+  fetchLowStock(); 
+  applyCustomFilter(); 
 })
 </script>
 
@@ -756,7 +833,8 @@ tbody td { padding: 12px; color: #374151; }
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
-.page-btn:hover { background: #f3f4f6; }
+.page-btn:hover:not(:disabled) { background: #f3f4f6; }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .page-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
 .page-dots { color: #9ca3af; }
 
