@@ -1,76 +1,190 @@
 <template>
-  <div class="page-container">
     <div class="breadcrumb">
-      <span @click="router.back()">Ca làm việc</span> / Thêm ca làm việc
+      <span class="link" @click="router.back()">Ca làm việc</span> 
+      <span class="separator">/</span>
+      <span class="current">Thêm ca làm việc</span>
     </div>
 
-    <div class="card form-card">
+    <div class="form-card">
       <form @submit.prevent="handleSubmit">
+        
         <div class="form-group">
-          <label>Tên ca <span class="required">*</span></label>
-          <input type="text" v-model="form.tenCa" placeholder="VD: Ca Sáng" required />
+          <label class="form-label">Tên ca <span class="required">*</span></label>
+          <input type="text" v-model="form.name" placeholder="Nhập tên ca" class="form-input" required />
         </div>
+
         <div class="form-row">
-          <div class="form-group">
-            <label>Thời gian bắt đầu <span class="required">*</span></label>
-            <input type="time" v-model="form.thoiGianBatDau" required />
+          <div class="form-group half-width">
+            <label class="form-label">Thời gian bắt đầu <span class="required">*</span></label>
+            <input type="time" v-model="form.startTime" class="form-input" required />
           </div>
-          <div class="form-group">
-            <label>Thời gian kết thúc <span class="required">*</span></label>
-            <input type="time" v-model="form.thoiGianKetThuc" required />
+          <div class="form-group half-width">
+            <label class="form-label">Thời gian kết thúc <span class="required">*</span></label>
+            <input type="time" v-model="form.endTime" class="form-input" required />
           </div>
         </div>
+
         <div class="form-group">
-          <label>Mô tả</label>
-          <input type="text" v-model="form.moTa" placeholder="Nhập mô tả" />
+          <label class="form-label">Mô tả</label>
+          <input type="text" v-model="form.description" placeholder="Nhập mô tả" class="form-input" />
         </div>
-        <div class="form-actions">
-          <button type="submit" class="btn-submit">Thêm ca làm việc</button>
+
+        <div class="btn-container">
+          <button type="submit" class="btn-submit">
+            Thêm ca làm việc
+          </button>
         </div>
+
       </form>
     </div>
-  </div>
 </template>
 
 <script setup>
 import { reactive } from 'vue';
 import { useRouter } from 'vue-router';
-import request from '@/services/request';
+import axios from 'axios';
 import Swal from 'sweetalert2';
 
 const router = useRouter();
-const form = reactive({ tenCa: '', thoiGianBatDau: '', thoiGianKetThuc: '', moTa: '' });
+const form = reactive({ name: '', startTime: '', endTime: '', description: '' });
 
 const handleSubmit = async () => {
-    Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    try {
-        await request.post('/ca-lam-viec', form); // Sửa URL cho khớp API Backend
-        
-        Swal.close();
-        await Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Đã thêm ca làm việc.', timer: 2000, showConfirmButton: false });
-        router.back(); // Quay lại trang danh sách
-    } catch (error) {
-        Swal.close();
-        Swal.fire({ icon: 'error', title: 'Thất bại', text: error.response?.data?.message || 'Có lỗi xảy ra!' });
+  try {
+    const payload = {
+      maCa: 'CA' + new Date().getTime().toString().slice(-5), 
+      tenCa: form.name,
+      thoiGianBatDau: form.startTime + ':00', 
+      thoiGianKetThuc: form.endTime + ':00',
+      ghiChu: form.description,
+      trangThai: 1 
+    };
+
+    const response = await axios.post('http://localhost:8080/api/v1/ca-lam-viec', payload);
+
+    if (response.status === 200 || response.status === 201) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công!',
+        text: 'Thêm ca làm việc thành công',
+        showConfirmButton: false,
+        timer: 1500
+      });
+      router.back(); 
     }
+  } catch (error) {
+    console.error("Lỗi khi thêm ca làm việc:", error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Thất bại!',
+      text: error.response?.data?.message || 'Có lỗi xảy ra khi thêm ca làm việc.',
+    });
+  }
 };
 </script>
 
 <style scoped>
-* { box-sizing: border-box; }
-.page-container { padding: 24px; background-color: #f8f9fa; min-height: 100vh; font-family: Arial, sans-serif; }
-.breadcrumb { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 24px; }
-.breadcrumb span { color: #94a3b8; cursor: pointer; transition: color 0.2s; }
-.breadcrumb span:hover { color: #1e293b; }
-.card { background: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); padding: 32px; border: 1px solid #f1f5f9; }
-.form-card { max-width: 800px; }
-.form-group { margin-bottom: 24px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-label { display: block; font-size: 14px; font-weight: 500; color: #475569; margin-bottom: 8px; }
-.required { color: #ef4444; }
-input, select { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s; }
-input:focus, select:focus { border-color: #3b82f6; }
-.form-actions { display: flex; justify-content: flex-end; margin-top: 32px; }
-.btn-submit { padding: 10px 24px; border: 2px solid #1e293b; background: #ffffff; color: #1e293b; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s; }
-.btn-submit:hover { background: #f8fafc; }
+
+/* Tổng quan trang */
+.shift-container {
+  padding: 24px;
+  background-color: #f9fafb;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Breadcrumb (Đường dẫn phía trên) */
+.breadcrumb {
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: bold;
+}
+.breadcrumb .link {
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.breadcrumb .link:hover {
+  color: #1f2937;
+}
+.breadcrumb .separator {
+  color: #6b7280;
+  margin: 0 4px;
+}
+.breadcrumb .current {
+  color: #1f2937;
+}
+
+/* Khung Form trắng */
+.form-card {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  max-width: 800px;
+}
+
+/* Layout của Form */
+.form-group {
+  margin-bottom: 16px;
+}
+.form-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+.half-width {
+  flex: 1;
+  margin-bottom: 0; /* Ghi đè margin-bottom khi ở trong row */
+}
+
+/* Nhãn (Label) */
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+.required {
+  color: #ef4444;
+}
+
+/* Ô nhập liệu (Input) */
+.form-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Khu vực nút bấm */
+.btn-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+/* Nút Submit */
+.btn-submit {
+  padding: 8px 24px;
+  border: 2px solid #334155;
+  color: #334155;
+  background-color: transparent;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s, color 0.2s;
+}
+.btn-submit:hover {
+  background-color: #f8fafc;
+}
 </style>
