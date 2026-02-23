@@ -3,9 +3,10 @@ package org.example.yourchoiceshop.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.yourchoiceshop.dto.request.CreateOrderRequest;
 import org.example.yourchoiceshop.dto.request.HoaDonRequest; // <--- Import DTO mới
-import org.example.yourchoiceshop.dto.request.PaymentRequest;
+import org.example.yourchoiceshop.dto.request.ThanhToanRequest;
 import org.example.yourchoiceshop.dto.response.HoaDonDetailResponse;
 import org.example.yourchoiceshop.dto.response.HoaDonResponse;
+import org.example.yourchoiceshop.service.ThanhToanService;
 import org.example.yourchoiceshop.service.impl.HoaDonServiceImpl;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,13 +37,14 @@ public class HoaDonController {
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) LocalDate fromDate,
-            @RequestParam(required = false) LocalDate toDate
-    ) {
+            @RequestParam(required = false) LocalDate toDate) {
         LocalDateTime from = (fromDate != null) ? fromDate.atStartOfDay() : null;
         LocalDateTime to = (toDate != null) ? toDate.atTime(23, 59, 59) : null;
         String typeDb = null;
-        if ("Trực tuyến".equals(type)) typeDb = "TRUC_TUYEN";
-        if ("Tại quầy".equals(type)) typeDb = "TAI_QUAY";
+        if ("Trực tuyến".equals(type))
+            typeDb = "TRUC_TUYEN";
+        if ("Tại quầy".equals(type))
+            typeDb = "TAI_QUAY";
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("ngayTao").descending());
 
         return ResponseEntity.ok(service.getOrders(keyword, status, typeDb, from, to, pageable));
@@ -58,8 +60,7 @@ public class HoaDonController {
     @PutMapping("/{maHoaDon}/status")
     public ResponseEntity<?> updateStatus(
             @PathVariable String maHoaDon,
-            @RequestParam Integer newStatus
-    ) {
+            @RequestParam Integer newStatus) {
         service.updateStatus(maHoaDon, newStatus);
         return ResponseEntity.ok().body("Cập nhật trạng thái thành công");
     }
@@ -68,40 +69,50 @@ public class HoaDonController {
     @PutMapping("/{maHoaDon}/info")
     public ResponseEntity<?> updateOrderInfo(
             @PathVariable String maHoaDon,
-            @RequestBody HoaDonRequest request
-    ) {
+            @RequestBody HoaDonRequest request) {
         service.updateOrderInfo(maHoaDon, request);
         return ResponseEntity.ok().body("Cập nhật thông tin thành công");
     }
+
     @PostMapping("/create")
     public ResponseEntity<?> createOrder(@RequestBody CreateOrderRequest req) {
         service.createOrderAtCounter(req);
         return ResponseEntity.ok("Tạo hóa đơn thành công");
     }
+
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportExcel(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) LocalDate fromDate,
-            @RequestParam(required = false) LocalDate toDate
-    ) {
+            @RequestParam(required = false) LocalDate toDate) {
         LocalDateTime from = (fromDate != null) ? fromDate.atStartOfDay() : null;
         LocalDateTime to = (toDate != null) ? toDate.atTime(23, 59, 59) : null;
         String typeDb = null;
-        if ("Trực tuyến".equals(type)) typeDb = "TRUC_TUYEN";
-        if ("Tại quầy".equals(type)) typeDb = "TAI_QUAY";
+        if ("Trực tuyến".equals(type))
+            typeDb = "TRUC_TUYEN";
+        if ("Tại quầy".equals(type))
+            typeDb = "TAI_QUAY";
 
         byte[] excelData = service.exportExcel(keyword, status, typeDb, from, to);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=DanhSachHoaDon.xlsx")
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .contentType(
+                        MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(excelData);
     }
+
+    private final ThanhToanService thanhToanService;
+
     @PostMapping("/{maHoaDon}/payment")
-    public ResponseEntity<?> confirmPayment(@PathVariable String maHoaDon, @RequestBody PaymentRequest request) {
-        service.confirmPayment(maHoaDon, request);
+    public ResponseEntity<?> thanhToan(
+            @PathVariable String maHoaDon,
+            @RequestBody ThanhToanRequest request) {
+
+        thanhToanService.thanhToan(maHoaDon, request);
         return ResponseEntity.ok("Thanh toán thành công");
     }
+
 }
