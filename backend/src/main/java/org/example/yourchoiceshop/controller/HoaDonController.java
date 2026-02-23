@@ -3,6 +3,7 @@ package org.example.yourchoiceshop.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.yourchoiceshop.dto.request.CreateOrderRequest;
 import org.example.yourchoiceshop.dto.request.HoaDonRequest; // <--- Import DTO mới
+import org.example.yourchoiceshop.dto.request.PaymentRequest;
 import org.example.yourchoiceshop.dto.response.HoaDonDetailResponse;
 import org.example.yourchoiceshop.dto.response.HoaDonResponse;
 import org.example.yourchoiceshop.service.impl.HoaDonServiceImpl;
@@ -97,5 +98,10 @@ public class HoaDonController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=DanhSachHoaDon.xlsx")
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(excelData);
+    }
+    @PostMapping("/{maHoaDon}/payment")
+    public ResponseEntity<?> confirmPayment(@PathVariable String maHoaDon, @RequestBody PaymentRequest request) {
+        service.confirmPayment(maHoaDon, request);
+        return ResponseEntity.ok("Thanh toán thành công");
     }
 }

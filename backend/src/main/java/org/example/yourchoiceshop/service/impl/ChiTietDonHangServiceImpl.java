@@ -10,24 +10,26 @@ import org.example.yourchoiceshop.repository.LichSuHoaDonRepository;
 import org.example.yourchoiceshop.repository.LichSuThanhToanRepository;
 import org.example.yourchoiceshop.service.ChiTietDonHangService;
 import org.springframework.stereotype.Service;
-
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class ChiTietDonHangServiceImpl implements ChiTietDonHangService {
-    
-    private HoaDonRepository hoaDonRepository;
-    private HoaDonChiTietRepository hoaDonChiTietRepository;
-    private LichSuHoaDonRepository lichSuHoaDonRepository;
-    private LichSuThanhToanRepository lichSuThanhToanRepository;
+
+    private final HoaDonRepository hoaDonRepository;
+    private final HoaDonChiTietRepository hoaDonChiTietRepository;
+    private final LichSuHoaDonRepository lichSuHoaDonRepository;
+    private final LichSuThanhToanRepository lichSuThanhToanRepository;
 
     @Override
-    public ChiTietDonHangResponse getChiTietDonHang(Integer id) {
+    public ChiTietDonHangResponse getChiTietDonHang(String maHoaDon) { // Nhận String
 
-        HoaDon hd = hoaDonRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Không tìm thấy đơn hàng"));
+        // 1. Tìm Hóa Đơn theo Mã (String)
+        HoaDon hd = hoaDonRepository.findByMaHoaDon(maHoaDon)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + maHoaDon));
+
+        // Lấy ID integer để dùng cho các bảng con
+        Integer id = hd.getId();
 
         ChiTietDonHangResponse res = new ChiTietDonHangResponse();
 
@@ -46,7 +48,7 @@ public class ChiTietDonHangServiceImpl implements ChiTietDonHangService {
         res.setPhiVanChuyen(hd.getPhiVanChuyen());
         res.setTongTienSauGiam(hd.getTongTienSauGiam());
 
-        // ===== Block UI =====
+        // ===== Block UI (Dùng ID integer để tìm) =====
         res.setSanPhamList(
                 hoaDonChiTietRepository.findSanPhamByDonHang(id)
         );

@@ -1,4 +1,5 @@
 package org.example.yourchoiceshop.dto.request;
+
 import lombok.Data;
 import java.util.List;
 
@@ -6,7 +7,12 @@ import java.util.List;
 public class CreateProductRequest {
     private String maSanPham;
     private String tenSanPham;
-    private String moTa; // <--- BẠN ĐANG THIẾU DÒNG NÀY
+    private String moTa;
+
+    // --- THÊM DÒNG NÀY ĐỂ FIX LỖI ---
+    private Integer trangThai;
+    // -------------------------------
+
     private Integer idThuongHieu;
     private Integer idChatLieu;
     private Integer idCoAo;
