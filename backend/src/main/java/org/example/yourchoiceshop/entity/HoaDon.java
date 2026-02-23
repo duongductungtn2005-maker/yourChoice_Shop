@@ -76,5 +76,4 @@ public class HoaDon extends BaseStatusEntity {
 
     @OneToMany(mappedBy = "hoaDon", fetch = FetchType.LAZY)
     private List<LichSuThanhToan> lichSuThanhToans;
-    
 }
