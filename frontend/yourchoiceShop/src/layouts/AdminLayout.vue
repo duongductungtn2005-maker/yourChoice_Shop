@@ -89,6 +89,7 @@
                 @click="toggleMenu('accounts')"
             >
                 <span>
+<<<<<<< HEAD
                     <i class="fa-solid fa-user-secret icon"></i> Quản lý lịch làm việc
                 </span>
                 <span class="arrow">{{ openMenus.accounts ? '▲' : '▼' }}</span>
@@ -110,6 +111,8 @@
                 @click="toggleMenu('accounts')"
             >
                 <span>
+=======
+>>>>>>> 7a88e38f3ca026a7247b24a346cedea47978bc89
                     <i class="fa-solid fa-user-secret icon"></i> Quản lý tài khoản
                 </span>
                 <span class="arrow">{{ openMenus.accounts ? '▲' : '▼' }}</span>
