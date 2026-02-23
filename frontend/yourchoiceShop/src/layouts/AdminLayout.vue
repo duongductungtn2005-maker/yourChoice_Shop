@@ -89,6 +89,27 @@
                 @click="toggleMenu('accounts')"
             >
                 <span>
+                    <i class="fa-solid fa-user-secret icon"></i> Quản lý lịch làm việc
+                </span>
+                <span class="arrow">{{ openMenus.accounts ? '▲' : '▼' }}</span>
+            </div>
+            
+            <div class="submenu" v-show="openMenus.accounts">
+                <router-link to="/admin/shifts" class="submenu-item" active-class="active-sub">
+                    <span class="dot">•</span> Quản lý ca làm việc
+                </router-link>
+                <router-link to="/admin/schedules" class="submenu-item" active-class="active-sub">
+                    <span class="dot">•</span> Xếp lịch nhân viên
+                </router-link>
+            </div>
+        </div>
+        <div class="menu-group">
+            <div 
+                class="menu-item parent" 
+                :class="{ 'active-parent': openMenus.accounts }"
+                @click="toggleMenu('accounts')"
+            >
+                <span>
                     <i class="fa-solid fa-user-secret icon"></i> Quản lý tài khoản
                 </span>
                 <span class="arrow">{{ openMenus.accounts ? '▲' : '▼' }}</span>

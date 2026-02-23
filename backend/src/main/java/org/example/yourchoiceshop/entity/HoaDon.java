@@ -64,6 +64,10 @@ public class HoaDon extends BaseStatusEntity {
     @ManyToOne
     @JoinColumn(name = "id_phieu_giam_gia")
     private PhieuGiamGia phieuGiamGia;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_giao_ca")
+    private GiaoCa giaoCa;
 
     // --- Cập nhật quan hệ (Thêm List con) ---
 

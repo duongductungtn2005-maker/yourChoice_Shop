@@ -108,69 +108,72 @@ const router = createRouter({
 
         // --- QUẢN LÝ NHÂN VIÊN ---
         {
-          path: "employees",
-          name: "admin-employee-list",
-          component: () => import("../views/admin/employee/EmployeeList.vue"),
+          path: 'employees',
+          name: 'admin-employee-list',
+          component: () => import('../views/admin/employee/EmployeeList.vue')
         },
         {
-          path: "employees/create",
-          name: "admin-employee-create",
-          component: () => import("../views/admin/employee/AddEmployee.vue"),
+          path: 'employees/create', 
+          name: 'admin-employee-create',
+          component: () => import('../views/admin/employee/AddEmployee.vue')
         },
         {
-          path: "employees/edit/:id",
-          name: "admin-employee-edit",
-          component: () => import("../views/admin/employee/EditEmployee.vue"),
+          path: 'employees/edit/:id', 
+          name: 'admin-employee-edit',      
+          component: () => import('../views/admin/employee/EditEmployee.vue') 
         },
-
+        // --- QUẢN LÝ GIAO CA & LỊCH LÀM VIỆC ---
+        {
+          path: 'shifts',
+          name: 'admin-shift',
+          component: () => import('../views/admin/employee/schedule/ShiftList.vue')
+        },
+        {
+          path: 'shifts/create',
+          name: 'admin-shift-create',
+          component: () => import('../views/admin/employee/schedule/ShiftCreate.vue')
+        },
+        {
+          path: 'schedules',
+          name: 'admin-schedule',
+          component: () => import('../views/admin/employee/schedule/ScheduleManager.vue')
+        },
         // --- QUẢN LÝ SẢN PHẨM ---
         {
-          path: "products",
-          name: "admin-product-list",
-          component: () => import("../views/admin/product/ProductIndex.vue"),
+          path: 'products',
+          name: 'admin-product-list',
+          component: () => import('../views/admin/product/ProductIndex.vue')
         },
         {
-          path: "products/create",
-          name: "admin-product-create",
-          component: () => import("../views/admin/product/ProductCreate.vue"),
+            path: 'products/create',
+            name: 'admin-product-create',
+            component: () => import('../views/admin/product/ProductCreate.vue')
         },
         {
-          path: "products/:id",
-          name: "admin-product-detail",
-          component: () => import("../views/admin/product/ProductDetail.vue"),
+          path: 'products/:id',
+          name: 'admin-product-detail',
+          component: () => import('../views/admin/product/ProductDetail.vue')
         },
 
         // --- QUẢN LÝ THUỘC TÍNH ---
-        {
-          path: "mau-sac",
-          name: "mau-sac",
-          component: () => import("../views/admin/attribute/MauSac.vue"),
-        },
-        {
-          path: "kich-thuoc",
-          name: "kich-thuoc",
-          component: () => import("../views/admin/attribute/KichThuoc.vue"),
-        },
-        { path: "co-ao", name: "co-ao", component: CoAoIndex },
-        { path: "tay-ao", name: "tay-ao", component: TayAoIndex },
-        { path: "chat-lieu", name: "chat-lieu", component: ChatLieuIndex },
-        { path: "xuat-xu", name: "xuat-xu", component: XuatXuIndex },
-        {
-          path: "thuong-hieu",
-          name: "thuong-hieu",
-          component: ThuongHieuIndex,
-        },
+        { path: 'mau-sac', name: 'mau-sac', component: () => import('../views/admin/attribute/MauSac.vue') },
+        { path: 'kich-thuoc', name: 'kich-thuoc', component: () => import('../views/admin/attribute/KichThuoc.vue') },
+        { path: 'co-ao', name: 'co-ao', component: CoAoIndex },
+        { path: 'tay-ao', name: 'tay-ao', component: TayAoIndex },
+        { path: 'chat-lieu', name: 'chat-lieu', component: ChatLieuIndex },
+        { path: 'xuat-xu', name: 'xuat-xu', component: XuatXuIndex },
+        { path: 'thuong-hieu', name: 'thuong-hieu', component: ThuongHieuIndex },
 
         // --- QUẢN LÝ HÓA ĐƠN ---
         {
-          path: "orders",
-          name: "admin-order-list",
-          component: () => import("../views/admin/DonHang/QuanLyDonHang.vue"),
+          path: 'orders',
+          name: 'admin-order-list',
+          component: () => import('../views/admin/DonHang/QuanLyDonHang.vue')
         },
         {
-          path: "orders/:id",
-          name: "admin-order-detail",
-          component: () => import("../views/admin/DonHang/ChiTietDonHang.vue"),
+          path: 'orders/:id',
+          name: 'admin-order-detail',
+          component: () => import('../views/admin/DonHang/ChiTietDonHang.vue')
         },
 
         // --- KHUYẾN MÃI (Voucher/Sales) ---
