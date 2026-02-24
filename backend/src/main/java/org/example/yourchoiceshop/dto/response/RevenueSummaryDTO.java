@@ -9,8 +9,12 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RevenueSummaryDTO {
-    private BigDecimal totalRevenue; // Tổng doanh thu
-    private Long totalOrders;        // Tổng số đơn
-    private BigDecimal averageOrderValue; // Giá trị trung bình/đơn
-    private Double growthPercent;    // % tăng trưởng
+    private BigDecimal totalRevenue;
+    private Long totalOrders;
+    private Long totalProducts;
+    private Long successOrders;
+    private Long processingOrders;
+    private Long cancelOrders;
+    private Long returnOrders;
+    private Double growthPercent;
 }

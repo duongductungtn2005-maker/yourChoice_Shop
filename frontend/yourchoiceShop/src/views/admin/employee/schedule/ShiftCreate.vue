@@ -1,8 +1,8 @@
 <template>
-    <div class="breadcrumb">
-      <span class="link" @click="router.back()">Ca làm việc</span> 
-      <span class="separator">/</span>
-      <span class="current">Thêm ca làm việc</span>
+    <div>
+      <h1><span class="link" @click="router.back()">Ca làm việc</span><span class="separator">/</span>
+      <span class="current">Thêm ca làm việc</span> </h1>
+      
     </div>
 
     <div class="form-card">
@@ -81,110 +81,143 @@ const handleSubmit = async () => {
   }
 };
 </script>
-
 <style scoped>
 
-/* Tổng quan trang */
-.shift-container {
-  padding: 24px;
-  background-color: #f9fafb;
-  min-height: 100vh;
-  box-sizing: border-box;
+/* ===== PAGE WRAPPER ===== */
+:host, .shift-container, body {
+  margin: 0;
 }
 
-/* Breadcrumb (Đường dẫn phía trên) */
-.breadcrumb {
-  margin-bottom: 16px;
-  font-size: 18px;
-  font-weight: bold;
-}
-.breadcrumb .link {
-  color: #6b7280;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.breadcrumb .link:hover {
-  color: #1f2937;
-}
-.breadcrumb .separator {
-  color: #6b7280;
-  margin: 0 4px;
-}
-.breadcrumb .current {
-  color: #1f2937;
-}
-
-/* Khung Form trắng */
+/* Tạo layout full màn hình + căn giữa */
+.breadcrumb,
 .form-card {
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 24px;
-  max-width: 800px;
+  max-width: 750px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* Layout của Form */
-.form-group {
-  margin-bottom: 16px;
+body {
+  background: #f1f5f9;
 }
+
+/* ===== BREADCRUMB ===== */
+.breadcrumb {
+  margin-top: 40px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+link {
+  margin: 0; font-size: 24px; font-weight: bold; color: #1e293b; 
+}
+
+link:hover {
+  color: #2563eb;
+}
+
+.separator {
+  margin: 0 6px;
+  color: #94a3b8;
+}
+
+.current {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+/* ===== CARD ===== */
+.form-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 35px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.06);
+  transition: 0.3s;
+}
+
+.form-card:hover {
+  transform: translateY(-2px);
+}
+
+/* ===== FORM LAYOUT ===== */
+.form-group {
+  margin-bottom: 20px;
+}
+
 .form-row {
   display: flex;
-  gap: 24px;
-  margin-bottom: 16px;
-}
-.half-width {
-  flex: 1;
-  margin-bottom: 0; /* Ghi đè margin-bottom khi ở trong row */
+  gap: 20px;
 }
 
-/* Nhãn (Label) */
+.half-width {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* ===== LABEL ===== */
 .form-label {
   display: block;
   font-size: 14px;
-  font-weight: 500;
-  color: #374151;
+  font-weight: 600;
+  color: #334155;
   margin-bottom: 6px;
 }
+
 .required {
   color: #ef4444;
 }
 
-/* Ô nhập liệu (Input) */
+/* ===== INPUT ===== */
 .form-input {
   width: 100%;
   border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 10px 16px;
+  border-radius: 8px;
+  padding: 10px 14px;
   font-size: 14px;
+  transition: 0.2s;
   outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.form-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
-/* Khu vực nút bấm */
+.form-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+/* ===== BUTTON AREA ===== */
 .btn-container {
   display: flex;
   justify-content: flex-end;
-  margin-top: 24px;
+  margin-top: 25px;
 }
 
-/* Nút Submit */
+/* ===== BUTTON ===== */
 .btn-submit {
-  padding: 8px 24px;
-  border: 2px solid #334155;
-  color: #334155;
-  background-color: transparent;
+  padding: 10px 24px;
+  border: none;
+  background: #2563eb;
+  color: white;
   font-weight: 500;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s, color 0.2s;
+  transition: 0.2s;
 }
+
 .btn-submit:hover {
-  background-color: #f8fafc;
+  background: #1d4ed8;
 }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+  }
+
+  .breadcrumb,
+  .form-card {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+}
+
 </style>

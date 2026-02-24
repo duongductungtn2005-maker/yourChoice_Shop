@@ -152,6 +152,8 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 
 const router = useRouter();
+const role = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
+const customerListRouteName = role === 'STAFF' ? 'staff-customer-list' : 'admin-customer-list';
 const loading = ref(false);
 const fileInput = ref(null);
 const previewImage = ref(null);
@@ -322,7 +324,7 @@ const submitForm = async () => {
 
     await request.post('/khach-hang', formData);
     toastSuccess('Thêm khách hàng thành công!');
-    router.push({ name: 'admin-customer-list' });
+    router.push({ name: customerListRouteName });
   } catch (error) {
     console.error(error);
     toastError(error.response?.data?.message || 'Có lỗi xảy ra');

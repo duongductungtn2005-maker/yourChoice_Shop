@@ -20,85 +20,81 @@ public class StatisticRepositoryImpl implements StatisticRepository {
 
     @Override
     public RevenueSummaryDTO getRevenueSummary(StatisticFilterRequest filter) {
-        // 1. Khởi tạo câu SQL cơ bản
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
-                        "   COALESCE(SUM(hd.tong_tien_sau_giam), 0) as totalRevenue, " +
-                        "   COUNT(hd.id) as totalOrders " +
-                        "FROM hoa_don hd " +
-                        "WHERE hd.trang_thai = :status "
+                        "  COALESCE(SUM(CASE WHEN hd.trang_thai = 5 THEN hd.tong_tien_sau_giam ELSE 0 END), 0) AS totalRevenue, " +
+                        "  COUNT(hd.id) AS totalOrders, " +
+                        "  COALESCE(SUM(CASE WHEN hd.trang_thai = 5 THEN 1 ELSE 0 END), 0) AS successOrders, " +
+                        "  COALESCE(SUM(CASE WHEN hd.trang_thai IN (1,2,3,4) THEN 1 ELSE 0 END), 0) AS processingOrders, " +
+                        "  COALESCE(SUM(CASE WHEN hd.trang_thai = 0 THEN 1 ELSE 0 END), 0) AS cancelOrders, " +
+                        "  COALESCE(SUM(CASE WHEN hd.trang_thai = 6 THEN 1 ELSE 0 END), 0) AS returnOrders " +
+                        "FROM hoa_don hd WHERE 1=1 "
         );
 
-        // 2. Nối thêm điều kiện nếu Frontend có gửi lên
-        if (filter.getFromDate() != null) {
-            sql.append(" AND hd.ngay_thanh_toan >= :fromDate ");
-        }
-        if (filter.getToDate() != null) {
-            sql.append(" AND hd.ngay_thanh_toan <= :toDate ");
-        }
-        if (filter.getChannel() != null && !filter.getChannel().isEmpty()) {
-            sql.append(" AND hd.loai_hoa_don = :channel ");
-        }
+        if (filter.getFromDate() != null) sql.append(" AND hd.ngay_tao >= :fromDate ");
+        if (filter.getToDate() != null) sql.append(" AND hd.ngay_tao <= :toDate ");
 
-        // 3. Tạo Query và truyền tham số an toàn
         Query query = entityManager.createNativeQuery(sql.toString());
-        query.setParameter("status", filter.getStatus());
-
         if (filter.getFromDate() != null) query.setParameter("fromDate", filter.getFromDate());
         if (filter.getToDate() != null) query.setParameter("toDate", filter.getToDate());
-        if (filter.getChannel() != null && !filter.getChannel().isEmpty()) query.setParameter("channel", filter.getChannel());
 
-        // 4. Lấy kết quả và map vào DTO
         Object[] result = (Object[]) query.getSingleResult();
-        BigDecimal totalRevenue = result[0] != null ? new BigDecimal(result[0].toString()) : BigDecimal.ZERO;
-        Long totalOrders = result[1] != null ? ((Number) result[1]).longValue() : 0L;
-        BigDecimal averageOrderValue = totalOrders > 0
-                ? totalRevenue.divide(new BigDecimal(totalOrders), 2, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO;
 
-        return new RevenueSummaryDTO(totalRevenue, totalOrders, averageOrderValue, 0.0);
-        // 0.0 là phần trăm tăng trưởng, bạn có thể tính thêm sau nếu muốn
+        // Query phụ để đếm tổng số lượng sản phẩm đã bán (chỉ tính đơn hoàn thành)
+        StringBuilder sqlProducts = new StringBuilder(
+                "SELECT COALESCE(SUM(hdct.so_luong), 0) FROM hoa_don_chi_tiet hdct " +
+                        "JOIN hoa_don hd ON hdct.id_hoa_don = hd.id WHERE hd.trang_thai = 5 "
+        );
+        if (filter.getFromDate() != null) sqlProducts.append(" AND hd.ngay_tao >= :fromDate ");
+        if (filter.getToDate() != null) sqlProducts.append(" AND hd.ngay_tao <= :toDate ");
+
+        Query queryProd = entityManager.createNativeQuery(sqlProducts.toString());
+        if (filter.getFromDate() != null) queryProd.setParameter("fromDate", filter.getFromDate());
+        if (filter.getToDate() != null) queryProd.setParameter("toDate", filter.getToDate());
+
+        Long totalProducts = ((Number) queryProd.getSingleResult()).longValue();
+
+        // Gắn dữ liệu vào DTO (Tốc độ tăng trưởng tạm để 0.0, nếu cần tao viết logic chia % sau)
+        RevenueSummaryDTO dto = new RevenueSummaryDTO();
+        dto.setTotalRevenue(result[0] != null ? new BigDecimal(result[0].toString()) : BigDecimal.ZERO);
+        dto.setTotalOrders(result[1] != null ? ((Number) result[1]).longValue() : 0L);
+        dto.setSuccessOrders(result[2] != null ? ((Number) result[2]).longValue() : 0L);
+        dto.setProcessingOrders(result[3] != null ? ((Number) result[3]).longValue() : 0L);
+        dto.setCancelOrders(result[4] != null ? ((Number) result[4]).longValue() : 0L);
+        dto.setReturnOrders(result[5] != null ? ((Number) result[5]).longValue() : 0L);
+        dto.setTotalProducts(totalProducts);
+        dto.setGrowthPercent(0.0); // Tạm thời
+
+        return dto;
     }
 
     @Override
     public List<RevenueChartDTO> getRevenueChart(StatisticFilterRequest filter) {
+        // Group theo ngày để lấy Data vẽ Line Chart
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
-                        "   CAST(hd.ngay_thanh_toan AS DATE) as thoiGian, " +
-                        "   COALESCE(SUM(hd.tong_tien_sau_giam), 0) as doanhThu, " +
-                        "   COUNT(hd.id) as soDonHang " +
-                        "FROM hoa_don hd " +
-                        "WHERE hd.trang_thai = :status "
+                        "  DAY(ngay_tao) AS date, " +
+                        "  COALESCE(SUM(tong_tien_sau_giam), 0) AS value " +
+                        "FROM hoa_don " +
+                        "WHERE trang_thai = 5 "
         );
 
-        if (filter.getFromDate() != null) sql.append(" AND hd.ngay_thanh_toan >= :fromDate ");
-        if (filter.getToDate() != null) sql.append(" AND hd.ngay_thanh_toan <= :toDate ");
-        if (filter.getChannel() != null && !filter.getChannel().isEmpty()) sql.append(" AND hd.loai_hoa_don = :channel ");
+        if (filter.getFromDate() != null) sql.append(" AND ngay_tao >= :fromDate ");
+        if (filter.getToDate() != null) sql.append(" AND ngay_tao <= :toDate ");
 
-        sql.append(" GROUP BY CAST(hd.ngay_thanh_toan AS DATE) ");
-        sql.append(" ORDER BY thoiGian ASC ");
+        sql.append(" GROUP BY DAY(ngay_tao) ORDER BY DAY(ngay_tao) ");
 
         Query query = entityManager.createNativeQuery(sql.toString());
-        query.setParameter("status", filter.getStatus());
-
         if (filter.getFromDate() != null) query.setParameter("fromDate", filter.getFromDate());
         if (filter.getToDate() != null) query.setParameter("toDate", filter.getToDate());
-        if (filter.getChannel() != null && !filter.getChannel().isEmpty()) query.setParameter("channel", filter.getChannel());
 
         List<Object[]> rows = query.getResultList();
         List<RevenueChartDTO> chartData = new ArrayList<>();
 
         for (Object[] row : rows) {
-            // 1. Kiểm tra null cho ngày thanh toán (Nếu null thì gán chữ "Chưa xác định")
-            String date = row[0] != null ? row[0].toString() : "Chưa xác định";
-
-            // 2. Kiểm tra null cho doanh thu (Đề phòng data rác)
-            BigDecimal revenue = row[1] != null ? new BigDecimal(row[1].toString()) : BigDecimal.ZERO;
-
-            // 3. Số đơn hàng
-            Long orderCount = row[2] != null ? ((Number) row[2]).longValue() : 0L;
-
-            chartData.add(new RevenueChartDTO(date, revenue, orderCount));
+            String date = row[0] != null ? row[0].toString() : "0";
+            BigDecimal value = row[1] != null ? new BigDecimal(row[1].toString()) : BigDecimal.ZERO;
+            chartData.add(new RevenueChartDTO(date, value));
         }
 
         return chartData;
@@ -106,46 +102,47 @@ public class StatisticRepositoryImpl implements StatisticRepository {
     // 1. CẬP NHẬT HÀM: Top Sản Phẩm Bán Chạy (Có Kích cỡ + Ảnh)
     @Override
     public List<ProductStatDTO> getProductStats(StatisticFilterRequest filter) {
+        // Đã sửa lại chuẩn 100% tên cột theo YourChoiceShopDB
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
-                        "   sp.ma_san_pham as maSP, " +
-                        "   sp.ten_san_pham as tenSP, " +
-                        "   COALESCE(SUM(hdct.so_luong), 0) as soLuongBan, " +
-                        "   COALESCE(SUM(hdct.thanh_tien), 0) as doanhThu, " +
-                        "   kt.ten_kich_thuoc as kichCo, " +
-                        "   MAX(ha.duong_dan_anh) as anh " +
+                        "  (SELECT TOP 1 ha.duong_dan_anh FROM hinh_anh ha WHERE ha.id_chi_tiet_san_pham = ctsp.id ORDER BY ha.anh_chinh DESC, ha.id ASC) AS anh, " +
+                        "  sp.ten_san_pham AS tenSanPham, " +
+                        "  kt.ten_kich_thuoc AS kichCo, " +
+                        "  SUM(hdct.so_luong * hdct.don_gia) AS doanhThu, " +
+                        "  SUM(hdct.so_luong) AS soLuongBan " +
                         "FROM hoa_don_chi_tiet hdct " +
                         "JOIN hoa_don hd ON hdct.id_hoa_don = hd.id " +
                         "JOIN chi_tiet_san_pham ctsp ON hdct.id_chi_tiet_san_pham = ctsp.id " +
                         "JOIN san_pham sp ON ctsp.id_san_pham = sp.id " +
                         "LEFT JOIN kich_thuoc kt ON ctsp.id_kich_thuoc = kt.id " +
-                        "LEFT JOIN hinh_anh ha ON ctsp.id = ha.id_chi_tiet_san_pham AND ha.anh_chinh = 1 " +
-                        "WHERE hd.trang_thai = :status "
+                        "WHERE hd.trang_thai = 5 " // Chỉ lấy sản phẩm từ đơn đã hoàn thành
         );
 
-        if (filter.getFromDate() != null) sql.append(" AND hd.ngay_thanh_toan >= :fromDate ");
-        if (filter.getToDate() != null) sql.append(" AND hd.ngay_thanh_toan <= :toDate ");
+        if (filter.getFromDate() != null) sql.append(" AND hd.ngay_tao >= :fromDate ");
+        if (filter.getToDate() != null) sql.append(" AND hd.ngay_tao <= :toDate ");
 
-        sql.append(" GROUP BY sp.ma_san_pham, sp.ten_san_pham, kt.ten_kich_thuoc ");
-        sql.append(" ORDER BY soLuongBan DESC ");
+        // Group theo ID chi tiết sản phẩm để lấy đúng size
+        sql.append(" GROUP BY ctsp.id, sp.ten_san_pham, kt.ten_kich_thuoc ");
+        sql.append(" ORDER BY soLuongBan DESC "); // Sắp xếp giảm dần
 
         Query query = entityManager.createNativeQuery(sql.toString());
-        query.setParameter("status", filter.getStatus());
         if (filter.getFromDate() != null) query.setParameter("fromDate", filter.getFromDate());
         if (filter.getToDate() != null) query.setParameter("toDate", filter.getToDate());
 
         List<Object[]> rows = query.getResultList();
-        List<ProductStatDTO> resultList = new ArrayList<>();
+        List<ProductStatDTO> result = new ArrayList<>();
+
         for (Object[] row : rows) {
-            String maSP = row[0] != null ? row[0].toString() : "";
-            String tenSP = row[1] != null ? row[1].toString() : "";
-            Long soLuongBan = row[2] != null ? ((Number) row[2]).longValue() : 0L;
-            BigDecimal doanhThu = row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO;
-            String kichCo = row[4] != null ? row[4].toString() : "";
-            String anh = row[5] != null ? row[5].toString() : "";
-            resultList.add(new ProductStatDTO(maSP, tenSP, soLuongBan, doanhThu, kichCo, anh));
+            ProductStatDTO dto = new ProductStatDTO();
+            dto.setAnh(row[0] != null ? row[0].toString() : null);
+            dto.setTenSanPham(row[1] != null ? row[1].toString() : "Không xác định");
+            dto.setKichCo(row[2] != null ? row[2].toString() : "");
+            dto.setDoanhThu(row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO);
+            dto.setSoLuongBan(row[4] != null ? ((Number) row[4]).longValue() : 0L);
+            result.add(dto);
         }
-        return resultList;
+
+        return result;
     }
 
     // 2. HÀM MỚI: Dữ liệu Biểu đồ tròn (Trạng thái đơn hàng)
@@ -173,28 +170,42 @@ public class StatisticRepositoryImpl implements StatisticRepository {
     }
 
     // 3. HÀM MỚI: Sản phẩm sắp hết hàng (Dưới 10 cái)
-    public List<ProductStatDTO> getLowStockStats() {
-        String sql = "SELECT sp.ma_san_pham, sp.ten_san_pham, ctsp.so_luong, ctsp.gia_ban, kt.ten_kich_thuoc, MAX(ha.duong_dan_anh) " +
-                "FROM chi_tiet_san_pham ctsp " +
-                "JOIN san_pham sp ON ctsp.id_san_pham = sp.id " +
-                "LEFT JOIN kich_thuoc kt ON ctsp.id_kich_thuoc = kt.id " +
-                "LEFT JOIN hinh_anh ha ON ctsp.id = ha.id_chi_tiet_san_pham AND ha.anh_chinh = 1 " +
-                "WHERE ctsp.so_luong <= 10 AND ctsp.trang_thai = 1 " +
-                "GROUP BY sp.ma_san_pham, sp.ten_san_pham, ctsp.so_luong, ctsp.gia_ban, kt.ten_kich_thuoc " +
-                "ORDER BY ctsp.so_luong ASC";
-        Query query = entityManager.createNativeQuery(sql);
+
+    public List<ProductStatDTO> getLowStockStats(StatisticFilterRequest filter) {
+        // Lấy ngưỡng tồn kho do Frontend gửi lên (mặc định là 10 nếu null)
+        int threshold = (filter != null && filter.getThreshold() != null) ? filter.getThreshold() : 10;
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT " +
+                        "  (SELECT TOP 1 ha.duong_dan_anh FROM hinh_anh ha WHERE ha.id_chi_tiet_san_pham = ctsp.id ORDER BY ha.anh_chinh DESC, ha.id ASC) AS anh, " +
+                        "  sp.ten_san_pham AS tenSanPham, " +
+                        "  kt.ten_kich_thuoc AS kichCo, " +
+                        "  ctsp.gia_ban AS doanhThu, " +     // Mượn cột doanhThu để FE hiển thị 'Giá bán'
+                        "  ctsp.so_luong AS soLuongBan " +  // Mượn cột soLuongBan để FE hiển thị 'Tồn kho'
+                        "FROM chi_tiet_san_pham ctsp " +
+                        "JOIN san_pham sp ON ctsp.id_san_pham = sp.id " +
+                        "LEFT JOIN kich_thuoc kt ON ctsp.id_kich_thuoc = kt.id " +
+                        "WHERE ctsp.so_luong <= :threshold " + // Lọc tồn kho bé hơn hoặc bằng ngưỡng
+                        "ORDER BY ctsp.so_luong ASC " // Sắp xếp ưu tiên cái nào sắp cạn kiệt nhất lên đầu
+        );
+
+        Query query = entityManager.createNativeQuery(sql.toString());
+        query.setParameter("threshold", threshold);
+
         List<Object[]> rows = query.getResultList();
-        List<ProductStatDTO> resultList = new ArrayList<>();
+        List<ProductStatDTO> result = new ArrayList<>();
+
         for (Object[] row : rows) {
-            String maSP = row[0] != null ? row[0].toString() : "";
-            String tenSP = row[1] != null ? row[1].toString() : "";
-            Long soLuongTon = row[2] != null ? ((Number) row[2]).longValue() : 0L;
-            BigDecimal giaBan = row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO;
-            String kichCo = row[4] != null ? row[4].toString() : "";
-            String anh = row[5] != null ? row[5].toString() : "";
-            resultList.add(new ProductStatDTO(maSP, tenSP, soLuongTon, giaBan, kichCo, anh));
+            ProductStatDTO dto = new ProductStatDTO();
+            dto.setAnh(row[0] != null ? row[0].toString() : null);
+            dto.setTenSanPham(row[1] != null ? row[1].toString() : "Không xác định");
+            dto.setKichCo(row[2] != null ? row[2].toString() : "");
+            dto.setDoanhThu(row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO);
+            dto.setSoLuongBan(row[4] != null ? ((Number) row[4]).longValue() : 0L);
+            result.add(dto);
         }
-        return resultList;
+
+        return result;
     }
     @Override
     public List<EmployeeStatDTO> getEmployeeStats(StatisticFilterRequest filter) {

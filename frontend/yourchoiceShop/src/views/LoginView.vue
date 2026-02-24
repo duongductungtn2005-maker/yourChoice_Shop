@@ -23,13 +23,25 @@
 
         <div class="form-group">
           <label>Mật khẩu</label>
-          <input 
-            type="password" 
-            placeholder="Nhập mật khẩu" 
-            v-model="password"
-            class="form-control"
-          />
+          <div class="password-wrap">
+            <input 
+              :type="showPassword ? 'text' : 'password'" 
+              placeholder="Nhập mật khẩu" 
+              v-model="password"
+              class="form-control password-input"
+            />
+            <button
+              type="button"
+              class="toggle-password"
+              @click="showPassword = !showPassword"
+              :title="showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+            >
+              <i :class="showPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'"></i>
+            </button>
+          </div>
         </div>
+
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
         <button type="submit" class="btn-login">Đăng nhập</button>
       </form>
@@ -38,17 +50,60 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { toastSuccess } from '@/utils/toast';
 
 const router = useRouter();
-const username = ref('admin');
+const username = ref('');
 const password = ref('');
+const showPassword = ref(false);
+const errorMessage = ref('');
+const canSubmit = computed(() => username.value.trim() !== '' && password.value.trim() !== '');
+
+const resolveRoleFromUsername = (value) => {
+  const account = String(value || '').toLowerCase();
+  if (account.includes('admin') || account.includes('quantri') || account.includes('quan-tri')) return 'ADMIN';
+  if (account.includes('employee') || account.includes('nhanvien') || account.includes('nhan-vien')) return 'STAFF';
+  if (account.includes('customer') || account.includes('khachhang') || account.includes('khach-hang')) return 'CUSTOMER';
+  return null;
+};
 
 const handleLogin = () => {
+  if (!canSubmit.value) {
+    errorMessage.value = 'Vui lòng nhập đầy đủ tài khoản và mật khẩu.';
+    return;
+  }
+
+  if (password.value !== '123456') {
+    errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
+    return;
+  }
+
+  errorMessage.value = '';
   // Giả lập đăng nhập thành công
   // Sau này sẽ gọi API Login ở đây
-  router.push('/admin/products');
+  const role = resolveRoleFromUsername(username.value);
+  if (!role) {
+    errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
+    return;
+  }
+
+  localStorage.setItem('token', 'demo-token');
+  localStorage.setItem('userRole', role);
+  toastSuccess('Đăng nhập thành công!');
+
+  if (role === 'CUSTOMER') {
+    router.push('/');
+    return;
+  }
+
+  if (role === 'STAFF') {
+    router.push('/staff/pos');
+    return;
+  }
+
+  router.push('/admin/dashboard');
 };
 
 const handleGoBack = () => {
@@ -110,6 +165,36 @@ const handleGoBack = () => {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
+.password-wrap {
+  position: relative;
+}
+
+.password-input {
+  padding-right: 42px;
+}
+
+.password-input::-ms-reveal,
+.password-input::-ms-clear {
+  display: none;
+}
+
+.toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.toggle-password:hover {
+  color: #1e293b;
+}
+
 .btn-login {
   width: 100%;
   padding: 12px;
@@ -123,6 +208,12 @@ const handleGoBack = () => {
 }
 .btn-login:hover {
   background-color: #1e293b;
+}
+.error-message {
+  margin-top: -8px;
+  margin-bottom: 14px;
+  color: #dc2626;
+  font-size: 13px;
 }
 
 .btn-back {

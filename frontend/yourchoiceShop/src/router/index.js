@@ -1,181 +1,109 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory } from "vue-router"
 
-// --- IMPORT CÁC MÀN HÌNH (Static Import) ---
-import CoAoIndex from "../views/admin/attribute/CoAoIndex.vue";
-import TayAoIndex from "../views/admin/attribute/TayAoIndex.vue";
-import ChatLieuIndex from "../views/admin/attribute/ChatLieuIndex.vue";
-import XuatXuIndex from "../views/admin/attribute/XuatXuIndex.vue";
-import ThuongHieuIndex from "../views/admin/attribute/ThuongHieuIndex.vue";
-import CustomerCreate from "@/views/admin/customer/CustomerCreate.vue";
-import CustomerDetail from "@/views/admin/customer/CustomerDetail.vue";
-// Đổi dòng import cũ thành dòng này:
-import ThongKeView from '@/views/admin/dashboard/ThongKeView.vue'
+/* ================= STATIC IMPORT ================= */
+import CoAoIndex from "../views/admin/attribute/CoAoIndex.vue"
+import TayAoIndex from "../views/admin/attribute/TayAoIndex.vue"
+import ChatLieuIndex from "../views/admin/attribute/ChatLieuIndex.vue"
+import XuatXuIndex from "../views/admin/attribute/XuatXuIndex.vue"
+import ThuongHieuIndex from "../views/admin/attribute/ThuongHieuIndex.vue"
 
-// --- ROUTER CONFIGURATION ---
+import CustomerCreate from "@/views/admin/customer/CustomerCreate.vue"
+import CustomerDetail from "@/views/admin/customer/CustomerDetail.vue"
+
+import ThongKeView from "@/views/admin/dashboard/ThongKeView.vue"
+
+/* ================= ROLE HELPER ================= */
+const getUserRole = () => {
+  const directRole = localStorage.getItem("userRole")
+  if (directRole) return String(directRole).toUpperCase()
+
+  const rawUser = localStorage.getItem("user")
+  if (!rawUser) return null
+
+  try {
+    const user = JSON.parse(rawUser)
+    const role =
+      user?.role ||
+      user?.quyenHan?.maQuyen ||
+      user?.quyenHan?.tenQuyen
+    return role ? String(role).toUpperCase() : null
+  } catch {
+    return null
+  }
+}
+
+const normalizeRole = (role) => {
+  const value = String(role || "").toUpperCase()
+  if (
+    value === "EMPLOYEE" ||
+    value === "NHANVIEN" ||
+    value === "NHAN_VIEN"
+  )
+    return "STAFF"
+  return value
+}
+
+const getDefaultPathByRole = (role) => {
+  const normalized = normalizeRole(role)
+  if (normalized === "CUSTOMER") return "/"
+  if (normalized === "STAFF") return "/staff/pos"
+  return "/admin/dashboard"
+}
+
+/* ================= ROUTER ================= */
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  scrollBehavior(to, from, savedPosition) {
-    // Luôn cuộn lên đầu trang khi chuyển route
-    return { top: 0 };
+  scrollBehavior() {
+    return { top: 0 }
   },
   routes: [
-    // ==========================================
-    // 1. ROUTE ĐĂNG NHẬP
-    // ==========================================
+    /* ================= LOGIN ================= */
     {
       path: "/login",
       name: "login",
       component: () => import("../views/LoginView.vue"),
     },
 
-    // ==========================================
-    // 2. KHU VỰC CLIENT (BÁN HÀNG ONLINE)
-    // ==========================================
+    /* ================= CLIENT ================= */
     {
       path: "/",
       component: () => import("../layouts/ClientLayout.vue"),
       children: [
-        {
-          path: "", // Trang chủ
-          name: "home",
-          component: () => import("../views/client/HomeView.vue"),
-        },
-        {
-          path: "products", // Danh sách sản phẩm
-          name: "products",
-          component: () => import("../views/client/ProductView.vue"),
-        },
-        {
-          path: "product/:id", // Chi tiết sản phẩm
-          name: "product-detail",
-          component: () => import("../views/client/ProductDetailView.vue"),
-        },
-        {
-          path: "coupons", // Kho Voucher
-          name: "coupons",
-          component: () => import("../views/client/CouponView.vue"),
-        },
-        {
-          path: "news", // Tin tức
-          name: "news",
-          component: () => import("../views/client/NewsView.vue"),
-        },
-        {
-          path: "contact", // Liên hệ
-          name: "contact",
-          component: () => import("../views/client/ContactView.vue"),
-        },
+        { path: "", name: "home", component: () => import("../views/client/HomeView.vue") },
+        { path: "products", name: "products", component: () => import("../views/client/ProductView.vue") },
+        { path: "product/:id", name: "product-detail", component: () => import("../views/client/ProductDetailView.vue") },
+        { path: "coupons", name: "coupons", component: () => import("../views/client/CouponView.vue") },
+        { path: "news", name: "news", component: () => import("../views/client/NewsView.vue") },
+        { path: "contact", name: "contact", component: () => import("../views/client/ContactView.vue") },
       ],
     },
 
-    // ==========================================
-    // 3. KHU VỰC ADMIN
-    // ==========================================
+    /* ================= ADMIN ================= */
     {
       path: "/admin",
       component: () => import("../layouts/AdminLayout.vue"),
-      meta: { requiresAuth: true }, // Cần đăng nhập
+      meta: { requiresAuth: true, roles: ["ADMIN"] },
       children: [
-        // --- Dashboard ---
+        { path: "", redirect: "/admin/dashboard" },
+
+        /* Dashboard */
         {
           path: "dashboard",
           name: "admin-dashboard",
-          component: () => import("../views/admin/dashboard/ThongKeView.vue"),
-        },
-        {
-          path: "",
-          redirect: "/admin/dashboard",
+          component: ThongKeView,
         },
 
-        // --- QUẢN LÝ KHÁCH HÀNG ---
+        /* Customers */
         {
           path: "customers",
           name: "admin-customer-list",
           component: () => import("../views/admin/customer/CustomerList.vue"),
         },
-        {
-          path: "customers/create",
-          name: "admin-customer-create",
-          component: CustomerCreate,
-          meta: { title: "Thêm khách hàng" },
-        },
-        {
-          path: "customers/detail/:id",
-          name: "admin-customer-detail",
-          component: CustomerDetail,
-          meta: { title: "Chi tiết khách hàng" },
-        },
+        { path: "customers/create", name: "admin-customer-create", component: CustomerCreate },
+        { path: "customers/detail/:id", name: "admin-customer-detail", component: CustomerDetail },
 
-        // --- QUẢN LÝ NHÂN VIÊN ---
+        /* Employees */
         {
-<<<<<<< HEAD
-          path: 'employees',
-          name: 'admin-employee-list',
-          component: () => import('../views/admin/employee/EmployeeList.vue')
-        },
-        {
-          path: 'employees/create', 
-          name: 'admin-employee-create',
-          component: () => import('../views/admin/employee/AddEmployee.vue')
-        },
-        {
-          path: 'employees/edit/:id', 
-          name: 'admin-employee-edit',      
-          component: () => import('../views/admin/employee/EditEmployee.vue') 
-        },
-        // --- QUẢN LÝ GIAO CA & LỊCH LÀM VIỆC ---
-        {
-          path: 'shifts',
-          name: 'admin-shift',
-          component: () => import('../views/admin/employee/schedule/ShiftList.vue')
-        },
-        {
-          path: 'shifts/create',
-          name: 'admin-shift-create',
-          component: () => import('../views/admin/employee/schedule/ShiftCreate.vue')
-        },
-        {
-          path: 'schedules',
-          name: 'admin-schedule',
-          component: () => import('../views/admin/employee/schedule/ScheduleManager.vue')
-        },
-        // --- QUẢN LÝ SẢN PHẨM ---
-        {
-          path: 'products',
-          name: 'admin-product-list',
-          component: () => import('../views/admin/product/ProductIndex.vue')
-        },
-        {
-            path: 'products/create',
-            name: 'admin-product-create',
-            component: () => import('../views/admin/product/ProductCreate.vue')
-        },
-        {
-          path: 'products/:id',
-          name: 'admin-product-detail',
-          component: () => import('../views/admin/product/ProductDetail.vue')
-        },
-
-        // --- QUẢN LÝ THUỘC TÍNH ---
-        { path: 'mau-sac', name: 'mau-sac', component: () => import('../views/admin/attribute/MauSac.vue') },
-        { path: 'kich-thuoc', name: 'kich-thuoc', component: () => import('../views/admin/attribute/KichThuoc.vue') },
-        { path: 'co-ao', name: 'co-ao', component: CoAoIndex },
-        { path: 'tay-ao', name: 'tay-ao', component: TayAoIndex },
-        { path: 'chat-lieu', name: 'chat-lieu', component: ChatLieuIndex },
-        { path: 'xuat-xu', name: 'xuat-xu', component: XuatXuIndex },
-        { path: 'thuong-hieu', name: 'thuong-hieu', component: ThuongHieuIndex },
-
-        // --- QUẢN LÝ HÓA ĐƠN ---
-        {
-          path: 'orders',
-          name: 'admin-order-list',
-          component: () => import('../views/admin/DonHang/QuanLyDonHang.vue')
-        },
-        {
-          path: 'orders/:id',
-          name: 'admin-order-detail',
-          component: () => import('../views/admin/DonHang/ChiTietDonHang.vue')
-=======
           path: "employees",
           name: "admin-employee-list",
           component: () => import("../views/admin/employee/EmployeeList.vue"),
@@ -191,7 +119,24 @@ const router = createRouter({
           component: () => import("../views/admin/employee/EditEmployee.vue"),
         },
 
-        // --- QUẢN LÝ SẢN PHẨM ---
+        /* Shifts & Schedule */
+        {
+          path: "shifts",
+          name: "admin-shift",
+          component: () => import("../views/admin/employee/schedule/ShiftList.vue"),
+        },
+        {
+          path: "shifts/create",
+          name: "admin-shift-create",
+          component: () => import("../views/admin/employee/schedule/ShiftCreate.vue"),
+        },
+        {
+          path: "schedules",
+          name: "admin-schedule",
+          component: () => import("../views/admin/employee/schedule/ScheduleManager.vue"),
+        },
+
+        /* Products */
         {
           path: "products",
           name: "admin-product-list",
@@ -208,28 +153,16 @@ const router = createRouter({
           component: () => import("../views/admin/product/ProductDetail.vue"),
         },
 
-        // --- QUẢN LÝ THUỘC TÍNH ---
-        {
-          path: "mau-sac",
-          name: "mau-sac",
-          component: () => import("../views/admin/attribute/MauSac.vue"),
-        },
-        {
-          path: "kich-thuoc",
-          name: "kich-thuoc",
-          component: () => import("../views/admin/attribute/KichThuoc.vue"),
-        },
+        /* Attributes */
+        { path: "mau-sac", name: "mau-sac", component: () => import("../views/admin/attribute/MauSac.vue") },
+        { path: "kich-thuoc", name: "kich-thuoc", component: () => import("../views/admin/attribute/KichThuoc.vue") },
         { path: "co-ao", name: "co-ao", component: CoAoIndex },
         { path: "tay-ao", name: "tay-ao", component: TayAoIndex },
         { path: "chat-lieu", name: "chat-lieu", component: ChatLieuIndex },
         { path: "xuat-xu", name: "xuat-xu", component: XuatXuIndex },
-        {
-          path: "thuong-hieu",
-          name: "thuong-hieu",
-          component: ThuongHieuIndex,
-        },
+        { path: "thuong-hieu", name: "thuong-hieu", component: ThuongHieuIndex },
 
-        // --- QUẢN LÝ HÓA ĐƠN ---
+        /* Orders */
         {
           path: "orders",
           name: "admin-order-list",
@@ -239,10 +172,9 @@ const router = createRouter({
           path: "orders/:id",
           name: "admin-order-detail",
           component: () => import("../views/admin/DonHang/ChiTietDonHang.vue"),
->>>>>>> 7a88e38f3ca026a7247b24a346cedea47978bc89
         },
 
-        // --- KHUYẾN MÃI (Voucher/Sales) ---
+        /* Voucher */
         {
           path: "vouchers",
           name: "admin-voucher-list",
@@ -254,7 +186,7 @@ const router = createRouter({
           component: () => import("../views/admin/voucher/VoucherCreate.vue"),
         },
 
-        // --- BÁN HÀNG TẠI QUẦY (POS) ---
+        /* POS */
         {
           path: "pos",
           name: "admin-pos",
@@ -262,7 +194,7 @@ const router = createRouter({
           meta: { layout: "full" },
         },
 
-        // --- ĐỢT GIẢM GIÁ (SALE) ---
+        /* Sales */
         {
           path: "sales",
           name: "admin-sale-list",
@@ -273,20 +205,91 @@ const router = createRouter({
           name: "admin-sale-create",
           component: () => import("../views/admin/promotion/SaleCreate.vue"),
         },
+
+        /* Thống kê riêng */
         {
           path: "thong-ke",
-          name: "AdminThongKe",
+          name: "admin-thong-ke",
           component: ThongKeView,
         },
       ],
     },
 
-    // ==========================================
-    // 4. CATCH ALL (404)
-    // ==========================================
-    // { path: '/:pathMatch(.*)*', redirect: '/login' }
-    // Tạm thời comment dòng này nếu bạn muốn test trang chủ mà chưa login
-  ],
-});
+    /* ================= STAFF ================= */
+    {
+      path: "/staff",
+      component: () => import("../layouts/AdminLayout.vue"),
+      meta: { requiresAuth: true, roles: ["STAFF"] },
+      children: [
+        { path: "", redirect: "/staff/pos" },
 
-export default router;
+        {
+          path: "pos",
+          name: "staff-pos",
+          component: () => import("../views/admin/pos/BanHangTaiQuay.vue"),
+          meta: { layout: "full" },
+        },
+        {
+          path: "orders",
+          name: "staff-order-list",
+          component: () => import("../views/admin/DonHang/QuanLyDonHang.vue"),
+        },
+        {
+          path: "orders/:id",
+          name: "staff-order-detail",
+          component: () => import("../views/admin/DonHang/ChiTietDonHang.vue"),
+        },
+        {
+          path: "customers",
+          name: "staff-customer-list",
+          component: () => import("../views/admin/customer/CustomerList.vue"),
+        },
+        {
+          path: "customers/create",
+          name: "staff-customer-create",
+          component: CustomerCreate,
+        },
+        {
+          path: "customers/detail/:id",
+          name: "staff-customer-detail",
+          component: CustomerDetail,
+        },
+      ],
+    },
+  ],
+})
+
+/* ================= NAVIGATION GUARD ================= */
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem("token")
+  const role = normalizeRole(getUserRole())
+  const requiresAuth = to.matched.some((r) => r.meta.requiresAuth)
+
+  if (to.path === "/login" && token && role) {
+    next(getDefaultPathByRole(role))
+    return
+  }
+
+  if (!requiresAuth) {
+    next()
+    return
+  }
+
+  if (!token || !role) {
+    next("/login")
+    return
+  }
+
+  const allowedRoles = to.matched
+    .flatMap((r) => (r.meta?.roles ? r.meta.roles : []))
+    .map((r) => normalizeRole(r))
+
+  if (allowedRoles.length && !allowedRoles.includes(role)) {
+    next(getDefaultPathByRole(role))
+    return
+  }
+
+  next()
+})
+
+export default router

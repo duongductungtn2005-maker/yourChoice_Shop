@@ -2,9 +2,7 @@
   <div class="schedule-container">
     <div class="page-header">
       <div class="title-section">
-        <div class="icon-wrapper">
-          <i class="far fa-calendar-alt"></i>
-        </div>
+        
         <div>
           <h1 class="page-title">Xếp lịch nhân viên</h1>
           <p class="page-subtitle">Quản lý và phân ca làm việc</p>
@@ -26,7 +24,7 @@
             <i class="fas fa-list"></i> Danh sách
           </button>
         </div>
-        <button class="btn-refresh" @click="fetchSchedules">
+        <button class="btn btn-refresh" @click="fetchSchedules">
           <i class="fas fa-sync-alt"></i> Làm mới
         </button>
       </div>
@@ -474,12 +472,12 @@ onMounted(() => {
 <style scoped>
 /* Reset cơ bản và biến màu sắc dựa trên thiết kế */
 .schedule-container {
-  font-family: sans-serif;
-  color: #333;
+  
+   padding: 20px; font-family: 'Segoe UI', sans-serif; background: #ebecee;; min-height: 100vh; color: #333; font-size: 14px; 
 }
 .text-gray { color: #888; }
 .text-blue { color: #3b82f6; font-weight: 500; }
-.bg-green { background-color: #059669; color: white; }
+.bg-green { background-color: #2563eb; color: white; }
 
 /* Header */
 .page-header {
@@ -494,13 +492,13 @@ onMounted(() => {
   gap: 15px;
 }
 .icon-wrapper {
-  background: #d1fae5;
-  color: #059669;
+  background: #dbeafe;
+  color: #2563eb;
   padding: 12px;
   border-radius: 10px;
   font-size: 24px;
 }
-.page-title { margin: 0; font-size: 22px; font-weight: bold; }
+.page-title { margin: 0; font-size: 24px; font-weight: bold; color: #1e293b; }
 .page-subtitle { margin: 0; color: #6b7280; font-size: 14px; }
 
 /* View Toggle & Buttons */
@@ -521,20 +519,19 @@ onMounted(() => {
 }
 .toggle-btn.active {
   background: white;
-  color: #059669;
-  border: 1px solid #059669;
+  color: #2563eb;
+  border: 1px solid #2563eb;
   border-radius: 6px;
 }
 .btn-refresh {
-  background: #059669;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; 
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); 
 }
 
+
+.btn-refresh:hover {
+  transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); 
+}
 /* Date Nav */
 .date-navigation {
   display: flex;
@@ -550,10 +547,10 @@ onMounted(() => {
   background: white;
   cursor: pointer;
 }
-.btn-today { background: #d1fae5; color: #059669; border: none; font-weight: 500; }
+.btn-today { background: #dbeafe; color: #2563eb; border: none; font-weight: 500; }
 .week-info {
-  background: #e6fcf5;
-  color: #059669;
+  background: #eff6ff;
+  color: #2563eb;
   padding: 8px 16px;
   border-radius: 20px;
 }
@@ -574,20 +571,20 @@ onMounted(() => {
   padding: 15px 10px;
 }
 .shift-col-header { width: 150px; text-align: left; font-weight: bold; color: #4b5563;}
-.calendar-table th.is-today { color: #059669; background: #f8fafc; border-top: 3px solid #059669;}
+.calendar-table th.is-today { color: #2563eb; background: #f8fafc; border-top: 3px solid #2563eb;}
 .day-name { font-weight: bold; font-size: 14px; }
 .day-date { font-size: 12px; color: #9ca3af; }
 
 .shift-info { text-align: left; }
 .shift-name { font-weight: bold; margin-bottom: 5px; }
-.shift-time { font-size: 12px; color: #059669; background: #e6fcf5; display: inline-block; padding: 2px 6px; border-radius: 4px; }
+.shift-time { font-size: 12px; color: #2563eb; background: #e6fcf5; display: inline-block; padding: 2px 6px; border-radius: 4px; }
 
 /* Grid Cells & Assignment Card */
 .calendar-cell { height: 100px; vertical-align: top; position: relative; }
 .add-assignment-btn {
   display: flex; justify-content: center; align-items: center;
   height: 40px; width: 40px; margin: 0 auto;
-  border-radius: 50%; border: 1px dashed #cbd5e1; color: #059669;
+  border-radius: 50%; border: 1px dashed #cbd5e1; color: #2563eb;
   cursor: pointer; opacity: 0; transition: opacity 0.2s;
   background: #f8fafc;
 }
@@ -595,12 +592,12 @@ onMounted(() => {
 
 .assignment-card {
   display: flex; flex-direction: column; align-items: center;
-  background: white; border: 1px solid #10b981; border-left: 4px solid #10b981;
+  background: white; border: 1px solid #2563eb; border-left: 4px solid #2563eb;
   border-radius: 6px; padding: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
-.avatar { width: 30px; height: 30px; border-radius: 50%; background: #064e3b; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 5px; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; background: #1e3a8a; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 5px; }
 .emp-name { font-size: 13px; font-weight: bold; }
-.emp-code { font-size: 11px; color: #10b981; }
+.emp-code { font-size: 11px; color: #2563eb; }
 
 /* List View Filters & Table */
 .filter-row { display: flex; gap: 15px; margin-bottom: 20px; }
@@ -643,7 +640,7 @@ onMounted(() => {
   width: 100%; padding: 10px; border: 1px solid #cbd5e1;
   border-radius: 6px; margin-top: 5px; outline: none;
 }
-.form-control:focus { border-color: #059669; }
+.form-control:focus { border-color: #2563eb; }
 .text-red { color: #ef4444; }
 .mt-3 { margin-top: 15px; }
 .modal-footer {
@@ -655,7 +652,7 @@ onMounted(() => {
   border-radius: 6px; cursor: pointer; color: #475569; font-weight: 500;
 }
 .btn-save {
-  padding: 8px 16px; border: none; background: #059669; color: white;
+  padding: 8px 16px; border: none; background: #2563eb; color: white;
   border-radius: 6px; cursor: pointer; font-weight: 500;
 }
 /* =======================================
@@ -695,7 +692,7 @@ onMounted(() => {
 }
 
 .filter-input-group input:focus {
-  border-color: #10b981;
+  border-color: #2563eb;
 }
 
 .filter-date-range {

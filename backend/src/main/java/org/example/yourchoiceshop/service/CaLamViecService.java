@@ -47,4 +47,12 @@ public class CaLamViecService {
     // Truyền chuỗi xuống Repository
     return caLamViecRepository.searchAndFilter(keyword, status, startTimeStr, endTimeStr, pageable);
 }
+
+    // Cập nhật trạng thái của ca làm việc
+    public CaLamViec updateTrangThai(Integer id, Integer trangThai) {
+        CaLamViec ca = caLamViecRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("CaLamViec not found with id: " + id));
+        ca.setTrangThai(trangThai);
+        return caLamViecRepository.save(ca);
+    }
 }

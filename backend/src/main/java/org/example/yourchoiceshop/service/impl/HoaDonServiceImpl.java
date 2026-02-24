@@ -161,7 +161,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         HoaDon hd = new HoaDon();
         hd.setMaHoaDon("HD" + System.currentTimeMillis());
         hd.setNgayTao(LocalDateTime.now());
-        hd.setTrangThai(4);
+        hd.setTrangThai(5);
         hd.setLoaiHoaDon("TAI_QUAY");
 
         hd.setTenNguoiNhan(
@@ -177,23 +177,35 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
         for (CreateOrderRequest.CartItem item : req.getItems()) {
 
-            ChiTietSanPham sp = chiTietSanPhamRepo
-                    .findById(item.getIdChiTietSanPham())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+    ChiTietSanPham sp = chiTietSanPhamRepo
+            .findById(item.getIdChiTietSanPham())
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
 
-            HoaDonChiTiet ct = new HoaDonChiTiet();
-            ct.setHoaDon(hd);
-            ct.setChiTietSanPham(sp);
-            ct.setSoLuong(item.getSoLuong());
-            ct.setDonGia(BigDecimal.valueOf(item.getDonGia()));
+    // ✅ Check tồn kho
+    if (sp.getSoLuong() < item.getSoLuong()) {
+        throw new RuntimeException(
+            "Sản phẩm " + sp.getSanPham().getTenSanPham() + " không đủ tồn kho"
+        );
+    }
 
-            BigDecimal thanhTien = ct.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
+    // ✅ Trừ tồn kho
+    sp.setSoLuong(sp.getSoLuong() - item.getSoLuong());
+    chiTietSanPhamRepo.save(sp);
 
-            ct.setThanhTien(thanhTien);
-            tongTien = tongTien.add(thanhTien);
+    HoaDonChiTiet ct = new HoaDonChiTiet();
+    ct.setHoaDon(hd);
+    ct.setChiTietSanPham(sp);
+    ct.setSoLuong(item.getSoLuong());
+    ct.setDonGia(BigDecimal.valueOf(item.getDonGia()));
 
-            hoaDonChiTietRepo.save(ct);
-        }
+    BigDecimal thanhTien = ct.getDonGia()
+            .multiply(BigDecimal.valueOf(item.getSoLuong()));
+
+    ct.setThanhTien(thanhTien);
+    tongTien = tongTien.add(thanhTien);
+
+    hoaDonChiTietRepo.save(ct);
+}
 
         // 3. Cập nhật tiền
         // 3. Cập nhật tiền (LẤY TỪ REQUEST)

@@ -1,4 +1,5 @@
 <template>
+  <div class="schedule-container">
     <h1 class="page-title">Ca làm việc</h1>
 
     <div class="card">
@@ -11,7 +12,7 @@
         <button class="btn btn-navy" @click="resetFilter">
             <font-awesome-icon :icon="['fas', 'sync-alt']" /> Đặt lại
           </button>
-        <button class="btn-add" @click="router.push({ name: 'admin-shift-create' })">
+        <button class="btn btn-add" @click="router.push({ name: 'admin-shift-create' })">
           <i class="fas fa-plus"></i> Thêm ca làm việc
         </button>
         </div>
@@ -106,6 +107,7 @@
         </div>
       </div>
 
+    </div>
     </div>
 </template>
 
@@ -242,6 +244,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.schedule-container {
+  
+   padding: 20px; font-family: 'Segoe UI', sans-serif; background: #ebecee;; min-height: 100vh; color: #333; font-size: 14px; 
+}
 /* BADGES */
 .badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
 .badge-active { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
@@ -321,26 +327,15 @@ input:checked + .slider:before { transform: translateX(16px); }
 }
 
 .btn-add {
-  padding: 10px 20px;
-  border: 2px solid #1e293b;
-  background: #ffffff;
-  color: #1e293b;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  transition: background 0.2s;
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; 
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); 
 }
 .action-group { display: flex; gap: 10px; }
 
 .btn-add:hover {
-  background: #f8fafc;
+  transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); 
 }
 
-/* Filters */
 .filter-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -378,8 +373,18 @@ input:checked + .slider:before { transform: translateX(16px); }
 /* Table */
 .table-container {
   overflow-x: auto;
+  
 }
-
+.table-container th {
+  background:#f5f5f5;
+  color: #333;
+  padding: 12px;
+  text-align: center; /* Căn giữa tiêu đề */
+  font-weight: 700;
+  font-size: 13px;
+  border-bottom: 1px solid #f1f5f9;
+  white-space: nowrap;
+}
 table {
   width: 100%;
   border-collapse: collapse;
