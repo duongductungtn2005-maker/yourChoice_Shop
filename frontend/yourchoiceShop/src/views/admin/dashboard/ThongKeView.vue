@@ -462,27 +462,21 @@ const fetchSummaryCards = async () => {
   } catch (error) { console.error(error) } finally { isLoadingCards.value = false; }
 }
 
-const fetchFilterSummary = async (payload) => {
+const fetchRevenueAndChartData = async (payload) => {
   try {
-    const payloadAll = { ...payload, status: null }; 
-    const res = await statisticApi.getRevenue(payloadAll);
-    const summary = res.data?.summary || {};
+    const res = await statisticApi.getRevenue(payload);
     
+    // Xử lý Summary
+    const summary = res.data?.summary || {};
     filterSummary.value.expectedRevenue = summary.totalRevenue || 0;
     filterSummary.value.totalOrders = summary.totalOrders || 0;
     filterSummary.value.totalProducts = summary.totalProducts || 0;
     filterSummary.value.successOrders = summary.successOrders || 0;
     filterSummary.value.processingOrders = summary.processingOrders || 0; 
     filterSummary.value.cancelOrders = summary.cancelOrders || 0;
-    
-  } catch (error) { console.error("Lỗi fetchFilterSummary:", error); }
-}
 
-const fetchLineChartData = async (payload) => {
-  try {
-    const res = await statisticApi.getRevenue(payload); 
+    // Xử lý Chart Data
     const dataList = res.data?.chartData || res.data?.data || []; 
-    
     if(Array.isArray(dataList) && dataList.length > 0) {
        lineChartData.value = {
          labels: dataList.map(item => item.date || item.ngay || item.label || item.thoiGian || ''),
@@ -494,9 +488,10 @@ const fetchLineChartData = async (payload) => {
     } else {
        lineChartData.value = { labels: [], datasets: [{ ...lineChartData.value.datasets[0], data: [] }] };
     }
-  } catch (error) { console.error("Lỗi fetchLineChartData:", error); }
+  } catch (error) { 
+    console.error("Lỗi fetchRevenueAndChartData:", error); 
+  }
 }
-
 const fetchChartStatus = async (customPayload) => {
   try {
     const payloadForChart = { ...customPayload, status: null };
@@ -570,11 +565,13 @@ const applyCustomFilter = async () => {
     } else {
         topProducts.value = [];
     }
-  } catch (error) { console.error("Lỗi applyCustomFilter:", error); }
+  } catch (error) { console.error("Lỗi getProductStats:", error); }
 
-  fetchChartStatus({ fromDate: payload.fromDate, toDate: payload.toDate });
-  fetchFilterSummary({ fromDate: payload.fromDate, toDate: payload.toDate });
-  fetchLineChartData({ fromDate: payload.fromDate, toDate: payload.toDate });
+  // Gọi tuần tự từng cái thay vì chạy ngầm
+  await fetchChartStatus({ fromDate: payload.fromDate, toDate: payload.toDate });
+  
+  // Gọi hàm gộp mới thay vì gọi 2 hàm fetchFilterSummary và fetchLineChartData
+  await fetchRevenueAndChartData({ fromDate: payload.fromDate, toDate: payload.toDate });
 }
 
 const validateAndFetchLowStock = () => {
@@ -632,10 +629,11 @@ const handleExportExcel = async () => {
   }
 }
 
-onMounted(() => {
-  fetchSummaryCards();
-  fetchLowStock(); 
-  applyQuickFilter('MONTH'); 
+onMounted(async () => {
+  // Thêm async/await để bắt các API chạy nối đuôi nhau, giúp BE thở được
+  await fetchSummaryCards(); // Chạy xong 4 card nhỏ phía trên...
+  await applyQuickFilter('MONTH'); // ...rồi mới chạy cục Bộ lọc ở giữa...
+  await fetchLowStock(); // ...rồi mới gọi list sắp hết hàng
 })
 </script>
 

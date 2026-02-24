@@ -16,7 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -26,9 +26,10 @@ import java.util.stream.Collectors;
 import org.example.yourchoiceshop.dto.request.HoaDonRequest; // <--- Import DTO mớiimport org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.ByteArrayOutputStream;
-
+import org.springframework.data.jpa.repository.EntityGraph; // Thêm import này
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true) // THÊM DÒNG NÀY CHO TOÀN BỘ CLASS
 public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implements HoaDonService
 
     private final HoaDonRepository hoaDonRepo;
