@@ -99,7 +99,7 @@
         <div class="card-header border-none">Phân bổ trạng thái đơn hàng</div>
         <div class="chart-container">
            <div class="chart-wrapper" v-if="hasChartData">
-              <Doughnut :data="chartData" :options="chartOptions" />
+              <Doughnut :data="chartData" :options="chartOptions" :plugins="[outlabelsPlugin]" />
            </div>
            <div v-else class="empty-state">
               <p>Chưa có dữ liệu thống kê biểu đồ</p>
@@ -117,7 +117,7 @@
               <tr>
                 <th class="text-center w-50">#</th>
                 <th class="text-center w-80">Ảnh</th>
-                <th>Tên Sản Phẩm</th>
+                <th class="text-left">Tên Sản Phẩm</th>
                 <th class="text-right w-120">Giá</th>
                 <th class="text-center w-80">Bán</th>
               </tr>
@@ -134,7 +134,10 @@
                   <img v-if="prod?.anh" :src="prod.anh" class="product-img" />
                   <div v-else class="product-img no-img">No Img</div>
                 </td>
-                <td class="font-medium text-dark">{{ prod?.tenSanPham }} <span v-if="prod?.kichCo" class="text-xs text-muted block">Size: {{ prod.kichCo }}</span></td>
+                <td class="font-medium text-dark text-left">
+                  {{ prod?.tenSanPham }} 
+                  <span v-if="prod?.kichCo" class="text-xs text-muted block mt-1">Size: {{ prod.kichCo }}</span>
+                </td>
                 <td class="text-right text-danger font-medium">{{ formatCurrency(prod?.doanhThu) }}</td>
                 <td class="text-center">
                   <span class="badge-success-light">{{ prod?.soLuongBan }}</span>
@@ -163,11 +166,17 @@
         <div class="growth-list">
           <div class="growth-item" v-for="(growth, i) in growthList" :key="i">
              <div class="growth-label">
-                <span class="growth-icon text-blue"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+                <span class="growth-icon" :class="growth.colorClass">
+                   <svg v-if="growth.icon === 'revenue'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                   <svg v-if="growth.icon === 'order'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                   <svg v-if="growth.icon === 'product'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                </span>
                 {{ growth.label }}
              </div>
              <div class="growth-value-box">
-                <span class="growth-number">{{ formatNumber(growth.value) }} ₫</span>
+                <span class="growth-number">
+                   {{ growth.type === 'currency' ? formatCurrency(growth.value) : formatNumber(growth.value) }}
+                </span>
                 <span class="growth-percent" :class="parseFloat(growth.percent) >= 0 ? 'bg-success-light text-success' : 'bg-danger-light text-danger'">
                    {{ parseFloat(growth.percent) >= 0 ? '↑' : '↓' }} {{ Math.abs(parseFloat(growth.percent)) }}%
                 </span>
@@ -181,8 +190,6 @@
       </div>
 
     </div>
-
-
 
 
   </div>
@@ -199,6 +206,71 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointE
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0)
 const formatNumber = (val) => new Intl.NumberFormat('vi-VN').format(val || 0)
 
+// --- PLUGIN VẼ DÂY VÀ CHỮ NGOÀI BIỂU ĐỒ TRẠNG THÁI ---
+const outlabelsPlugin = {
+  id: 'outlabels',
+  afterDraw(chart) {
+    const ctx = chart.ctx;
+    chart.data.datasets.forEach((dataset, i) => {
+      const meta = chart.getDatasetMeta(i);
+      if (!meta.hidden) {
+        meta.data.forEach((element, index) => {
+          const dataVal = dataset.data[index];
+          if (dataVal <= 0) return; // Bỏ qua nếu data = 0
+
+          // Lấy tọa độ trung tâm của khối hình quạt
+          const startAngle = element.startAngle;
+          const endAngle = element.endAngle;
+          const midAngle = startAngle + (endAngle - startAngle) / 2;
+
+          const outerRadius = element.outerRadius;
+          const lineStartRadius = outerRadius; 
+          const lineEndRadius = outerRadius + 15; // Độ dài đoạn nối thẳng ra
+
+          const x = element.x;
+          const y = element.y;
+
+          // Tính toán các điểm để vẽ line gấp khúc
+          const startX = x + Math.cos(midAngle) * lineStartRadius;
+          const startY = y + Math.sin(midAngle) * lineStartRadius;
+          const edgeX = x + Math.cos(midAngle) * lineEndRadius;
+          const edgeY = y + Math.sin(midAngle) * lineEndRadius;
+
+          const isRight = Math.cos(midAngle) > 0;
+          const endX = edgeX + (isRight ? 15 : -15); // Kéo gập ngang sang trái/phải
+          const endY = edgeY;
+
+          // Tiến hành Vẽ đường kẻ (Line)
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.lineTo(edgeX, edgeY);
+          ctx.lineTo(endX, endY);
+          ctx.strokeStyle = dataset.backgroundColor[index];
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Tiến hành Vẽ Text 
+          const label = chart.data.labels[index];
+          const total = dataset.data.reduce((a, b) => a + b, 0);
+          const percent = ((dataVal / total) * 100).toFixed(2) + '%';
+          
+          ctx.textAlign = isRight ? 'left' : 'right';
+          ctx.textBaseline = 'middle';
+          
+          // Dòng 1: Tên trạng thái
+          ctx.fillStyle = '#6b7280';
+          ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.fillText(label, endX + (isRight ? 5 : -5), endY - 8);
+          
+          // Dòng 2: Số liệu
+          ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.fillText(`${dataVal} đơn (${percent})`, endX + (isRight ? 5 : -5), endY + 8);
+        });
+      }
+    });
+  }
+};
+
 // --- STATES CHÍNH ---
 const activeFilter = ref('ALL') 
 const filter = ref({ fromDate: null, toDate: null, status: 5, page: 0, size: 5 }) 
@@ -209,7 +281,6 @@ const topProducts = ref([])
 const lowStockProducts = ref([])    
 const growthList = ref([])          
 
-// Biến lưu dữ liệu thật cho thẻ Bộ lọc summary
 const filterSummary = ref({
   totalOrders: 0,
   totalProducts: 0,
@@ -272,24 +343,16 @@ const chartData = ref({
 const chartOptions = ref({
   responsive: true,
   maintainAspectRatio: false,
-  cutout: '65%', 
+  cutout: '55%', 
+  layout: {
+    padding: { top: 30, bottom: 30, left: 70, right: 70 } // Chừa khoảng trống để nhét text và line
+  },
   plugins: {
     legend: { 
       position: 'bottom', 
       labels: { boxWidth: 12, padding: 15, font: { size: 12, family: 'sans-serif' }, color: '#4b5563', usePointStyle: true } 
     },
-    tooltip: {
-      callbacks: {
-        label: function(context) {
-          let label = context.label || '';
-          if (label) { label += ': '; }
-          let value = context.raw;
-          let total = context.chart._metasets[context.datasetIndex].total;
-          let percentage = ((value / total) * 100).toFixed(2) + '%';
-          return `${label} ${value} đơn (${percentage})`;
-        }
-      }
-    }
+    tooltip: { enabled: false } // Đã hiện text bên ngoài nên tắt tooltip dính chuột đi theo yc
   }
 })
 
@@ -347,30 +410,55 @@ const fetchSummaryCards = async () => {
     const requests = frames.map(f => statisticApi.getRevenue({ fromDate: f.fromDate, toDate: f.toDate, status: 5 }));
     const responses = await Promise.all(requests);
     
-    // Reset growthList để add mới
     growthList.value = [];
-    const growthLabels = ['Doanh thu ngày', 'Doanh thu tuần', 'Doanh thu tháng', 'Doanh thu năm'];
+    const periods = ['ngày', 'tuần', 'tháng', 'năm'];
+    const revenues = [];
+    const orders = [];
+    const products = [];
 
     responses.forEach((res, index) => {
-      // Map theo đúng chuẩn cục JSON: { summary: {...}, chartData: [], detailTable: null }
       const summary = res.data?.summary || {}; 
       
       summaryCards.value[index].revenue = summary.totalRevenue || 0;
-      
-      // LƯU Ý CHO MÀY: Backend của mày KHÔNG HỀ trả về successOrders, cancelOrders, products. 
-      // Nên tao đang gán tạm totalOrders vào successOrders. Mày phải bảo BE thêm các trường kia vào nhé!
       summaryCards.value[index].successOrders = summary.totalOrders || 0; 
       summaryCards.value[index].products = summary.totalProducts || 0;
       summaryCards.value[index].cancelOrders = summary.cancelOrders || 0;
       summaryCards.value[index].returnOrders = summary.returnOrders || 0;
 
-      // Húp luôn data growthPercent nhét vào mảng Tăng trưởng!
-      growthList.value.push({
-          label: growthLabels[index],
+      // 1. Phân mảng Doanh Thu
+      revenues.push({
+          label: `Doanh thu ${periods[index]}`,
           value: summary.totalRevenue || 0,
-          percent: summary.growthPercent || 0
+          percent: summary.growthPercent || summary.revenueGrowth || 0,
+          type: 'currency',
+          icon: 'revenue',
+          colorClass: 'text-blue'
+      });
+
+      // 2. Phân mảng Đơn Hàng
+      orders.push({
+          label: `Đơn hàng ${periods[index]}`,
+          value: summary.totalOrders || 0,
+          percent: summary.orderGrowth || summary.growthPercent || 0,
+          type: 'number',
+          icon: 'order',
+          colorClass: 'text-success-icon' // Màu xanh
+      });
+
+      // 3. Phân mảng Sản Phẩm
+      products.push({
+          label: `Sản phẩm ${periods[index]}`,
+          value: summary.totalProducts || 0,
+          percent: summary.productGrowth || summary.growthPercent || 0,
+          type: 'number',
+          icon: 'product',
+          colorClass: 'text-warning-icon' // Màu cam
       });
     });
+
+    // Gom dữ liệu lại nối tiếp nhau để đẩy ra UI
+    growthList.value = [...revenues, ...orders, ...products];
+
   } catch (error) { console.error(error) } finally { isLoadingCards.value = false; }
 }
 
@@ -382,8 +470,6 @@ const fetchFilterSummary = async (payload) => {
     
     filterSummary.value.expectedRevenue = summary.totalRevenue || 0;
     filterSummary.value.totalOrders = summary.totalOrders || 0;
-    
-    // Tương tự, BE chưa trả về các trường này, nếu có BE trả về tên chuẩn, mày tự sửa ở đây nha
     filterSummary.value.totalProducts = summary.totalProducts || 0;
     filterSummary.value.successOrders = summary.successOrders || 0;
     filterSummary.value.processingOrders = summary.processingOrders || 0; 
@@ -397,11 +483,7 @@ const fetchLineChartData = async (payload) => {
     const res = await statisticApi.getRevenue(payload); 
     const dataList = res.data?.chartData || res.data?.data || []; 
     
-    // Gắn cái này để soi data
-    console.log("=== CHECK DATA LINE CHART TỪ BE ===", dataList);
-    
     if(Array.isArray(dataList) && dataList.length > 0) {
-       // Ép Vue Chart vẽ lại bằng cách gán đè toàn bộ Object
        lineChartData.value = {
          labels: dataList.map(item => item.date || item.ngay || item.label || item.thoiGian || ''),
          datasets: [{
@@ -410,7 +492,6 @@ const fetchLineChartData = async (payload) => {
          }]
        };
     } else {
-       // Clear biểu đồ nếu mảng rỗng
        lineChartData.value = { labels: [], datasets: [{ ...lineChartData.value.datasets[0], data: [] }] };
     }
   } catch (error) { console.error("Lỗi fetchLineChartData:", error); }
@@ -442,7 +523,6 @@ const fetchChartStatus = async (customPayload) => {
   } catch (error) { console.error(error) }
 }
 
-// --- LOGIC LỌC CHÍNH ---
 const applyQuickFilter = (type) => {
   activeFilter.value = type;
   const now = new Date();
@@ -478,13 +558,8 @@ const applyCustomFilter = async () => {
   
   try {
     const resTop = await statisticApi.getProductStats(payload);
-    
-    // Gắn cái này để soi data
-    console.log("=== CHECK DATA TOP SẢN PHẨM TỪ BE ===", resTop.data);
-
     let dataList = resTop.data?.chartData || resTop.data?.data || resTop.data;
 
-    // Đề phòng BE bọc mảng trong 1 object lạ, tao cho tự động mò mảng luôn
     if (dataList && !Array.isArray(dataList) && typeof dataList === 'object') {
        const key = Object.keys(dataList).find(k => Array.isArray(dataList[k]));
        if (key) dataList = dataList[key];
@@ -501,6 +576,7 @@ const applyCustomFilter = async () => {
   fetchFilterSummary({ fromDate: payload.fromDate, toDate: payload.toDate });
   fetchLineChartData({ fromDate: payload.fromDate, toDate: payload.toDate });
 }
+
 const validateAndFetchLowStock = () => {
     if (lowStockThreshold.value < 1) lowStockThreshold.value = 1;
     if (lowStockThreshold.value > 100) lowStockThreshold.value = 100;
@@ -667,6 +743,11 @@ onMounted(() => {
 .cursor-pointer { cursor: pointer; }
 .hover-dark:hover { color: #374151 !important; }
 
+/* Thêm màu icon cho section Tốc độ tăng trưởng */
+.text-blue { color: #1e3a8a; }
+.text-success-icon { color: #10b981; }
+.text-warning-icon { color: #f59e0b; }
+
 /* SPINNER */
 .loading-overlay {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -745,7 +826,7 @@ onMounted(() => {
 .f-label { font-size: 12px; color: #6b7280; }
 .f-value { font-size: 16px; font-weight: 700; }
 
-/* TABLE STYLES */
+/* TABLE STYLES - XỬ LÝ CĂN GIỮA VÀ THẲNG HÀNG TẠI ĐÂY */
 .table-responsive { overflow-x: auto; flex: 1; padding: 0 20px; }
 .max-h-400 { max-height: 400px; overflow-y: auto; }
 
@@ -757,8 +838,14 @@ onMounted(() => {
 }
 .modern-table tbody tr { border-bottom: 1px dashed #f3f4f6; transition: background 0.2s; }
 .modern-table tbody tr:hover { background: #f9fafb; }
-.modern-table tbody td { padding: 12px 8px; color: #4b5563; vertical-align: middle; }
+.modern-table tbody td { 
+  padding: 12px 8px; 
+  color: #4b5563; 
+  /* Quan trọng: Ép các td căn giữa chiều dọc cho thẳng đẹp */
+  vertical-align: middle !important; 
+}
 
+.text-left { text-align: left; }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .w-50 { width: 50px; }
@@ -810,7 +897,6 @@ onMounted(() => {
 .growth-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed #f3f4f6; }
 .growth-item:last-child { border-bottom: none; }
 .growth-label { display: flex; align-items: center; gap: 12px; color: #4b5563; font-size: 13px; font-weight: 500; }
-.text-blue { color: #1e3a8a; }
 
 .growth-value-box { display: flex; align-items: center; gap: 16px; }
 .growth-number { font-size: 14px; font-weight: 600; color: #1f2937; }
