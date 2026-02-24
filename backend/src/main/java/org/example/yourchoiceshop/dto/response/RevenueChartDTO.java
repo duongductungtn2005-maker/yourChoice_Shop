@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RevenueChartDTO {
-    private String date;             // Ngày (VD: "2026-02-15")
-    private BigDecimal revenue;      // Doanh thu trong ngày
-    private Long orderCount;         // Số đơn trong ngày
+    private String date;
+    private BigDecimal value;
 }

@@ -9,10 +9,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ProductStatDTO {
-    private String maSanPham;
-    private String tenSanPham;
-    private Long soLuongBan;     // Tổng số lượng đã bán
-    private BigDecimal doanhThu; // Tổng tiền thu được từ sản phẩm này
-    private String kichCo;       // THÊM MỚI
     private String anh;
+    private String tenSanPham;
+    private String kichCo;
+    private BigDecimal doanhThu;
+    private Long soLuongBan;
 }

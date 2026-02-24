@@ -24,5 +24,5 @@ public interface StatisticRepository {
     List<OrderStatusDTO> getOrderStatusStats(StatisticFilterRequest filter);
 
     // 2. Lấy danh sách sản phẩm sắp hết hàng (Tồn kho <= 10)
-    List<ProductStatDTO> getLowStockStats();
+    List<ProductStatDTO> getLowStockStats(StatisticFilterRequest filter);
 }

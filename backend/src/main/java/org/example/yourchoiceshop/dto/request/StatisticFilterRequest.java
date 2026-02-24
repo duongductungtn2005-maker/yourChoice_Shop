@@ -12,4 +12,5 @@ public class StatisticFilterRequest {
     private Integer status = 4; // Mặc định bạn chỉ lấy đơn hàng đã HOAN_THANH (trạng thái = 4)
     private Integer page = 0;
     private Integer size = 10;
+    private Integer threshold;
 }

@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import lombok.*;
 
 
-
+@AllArgsConstructor // <--- QUAN TRỌNG: Để Hibernate map được dữ liệu từ câu SELECT new...
 @Data
 @Getter
 @Setter
@@ -20,5 +20,5 @@ public class SanPhamHoaDonResponse {
     private BigDecimal donGia;
     private BigDecimal thanhTien;
 
-    private String hinhAnh;
+    private String duongDanAnh;
 }

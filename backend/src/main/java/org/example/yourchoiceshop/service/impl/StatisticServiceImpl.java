@@ -18,19 +18,21 @@ public class StatisticServiceImpl implements StatisticService {
     private final StatisticRepository statisticRepository;
 
     @Override
-    public StandardStatisticResponse<RevenueSummaryDTO, RevenueChartDTO, Object> getRevenueStats(StatisticFilterRequest filter) {
-        // 1. Gọi SQL lấy số liệu tổng quan
+    public StandardStatisticResponse getRevenueStats(StatisticFilterRequest filter) {
+        StandardStatisticResponse response = new StandardStatisticResponse();
+
+        // 1. Gọi Repo lấy cục Summary
         RevenueSummaryDTO summary = statisticRepository.getRevenueSummary(filter);
+        response.setSummary(summary);
 
-        // 2. Gọi SQL lấy dữ liệu vẽ biểu đồ
-        List<RevenueChartDTO> chartData = statisticRepository.getRevenueChart(filter);
+        // 2. Gọi Repo lấy cục Chart (danh sách từng ngày)
+        List<RevenueChartDTO> chartList = statisticRepository.getRevenueChart(filter);
+        response.setChartData(chartList); // Nhét mảng ngày/tháng vào chartData
 
-        // 3. Khai báo rõ ràng kiểu dữ liệu cho Builder <Summary, Chart, Detail>
-        return StandardStatisticResponse.<RevenueSummaryDTO, RevenueChartDTO, Object>builder()
-                .summary(summary)
-                .chartData(chartData)
-                .detailTable(null)
-                .build();
+        // 3. Detail table (nếu chưa có thì để null như Frontend yêu cầu)
+        response.setDetailTable(null);
+
+        return response;
     }
     @Override
     public byte[] exportRevenueExcel(StatisticFilterRequest filter) {
@@ -63,8 +65,8 @@ public class StatisticServiceImpl implements StatisticService {
                 Row row = sheet.createRow(rowIdx++);
                 row.createCell(0).setCellValue(rowIdx - 1); // STT
                 row.createCell(1).setCellValue(item.getDate());
-                row.createCell(2).setCellValue(item.getRevenue().doubleValue());
-                row.createCell(3).setCellValue(item.getOrderCount());
+                row.createCell(2).setCellValue(item.getValue().doubleValue());
+//                row.createCell(3).setCellValue(item.getOrderCount());
             }
 
             // Căn chỉnh độ rộng cột tự động cho đẹp
@@ -80,16 +82,15 @@ public class StatisticServiceImpl implements StatisticService {
         }
     }
     @Override
-    public StandardStatisticResponse<Object, Object, ProductStatDTO> getProductStats(StatisticFilterRequest filter) {
-        // Gọi SQL lấy danh sách top sản phẩm
+    public StandardStatisticResponse getProductStats(StatisticFilterRequest filter) {
+        // 1. Gọi DB để lấy mảng danh sách sản phẩm
         List<ProductStatDTO> productList = statisticRepository.getProductStats(filter);
 
-        // Trả về dưới dạng bảng chi tiết (Tạm dùng List thay cho Page nếu chưa muốn phân trang phức tạp)
-        return StandardStatisticResponse.<Object, Object, ProductStatDTO>builder()
-                .summary(null)
-                .chartData(null)
-                .detailTable(null) // Nếu bạn dùng Spring Page thì nhét vào đây, ở đây mình dùng mẹo trả danh sách thẳng qua một property phụ nếu cần, nhưng chuẩn nhất là map nó thành 1 list đơn giản.
-                .build();
+        // 2. Tạo cục JSON tổng và nhét mảng vào key chartData
+        StandardStatisticResponse response = new StandardStatisticResponse();
+        response.setChartData(productList);
+
+        return response;
     }
     @Override
     public StandardStatisticResponse<Object, EmployeeStatDTO, Object> getEmployeeStats(StatisticFilterRequest filter) {
@@ -138,8 +139,14 @@ public class StatisticServiceImpl implements StatisticService {
     }
 
     @Override
+    public StandardStatisticResponse getLowStockStats(StatisticFilterRequest filter) {
+        // Truyền filter xuống Repository
+        List<ProductStatDTO> lowStockList = statisticRepository.getLowStockStats(filter);
 
-    public List<ProductStatDTO> getLowStockStats() {
-        return statisticRepository.getLowStockStats();
+        // Bọc vào chuẩn JSON cho Frontend
+        StandardStatisticResponse response = new StandardStatisticResponse();
+        response.setChartData(lowStockList); // Chú ý: Dùng setData hay setChartData tùy vào code chuẩn của mày
+
+        return response;
     }
 }

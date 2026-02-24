@@ -14,4 +14,5 @@ public class HoaDonRequest {
     private String sdtNguoiNhan;
     private String diaChiNguoiNhan;
     // Bạn có thể thêm email hoặc ghi chú nếu muốn sửa thêm
+    private String ghiChu; // <--- THÊM DÒNG NÀY ĐỂ FIX LỖI getGhiChu()
 }

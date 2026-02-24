@@ -50,36 +50,110 @@ public class EmailService {
         String subject = "THÔNG BÁO TẠO TÀI KHOẢN NHÂN VIÊN";
         String senderName = "Hệ thống Quản lý Nhân sự";
 
-        String htmlContent = "<h3>Xin chào " + tenNhanVien + ",</h3>"
-                + "<p>Chào mừng bạn gia nhập công ty. Tài khoản của bạn đã được khởi tạo.</p>"
-                + "<ul>"
-                + "<li>Email: <b>" + toEmail + "</b></li>"
-                + "<li>Mật khẩu: <b style='color:red;'>" + matKhau + "</b></li>"
-                + "</ul>"
-                + "<p>Trân trọng,<br>Phòng Hành chính - Nhân sự</p>";
+        String htmlContent = """
+        <div style="font-family: 'Arial', sans-serif; background:#f1f5f9; padding:30px;">
+            <div style="max-width:700px; margin:0 auto; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(2,6,23,0.06);">
+                
+                <!-- Header -->
+                <div style="background: linear-gradient(90deg,#0b3b8c,#1e40af); padding:28px 24px; text-align:center; color:#fff;">
+                    <h1 style="font-size:22px; margin:6px 0 0; letter-spacing:2px;">
+                        THÔNG TIN TÀI KHOẢN NHÂN VIÊN
+                    </h1>
+                </div>
+
+                <!-- Body -->
+                <div style="padding:28px 36px; color:#111827;">
+                    <p style="margin:0 0 12px;"><strong>Xin chào %s,</strong></p>
+                    
+                    <p style="margin:0 0 18px; color:#374151;">
+                        Chào mừng bạn gia nhập công ty. Tài khoản hệ thống của bạn đã được khởi tạo với thông tin sau:
+                    </p>
+
+                    <!-- Info box -->
+                    <div style="border:2px dashed #0b3b8c; border-radius:10px; padding:20px; font-size:20px;">
+                        <div style="display:block;">
+                            
+                            <div style="margin-bottom:20px;">
+                                <div style="color:#6b7280; font-size:18px;">Email đăng nhập:</div>
+                                <div style="color:#0b3b8c; font-size:20px; font-weight:700;">%s</div>
+                            </div>
+                            
+                            <div>
+                                <div style="color:#6b7280; font-size:18px;">Mật khẩu:</div>
+                                <div style="color:#ef4444; font-size:20px; font-weight:700;">%s</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p style="margin:18px 0 6px; color:#374151;">
+                        Vui lòng đăng nhập và thay đổi mật khẩu ngay sau lần đăng nhập đầu tiên để đảm bảo bảo mật.
+                    </p>
+
+                    <div style="text-align:center; margin-top:18px;">
+                        <a href="http://localhost:5173/login"
+                           style="display:inline-block; background: linear-gradient(90deg,#0b3b8c,#1e40af); color:#fff; padding:12px 26px; border-radius:30px; text-decoration:none; font-weight:600;">
+                           ĐĂNG NHẬP HỆ THỐNG
+                        </a>
+                    </div>
+
+                    <p style="margin:20px 0 0; color:#6b7280; font-size:13px;">
+                        Trân trọng,<br/>
+                        <strong>Phòng Hành chính - Nhân sự</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+        """.formatted(tenNhanVien, toEmail, matKhau);
 
         sendEmail(toEmail, subject, htmlContent, senderName);
+
+
     }
 
-    // --- 3. Dành cho KHÁCH HÀNG (Thêm mới cho SevenStrike) ---
+    // --- 3. Dành cho KHÁCH HÀNG (Thêm mới cho YourChoiceShop) ---
     public void sendCustomerWelcome(String toEmail, String username, String matKhau, String tenKhachHang) {
         String subject = "Chào mừng bạn đến với YourChoiceShop";
-        String senderName = "SevenStrike Shop"; // Tên người gửi khác đi cho chuyên nghiệp
+        String senderName = "YourChoiceShop"; // Tên người gửi khác đi cho chuyên nghiệp
 
-        // Nội dung HTML đẹp hơn, phù hợp khách hàng mua sắm
+        // Template HTML theo mẫu coupon (giữ nguyên nội dung: tên đăng nhập và mật khẩu)
         String htmlContent = """
-            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-                <h2 style="color: #0f172a;">Xin chào %s,</h2>
-                <p>Cảm ơn bạn đã đăng ký thành viên tại <strong>YourChoiceShop</strong>.</p>
-                <p>Dưới đây là thông tin đăng nhập của bạn:</p>
-                <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; width: fit-content;">
-                    <p style="margin: 5px 0;"><strong>Tên đăng nhập:</strong> <span style="color: #2563eb;">%s</span></p>
-                    <p style="margin: 5px 0;"><strong>Mật khẩu:</strong> <span style="color: #ef4444;">%s</span></p>
-                </div>
-                <p>Hãy đăng nhập ngay để khám phá các sản phẩm sơ mi nữ mới nhất!</p>
-                <p>Trân trọng,<br/><strong>Đội ngũ YourChoiceShop</strong></p>
-            </div>
-        """.formatted(tenKhachHang, username, matKhau);
+                        <div style="font-family: 'Arial', sans-serif; background:#f1f5f9; padding:30px;">
+                            <div style="max-width:700px; margin:0 auto; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(2,6,23,0.06);">
+                                <!-- Header -->
+                                <div style="background: linear-gradient(90deg,#0b3b8c,#1e40af); padding:28px 24px; text-align:center; color:#fff;">
+                                    <img alt="Logo" src="http://localhost:8080/logo+name.png" style="height:40px; vertical-align:middle; margin-bottom:8px;"/>
+                                    <h1 style="font-size:22px; margin:6px 0 0; letter-spacing:2px;">THÔNG TIN ĐĂNG NHẬP</h1>
+                                </div>
+
+                                <!-- Body -->
+                                <div style="padding:28px 36px; color:#111827;">
+                                    <p style="margin:0 0 12px;"><strong>Chào bạn,</strong></p>
+                                    <p style="margin:0 0 18px; color:#374151;">Cảm ơn bạn đã đăng ký thành viên tại <strong>YourChoiceShop</strong>. Dưới đây là thông tin đăng nhập của bạn:</p>
+
+                                    <!-- Coupon box (hiển thị thông tin tài khoản; mã khách đã loại bỏ) -->
+                                    <div style="border:2px dashed #0b3b8c; border-radius:10px; padding:20px; font-size:20px;">
+                                        <div style="display:block;">
+                                            <div style="margin-bottom:20px;">
+                                                <div style="color:#6b7280; font-size:20px;">Tên tài khoản:</div>
+                                                <div style="color:#0b3b8c; font-size:20px; font-weight:700;">%s</div>
+                                            </div>
+                                            <div>
+                                                <div style="color:#6b7280; font-size:20px;">Mật khẩu:</div>
+                                                <div style="color:#ef4444; font-size:20px; font-weight:700;">%s</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <p style="margin:18px 0 6px; color:#374151;">Bạn có thể đăng nhập bằng thông tin trên để tiếp tục mua sắm và nhận ưu đãi.</p>
+                                    <div style="text-align:center; margin-top:18px;">
+                                        <a href="http://localhost:5173/login" style="display:inline-block; background: linear-gradient(90deg,#0b3b8c,#1e40af); color:#fff; padding:12px 26px; border-radius:30px; text-decoration:none; font-weight:600;">ĐĂNG NHẬP NGAY</a>
+                                    </div>
+
+                                    <p style="margin:20px 0 0; color:#6b7280; font-size:13px;">Trân trọng,<br/><strong>YourChoiceShop</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                """.formatted(tenKhachHang, matKhau);
 
         sendEmail(toEmail, subject, htmlContent, senderName);
     }

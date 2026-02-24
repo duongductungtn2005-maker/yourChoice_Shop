@@ -37,7 +37,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
     @Override // <--- Thêm Override cho chắc chắn
     public Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, LocalDateTime from,
-            LocalDateTime to, Pageable pageable) {
+                                          LocalDateTime to, Pageable pageable) {
         Page<HoaDon> page = hoaDonRepo.searchOrders(keyword, status, type, from, to, pageable);
 
         return page.map(hd -> {
@@ -248,7 +248,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
                 row.createCell(3).setCellValue(hd.getNgayTao().toString());
                 row.createCell(4).setCellValue(convertTypeToDisplay(hd.getLoaiHoaDon()));
                 row.createCell(5).setCellValue(convertStatusToText(hd.getTrangThai())); // Bạn tự viết hàm convert int
-                                                                                        // -> String nhé
+                // -> String nhé
                 row.createCell(6).setCellValue(hd.getTongTienSauGiam().doubleValue());
             }
 

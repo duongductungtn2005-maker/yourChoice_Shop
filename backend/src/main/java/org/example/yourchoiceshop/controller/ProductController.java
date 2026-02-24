@@ -17,11 +17,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.example.yourchoiceshop.dto.response.VariantResponse; 
+import org.example.yourchoiceshop.dto.response.VariantResponse; // Thêm import này
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.List;
+import java.util.List; // <--- BẠN ĐANG THIẾU DÒNG NÀY
 import org.example.yourchoiceshop.dto.request.BulkUpdateVariantRequest;
 @RestController
 @RequestMapping("/api/v1/products")
@@ -97,5 +97,10 @@ public class ProductController {
                 .headers(headers)
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(new InputStreamResource(in));
+    }
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateProduct(@PathVariable Integer id, @RequestBody CreateProductRequest request) {
+        // Bạn cần đảm bảo method updateProduct đã tồn tại trong ProductService
+        return ResponseEntity.ok(productService.updateProduct(id, request));
     }
 }

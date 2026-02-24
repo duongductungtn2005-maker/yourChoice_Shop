@@ -31,7 +31,7 @@ public class StatisticController {
             case "VOUCHER" -> ResponseEntity.ok(statisticService.getVoucherStats(filter));
             case "DISCOUNT_CAMPAIGN" -> ResponseEntity.ok(statisticService.getDiscountCampaignStats(filter));
             case "ORDER_STATUS" -> ResponseEntity.ok(statisticService.getOrderStatusStats(filter));
-            case "LOW_STOCK" -> ResponseEntity.ok(statisticService.getLowStockStats());
+            case "LOW_STOCK" -> ResponseEntity.ok(statisticService.getLowStockStats(filter));
             default -> ResponseEntity.badRequest().body("Loại thống kê không hợp lệ: " + type);
         };
     }
