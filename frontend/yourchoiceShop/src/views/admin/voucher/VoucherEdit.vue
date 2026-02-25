@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="header-row">
        <div class="header-title">
-          <h3 style="color: #1e293b">Phiếu giảm giá / Tạo phiếu giảm giá</h3>
+          <h3 style="color: #1e293b">Phiếu giảm giá / Chỉnh sửa phiếu giảm giá</h3>
        </div>
        <button type="button" @click="$router.go(-1)" class="btn btn-back">
           <i class="fas fa-arrow-left"></i> Quay lại
@@ -17,7 +17,6 @@
           <label>Mã phiếu giảm giá</label>
           <input 
             v-model="form.maPhieuGiamGia" 
-            placeholder="Mã sẽ được hệ thống tự động tạo..." 
             class="form-control" 
             disabled 
             style="background-color: #f8fafc; color: #94a3b8;" 
@@ -145,7 +144,7 @@
           ></textarea>
         </div>
 
-        <button @click="submitForm" class="btn-submit">Hoàn tất & Thêm mới</button>
+        <button @click="submitForm" class="btn-submit">Lưu thay đổi</button>
       </div>
 
       <div class="card right-panel mt-4" v-if="form.kieu === 'CaNhan'">
@@ -157,13 +156,13 @@
             <input 
               v-model="custFilter.ten" 
               @keyup.enter="searchCustomers"
-              placeholder="Tìm theo tên (Enter)..." 
+              placeholder="Tìm theo tên..." 
               class="form-control filter-input" 
             />
             <input 
               v-model="custFilter.sdt" 
               @keyup.enter="searchCustomers"
-              placeholder="Tìm theo SĐT (Enter)..." 
+              placeholder="Tìm theo SĐT..." 
               class="form-control filter-input" 
             />
             <select v-model="custFilter.trangThai" class="form-control filter-input" @change="searchCustomers">
@@ -235,17 +234,19 @@
             </div>
         </div>
       </div>
-      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue';
 import request from '@/services/request';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import Swal from 'sweetalert2';
 
 const router = useRouter();
+const route = useRoute();
+const voucherId = route.params.id; 
 
 // --- CẤU HÌNH TOAST ---
 const Toast = Swal.mixin({
@@ -264,6 +265,7 @@ const Toast = Swal.mixin({
 const isUnlimited = ref(false); 
 
 const form = ref({
+  id: '',
   maPhieuGiamGia: '',
   tenPhieuGiamGia: '',
   loaiPhieu: 'PhanTram',
@@ -287,20 +289,18 @@ const custPageSize = ref(10);
 const custTotalPages = ref(0);
 const custTotalElements = ref(0); 
 
-// Cập nhật Filter
 const custFilter = reactive({ 
     ten: '',
     sdt: '',
     trangThai: ''
 });
 
-// Hàm format tiền tệ
+// --- HELPER FORMAT ---
 const formatCurrency = (value) => {
     if (!value && value !== 0) return '0 đ';
     return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
 };
 
-// Hàm format ngày tháng (DD/MM/YYYY)
 const formatDate = (dateStr) => {
     if (!dateStr) return 'Chưa có';
     const date = new Date(dateStr);
@@ -310,7 +310,17 @@ const formatDate = (dateStr) => {
     return `${day}/${month}/${year}`;
 };
 
-// Hàm chặn số âm
+const formatDateTimeForInput = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+};
+
 const validateSoLuong = () => {
     if (form.value.soLuong < 0) {
         form.value.soLuong = 0;
@@ -323,11 +333,45 @@ const searchCustomers = () => {
     fetchCustomers();
 };
 
-// API: Lấy danh sách khách hàng
+// --- API FETCH DỮ LIỆU ---
+const fetchVoucherDetail = async () => {
+    try {
+        const res = await request.get(`/phieu-giam-gia/${voucherId}`);
+        const data = res.data.data || res.data; 
+        
+        if (data) {
+            form.value.id = data.id;
+            form.value.maPhieuGiamGia = data.maPhieuGiamGia;
+            form.value.tenPhieuGiamGia = data.tenPhieuGiamGia;
+            form.value.loaiPhieu = data.loaiPhieu;
+            form.value.giaTriGiam = data.giaTriGiam;
+            form.value.donHangToiThieu = data.donHangToiThieu;
+            form.value.soLuong = data.soLuong;
+            form.value.kieu = data.kieu;
+            form.value.moTa = data.moTa;
+            form.value.trangThai = data.trangThai;
+
+            if (data.ngayBatDau) form.value.ngayBatDau = formatDateTimeForInput(data.ngayBatDau);
+            if (data.ngayKetThuc) form.value.ngayKetThuc = formatDateTimeForInput(data.ngayKetThuc);
+            
+            if (data.kieu === 'CongKhai' && (data.soLuong === null || data.soLuong === 0)) {
+                isUnlimited.value = true;
+            }
+
+            if ((data.kieu === 'CaNhan' || data.kieu === '1') && data.customerIds) {
+                selectedCustomerIds.value = data.customerIds;
+            }
+        }
+    } catch (e) {
+        Toast.fire({ icon: 'error', title: 'Không thể tải thông tin phiếu giảm giá' });
+        console.error("Lỗi API chi tiết:", e);
+    }
+};
+
 const fetchCustomers = async () => {
     loadingCust.value = true;
     try {
-        // Gộp tên hoặc SĐT vào keyword phòng trường hợp API backend của mày chỉ nhận `keyword`
+        // Gộp tên hoặc SĐT vào keyword
         const searchKeyword = custFilter.ten.trim() !== '' ? custFilter.ten : custFilter.sdt.trim();
 
         const res = await request.get('/khach-hang/thong-ke', {
@@ -358,7 +402,7 @@ const changeCustPage = (p) => {
 };
 
 const changePageSize = () => {
-    custPage.value = 0; 
+    custPage.value = 0;
     fetchCustomers();
 };
 
@@ -403,7 +447,7 @@ watch(() => form.value.kieu, (newVal) => {
     }
 });
 
-// --- SUBMIT ---
+// --- SUBMIT UPDATE ---
 const submitForm = async () => {
   try {
     if (!form.value.tenPhieuGiamGia || form.value.tenPhieuGiamGia.trim() === '') {
@@ -446,13 +490,13 @@ const submitForm = async () => {
 
     if (payload.kieu === 'CaNhan') {
         const confirmResult = await Swal.fire({
-            title: 'Xác nhận tạo phiếu',
-            text: 'Bạn có muốn gửi mail cho khách hàng được chọn không?',
+            title: 'Xác nhận cập nhật',
+            text: 'Bạn có muốn thông báo mail cho khách hàng được chọn không?',
             icon: 'question',
             showDenyButton: true,
             showCancelButton: true,
-            confirmButtonText: 'Gửi Email',
-            denyButtonText: 'KHÔNG Gửi Email',
+            confirmButtonText: 'Có gửi',
+            denyButtonText: 'Không gửi',
             cancelButtonText: 'Hủy bỏ',
             confirmButtonColor: '#2563eb',
             denyButtonColor: '#f59e0b',
@@ -463,9 +507,9 @@ const submitForm = async () => {
         payload.sendEmail = confirmResult.isConfirmed; 
     }
 
-    await request.post('/phieu-giam-gia', payload);
+    await request.put(`/phieu-giam-gia/${voucherId}`, payload);
     
-    localStorage.setItem('voucherSuccessMessage', 'Thêm phiếu giảm giá thành công!');
+    localStorage.setItem('voucherSuccessMessage', 'Cập nhật phiếu giảm giá thành công!');
     router.push({ name: 'admin-voucher-list' }); 
   } catch (error) {
     const msg = error.response?.data?.message || error.message || 'Có lỗi xảy ra';
@@ -474,6 +518,7 @@ const submitForm = async () => {
 };
 
 onMounted(() => {
+    fetchVoucherDetail();
     fetchCustomers();
 });
 </script>
@@ -653,7 +698,7 @@ input:checked + .slider:before {
 /* Table Area */
 .customer-list { 
     max-height: 500px; 
-    overflow-x: auto; /* Thêm cuộn ngang nếu cột dài */
+    overflow-x: auto; 
     overflow-y: auto; 
     border: 1px solid #e2e8f0; 
     border-radius: 6px; 
@@ -664,7 +709,7 @@ input:checked + .slider:before {
     width: 100%; 
     border-collapse: collapse; 
     font-size: 13px; 
-    min-width: 800px; /* Đảm bảo bảng không bị vỡ khi có nhiều cột */
+    min-width: 800px; 
 }
 
 .mini-table th, .mini-table td { 

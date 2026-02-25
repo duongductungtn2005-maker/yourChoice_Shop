@@ -119,6 +119,14 @@
             <td class="action-col">
               <div class="action-wrapper"> 
                   <button 
+                    class="icon-btn" 
+                    title="Xem chi tiết" 
+                    @click="editVoucher(item)"
+                  >
+                    <i class="fas fa-eye"></i>
+                  </button>
+
+                  <button 
                     v-if="getScope(item).isPrivate" 
                     class="icon-btn" 
                     title="Gửi Email" 
@@ -258,7 +266,8 @@ const resetFilter = () => {
 };
 
 const editVoucher = (item) => {
-    // router.push({ name: 'admin-voucher-edit', params: { id: item.id } });
+    // Nhớ check lại tên route 'admin-voucher-edit' xem có đúng với file router của mày chưa nhé
+    router.push({ name: 'admin-voucher-edit', params: { id: item.id } });
 };
 
 const handleToggleStatus = async (item, event) => {

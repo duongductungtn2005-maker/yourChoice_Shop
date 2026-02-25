@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.example.yourchoiceshop.dto.request.KhachHangRequest;
 import org.example.yourchoiceshop.entity.DiaChiKhachHang;
+import org.example.yourchoiceshop.repository.KhachHangRepository;
 import org.example.yourchoiceshop.service.KhachHangService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.PageRequest;
@@ -25,10 +26,9 @@ import java.util.List;
 public class KhachHangController {
 
     private final KhachHangService khachHangService;
-    // Khởi tạo Jackson ObjectMapper để xử lý JSON
+    private final KhachHangRepository khachHangRepository; 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 1. Lấy danh sách
     @GetMapping
     public ResponseEntity<?> getAll(
             @RequestParam(defaultValue = "0") int page,
@@ -40,23 +40,20 @@ public class KhachHangController {
         return ResponseEntity.ok(khachHangService.findAll(keyword, gioiTinh, trangThai, PageRequest.of(page, size, Sort.by("id").descending())));
     }
 
-    // 2. Xem chi tiết
     @GetMapping("/{id}")
     public ResponseEntity<?> getOne(@PathVariable Integer id) {
         return ResponseEntity.ok(khachHangService.findById(id));
     }
 
-    // 3. Tạo mới (FIX LỖI ĐỊA CHỈ TẠI ĐÂY)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> create(
             @ModelAttribute KhachHangRequest request,
-            @RequestParam(value = "addresses", required = false) String addressesJson // <--- Hứng chuỗi JSON
+            @RequestParam(value = "addresses", required = false) String addressesJson
     ) {
         try {
-            // Xử lý chuyển đổi thủ công từ JSON String -> List<DiaChi>
             if (addressesJson != null && !addressesJson.isEmpty()) {
                 List<DiaChiKhachHang> listDiaChi = objectMapper.readValue(addressesJson, new TypeReference<List<DiaChiKhachHang>>() {});
-                request.setListDiaChi(listDiaChi); // Gán vào DTO
+                request.setListDiaChi(listDiaChi);
             }
             return ResponseEntity.ok(khachHangService.create(request));
         } catch (Exception e) {
@@ -65,7 +62,6 @@ public class KhachHangController {
         }
     }
 
-    // 4. Cập nhật (FIX TƯƠNG TỰ)
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(
             @PathVariable Integer id,
@@ -84,7 +80,6 @@ public class KhachHangController {
         }
     }
 
-    // ... (Giữ nguyên các hàm updateStatus, delete, export bên dưới)
     @PutMapping("/{id}/trang-thai")
     public ResponseEntity<?> updateStatus(@PathVariable Integer id, @RequestParam Integer trangThai) {
         khachHangService.updateTrangThai(id, trangThai);
@@ -112,5 +107,28 @@ public class KhachHangController {
                 .headers(headers)
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(new InputStreamResource(in));
+    }
+
+    // --- API TÍNH TOÁN THỐNG KÊ (ĐÃ FIX LỖI) ---
+    @GetMapping("/thong-ke")
+    public ResponseEntity<?> getKhachHangThongKe(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer trangThai
+    ) {
+        // CHỖ NÀY BẮT BUỘC PHẢI LÀ "" (CHUỖI RỖNG), KHÔNG ĐƯỢC LÀ NULL
+        String searchKey = (keyword != null && !keyword.trim().isEmpty()) 
+                           ? "%" + keyword.trim().toLowerCase() + "%" 
+                           : "";
+        
+        // CHỖ NÀY BẮT BUỘC PHẢI LÀ -1, KHÔNG ĐƯỢC LÀ NULL
+        Integer statusFilter = (trangThai != null) ? trangThai : -1;
+                           
+        // CHỖ NÀY BẮT BUỘC PHẢI CÓ SORT VÌ BẢN CHẤT SQL SERVER
+        org.springframework.data.domain.Pageable pageable = 
+                org.springframework.data.domain.PageRequest.of(page, size, Sort.by("id").descending());
+                
+        return ResponseEntity.ok(khachHangRepository.searchKhachHangThongKe(searchKey, statusFilter, pageable));
     }
 }

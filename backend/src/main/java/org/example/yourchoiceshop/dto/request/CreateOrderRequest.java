@@ -18,6 +18,7 @@ public class CreateOrderRequest {
     private BigDecimal tongTienSauGiam;
 
     private List<CartItem> items;
+    private Integer idKhachHang;
 
     @Data
     public static class CartItem {

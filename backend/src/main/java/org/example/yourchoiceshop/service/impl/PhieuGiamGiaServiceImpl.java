@@ -1,6 +1,5 @@
 package org.example.yourchoiceshop.service.impl;
 
-
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.example.yourchoiceshop.dto.request.PhieuGiamGiaRequest;
@@ -14,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // NHỚ THÊM IMPORT NÀY
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -31,6 +31,7 @@ public class PhieuGiamGiaServiceImpl {
 
     @Autowired
     private KhachHangRepository khachHangRepo;
+
     // 1. Hàm lấy danh sách (Fix lỗi tham số search)
     public Page<PhieuGiamGia> getAll(String keyword, Integer status, String scope, Pageable pageable) {
         // Chuyển chuỗi rỗng thành null để Query JPQL hoạt động đúng
@@ -40,7 +41,8 @@ public class PhieuGiamGiaServiceImpl {
         return repository.search(key, status, kieu, pageable);
     }
 
-    // 2. Hàm tạo mới// hoặc public PhieuGiamGia create(...)
+    // 2. Hàm tạo mới
+    @Transactional
     public PhieuGiamGia create(PhieuGiamGiaRequest req) {
         PhieuGiamGia pgg = new PhieuGiamGia();
 
@@ -62,23 +64,21 @@ public class PhieuGiamGiaServiceImpl {
         pgg.setSoLuong(req.getSoLuong());
         pgg.setNgayBatDau(req.getNgayBatDau());
         pgg.setNgayKetThuc(req.getNgayKetThuc());
+        pgg.setMoTa(req.getMoTa()); // ĐÃ BỔ SUNG LƯU MÔ TẢ
         pgg.setTrangThai(1);
 
         // 1. Lưu phiếu cha trước
         PhieuGiamGia savedPgg = repository.save(pgg);
 
-        // 2. LOGIC QUAN TRỌNG CÒN THIẾU: Lưu danh sách khách hàng
+        // 2. Lưu danh sách khách hàng
         if ("CaNhan".equals(req.getKieu()) && req.getCustomerIds() != null && !req.getCustomerIds().isEmpty()) {
             List<PhieuGiamGiaCaNhan> listCaNhan = new ArrayList<>();
 
             for (Integer khId : req.getCustomerIds()) {
                 KhachHang kh = khachHangRepo.findById(khId).orElse(null);
 
-                // --- SỬA DÒNG IF NÀY ---
                 // Chỉ xử lý nếu khách hàng tồn tại VÀ đang Hoạt động (trangThai == 1)
                 if (kh != null && kh.getTrangThai() == 1) {
-                    // -----------------------
-
                     PhieuGiamGiaCaNhan pggCn = new PhieuGiamGiaCaNhan();
                     pggCn.setPhieuGiamGia(savedPgg);
                     pggCn.setKhachHang(kh);
@@ -99,7 +99,65 @@ public class PhieuGiamGiaServiceImpl {
         return savedPgg;
     }
 
-    // 3. Hàm Bật/Tắt trạng thái (Có logic gia hạn)
+    // -------------------------------------------------------------
+    // 3. API CẬP NHẬT (MỚI THÊM VÀO ĐÂY)
+    // -------------------------------------------------------------
+    @Transactional // Phải có @Transactional vì thao tác xóa và lưu nhiều bảng
+    public PhieuGiamGia update(Integer id, PhieuGiamGiaRequest req) {
+        // 1. Tìm phiếu cũ trong DB
+        PhieuGiamGia voucher = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu giảm giá"));
+
+        // 2. Đè dữ liệu mới lên
+        voucher.setTenPhieuGiamGia(req.getTenPhieuGiamGia());
+        voucher.setLoaiPhieu(req.getLoaiPhieu());
+        voucher.setKieu(req.getKieu());
+        voucher.setGiaTriGiam(req.getGiaTriGiam());
+        voucher.setGiaTriGiamToiDa(req.getGiaTriGiamToiDa());
+        voucher.setDonHangToiThieu(req.getDonHangToiThieu());
+        voucher.setSoLuong(req.getSoLuong());
+        voucher.setNgayBatDau(req.getNgayBatDau());
+        voucher.setNgayKetThuc(req.getNgayKetThuc());
+        voucher.setMoTa(req.getMoTa()); // Cập nhật cả mô tả
+
+        // 3. Lưu thông tin phiếu vào DB
+        PhieuGiamGia savedVoucher = repository.save(voucher);
+
+        // 4. Xử lý logic khách hàng nếu chuyển kiểu hoặc đổi danh sách
+        // Xóa hết danh sách map cũ của phiếu này đi trước cho sạch sẽ
+        List<PhieuGiamGiaCaNhan> oldList = pggCaNhanRepo.findByPhieuGiamGiaId(id);
+        if (!oldList.isEmpty()) {
+            pggCaNhanRepo.deleteAll(oldList);
+        }
+
+        // Thêm lại danh sách khách hàng mới nếu chọn Cá Nhân
+        if ("CaNhan".equals(req.getKieu()) && req.getCustomerIds() != null && !req.getCustomerIds().isEmpty()) {
+            List<PhieuGiamGiaCaNhan> listCaNhan = new ArrayList<>();
+
+            for (Integer khId : req.getCustomerIds()) {
+                KhachHang kh = khachHangRepo.findById(khId).orElse(null);
+
+                if (kh != null && kh.getTrangThai() == 1) {
+                    PhieuGiamGiaCaNhan pggCn = new PhieuGiamGiaCaNhan();
+                    pggCn.setPhieuGiamGia(savedVoucher);
+                    pggCn.setKhachHang(kh);
+                    pggCn.setNgayNhan(LocalDateTime.now());
+                    pggCn.setDaSuDung(false);
+                    pggCn.setTrangThai(1);
+                    pggCn.setMaPhieuKhachHang(savedVoucher.getMaPhieuGiamGia() + "-KH" + kh.getId());
+
+                    listCaNhan.add(pggCn);
+                }
+            }
+            if (!listCaNhan.isEmpty()) {
+                pggCaNhanRepo.saveAll(listCaNhan);
+            }
+        }
+
+        return savedVoucher;
+    }
+
+    // 4. Hàm Bật/Tắt trạng thái (Có logic gia hạn)
     public void toggleStatus(Integer id, LocalDateTime newEndDate) {
         PhieuGiamGia pgg = repository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy"));
         LocalDateTime now = LocalDateTime.now();
@@ -108,7 +166,6 @@ public class PhieuGiamGiaServiceImpl {
             pgg.setTrangThai(0);
         } else {
             if (pgg.getNgayKetThuc().isBefore(now)) {
-                // SỬA: Check pgg.getKieu() thay vì getLoaiPhieu()
                 if ("CongKhai".equals(pgg.getKieu())) {
                     if (newEndDate == null || newEndDate.isBefore(now)) {
                         throw new RuntimeException("Voucher đã hết hạn. Vui lòng nhập ngày kết thúc mới!");
@@ -125,7 +182,7 @@ public class PhieuGiamGiaServiceImpl {
         repository.save(pgg);
     }
 
-    // 4. Xuất Excel
+    // 5. Xuất Excel
     public byte[] exportExcel() throws IOException {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Vouchers");

@@ -175,4 +175,46 @@ public class PhieuGiamGiaController {
 
         return ResponseEntity.ok(result);
     }
+    // 6. API Lấy chi tiết 1 phiếu giảm giá (Dùng cho màn hình chỉnh sửa)
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getChiTietPhieu(@PathVariable Integer id) {
+        // Lấy phiếu giảm giá từ DB
+        PhieuGiamGia voucher = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu giảm giá"));
+
+        // Dùng Map để linh hoạt trả về thêm mảng customerIds (nếu là phiếu cá nhân)
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("id", voucher.getId());
+        response.put("maPhieuGiamGia", voucher.getMaPhieuGiamGia());
+        response.put("tenPhieuGiamGia", voucher.getTenPhieuGiamGia());
+        response.put("loaiPhieu", voucher.getLoaiPhieu());
+        response.put("giaTriGiam", voucher.getGiaTriGiam());
+        response.put("donHangToiThieu", voucher.getDonHangToiThieu());
+        response.put("soLuong", voucher.getSoLuong());
+        response.put("kieu", voucher.getKieu());
+        response.put("trangThai", voucher.getTrangThai());
+        response.put("ngayBatDau", voucher.getNgayBatDau());
+        response.put("ngayKetThuc", voucher.getNgayKetThuc());
+response.put("moTa", voucher.getMoTa());
+        // NẾU là phiếu cá nhân -> Lấy thêm danh sách ID khách hàng để Frontend tích sẵn checkbox
+        if ("CaNhan".equals(voucher.getKieu()) || "1".equals(voucher.getKieu())) {
+            List<PhieuGiamGiaCaNhan> listKhachHang = pggCaNhanRepo.findByPhieuGiamGiaId(id);
+            List<Integer> customerIds = listKhachHang.stream()
+                    .map(item -> item.getKhachHang().getId())
+                    .collect(Collectors.toList());
+            response.put("customerIds", customerIds);
+        }
+
+        return ResponseEntity.ok(response);
+    }
+    // 7. API Cập nhật phiếu giảm giá
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody PhieuGiamGiaRequest req) {
+        try {
+            // Gọi sang service để xử lý lưu
+            return ResponseEntity.ok(service.update(id, req));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
 }

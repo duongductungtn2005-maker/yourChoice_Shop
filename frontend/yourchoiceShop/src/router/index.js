@@ -209,6 +209,19 @@ const router = createRouter({
           name: "AdminThongKe",
           component: ThongKeView,
         },
+        {
+  path: '/admin/sale/edit/:id', // Bắt buộc phải có :id ở đây
+  name: 'admin-sale-edit',
+  component: () => import('@/views/admin/promotion/EditDotGiamGia.vue') // Trỏ đúng đường dẫn file của mày
+},
+{
+    path: '/admin/giam-gia/phieu/sua/:id', // Đường dẫn có chứa tham số động :id
+    name: 'admin-voucher-edit',            // Tên route phải khớp y xì đúc với tên trong hàm router.push()
+    component: () => import('@/views/admin/voucher/VoucherEdit.vue'), // Import lazy-load (thay đường dẫn trỏ tới file Edit của mày)
+    meta: {
+      title: 'Chỉnh sửa phiếu giảm giá' // Tùy chọn: dùng để set title cho tab trình duyệt nếu dự án mày có setup
+    }
+  },
       ],
     },
 

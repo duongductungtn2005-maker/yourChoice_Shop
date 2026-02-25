@@ -2,22 +2,27 @@
   <div class="page-container">
     <div class="header-row">
        <div class="header-title">
-          <h3 style="color: #1e293b;">Thêm đợt giảm giá</h3>
+          <h3 style="color: #1e293b;">Cập nhật đợt giảm giá</h3>
        </div>
        <button type="button" @click="$router.go(-1)" class="btn btn-back">
           <i class="fas fa-arrow-left"></i> Quay lại
        </button>
     </div>
 
-    <div class="split-layout">
+    <div v-if="isLoadingData" class="text-center py-5">
+        <i class="fas fa-spinner fa-spin fa-2x" style="color: #1e3a8a;"></i> 
+        <div class="mt-2 font-bold" style="color: #475569;">Đang tải dữ liệu đợt giảm giá...</div>
+    </div>
+
+    <div v-else class="split-layout">
       
       <div class="card left-panel">
         <h4 class="panel-title">Thông tin đợt giảm giá</h4>
         
         <div class="form-container">
             <div class="form-group">
-                <label>Mã đợt (Tự động sinh)</label>
-                <input value="Mã tự sinh (DGG-...)" class="form-control input-den" disabled style="background-color: #f8fafc; color: #64748b;" />
+                <label>Mã đợt</label>
+                <input v-model="form.maDotGiamGia" class="form-control input-den" disabled style="background-color: #f8fafc; color: #64748b;" />
             </div>
 
             <div class="form-group">
@@ -39,11 +44,19 @@
                 <label>Ngày kết thúc <span class="required">*</span></label>
                 <input v-model="form.ngayKetThuc" type="datetime-local" class="form-control input-den" />
             </div>
+
+            <div class="form-group">
+                <label>Trạng thái</label>
+                <select v-model="form.trangThai" class="form-control input-den">
+                    <option :value="1">Đang diễn ra</option>
+                    <option :value="0">Ngừng hoạt động</option>
+                </select>
+            </div>
         </div>
         
         <div class="form-footer">
-            <button type="button" @click="createSale" class="btn btn-create">
-                <i class="fas fa-plus"></i> Tạo đợt giảm giá
+            <button type="button" @click="updateSale" class="btn btn-create">
+                <i class="fas fa-save"></i> Lưu thay đổi
             </button>
         </div>
       </div>
@@ -130,7 +143,7 @@
       </div>
     </div>
 
-    <div class="card bottom-panel mt-3" v-if="selectedVariants.length > 0">
+    <div class="card bottom-panel mt-3" v-if="selectedVariants.length > 0 && !isLoadingData">
         <div class="panel-header">
             <h4>Danh sách chi tiết sản phẩm được chọn ({{ selectedVariants.length }})</h4>
             <div class="action-right">
@@ -241,18 +254,23 @@
 
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import request from '@/services/request';
-import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 
 const Toast = Swal.mixin({
     toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
 });
+
+const route = useRoute();
 const router = useRouter();
+const discountId = route.params.id; // Lấy ID từ param của vue-router
+
+const isLoadingData = ref(true);
 
 // === FORM STATE ===
 const form = reactive({
-    tenDotGiamGia: '', giaTriGiam: 0, loaiGiamGia: '%', 
+    maDotGiamGia: '', tenDotGiamGia: '', giaTriGiam: 0, loaiGiamGia: '%', 
     ngayBatDau: '', ngayKetThuc: '', trangThai: 1, idChiTietSanPhams: [] 
 });
 
@@ -277,14 +295,80 @@ const detailFilter = reactive({ thuongHieu: '', chatLieu: '', kichThuoc: '', mau
 const detailPage = ref(1);
 const detailPageSize = 5;
 
+// Hàm format ngày giờ để bind vào thẻ <input type="datetime-local">
+const formatDateTimeForInput = (dateString) => {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    // Tùy theo config backend, nếu lệch múi giờ thì uncomment dòng dưới để +7h
+    // d.setHours(d.getHours() + 7); 
+    return d.toISOString().slice(0, 16); 
+};
+
+// --- API LẤY DATA CŨ ---
+// --- API LẤY DATA CŨ ---
+// --- API LẤY DATA CŨ VÀ SẢN PHẨM ---
+const fetchDiscountDetail = async () => {
+    try {
+        // 1. Gọi API thứ nhất: Lấy thông tin đợt giảm giá
+        const res = await request.get(`/dot-giam-gia/${discountId}`);
+        const data = res.data.data || res.data;
+        
+        form.maDotGiamGia = data.maDotGiamGia;
+        form.tenDotGiamGia = data.tenDotGiamGia;
+        form.giaTriGiam = data.giaTriGiam;
+        form.ngayBatDau = formatDateTimeForInput(data.ngayBatDau);
+        form.ngayKetThuc = formatDateTimeForInput(data.ngayKetThuc);
+        form.trangThai = data.trangThai;
+
+        // 2. Gọi API thứ hai (cái mày viết sẵn): Lấy danh sách sản phẩm
+        const resProducts = await request.get(`/dot-giam-gia/${discountId}/products`);
+        const listChiTiet = resProducts.data.data || resProducts.data || [];
+
+        if (listChiTiet && listChiTiet.length > 0) {
+            selectedVariants.value = listChiTiet.map(item => {
+                // API của mày nhả ra List<ChiTietDotGiamGia>, 
+                // nên thông tin sản phẩm sẽ nằm trong field chiTietSanPham
+                const v = item.chiTietSanPham; 
+                if (!v) return null;
+
+                const idCha = v.sanPham?.id || v.idSanPham || null;
+
+                return {
+                    id: v.id,
+                    maCtsp: v.maCtsp,
+                    tenSanPham: v.sanPham?.tenSanPham || v.tenSanPham || 'Sản phẩm',
+                    
+                    // --- ĐÃ SỬA CHỖ NÀY: Bao quát cả trường hợp lồng Object ---
+                    tenThuongHieu: v.thuongHieu?.tenThuongHieu || v.tenThuongHieu || v.sanPham?.thuongHieu?.tenThuongHieu || v.sanPham?.tenThuongHieu || '-',
+                    tenChatLieu: v.chatLieu?.tenChatLieu || v.tenChatLieu || v.sanPham?.chatLieu?.tenChatLieu || v.sanPham?.tenChatLieu || '-',
+                    
+                    tenKichThuoc: v.kichThuoc?.tenKichThuoc || v.tenKichThuoc || '-',
+                    tenMauSac: v.mauSac?.tenMauSac || v.tenMauSac || '-',
+                    hinhAnh: v.listAnh && v.listAnh.length > 0 ? v.listAnh[0] : (v.hinhAnh || v.sanPham?.hinhAnh || ''),
+                    giaBan: v.giaBan,
+                    parentId: idCha 
+                };
+            }).filter(v => v !== null); // Lọc bỏ nếu bị null
+
+            // 3. Tự động tích xanh các ô vuông ở bảng trên
+            const parentIds = [...new Set(selectedVariants.value.map(v => v.parentId).filter(id => id))];
+            selectedParentIds.value = parentIds;
+        }
+
+    } catch (error) {
+        console.error("Lỗi lấy chi tiết:", error);
+        Toast.fire({ icon: 'error', title: 'Không tìm thấy chi tiết đợt giảm giá!' });
+    } finally {
+        isLoadingData.value = false;
+    }
+};
+
 // --- API LOAD OPTIONS ---
 const fetchFilterOptions = async () => {
     try {
         const [ms, kt, th, cl] = await Promise.all([
-            request.get('/mau-sac?size=100&status=1'),
-            request.get('/kich-thuoc?size=100&status=1'),
-            request.get('/thuong-hieu?size=100&status=1'),
-            request.get('/chat-lieu?size=100&status=1')
+            request.get('/mau-sac?size=100&status=1'), request.get('/kich-thuoc?size=100&status=1'),
+            request.get('/thuong-hieu?size=100&status=1'), request.get('/chat-lieu?size=100&status=1')
         ]);
         options.mauSac = ms.data.content || ms.data || [];
         options.kichThuoc = kt.data.content || kt.data || [];
@@ -298,9 +382,7 @@ const loadParentProducts = async () => {
     loadingProd.value = true;
     try {
         const res = await request.get('/products', { 
-            params: {
-                page: page.value, size: pageSize.value, keyword: filter.keyword, status: 1 
-            }
+            params: { page: page.value, size: pageSize.value, keyword: filter.keyword, status: 1 }
         });
         parentProducts.value = res.data.content;
         totalPages.value = res.data.totalPages;
@@ -310,32 +392,26 @@ const loadParentProducts = async () => {
 const changePage = (p) => { if (p >= 0 && p < totalPages.value) { page.value = p; loadParentProducts(); } };
 const resetFilter = () => { filter.keyword = ''; filter.mauSacId = ''; filter.kichThuocId = ''; page.value = 0; loadParentProducts(); };
 
-// --- LOGIC FETCH VARIANTS & MAPPING DATA (ĐÃ SỬA) ---
+// --- LOGIC FETCH VARIANTS & MAPPING DATA ---
 const fetchVariantsByProductId = async (parentId) => {
     try {
         const res = await request.get(`/products/${parentId}/variants`);
         const variants = Array.isArray(res.data) ? res.data : (res.data.content || []);
-        
-        // Tìm thông tin cha để fill nếu thiếu
         const parent = parentProducts.value.find(p => p.id === parentId);
 
         return variants.map(v => ({
-            id: v.id,
+            id: v.id, 
             maCtsp: v.maCtsp,
             tenSanPham: v.sanPham?.tenSanPham || parent?.tenSanPham || 'Sản phẩm',
             
-            // --- FIX: Ưu tiên lấy trường phẳng (Flat) từ API ---
-            tenThuongHieu: v.tenThuongHieu || parent?.tenThuongHieu || v.sanPham?.tenThuongHieu || '-',
-            tenChatLieu: v.tenChatLieu || parent?.tenChatLieu || v.sanPham?.tenChatLieu || '-',
+            // --- ĐÃ SỬA CHỖ NÀY ---
+            tenThuongHieu: v.thuongHieu?.tenThuongHieu || v.tenThuongHieu || parent?.thuongHieu?.tenThuongHieu || parent?.tenThuongHieu || v.sanPham?.thuongHieu?.tenThuongHieu || v.sanPham?.tenThuongHieu || '-',
+            tenChatLieu: v.chatLieu?.tenChatLieu || v.tenChatLieu || parent?.chatLieu?.tenChatLieu || parent?.tenChatLieu || v.sanPham?.chatLieu?.tenChatLieu || v.sanPham?.tenChatLieu || '-',
             
-            // Mấy cái này thường nằm trong object con thì giữ nguyên hoặc thêm fallback
             tenKichThuoc: v.kichThuoc?.tenKichThuoc || v.tenKichThuoc || '-',
             tenMauSac: v.mauSac?.tenMauSac || v.tenMauSac || '-',
-            
-            // Map Ảnh
             hinhAnh: v.listAnh && v.listAnh.length > 0 ? v.listAnh[0] : (v.hinhAnh || parent?.hinhAnh || ''),
-            
-            giaBan: v.giaBan,
+            giaBan: v.giaBan, 
             parentId: parentId 
         }));
     } catch (e) { console.error(e); return []; }
@@ -359,16 +435,14 @@ const toggleAllParent = async (e) => {
     if (e.target.checked) {
         for (const id of currentIds) {
             if (!selectedParentIds.value.includes(id)) {
-                selectedParentIds.value.push(id);
-                await handleSelectParent(id);
+                selectedParentIds.value.push(id); await handleSelectParent(id);
             }
         }
     } else {
         for (const id of currentIds) {
             const idx = selectedParentIds.value.indexOf(id);
             if (idx > -1) {
-                selectedParentIds.value.splice(idx, 1);
-                handleSelectParent(id);
+                selectedParentIds.value.splice(idx, 1); handleSelectParent(id);
             }
         }
     }
@@ -395,11 +469,7 @@ const paginatedDetails = computed(() => {
 });
 
 const changeDetailPage = (p) => { if(p >= 1 && p <= detailTotalPages.value) detailPage.value = p; };
-const resetDetailFilter = () => { 
-    detailFilter.thuongHieu = ''; detailFilter.chatLieu = ''; 
-    detailFilter.kichThuoc = ''; detailFilter.mauSac = ''; 
-    detailPage.value = 1; 
-};
+const resetDetailFilter = () => { detailFilter.thuongHieu = ''; detailFilter.chatLieu = ''; detailFilter.kichThuoc = ''; detailFilter.mauSac = ''; detailPage.value = 1; };
 
 const isAllDetailSelected = computed(() => {
     if (paginatedDetails.value.length === 0) return false;
@@ -426,18 +496,19 @@ const clearAllSelection = () => {
     selectedDetailIds.value = [];
 };
 
-// --- SUBMIT ---
-const createSale = async () => {
+// --- SUBMIT UPDATE ---
+const updateSale = async () => {
     if(!form.tenDotGiamGia.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên đợt giảm giá' });
     if(form.giaTriGiam <= 0) return Toast.fire({ icon: 'warning', title: 'Mức giảm phải > 0' });
     if(!form.ngayBatDau || !form.ngayKetThuc) return Toast.fire({ icon: 'warning', title: 'Chọn thời gian' });
+    
     form.idChiTietSanPhams = selectedVariants.value.map(v => v.id);
     if(form.idChiTietSanPhams.length === 0) return Toast.fire({ icon: 'warning', title: 'Chưa chọn sản phẩm nào' });
 
     try {
-        await request.post('/dot-giam-gia', form);
-        localStorage.setItem('saleSuccessMessage', 'Tạo đợt giảm giá thành công!');
-        router.push({ name: 'admin-sale-list' });
+        await request.put(`/dot-giam-gia/${discountId}`, form);
+        localStorage.setItem('saleSuccessMessage', 'Cập nhật đợt giảm giá thành công!');
+        router.push({ name: 'admin-sale-list' }); // Sửa lại đúng name trang list của mày
     } catch (e) {
         console.error(e);
         Toast.fire({ icon: 'error', title: e.response?.data?.message || 'Có lỗi xảy ra' });
@@ -452,14 +523,17 @@ const getColorCode = (name) => {
     return map[name] || '#e5e7eb';
 };
 
-// Hàm lấy màu cho Badge %
 const getBadgeColor = (percent) => {
     if (percent < 50) return '#ef4444'; // Đỏ
     if (percent >= 50 && percent <= 70) return '#eab308'; // Vàng
     return '#22c55e'; // Xanh lá
 };
 
-onMounted(() => { fetchFilterOptions(); loadParentProducts(); });
+onMounted(() => { 
+    fetchFilterOptions(); 
+    loadParentProducts(); 
+    fetchDiscountDetail(); // Load data đợt giảm giá cũ
+});
 </script>
 
 <style scoped>
@@ -512,7 +586,7 @@ onMounted(() => { fetchFilterOptions(); loadParentProducts(); });
 .prod-code { font-family: monospace; color: #2563eb; font-weight: 600; }
 .prod-name { font-weight: 600; color: #1e293b; }
 
-/* BADGE & PRICING MỚI THÊM */
+/* BADGE & PRICING */
 .discount-badge { position: absolute; top: -6px; right: -8px; color: white; font-size: 10px; font-weight: bold; padding: 2px 4px; border-radius: 10px; z-index: 10; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
 .old-price { text-decoration: line-through; color: #94a3b8; font-size: 12px; margin-bottom: 2px; }
 .new-price { color: #ef4444; }

@@ -106,9 +106,9 @@
 
             <td class="action-col">
               <div class="action-wrapper">
-                  <button class="icon-btn" title="Xem sản phẩm" @click="openModal(item)">
-                      <i class="far fa-eye"></i>
-                  </button>
+                  <button @click="goToEdit(item.id)" class="icon-btn" title="Xem sản phẩm"">
+    <i class="fas fa-eye"></i>
+</button>
 
                   <label class="switch" title="Bật/Tắt trạng thái">
                       <input 
@@ -200,6 +200,14 @@ import { ref, onMounted, computed } from 'vue';
 import request from '@/services/request';
 import Swal from 'sweetalert2';
 import { toastSuccess, toastError } from '@/utils/toast';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const goToEdit = (id) => {
+    // Tên name 'admin-sale-edit' phải khớp với name mày đặt ở Bước 1
+    router.push({ name: 'admin-sale-edit', params: { id: id } });
+};
 
 const list = ref([]);
 const filter = ref({ keyword: '', startDate: '', endDate: '', status: '' });
