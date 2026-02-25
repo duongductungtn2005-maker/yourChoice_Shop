@@ -16,7 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -26,9 +26,10 @@ import java.util.stream.Collectors;
 import org.example.yourchoiceshop.dto.request.HoaDonRequest; // <--- Import DTO mớiimport org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.ByteArrayOutputStream;
-
+import org.springframework.data.jpa.repository.EntityGraph; // Thêm import này
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true) // THÊM DÒNG NÀY CHO TOÀN BỘ CLASS
 public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implements HoaDonService
 
     private final HoaDonRepository hoaDonRepo;
@@ -37,7 +38,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
     @Override // <--- Thêm Override cho chắc chắn
     public Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, LocalDateTime from,
-            LocalDateTime to, Pageable pageable) {
+                                          LocalDateTime to, Pageable pageable) {
         Page<HoaDon> page = hoaDonRepo.searchOrders(keyword, status, type, from, to, pageable);
 
         return page.map(hd -> {
@@ -260,7 +261,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
                 row.createCell(3).setCellValue(hd.getNgayTao().toString());
                 row.createCell(4).setCellValue(convertTypeToDisplay(hd.getLoaiHoaDon()));
                 row.createCell(5).setCellValue(convertStatusToText(hd.getTrangThai())); // Bạn tự viết hàm convert int
-                                                                                        // -> String nhé
+                // -> String nhé
                 row.createCell(6).setCellValue(hd.getTongTienSauGiam().doubleValue());
             }
 

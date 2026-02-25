@@ -98,4 +98,9 @@ public class ProductController {
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(new InputStreamResource(in));
     }
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateProduct(@PathVariable Integer id, @RequestBody CreateProductRequest request) {
+        // Bạn cần đảm bảo method updateProduct đã tồn tại trong ProductService
+        return ResponseEntity.ok(productService.updateProduct(id, request));
+    }
 }

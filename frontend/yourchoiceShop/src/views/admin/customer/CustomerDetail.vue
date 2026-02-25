@@ -146,6 +146,8 @@ import axios from 'axios';
 const route = useRoute();
 const router = useRouter();
 const id = route.params.id; // ID Khách hàng
+const role = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
+const customerListRouteName = role === 'STAFF' ? 'staff-customer-list' : 'admin-customer-list';
 
 // --- STATE KHÁCH HÀNG ---
 const loading = ref(false);
@@ -290,7 +292,7 @@ const updateCustomer = async () => {
         if(avatarFile.value) fd.append('avatarFile', avatarFile.value);
         await request.put(`/khach-hang/${id}`, fd);
         await Swal.fire({ icon: 'success', title: 'Thành công', timer: 1500, showConfirmButton: false });
-        router.push({ name: 'admin-customer-list' });
+        router.push({ name: customerListRouteName });
     } catch(e) { console.error(e); Swal.fire('Lỗi', 'Không thể cập nhật thông tin', 'error'); } finally { loading.value = false; }
 };
 

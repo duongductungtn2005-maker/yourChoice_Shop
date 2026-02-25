@@ -29,7 +29,15 @@
             
             <!-- User Dropdown -->
             <div v-if="isUserDropdownOpen" class="user-dropdown">
-              <router-link to="/login" class="dropdown-btn login-btn" @click="isUserDropdownOpen = false">
+              <template v-if="isCustomerLoggedIn">
+                <div class="dropdown-btn customer-label">
+                  <i class="fas fa-user-check"></i> Đã đăng nhập
+                </div>
+                <button class="dropdown-btn" @click="handleLogout">
+                  <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </button>
+              </template>
+              <router-link v-else to="/login" class="dropdown-btn login-btn" @click="isUserDropdownOpen = false">
                 <i class="fas fa-sign-in-alt"></i> Đăng nhập
               </router-link>
             </div>
@@ -83,10 +91,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { toastSuccess } from '@/utils/toast';
 
+const router = useRouter();
 const isScrolled = ref(false);
 const isUserDropdownOpen = ref(false);
+const userRole = ref('');
+const hasToken = ref(false);
+const isCustomerLoggedIn = computed(() => hasToken.value && userRole.value === 'CUSTOMER');
 
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 50;
@@ -96,12 +110,30 @@ const toggleUserDropdown = () => {
   isUserDropdownOpen.value = !isUserDropdownOpen.value;
 };
 
+const loadAuthState = () => {
+  userRole.value = String(localStorage.getItem('userRole') || '').toUpperCase();
+  hasToken.value = !!localStorage.getItem('token');
+};
+
+const handleLogout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('userRole');
+  isUserDropdownOpen.value = false;
+  loadAuthState();
+  toastSuccess('Đăng xuất thành công!');
+  router.push('/');
+};
+
 // Xử lý ảnh lỗi logo
 const handleImageError = (e) => {
     e.target.style.display = 'none'; 
 };
 
-onMounted(() => window.addEventListener('scroll', handleScroll));
+onMounted(() => {
+  loadAuthState();
+  window.addEventListener('scroll', handleScroll);
+});
 onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 </script>
 
@@ -200,6 +232,12 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 .dropdown-btn:hover {
   background-color: #f1f5f9;
   color: #1e3a8a;
+}
+
+.customer-label {
+  cursor: default;
+  color: #0f172a;
+  font-weight: 600;
 }
 
 .login-btn {

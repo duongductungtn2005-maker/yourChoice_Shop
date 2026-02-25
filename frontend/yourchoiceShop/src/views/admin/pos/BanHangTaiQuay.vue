@@ -282,26 +282,56 @@
       </div>
 
       <div class="payment-tabs">
-        <div class="tab-item" :class="{ active: paymentMethod === 'TRANSFER' }" @click="paymentMethod = 'TRANSFER'">
-          Chuyển khoản
-        </div>
-        <div class="tab-item" :class="{ active: paymentMethod === 'CASH' }" @click="paymentMethod = 'CASH'">
-          Tiền mặt
-        </div>
-      </div>
+  <div
+    class="tab-item"
+    :class="{ active: paymentMethod === 'TRANSFER' }"
+    @click="paymentMethod = 'TRANSFER'"
+  >
+    Chuyển khoản
+  </div>
 
-      <div v-if="paymentMethod === 'CASH'">
-        <input v-model.number="customerCash" type="number" class="search-input" placeholder="Tiền khách đưa" />
-        <div class="p-price">
-          Còn lại: {{ formatMoney(calculateRemaining) }}
-        </div>
-      </div>
+  <div
+    class="tab-item"
+    :class="{ active: paymentMethod === 'CASH' }"
+    @click="paymentMethod = 'CASH'"
+  >
+    Tiền mặt
+  </div>
+</div>
 
-      <div class="payment-footer">
-        <button class="btn-submit-payment" @click="confirmCreateOrder">
-          Xác nhận thanh toán
-        </button>
-      </div>
+<!-- CASH -->
+<div v-if="paymentMethod === 'CASH'">
+  <input
+    v-model.number="customerCash"
+    type="number"
+    class="search-input"
+    placeholder="Tiền khách đưa"
+  />
+  <div class="p-price">
+    Còn lại: {{ formatMoney(calculateRemaining) }}
+  </div>
+</div>
+
+<!-- TRANSFER -->
+<div v-if="paymentMethod === 'TRANSFER'" class="qr-section">
+  <div class="qr-code">
+    <img :src="qrImageUrl" alt="QR chuyển khoản" />
+  </div>
+
+  <div class="p-price">
+    Số tiền: {{ formatMoney(totalPrice) }}
+  </div>
+
+  <div style="font-size: 13px; color: #6b7280">
+    Nội dung: THANH TOAN HOA DON
+  </div>
+</div>
+
+<div class="payment-footer">
+  <button class="btn-submit-payment" @click="confirmCreateOrder">
+    Xác nhận thanh toán
+  </button>
+</div>
     </div>
   </div>
 </template>
@@ -650,6 +680,14 @@ const confirmCreateOrder = async () => {
   showPaymentModal.value = false
   await handleCreateOrder()
 }
+const qrImageUrl = computed(() => {
+  const bank = '970422' // MB Bank ví dụ
+  const account = '123456789'
+  const name = 'NGUYEN VAN A'
+  const amount = totalPrice.value
+
+  return `https://img.vietqr.io/image/${bank}-${account}-compact.png?amount=${amount}&addInfo=THANH TOAN HOA DON&accountName=${encodeURIComponent(name)}`
+})
 </script>
 
 <style scoped>

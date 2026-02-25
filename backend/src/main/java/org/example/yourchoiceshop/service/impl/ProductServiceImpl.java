@@ -14,7 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime; // <--- QUAN TRỌNG: Import thư viện ngày giờ
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -41,7 +41,7 @@ public class ProductServiceImpl {
     private final KichThuocRepository kichThuocRepo;
     private final HinhAnhRepository hinhAnhRepo;
 
-    // 1. LẤY DANH SÁCH (CHO TRANG LIST)
+    // 1. LẤY DANH SÁCH
     public Page<ProductResponse> getAllProducts(
             String keyword, Integer status,
             Integer idThuongHieu, Integer idChatLieu, Integer idXuatXu, Integer idCoAo, Integer idTayAo,
@@ -59,21 +59,16 @@ public class ProductServiceImpl {
     public SanPham createProduct(CreateProductRequest req) {
         SanPham sp = new SanPham();
 
-        // --- XỬ LÝ MÃ SẢN PHẨM ---
         if (req.getMaSanPham() == null || req.getMaSanPham().isEmpty()) {
             sp.setMaSanPham("SP" + System.currentTimeMillis());
         } else {
             sp.setMaSanPham(req.getMaSanPham());
         }
 
-        // --- GÁN THÔNG TIN CƠ BẢN ---
         sp.setTenSanPham(req.getTenSanPham());
         sp.setMoTaChiTiet(req.getMoTa());
         sp.setTrangThai(1);
-
-        // --- FIX LỖI: GÁN NGÀY TẠO HIỆN TẠI ---
         sp.setNgayTao(LocalDateTime.now());
-        // --------------------------------------
 
         if(req.getIdThuongHieu() != null) sp.setThuongHieu(thuongHieuRepo.findById(req.getIdThuongHieu()).orElse(null));
         if(req.getIdChatLieu() != null) sp.setChatLieu(chatLieuRepo.findById(req.getIdChatLieu()).orElse(null));
@@ -83,17 +78,12 @@ public class ProductServiceImpl {
 
         SanPham savedSp = sanPhamRepo.save(sp);
 
-        // --- XỬ LÝ BIẾN THỂ (GIỮ NGUYÊN) ---
         if (req.getVariants() != null && !req.getVariants().isEmpty()) {
             Set<String> uniqueCheck = new HashSet<>();
-
             for (ProductVariantRequest vReq : req.getVariants()) {
                 String key = vReq.getIdMauSac() + "-" + vReq.getIdKichThuoc();
-
                 if (!uniqueCheck.contains(key)) {
                     uniqueCheck.add(key);
-
-                    // Tạo biến thể
                     ChiTietSanPham variant = new ChiTietSanPham();
                     variant.setSanPham(savedSp);
                     if(vReq.getIdMauSac() != null) variant.setMauSac(mauSacRepo.findById(vReq.getIdMauSac()).orElse(null));
@@ -107,7 +97,6 @@ public class ProductServiceImpl {
 
                     ChiTietSanPham savedVariant = chiTietRepo.save(variant);
 
-                    // Lưu ảnh
                     if (vReq.getListAnh() != null && !vReq.getListAnh().isEmpty()) {
                         List<HinhAnh> listHinhAnh = new ArrayList<>();
                         for (String url : vReq.getListAnh()) {
@@ -141,14 +130,52 @@ public class ProductServiceImpl {
         chiTietRepo.saveAll(childs);
     }
 
-    // 4. LẤY CHI TIẾT SẢN PHẨM CHA
+    // =========================================================================
+    // 4. CẬP NHẬT SẢN PHẨM (QUAN TRỌNG: Thêm mới method này để Fix lỗi 405)
+    // =========================================================================
+    @Transactional
+    public ProductResponse updateProduct(Integer id, CreateProductRequest req) {
+        SanPham sp = sanPhamRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm ID: " + id));
+
+        // Cập nhật thông tin cơ bản
+        sp.setTenSanPham(req.getTenSanPham());
+        sp.setMoTaChiTiet(req.getMoTa());
+
+        // Cập nhật trạng thái (Đây là chỗ xử lý nút Bật/Tắt)
+        sp.setTrangThai(req.getTrangThai());
+
+        // Cập nhật các mối quan hệ (Thuộc tính)
+        if(req.getIdThuongHieu() != null) sp.setThuongHieu(thuongHieuRepo.findById(req.getIdThuongHieu()).orElse(null));
+        else sp.setThuongHieu(null);
+
+        if(req.getIdChatLieu() != null) sp.setChatLieu(chatLieuRepo.findById(req.getIdChatLieu()).orElse(null));
+        else sp.setChatLieu(null);
+
+        if(req.getIdXuatXu() != null) sp.setXuatXu(xuatXuRepo.findById(req.getIdXuatXu()).orElse(null));
+        else sp.setXuatXu(null);
+
+        if(req.getIdCoAo() != null) sp.setCoAo(coAoRepo.findById(req.getIdCoAo()).orElse(null));
+        else sp.setCoAo(null);
+
+        if(req.getIdTayAo() != null) sp.setTayAo(tayAoRepo.findById(req.getIdTayAo()).orElse(null));
+        else sp.setTayAo(null);
+
+        // Lưu thay đổi
+        SanPham savedSp = sanPhamRepo.save(sp);
+
+        return mapToProductResponse(savedSp);
+    }
+    // =========================================================================
+
+    // 5. LẤY CHI TIẾT SẢN PHẨM CHA
     public ProductResponse getProductById(Integer id) {
         SanPham sp = sanPhamRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm ID: " + id));
         return mapToProductResponse(sp);
     }
 
-    // 5. LẤY DANH SÁCH BIẾN THỂ
+    // 6. LẤY DANH SÁCH BIẾN THỂ
     public List<VariantResponse> getVariantsByProductId(Integer productId) {
         List<ChiTietSanPham> entities = chiTietRepo.findBySanPhamId(productId);
 
@@ -184,7 +211,7 @@ public class ProductServiceImpl {
         }).collect(Collectors.toList());
     }
 
-    // --- MAP ENTITY -> DTO ---
+    // MAPPER
     private ProductResponse mapToProductResponse(SanPham sp) {
         Integer tongSoLuong = chiTietRepo.sumSoLuongBySanPhamId(sp.getId());
 
@@ -208,7 +235,7 @@ public class ProductServiceImpl {
                 sp.getId(),
                 sp.getMaSanPham(),
                 sp.getTenSanPham(),
-                sp.getNgayTao(), // Đảm bảo trường này là LocalDateTime
+                sp.getNgayTao(),
                 tongSoLuong != null ? tongSoLuong : 0,
                 sp.getTrangThai(),
                 sp.getThuongHieu() != null ? sp.getThuongHieu().getTenThuongHieu() : "",
@@ -263,7 +290,7 @@ public class ProductServiceImpl {
         chiTietRepo.save(variant);
     }
 
-    // BULK UPDATE
+    // BULK UPDATE VARIANT
     @Transactional
     public void bulkUpdateVariants(List<BulkUpdateVariantRequest> requests) {
         for (BulkUpdateVariantRequest req : requests) {

@@ -38,7 +38,7 @@
             <font-awesome-icon :icon="['fas', 'file-excel']" /> Xuất Excel
           </button>
           
-          <button class="btn btn-gradient" @click="$router.push({ name: 'admin-customer-create' })">
+          <button class="btn btn-gradient" @click="$router.push({ name: customerCreateRouteName })">
             <font-awesome-icon :icon="['fas', 'plus']" /> Thêm mới
           </button>
         </div>
@@ -152,6 +152,9 @@ const pageSize = ref(10);
 const totalPages = ref(1);
 const filter = reactive({ keyword: '', gioiTinh: null, trangThai: null });
 const API_URL = '/khach-hang'; 
+const role = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
+const customerCreateRouteName = computed(() => (role === 'STAFF' ? 'staff-customer-create' : 'admin-customer-create'));
+const customerDetailRouteName = computed(() => (role === 'STAFF' ? 'staff-customer-detail' : 'admin-customer-detail'));
 
 // FETCH DATA
 const fetchData = async () => {
@@ -238,7 +241,7 @@ const exportExcel = async () => {
 
 const changePage = (p) => { if (p >= 1 && p <= totalPages.value) { page.value = p; fetchData(); } };
 const handlePageSizeChange = () => { page.value = 1; fetchData(); };
-const viewDetail = (item) => { router.push({ name: 'admin-customer-detail', params: { id: item.id } }); };
+const viewDetail = (item) => { router.push({ name: customerDetailRouteName.value, params: { id: item.id } }); };
 
 let searchTimer = null;
 watch(() => filter.keyword, () => {
