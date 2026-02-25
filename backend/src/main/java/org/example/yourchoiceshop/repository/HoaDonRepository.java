@@ -13,22 +13,24 @@ import java.util.Optional;
 
 public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
 
-    Optional<HoaDon> findByMaHoaDon(String maHoaDon);
+        Optional<HoaDon> findByMaHoaDon(String maHoaDon);
 
-    // THÊM DÒNG NÀY ĐỂ TỐI ƯU QUERY KHÁCH HÀNG
-    @EntityGraph(attributePaths = {"khachHang"})
-    @Query("SELECT h FROM HoaDon h WHERE " +
-            "(:keyword IS NULL OR h.maHoaDon LIKE %:keyword% OR h.tenNguoiNhan LIKE %:keyword%) AND " +
-            "(:status IS NULL OR h.trangThai = :status) AND " +
-            "(:type IS NULL OR h.loaiHoaDon = :type) AND " +
-            "(:fromDate IS NULL OR h.ngayTao >= :fromDate) AND " +
-            "(:toDate IS NULL OR h.ngayTao <= :toDate)")
-    Page<HoaDon> searchOrders(
-            @Param("keyword") String keyword,
-            @Param("status") Integer status,
-            @Param("type") String type,
-            @Param("fromDate") LocalDateTime fromDate,
-            @Param("toDate") LocalDateTime toDate,
-            Pageable pageable
-    );
+        // THÊM DÒNG NÀY ĐỂ TỐI ƯU QUERY KHÁCH HÀNG
+        @EntityGraph(attributePaths = { "khachHang", "nhanVien" })
+        @Query("""
+                            SELECT h FROM HoaDon h
+                            WHERE
+                                (:keyword IS NULL OR h.maHoaDon LIKE %:keyword% OR h.tenNguoiNhan LIKE %:keyword%)
+                                AND (:status IS NULL OR h.trangThai = :status)
+                                AND (:type IS NULL OR h.loaiHoaDon = :type)
+                                AND (:fromDate IS NULL OR h.ngayTao >= :fromDate)
+                                AND (:toDate IS NULL OR h.ngayTao <= :toDate)
+                        """)
+        Page<HoaDon> searchOrders(
+                        @Param("keyword") String keyword,
+                        @Param("status") Integer status,
+                        @Param("type") String type,
+                        @Param("fromDate") LocalDateTime fromDate,
+                        @Param("toDate") LocalDateTime toDate,
+                        Pageable pageable);
 }

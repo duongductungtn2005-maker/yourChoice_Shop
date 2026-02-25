@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="header-section">
       <div class="header-left">
-        <h1 class="page-title">Chi tiết đơn hàng</h1>
+        <h1 class="page-title">Chi tiết hóa đơn</h1>
         <div class="sub-info" v-if="!loading && order">
           <span>Mã đơn hàng: <strong class="text-primary">{{ order.maHoaDon }}</strong></span>
           <span class="divider">|</span>

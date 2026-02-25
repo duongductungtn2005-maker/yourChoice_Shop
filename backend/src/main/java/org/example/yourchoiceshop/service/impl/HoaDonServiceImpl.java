@@ -42,20 +42,34 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         Page<HoaDon> page = hoaDonRepo.searchOrders(keyword, status, type, from, to, pageable);
 
         return page.map(hd -> {
-            HoaDonResponse res = new HoaDonResponse();
-            res.setMaHoaDon(hd.getMaHoaDon());
-            int totalItems = hd.getHoaDonChiTiets() != null
-                    ? hd.getHoaDonChiTiets().stream().mapToInt(HoaDonChiTiet::getSoLuong).sum()
-                    : 0;
-            res.setTongSanPham(totalItems);
-            res.setTongTienSauGiam(hd.getTongTienSauGiam());
-            res.setTenKhachHang(hd.getTenNguoiNhan() != null ? hd.getTenNguoiNhan()
-                    : (hd.getKhachHang() != null ? hd.getKhachHang().getTenKhachHang() : "Khách lẻ"));
-            res.setNgayTao(hd.getNgayTao());
-            res.setLoaiHoaDon(convertTypeToDisplay(hd.getLoaiHoaDon()));
-            res.setTrangThai(hd.getTrangThai());
-            return res;
-        });
+    HoaDonResponse res = new HoaDonResponse();
+    res.setMaHoaDon(hd.getMaHoaDon());
+
+    int totalItems = hd.getHoaDonChiTiets() != null
+            ? hd.getHoaDonChiTiets().stream().mapToInt(HoaDonChiTiet::getSoLuong).sum()
+            : 0;
+    res.setTongSanPham(totalItems);
+
+    res.setTongTienSauGiam(hd.getTongTienSauGiam());
+
+    res.setTenKhachHang(
+            hd.getTenNguoiNhan() != null
+                    ? hd.getTenNguoiNhan()
+                    : (hd.getKhachHang() != null ? hd.getKhachHang().getTenKhachHang() : "Khách lẻ")
+    );
+
+    // ✅ CHỖ QUYẾT ĐỊNH
+    res.setTenNhanVien(
+            hd.getNhanVien() != null
+                    ? hd.getNhanVien().getTenNhanVien()
+                    : null
+    );
+
+    res.setNgayTao(hd.getNgayTao());
+    res.setLoaiHoaDon(convertTypeToDisplay(hd.getLoaiHoaDon()));
+    res.setTrangThai(hd.getTrangThai());
+    return res;
+});
     }
 
     @Override

@@ -166,12 +166,12 @@ const router = createRouter({
         {
           path: "orders",
           name: "admin-order-list",
-          component: () => import("../views/admin/DonHang/QuanLyDonHang.vue"),
+          component: () => import("../views/admin/DonHang/QuanLyHoaDon.vue"),
         },
         {
           path: "orders/:id",
           name: "admin-order-detail",
-          component: () => import("../views/admin/DonHang/ChiTietDonHang.vue"),
+          component: () => import("../views/admin/DonHang/ChiTietHoaDon.vue"),
         },
 
         /* Voucher */
@@ -232,12 +232,12 @@ const router = createRouter({
         {
           path: "orders",
           name: "staff-order-list",
-          component: () => import("../views/admin/DonHang/QuanLyDonHang.vue"),
+          component: () => import("../views/admin/DonHang/QuanLyHoaDon.vue"),
         },
         {
           path: "orders/:id",
           name: "staff-order-detail",
-          component: () => import("../views/admin/DonHang/ChiTietDonHang.vue"),
+          component: () => import("../views/admin/DonHang/ChiTietHoaDon.vue"),
         },
         {
           path: "customers",

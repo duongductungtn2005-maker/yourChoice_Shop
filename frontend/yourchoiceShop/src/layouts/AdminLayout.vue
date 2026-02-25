@@ -33,7 +33,7 @@
           class="menu-item"
           active-class="active-link"
         >
-          <i class="fa-solid fa-file-lines icon"></i> Quản lý đơn hàng
+          <i class="fa-solid fa-file-lines icon"></i> Quản lý hóa đơn
         </router-link>
 
         <!-- Staff only -->
