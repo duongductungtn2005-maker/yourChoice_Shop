@@ -29,7 +29,7 @@ import java.io.ByteArrayOutputStream;
 import org.springframework.data.jpa.repository.EntityGraph; // Thêm import này
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true) // THÊM DÒNG NÀY CHO TOÀN BỘ CLASS
+@Transactional
 public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implements HoaDonService
 
     private final HoaDonRepository hoaDonRepo;

@@ -31,8 +31,7 @@
           </div>
           <div class="timeline-wrapper">
             <div class="steps-container">
-              <div v-for="(step, index) in steps" :key="index" class="step-item"
-                :class="{ active: index <= getCurrentStepIndex(order.trangThai) }">
+              <div v-for="(step, index) in visibleSteps" :key="index" class="step-item active">
                 <div class="step-icon">
                   <i :class="step.icon"></i>
                 </div>
@@ -202,23 +201,44 @@
     <div v-if="showEditStatusModal" class="modal-backdrop">
       <div class="modal-container">
         <h3 class="modal-title">Cập nhật trạng thái đơn hàng</h3>
-        <p class="modal-current">
-          Trạng thái hiện tại: <b>{{ statusMap[currentStatusIndex]?.label }}</b>
-        </p>
-        <div class="modal-actions">
-          <button class="btn btn-outline" :disabled="currentStatusIndex <= 0" @click="goPrevStatus">
-            ⬅ Trạng thái trước
-          </button>
-          <button class="btn btn-primary" :disabled="currentStatusIndex >= statusMap.length - 1" @click="goNextStatus">
-            Trạng thái tiếp theo ➡
-          </button>
+        <div class="order-meta">
+  <div>
+    <span class="label">Mã đơn hàng: </span>
+    <br/>
+    <span class="value">{{ order.maHoaDon }}</span>
+  </div>
+  <div>
+    <span class="label">Ngày tạo:</span>
+    <br/>
+    <span class="value">{{ formatDate(order.ngayTao) }}</span>
+  </div>
+</div>
+        <div class="form-group">
+          <label>Trạng thái đơn hàng</label>
+          <select v-model="selectedStatus" class="select-status">
+            <option v-for="st in availableStatuses" :key="st.value" :value="Number(st.value)">
+              {{ st.label }}
+            </option>
+          </select>
         </div>
-        <div class="modal-footer modal-footer-between">
-          <button class="btn btn-cancel" @click="closeEditStatusModal">Đóng</button>
-          <button v-if="[1, 2, 3, 4].includes(order?.trangThai)" class="btn btn-danger" @click="cancelOrder">
-            Hủy đơn hàng
-          </button>
-        </div>
+
+<div class="modal-actions">
+  <button class="btn btn-outline" @click="closeEditStatusModal">
+    Hủy
+  </button>
+
+  <button
+    v-if="order.trangThai !== 5 && order.trangThai !== 0"
+    class="btn btn-danger"
+    @click="cancelOrder"
+  >
+    Hủy đơn hàng
+  </button>
+
+  <button class="btn btn-primary" @click="confirmUpdateStatus">
+    Cập nhật
+  </button>
+</div>
       </div>
     </div>
 
@@ -586,15 +606,7 @@ const printOrder = () => {
 };
 
 // --- MODAL CONTROLLERS ---
-const openEditOrder = () => {
-  const idx = getStatusIndex(order.value.trangThai);
-  if (idx === -1) {
-    toastError('Không thể chỉnh sửa trạng thái này');
-    return;
-  }
-  currentStatusIndex.value = idx;
-  showEditStatusModal.value = true;
-};
+
 
 const closeEditStatusModal = () => showEditStatusModal.value = false;
 
@@ -610,6 +622,49 @@ const goNextStatus = () => {
   }
 };
 
+const visibleSteps = computed(() => {
+  const idx = getCurrentStepIndex(order.value?.trangThai);
+  if (idx < 0) return [];
+  return steps.slice(0, idx + 1);
+});
+
+const availableStatuses = computed(() => {
+  if (!order.value) return [];
+
+  const current = order.value.trangThai;
+
+  return statusMap
+    .filter(s =>
+      s.value === current ||
+      s.value === current - 1 ||
+      s.value === current + 1
+    )
+    .sort((a, b) => a.value - b.value);
+});
+const selectedStatus = ref(null);
+
+const openEditOrder = () => {
+  selectedStatus.value = order.value.trangThai;
+  showEditStatusModal.value = true;
+};
+
+const confirmUpdateStatus = async () => {
+  console.log(
+    selectedStatus.value,
+    typeof selectedStatus.value,
+    order.value.trangThai,
+    typeof order.value.trangThai
+  );
+
+  const newStatus = Number(selectedStatus.value);
+
+  if (newStatus === order.value.trangThai) {
+    toastError('Vui lòng chọn trạng thái khác');
+    return;
+  }
+
+  await updateOrderStatus(newStatus);
+};
 // --- LIFECYCLE ---
 onMounted(() => {
   if (orderId) fetchOrderDetail();
@@ -1413,5 +1468,22 @@ onMounted(() => {
 
 .text-center {
   text-align: center;
+}
+.order-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.order-meta .label {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.order-meta .value {
+  font-weight: 600;
+  color: #1e293b;
 }
 </style>
