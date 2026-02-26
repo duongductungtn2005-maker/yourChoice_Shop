@@ -189,10 +189,7 @@
             <i class="fas fa-print"></i> In hóa đơn
           </button>
           <button class="btn btn-orange-block" @click="openEditOrder">
-            <i class="fas fa-edit"></i> Chỉnh sửa trạng thái
-          </button>
-          <button class="btn btn-outline" @click="showEditInfoModal = true">
-            <i class="fas fa-pen"></i> Sửa thông tin
+            <i class="fas fa-edit"></i> Sửa thông tin
           </button>
         </div>
       </div>
@@ -221,7 +218,21 @@
             </option>
           </select>
         </div>
+<!-- ===== THÔNG TIN NHẬN HÀNG ===== -->
+<div class="form-group">
+  <label>Tên người nhận</label>
+  <input v-model="editForm.tenKhachHang" />
+</div>
 
+<div class="form-group">
+  <label>SĐT người nhận</label>
+  <input v-model="editForm.sdt" />
+</div>
+
+<div class="form-group">
+  <label>Địa chỉ nhận hàng</label>
+  <input v-model="editForm.diaChi" />
+</div>
 <div class="modal-actions">
   <button class="btn btn-outline" @click="closeEditStatusModal">
     Hủy
@@ -649,21 +660,32 @@ const openEditOrder = () => {
 };
 
 const confirmUpdateStatus = async () => {
-  console.log(
-    selectedStatus.value,
-    typeof selectedStatus.value,
-    order.value.trangThai,
-    typeof order.value.trangThai
-  );
+  try {
+    // 1️⃣ Update thông tin nhận hàng
+    const payload = {
+      tenNguoiNhan: editForm.value.tenKhachHang,
+      sdtNguoiNhan: editForm.value.sdt,
+      diaChiNguoiNhan: editForm.value.diaChi
+    };
 
-  const newStatus = Number(selectedStatus.value);
+    await request.put(`/hoa-don/${orderId}/info`, payload);
 
-  if (newStatus === order.value.trangThai) {
-    toastError('Vui lòng chọn trạng thái khác');
-    return;
+    // 2️⃣ Update trạng thái (nếu có thay đổi)
+    const newStatus = Number(selectedStatus.value);
+    if (newStatus !== order.value.trangThai) {
+      await request.put(`/hoa-don/${orderId}/status`, null, {
+        params: { newStatus }
+      });
+    }
+
+    toastSuccess('Cập nhật thông tin thành công');
+    await fetchOrderDetail();
+    closeEditStatusModal();
+
+  } catch (e) {
+    console.error(e);
+    toastError('Cập nhật thất bại');
   }
-
-  await updateOrderStatus(newStatus);
 };
 // --- LIFECYCLE ---
 onMounted(() => {
