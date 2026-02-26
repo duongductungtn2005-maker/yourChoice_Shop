@@ -52,6 +52,11 @@
             <input type="date" v-model="filter.toDate" class="date-input" @change="applyCustomFilter" />
           </div>
 
+          <button @click="showEmailModal = true" class="btn btn-outline flex-center gap-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            Gửi Báo Cáo
+          </button>
+
           <button @click="handleExportExcel" class="btn btn-excel">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
             Xuất Excel
@@ -188,9 +193,34 @@
           </div>
         </div>
       </div>
-
     </div>
 
+    <div v-if="showEmailModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3 class="modal-title">Cài đặt gửi báo cáo qua Email</h3>
+        <p class="modal-subtitle">Hệ thống sẽ tự động tổng hợp số liệu và gửi về email đã đăng ký.</p>
+        
+        <div class="form-group">
+          <label class="form-label">Email nhận báo cáo:</label>
+          <input type="email" v-model="emailConfig.email" class="form-input" placeholder="ví dụ: admin@gmail.com" />
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Chu kỳ gửi báo cáo:</label>
+          <select v-model="emailConfig.frequency" class="form-input">
+            <option value="DAILY_17H">Hàng ngày (gửi lúc 17:00)</option>
+            <option value="MONTHLY">Hàng tháng (gửi ngày cuối tháng)</option>
+            <option value="QUARTERLY">Hàng quý (3 tháng/lần)</option>
+            <option value="YEARLY">Hàng năm (tổng kết năm)</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" @click="showEmailModal = false">Hủy</button>
+          <button class="btn btn-active" @click="handleSaveEmailConfig">Lưu thiết lập</button>
+        </div>
+      </div>
+    </div>
 
   </div>
 </template>
@@ -216,31 +246,28 @@ const outlabelsPlugin = {
       if (!meta.hidden) {
         meta.data.forEach((element, index) => {
           const dataVal = dataset.data[index];
-          if (dataVal <= 0) return; // Bỏ qua nếu data = 0
+          if (dataVal <= 0) return; 
 
-          // Lấy tọa độ trung tâm của khối hình quạt
           const startAngle = element.startAngle;
           const endAngle = element.endAngle;
           const midAngle = startAngle + (endAngle - startAngle) / 2;
 
           const outerRadius = element.outerRadius;
           const lineStartRadius = outerRadius; 
-          const lineEndRadius = outerRadius + 15; // Độ dài đoạn nối thẳng ra
+          const lineEndRadius = outerRadius + 15; 
 
           const x = element.x;
           const y = element.y;
 
-          // Tính toán các điểm để vẽ line gấp khúc
           const startX = x + Math.cos(midAngle) * lineStartRadius;
           const startY = y + Math.sin(midAngle) * lineStartRadius;
           const edgeX = x + Math.cos(midAngle) * lineEndRadius;
           const edgeY = y + Math.sin(midAngle) * lineEndRadius;
 
           const isRight = Math.cos(midAngle) > 0;
-          const endX = edgeX + (isRight ? 15 : -15); // Kéo gập ngang sang trái/phải
+          const endX = edgeX + (isRight ? 15 : -15); 
           const endY = edgeY;
 
-          // Tiến hành Vẽ đường kẻ (Line)
           ctx.beginPath();
           ctx.moveTo(startX, startY);
           ctx.lineTo(edgeX, edgeY);
@@ -249,7 +276,6 @@ const outlabelsPlugin = {
           ctx.lineWidth = 1.5;
           ctx.stroke();
 
-          // Tiến hành Vẽ Text 
           const label = chart.data.labels[index];
           const total = dataset.data.reduce((a, b) => a + b, 0);
           const percent = ((dataVal / total) * 100).toFixed(2) + '%';
@@ -257,12 +283,10 @@ const outlabelsPlugin = {
           ctx.textAlign = isRight ? 'left' : 'right';
           ctx.textBaseline = 'middle';
           
-          // Dòng 1: Tên trạng thái
           ctx.fillStyle = '#6b7280';
           ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
           ctx.fillText(label, endX + (isRight ? 5 : -5), endY - 8);
           
-          // Dòng 2: Số liệu
           ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
           ctx.fillText(`${dataVal} đơn (${percent})`, endX + (isRight ? 5 : -5), endY + 8);
         });
@@ -300,6 +324,13 @@ const summaryCards = ref([
   { title: 'Tháng này', revenue: 0, products: 0, successOrders: 0, cancelOrders: 0, returnOrders: 0 },
   { title: 'Năm nay', revenue: 0, products: 0, successOrders: 0, cancelOrders: 0, returnOrders: 0 }
 ])
+
+// --- STATES EMAIL MODAL ---
+const showEmailModal = ref(false)
+const emailConfig = ref({
+  email: '',
+  frequency: 'DAILY_17H' // Default gửi lúc 17h
+})
 
 // --- LINE CHART DATA ---
 const lineChartData = ref({
@@ -345,14 +376,14 @@ const chartOptions = ref({
   maintainAspectRatio: false,
   cutout: '55%', 
   layout: {
-    padding: { top: 30, bottom: 30, left: 70, right: 70 } // Chừa khoảng trống để nhét text và line
+    padding: { top: 30, bottom: 30, left: 70, right: 70 } 
   },
   plugins: {
     legend: { 
       position: 'bottom', 
       labels: { boxWidth: 12, padding: 15, font: { size: 12, family: 'sans-serif' }, color: '#4b5563', usePointStyle: true } 
     },
-    tooltip: { enabled: false } // Đã hiện text bên ngoài nên tắt tooltip dính chuột đi theo yc
+    tooltip: { enabled: false } 
   }
 })
 
@@ -401,7 +432,7 @@ const getTimeframes = () => {
   ]
 }
 
-// --- LOGIC GỌI API ĐƯỢC MAP THEO CHUẨN MỚI TỪ ẢNH ---
+// --- LOGIC API ---
 
 const fetchSummaryCards = async () => {
   isLoadingCards.value = true;
@@ -425,7 +456,6 @@ const fetchSummaryCards = async () => {
       summaryCards.value[index].cancelOrders = summary.cancelOrders || 0;
       summaryCards.value[index].returnOrders = summary.returnOrders || 0;
 
-      // 1. Phân mảng Doanh Thu
       revenues.push({
           label: `Doanh thu ${periods[index]}`,
           value: summary.totalRevenue || 0,
@@ -435,28 +465,25 @@ const fetchSummaryCards = async () => {
           colorClass: 'text-blue'
       });
 
-      // 2. Phân mảng Đơn Hàng
       orders.push({
           label: `Đơn hàng ${periods[index]}`,
           value: summary.totalOrders || 0,
           percent: summary.orderGrowth || summary.growthPercent || 0,
           type: 'number',
           icon: 'order',
-          colorClass: 'text-success-icon' // Màu xanh
+          colorClass: 'text-success-icon' 
       });
 
-      // 3. Phân mảng Sản Phẩm
       products.push({
           label: `Sản phẩm ${periods[index]}`,
           value: summary.totalProducts || 0,
           percent: summary.productGrowth || summary.growthPercent || 0,
           type: 'number',
           icon: 'product',
-          colorClass: 'text-warning-icon' // Màu cam
+          colorClass: 'text-warning-icon' 
       });
     });
 
-    // Gom dữ liệu lại nối tiếp nhau để đẩy ra UI
     growthList.value = [...revenues, ...orders, ...products];
 
   } catch (error) { console.error(error) } finally { isLoadingCards.value = false; }
@@ -632,6 +659,24 @@ const handleExportExcel = async () => {
   }
 }
 
+// Xử lý lưu cấu hình Email
+const handleSaveEmailConfig = async () => {
+  if (!emailConfig.value.email) {
+    alert("Vui lòng nhập địa chỉ email nhận báo cáo!");
+    return;
+  }
+  
+  try {
+    // Đoạn này mày cần mở cmt và gọi API thực tế nếu đã viết API ở backend
+    // await statisticApi.saveEmailReportConfig(emailConfig.value);
+    
+    alert(`Đã lưu cấu hình! Hệ thống sẽ gửi báo cáo về [${emailConfig.value.email}] với chu kỳ: ${emailConfig.value.frequency}.\n\n(Lưu ý: Mày cần setup hàm @Scheduled ở phía Backend để việc gửi mail này thực sự chạy ngầm nhé!)`);
+    showEmailModal.value = false;
+  } catch (error) {
+    console.error("Lỗi khi lưu cấu hình mail:", error);
+  }
+}
+
 onMounted(() => {
   fetchSummaryCards();
   fetchLowStock(); 
@@ -648,6 +693,7 @@ onMounted(() => {
   color: #374151;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   box-sizing: border-box;
+  position: relative;
 }
 * { box-sizing: border-box; }
 
@@ -695,6 +741,8 @@ onMounted(() => {
 }
 .border-none { border-bottom: none !important; padding-bottom: 8px; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.gap-6 { gap: 6px; }
 
 /* SUMMARY CARDS */
 .stat-card {
@@ -716,9 +764,7 @@ onMounted(() => {
   font-size: 24px; font-weight: 700; margin: 0 0 16px 0; letter-spacing: -0.5px;
 }
 
-.stat-sub-info {
-  font-size: 12px; color: #6b7280;
-}
+.stat-sub-info { font-size: 12px; color: #6b7280; }
 .divider { margin: 0 4px; color: #d1d5db; }
 
 /* COLOR UTILS */
@@ -742,8 +788,6 @@ onMounted(() => {
 .block { display: block; }
 .cursor-pointer { cursor: pointer; }
 .hover-dark:hover { color: #374151 !important; }
-
-/* Thêm màu icon cho section Tốc độ tăng trưởng */
 .text-blue { color: #1e3a8a; }
 .text-success-icon { color: #10b981; }
 .text-warning-icon { color: #f59e0b; }
@@ -788,7 +832,7 @@ onMounted(() => {
   border-radius: 6px !important;
 }
 
-.btn:not(.btn-excel):hover { 
+.btn:not(.btn-excel):not(.btn-outline):hover { 
   background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); 
   color: #fff; 
   border-color: transparent; 
@@ -826,7 +870,7 @@ onMounted(() => {
 .f-label { font-size: 12px; color: #6b7280; }
 .f-value { font-size: 16px; font-weight: 700; }
 
-/* TABLE STYLES - XỬ LÝ CĂN GIỮA VÀ THẲNG HÀNG TẠI ĐÂY */
+/* TABLE STYLES */
 .table-responsive { overflow-x: auto; flex: 1; padding: 0 20px; }
 .max-h-400 { max-height: 400px; overflow-y: auto; }
 
@@ -841,7 +885,6 @@ onMounted(() => {
 .modern-table tbody td { 
   padding: 12px 8px; 
   color: #4b5563; 
-  /* Quan trọng: Ép các td căn giữa chiều dọc cho thẳng đẹp */
   vertical-align: middle !important; 
 }
 
@@ -866,8 +909,6 @@ onMounted(() => {
 .border-top { border-top: 1px solid #f3f4f6; }
 
 .page-size { display: flex; align-items: center; gap: 8px; }
-.select-box { border: 1px solid #e5e7eb; border-radius: 4px; padding: 4px 8px; outline: none; color: #4b5563;}
-
 .page-controls { display: flex; align-items: center; gap: 4px; }
 .page-btn {
   width: 28px; height: 28px; border: 1px solid transparent; background: #fff;
@@ -885,14 +926,7 @@ onMounted(() => {
 .chart-wrapper { width: 100%; height: 250px; }
 .line-chart-wrapper { width: 100%; height: 320px; padding: 10px 20px 20px 20px; } 
 
-/* LOW STOCK RED UI */
-.title-danger { color: #1f2937; margin: 0; font-size: 16px; font-weight: 600;}
-.badge-danger-solid { background: #ef4444; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-.threshold-control { display: flex; align-items: center; gap: 10px; }
-.threshold-label { font-size: 13px; color: #6b7280; font-weight: 500; }
-.threshold-input { width: 60px; padding: 4px 8px; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 13px; outline: none; text-align: center; }
-
-/* LIGHT THEME GROWTH LIST */
+/* GROWTH LIST */
 .growth-list { padding: 0 20px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
 .growth-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed #f3f4f6; }
 .growth-item:last-child { border-bottom: none; }
@@ -903,9 +937,51 @@ onMounted(() => {
 .growth-percent { font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 4px; }
 .bg-success-light { background: #e0e7ff; }
 .bg-danger-light { background: #fef2f2; }
-
 .empty-growth { display: flex; align-items: center; justify-content: center; height: 100px; color: #6b7280; font-size: 13px; }
 .empty-state { text-align: center; padding: 40px 20px; color: #6b7280; font-size: 13px; }
+
+/* --- EMAIL MODAL CSS --- */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  width: 450px;
+  max-width: 90%;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.modal-title { font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 8px 0; }
+.modal-subtitle { font-size: 13px; color: #6b7280; margin: 0 0 20px 0; }
+
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 6px; }
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1f2937;
+  outline: none;
+}
+.form-input:focus { border-color: #1e3a8a; box-shadow: 0 0 0 2px rgba(30,58,138,0.1); }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
 
 /* SCROLLBAR CUSTOMIZATION */
 ::-webkit-scrollbar { width: 6px; height: 6px; }

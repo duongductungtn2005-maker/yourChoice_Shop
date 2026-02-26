@@ -4,6 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -156,5 +157,18 @@ public class EmailService {
                 """.formatted(tenKhachHang, matKhau);
 
         sendEmail(toEmail, subject, htmlContent, senderName);
+    }
+    @Autowired
+    private JavaMailSender emailSender;
+
+    public void sendStatisticEmail(String to, String subject, String text) {
+        SimpleMailMessage message = new SimpleMailMessage(); 
+        message.setFrom("email-cua-may@gmail.com"); // Thay bằng email gửi đi của hệ thống
+        message.setTo(to); 
+        message.setSubject(subject); 
+        message.setText(text);
+        
+        emailSender.send(message);
+        System.out.println("Đã gửi email báo cáo tới: " + to);
     }
 }
