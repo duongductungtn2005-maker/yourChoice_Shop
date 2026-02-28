@@ -27,7 +27,7 @@ public class StatisticReportScheduler {
         String reportData = "Doanh thu hôm nay: 10.000.000 VNĐ. Số đơn: 50. (Data mẫu)";
         
         // 2. Lấy danh sách email nhận báo cáo từ Database (hoặc fix cứng tùy logic mày lưu ở frontend)
-        String toEmail = "sếp_của_mày@gmail.com"; 
+        String toEmail = "mochimomo0707@gmail.com"; 
         
         // 3. Gửi
         emailService.sendStatisticEmail(

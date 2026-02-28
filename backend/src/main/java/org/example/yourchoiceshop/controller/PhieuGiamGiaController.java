@@ -60,14 +60,16 @@ public class PhieuGiamGiaController {
     }
 
     // 3. API Bật/Tắt & Gia hạn
+    // 3. API Bật/Tắt & Gia hạn (ĐÃ SỬA ĐỂ NHẬN ĐƯỢC CỜ GỬI MAIL)
     @PutMapping("/{id}/toggle")
-    public ResponseEntity<?> toggleStatus(@PathVariable Integer id, @RequestBody(required = false) Map<String, String> body) {
-        LocalDateTime newEndDate = null;
-        if (body != null && body.get("newEndDate") != null) {
-            newEndDate = LocalDateTime.parse(body.get("newEndDate"));
-        }
+    public ResponseEntity<?> toggleStatus(@PathVariable Integer id, @RequestBody(required = false) Map<String, Object> body) {
         try {
-            service.toggleStatus(id, newEndDate);
+            // Nếu Frontend không gửi body lên thì tạo map rỗng để tránh lỗi Null
+            if (body == null) {
+                body = new java.util.HashMap<>();
+            }
+            // Đẩy thẳng cả cục Map xuống Service xử lý
+            service.toggleStatus(id, body);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));

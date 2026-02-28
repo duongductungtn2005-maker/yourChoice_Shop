@@ -9,6 +9,7 @@ import org.example.yourchoiceshop.entity.PhieuGiamGiaCaNhan;
 import org.example.yourchoiceshop.repository.KhachHangRepository;
 import org.example.yourchoiceshop.repository.PhieuGiamGiaCaNhanRepository;
 import org.example.yourchoiceshop.repository.PhieuGiamGiaRepository;
+import org.example.yourchoiceshop.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class PhieuGiamGiaServiceImpl {
@@ -157,20 +159,45 @@ public class PhieuGiamGiaServiceImpl {
         return savedVoucher;
     }
 
+    @Autowired
+    private EmailService emailService;
     // 4. Hàm Bật/Tắt trạng thái (Có logic gia hạn)
-    public void toggleStatus(Integer id, LocalDateTime newEndDate) {
+    public void toggleStatus(Integer id, Map<String, Object> payload) {
         PhieuGiamGia pgg = repository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy"));
         LocalDateTime now = LocalDateTime.now();
 
+        // Lấy cờ sendEmail từ Frontend gửi lên
+        boolean isSendEmail = payload.containsKey("sendEmail") && (Boolean) payload.get("sendEmail");
+
         if (pgg.getTrangThai() == 1) {
+            // ĐANG BẬT -> TẮT
             pgg.setTrangThai(0);
+            
+            // LOGIC GỬI MAIL KHI TẮT PHIẾU CÁ NHÂN
+            if (isSendEmail && "CaNhan".equals(pgg.getKieu())) {
+                // Lấy danh sách khách hàng sở hữu phiếu này (Dựa vào Repo của m)
+                List<PhieuGiamGiaCaNhan> listKhachHang = pggCaNhanRepo.findByPhieuGiamGiaId(id);
+                for (PhieuGiamGiaCaNhan pggCn : listKhachHang) {
+                    KhachHang kh = pggCn.getKhachHang();
+                    if (kh != null && kh.getEmail() != null) {
+                        // Gọi hàm gửi mail vừa tạo ở Bước 2
+                        emailService.sendVoucherDeactivatedEmail(
+                            kh.getEmail(), 
+                            kh.getTenKhachHang(), 
+                            pgg.getTenPhieuGiamGia()
+                        );
+                    }
+                }
+            }
         } else {
+            // ĐANG TẮT -> BẬT LẠI (Logic cũ của m giữ nguyên)
             if (pgg.getNgayKetThuc().isBefore(now)) {
                 if ("CongKhai".equals(pgg.getKieu())) {
-                    if (newEndDate == null || newEndDate.isBefore(now)) {
+                    String newEndDateStr = (String) payload.get("newEndDate");
+                    if (newEndDateStr == null) {
                         throw new RuntimeException("Voucher đã hết hạn. Vui lòng nhập ngày kết thúc mới!");
                     }
-                    pgg.setNgayKetThuc(newEndDate);
+                    pgg.setNgayKetThuc(LocalDateTime.parse(newEndDateStr));
                     pgg.setTrangThai(1);
                 } else {
                     throw new RuntimeException("Voucher cá nhân đã hết hạn không thể kích hoạt lại.");

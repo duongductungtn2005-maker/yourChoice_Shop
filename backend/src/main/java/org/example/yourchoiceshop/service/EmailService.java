@@ -163,12 +163,46 @@ public class EmailService {
 
     public void sendStatisticEmail(String to, String subject, String text) {
         SimpleMailMessage message = new SimpleMailMessage(); 
-        message.setFrom("email-cua-may@gmail.com"); // Thay bằng email gửi đi của hệ thống
+        message.setFrom("mochimomo0707@gmail.com"); // Thay bằng email gửi đi của hệ thống
         message.setTo(to); 
         message.setSubject(subject); 
         message.setText(text);
         
         emailSender.send(message);
         System.out.println("Đã gửi email báo cáo tới: " + to);
+    }
+
+    // --- 4. Dành cho KHÁCH HÀNG: Thông báo phiếu giảm giá ngừng hoạt động ---
+    @Async
+    public void sendVoucherDeactivatedEmail(String toEmail, String tenKhachHang, String tenVoucher) {
+        String subject = "Thông báo: Phiếu giảm giá ngừng hoạt động";
+        String senderName = "YourChoiceShop";
+
+        String htmlContent = """
+        <div style="font-family: 'Arial', sans-serif; background:#f1f5f9; padding:30px;">
+            <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(2,6,23,0.06);">
+                <div style="background: linear-gradient(90deg,#ef4444,#b91c1c); padding:20px 24px; text-align:center; color:#fff;">
+                    <h1 style="font-size:20px; margin:0; letter-spacing:1px;">THÔNG BÁO TỪ YOURCHOICESHOP</h1>
+                </div>
+                <div style="padding:28px 36px; color:#111827;">
+                    <p style="margin:0 0 12px; font-size: 16px;"><strong>Chào %s,</strong></p>
+                    <p style="margin:0 0 18px; color:#374151; line-height: 1.6;">
+                        Chúng tôi rất tiếc phải thông báo rằng phiếu giảm giá <strong>"%s"</strong> mà bạn đang sở hữu hiện đã <strong>ngừng hoạt động</strong>.
+                    </p>
+                    <p style="margin:0 0 18px; color:#374151; line-height: 1.6;">
+                        Bạn sẽ không thể áp dụng phiếu giảm giá này cho các đơn hàng tiếp theo. Đừng buồn nhé, YourChoiceShop vẫn còn rất nhiều chương trình ưu đãi và phiếu giảm giá hấp dẫn khác đang chờ đón bạn.
+                    </p>
+                    <div style="text-align:center; margin-top:25px;">
+                        <a href="http://localhost:5173/products" style="display:inline-block; background: linear-gradient(90deg,#0b3b8c,#1e40af); color:#fff; padding:12px 26px; border-radius:30px; text-decoration:none; font-weight:600;">MUA SẮM NGAY</a>
+                    </div>
+                    <p style="margin:30px 0 0; color:#6b7280; font-size:13px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
+                        Trân trọng,<br/><strong style="color: #0b3b8c; font-size: 14px;">YourChoiceShop Team</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+        """.formatted(tenKhachHang != null ? tenKhachHang : "bạn", tenVoucher);
+
+        sendEmail(toEmail, subject, htmlContent, senderName);
     }
 }

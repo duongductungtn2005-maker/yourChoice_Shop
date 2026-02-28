@@ -274,37 +274,78 @@ const handleToggleStatus = async (item, event) => {
     event.preventDefault();
     const currentStatus = item.trangThai;
     const newStatus = currentStatus === 1 ? 0 : 1;
-    const actionText = newStatus === 1 ? 'Kích hoạt' : 'Ngừng hoạt động';
-    const confirmBtnColor = newStatus === 1 ? '#10b981' : '#ef4444';
+    const scope = getScope(item);
+    
+    let payload = {};
+    let sendEmailFlag = false;
 
-    const result = await Swal.fire({
-        title: `Xác nhận ${actionText}?`,
-        text: `Bạn có muốn ${actionText.toLowerCase()} phiếu "${item.tenPhieuGiamGia}"?`,
-        icon: 'question', showCancelButton: true, confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy', confirmButtonColor: confirmBtnColor
-    });
+    // TRƯỜNG HỢP 1: TẮT PHIẾU CÁ NHÂN (Hiện 3 nút: Có gửi mail, Không gửi, Hủy)
+    if (newStatus === 0 && scope.isPrivate) {
+        const result = await Swal.fire({
+            title: `Ngừng hoạt động phiếu?`,
+            text: `Bạn có muốn thông báo qua email cho khách hàng rằng phiếu "${item.tenPhieuGiamGia}" đã ngừng hoạt động không?`,
+            icon: 'warning',
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-paper-plane"></i> Tắt & Gửi Mail',
+            denyButtonText: '<i class="fas fa-power-off"></i> Tắt (Không gửi)',
+            cancelButtonText: 'Hủy bỏ',
+            confirmButtonColor: '#2563eb',
+            denyButtonColor: '#64748b'
+        });
 
-    if (result.isConfirmed) {
-        try {
-            let payload = {};
-            if (newStatus === 1 && isExpired(item.ngayKetThuc)) {
-                 const scope = getScope(item);
-                 if (!scope.isPrivate) {
-                    const { value: dateStr } = await Swal.fire({
-                        title: 'Gia hạn phiếu', text: 'Phiếu đã hết hạn. Chọn ngày kết thúc mới:',
-                        input: 'datetime-local', inputValue: '2026-12-31T23:59',
-                        showCancelButton: true, confirmButtonText: 'Lưu & Kích hoạt'
-                    });
-                    if (!dateStr) return;
-                    payload.newEndDate = dateStr;
-                 } else {
-                    return Swal.fire('Lỗi', 'Phiếu cá nhân hết hạn không thể kích hoạt lại.', 'error');
-                 }
-            }
-            await request.put(`/phieu-giam-gia/${item.id}/toggle`, payload);
-            item.trangThai = newStatus;
-            if(payload.newEndDate) item.ngayKetThuc = payload.newEndDate;
-            Swal.fire({ icon: 'success', title: 'Thành công', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-        } catch (e) { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Lỗi hệ thống' }); }
+        if (result.isDismissed) return; // Nếu bấm Hủy hoặc click ra ngoài -> Dừng lại
+        if (result.isConfirmed) sendEmailFlag = true; // Bấm Tắt & Gửi mail
+        // Nếu result.isDenied (Bấm Tắt không gửi) thì sendEmailFlag vẫn = false
+    } 
+    // TRƯỜNG HỢP 2: BẬT PHIẾU HOẶC TẮT PHIẾU CÔNG KHAI (Chỉ hiện 2 nút mặc định)
+    else {
+        const actionText = newStatus === 1 ? 'Kích hoạt' : 'Ngừng hoạt động';
+        const confirmBtnColor = newStatus === 1 ? '#10b981' : '#ef4444';
+        
+        const result = await Swal.fire({
+            title: `Xác nhận ${actionText}?`,
+            text: `Bạn có muốn ${actionText.toLowerCase()} phiếu "${item.tenPhieuGiamGia}"?`,
+            icon: 'question', 
+            showCancelButton: true, 
+            confirmButtonText: 'Đồng ý', 
+            cancelButtonText: 'Hủy', 
+            confirmButtonColor: confirmBtnColor
+        });
+
+        if (!result.isConfirmed) return;
+
+        // Logic gia hạn nếu bật lại phiếu công khai đã hết hạn
+        if (newStatus === 1 && isExpired(item.ngayKetThuc)) {
+             if (!scope.isPrivate) {
+                const { value: dateStr } = await Swal.fire({
+                    title: 'Gia hạn phiếu', 
+                    text: 'Phiếu đã hết hạn. Chọn ngày kết thúc mới:',
+                    input: 'datetime-local', 
+                    inputValue: '2026-12-31T23:59',
+                    showCancelButton: true, 
+                    confirmButtonText: 'Lưu & Kích hoạt'
+                });
+                if (!dateStr) return;
+                payload.newEndDate = dateStr;
+             } else {
+                return Swal.fire('Lỗi', 'Phiếu cá nhân hết hạn không thể kích hoạt lại.', 'error');
+             }
+        }
+    }
+
+    // Gắn cờ gửi mail vào payload để gửi xuống Backend
+    payload.sendEmail = sendEmailFlag;
+
+    try {
+        await request.put(`/phieu-giam-gia/${item.id}/toggle`, payload);
+        item.trangThai = newStatus;
+        if(payload.newEndDate) item.ngayKetThuc = payload.newEndDate;
+        
+        const successMsg = sendEmailFlag ? 'Đã ngừng hoạt động và gửi mail thành công' : 'Đã cập nhật trạng thái thành công';
+        Swal.fire({ icon: 'success', title: successMsg, toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+    } catch (e) { 
+        Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Lỗi hệ thống' }); 
     }
 };
 

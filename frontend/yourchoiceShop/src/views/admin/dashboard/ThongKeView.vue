@@ -89,6 +89,10 @@
           <span class="f-label">DT Dự kiến (Tạm tính)</span>
           <span class="f-value text-purple">{{ formatCurrency(filterSummary.expectedRevenue) }}</span>
         </div>
+        <div class="f-stat-item text-right">
+          <span class="f-label">Doanh thu thực tế</span>
+          <span class="f-value text-success">{{ formatCurrency(filterSummary.actualRevenue) }}</span>
+        </div>
       </div>
     </div>
 
@@ -311,7 +315,8 @@ const filterSummary = ref({
   successOrders: 0,
   processingOrders: 0,
   cancelOrders: 0,
-  expectedRevenue: 0
+  expectedRevenue: 0,
+  actualRevenue: 0
 })
 
 const isLoadingCards = ref(false)   
@@ -491,18 +496,38 @@ const fetchSummaryCards = async () => {
 
 const fetchFilterSummary = async (payload) => {
   try {
+    // 1. Gọi API lấy TẤT CẢ trạng thái (để đếm tổng đơn, số đơn đang xử lý, số đơn huỷ...)
     const payloadAll = { ...payload, status: null }; 
-    const res = await statisticApi.getRevenue(payloadAll);
-    const summary = res.data?.summary || {};
+    const resAll = await statisticApi.getRevenue(payloadAll);
+    const summaryAll = resAll.data?.summary || {};
     
-    filterSummary.value.expectedRevenue = summary.totalRevenue || 0;
-    filterSummary.value.totalOrders = summary.totalOrders || 0;
-    filterSummary.value.totalProducts = summary.totalProducts || 0;
-    filterSummary.value.successOrders = summary.successOrders || 0;
-    filterSummary.value.processingOrders = summary.processingOrders || 0; 
-    filterSummary.value.cancelOrders = summary.cancelOrders || 0;
+    // 2. Gọi API lần 2: Lọc riêng đơn HOÀN THÀNH (status = 5) để lấy Doanh Thu Thực Tế
+    const payloadSuccess = { ...payload, status: 5 };
+    const resSuccess = await statisticApi.getRevenue(payloadSuccess);
+    const summarySuccess = resSuccess.data?.summary || {};
+
+    // Doanh thu thực tế = Tiền của các đơn status 5
+    const actualRev = summarySuccess.totalRevenue || 0;
+
+    // Doanh thu tạm tính = Doanh thu của tất cả đơn (Bao gồm Hoàn thành + Đang xử lý)
+    // Tùy thuộc vào việc backend của mày tính totalRevenue ở resAll đã trừ đơn Hủy chưa, 
+    // tao sẽ lấy mặc định summaryAll.totalRevenue làm DT dự kiến.
+    const expectedRev = summaryAll.totalRevenue || actualRev; 
+
+    // Gán lại vào biến hiển thị lên UI
+    filterSummary.value.actualRevenue = actualRev;
+    filterSummary.value.expectedRevenue = expectedRev;
     
-  } catch (error) { console.error("Lỗi fetchFilterSummary:", error); }
+    // Gán các thông số đếm đơn
+    filterSummary.value.totalOrders = summaryAll.totalOrders || 0;
+    filterSummary.value.totalProducts = summaryAll.totalProducts || 0;
+    filterSummary.value.successOrders = summaryAll.successOrders || 0;
+    filterSummary.value.processingOrders = summaryAll.processingOrders || 0; 
+    filterSummary.value.cancelOrders = summaryAll.cancelOrders || 0;
+    
+  } catch (error) { 
+    console.error("Lỗi fetchFilterSummary:", error); 
+  }
 }
 
 const fetchLineChartData = async (payload) => {
@@ -863,7 +888,7 @@ onMounted(() => {
 .separator { color: #6b7280; }
 
 .filter-summary-row {
-  display: grid; grid-template-columns: repeat(6, 1fr);
+  display: grid; grid-template-columns: repeat(7, 1fr); 
   padding: 16px 20px; background: #fafafa; border-radius: 0 0 8px 8px;
 }
 .f-stat-item { display: flex; flex-direction: column; gap: 4px; }
