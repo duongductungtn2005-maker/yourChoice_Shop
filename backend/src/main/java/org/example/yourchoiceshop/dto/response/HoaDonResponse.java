@@ -6,8 +6,7 @@ import java.time.LocalDateTime;
 
 @Data
 public class HoaDonResponse {
-    private Integer id; // <--- THÊM DÒNG NÀY (Để sửa lỗi cannot find symbol setId)
-
+    private Integer id;
     private String maHoaDon;
     private Integer tongSanPham;
     private BigDecimal tongTienSauGiam;
@@ -17,4 +16,5 @@ public class HoaDonResponse {
     private LocalDateTime ngayTao;
     private String loaiHoaDon;
     private Integer trangThai;
+    private String emailKhachHang;
 }

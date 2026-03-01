@@ -15,6 +15,7 @@ public class ChiTietDonHangResponse {
     private Integer id;
     private String maHoaDon;
     private String tenKhachHang;
+    private String emailKhachHang;
     private String soDienThoai;
     private String diaChi;
     private String loaiHoaDon;

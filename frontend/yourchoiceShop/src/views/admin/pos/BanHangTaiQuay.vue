@@ -1,4 +1,21 @@
 <template>
+  <div class="payment-tabs">
+  <div
+    class="tab-item"
+    :class="{ active: orderType === 'TAI_QUAY' }"
+    @click="orderType = 'TAI_QUAY'"
+  >
+    Tại quầy
+  </div>
+
+  <div
+    class="tab-item"
+    :class="{ active: orderType === 'ONLINE' }"
+    @click="orderType = 'ONLINE'"
+  >
+    Online
+  </div>
+</div>
   <div class="pos-container">
     <!-- ===== LEFT: CART ===== -->
     <div class="pos-cart">
@@ -45,6 +62,27 @@
           </tbody>
         </table>
       </div>
+      <!-- ===== CUSTOMER ===== -->
+      <div class="customer-box" style="margin-top: 16px">
+        <div class="box-header">
+          <h4>Khách hàng</h4>
+          <button class="btn-outline" @click="openCustomerModal">Chọn</button>
+        </div>
+
+        <input v-model="customer.name" placeholder="Tên khách hàng" />
+        <input v-model="customer.phone" placeholder="SĐT" />
+        <input v-model="customer.email" placeholder="Email khách hàng" />
+      </div>
+      
+
+      <div v-if="orderType === 'ONLINE'" class="customer-box">
+  <h4>Thông tin người nhận</h4>
+
+  <input v-model="customer.name" placeholder="Tên người nhận" />
+  <input v-model="customer.phone" placeholder="SĐT người nhận" />
+  <input v-model="customer.address" placeholder="Địa chỉ nhận hàng" />
+  <textarea v-model="note" placeholder="Ghi chú"></textarea>
+</div>
     </div>
 
     <!-- ===== RIGHT: INFO BAR ===== -->
@@ -84,15 +122,17 @@
         </div>
       </div>
 
-      <!-- CUSTOMER -->
+      <!-- ===== STAFF ===== -->
       <div class="customer-box">
         <div class="box-header">
-          <h4>Khách hàng</h4>
-          <button class="btn-outline" @click="openCustomerModal">Chọn</button>
+          <h4>Nhân viên</h4>
+          <button class="btn-outline" @click="openStaffModal">Chọn</button>
         </div>
-        <input v-model="customer.name" placeholder="Tên KH" />
-        <input v-model="customer.phone" placeholder="SĐT" />
+
+        <input :value="staff.code" placeholder="Mã nhân viên" disabled />
+        <input :value="staff.name" placeholder="Tên nhân viên" disabled />
       </div>
+
 
       <!-- PAYMENT -->
       <div class="payment-box">
@@ -111,9 +151,21 @@
           <span class="p-price">{{ formatMoney(totalPrice) }}</span>
         </div>
 
-        <button class="btn-pay" @click="openPaymentModal">
-          THANH TOÁN
-        </button>
+<button
+  v-if="orderType === 'TAI_QUAY'"
+  class="btn-pay"
+  @click="openPaymentModal"
+>
+  THANH TOÁN
+</button>
+
+<button
+  v-else
+  class="btn-pay"
+  @click="handleCreateOrderOnline"
+>
+  TẠO HÓA ĐƠN
+</button>
       </div>
     </div>
   </div>
@@ -248,8 +300,11 @@
             <td>{{ d.code }}</td>
             <td>{{ d.name }}</td>
             <td class="p-price">
-              {{ d.type === 'percent' ? d.value + '%' : formatMoney(d.value) }}
-            </td>
+  {{ d.type === 'percent'
+    ? d.value + '%'
+    : formatMoney(d.value)
+  }}
+</td>
             <td>
               {{ d.startDate }} → {{ d.endDate }}
             </td>
@@ -282,56 +337,78 @@
       </div>
 
       <div class="payment-tabs">
-  <div
-    class="tab-item"
-    :class="{ active: paymentMethod === 'TRANSFER' }"
-    @click="paymentMethod = 'TRANSFER'"
-  >
-    Chuyển khoản
+        <div class="tab-item" :class="{ active: paymentMethod === 'TRANSFER' }" @click="paymentMethod = 'TRANSFER'">
+          Chuyển khoản
+        </div>
+
+        <div class="tab-item" :class="{ active: paymentMethod === 'CASH' }" @click="paymentMethod = 'CASH'">
+          Tiền mặt
+        </div>
+      </div>
+
+      <!-- CASH -->
+      <div v-if="paymentMethod === 'CASH'">
+        <input v-model.number="customerCash" type="number" class="search-input" placeholder="Tiền khách đưa" />
+        <div class="p-price">
+          Còn lại: {{ formatMoney(calculateRemaining) }}
+        </div>
+      </div>
+
+      <!-- TRANSFER -->
+      <div v-if="paymentMethod === 'TRANSFER'" class="qr-section">
+        <div class="qr-code">
+          <img :src="qrImageUrl" alt="QR chuyển khoản" />
+        </div>
+
+        <div class="p-price">
+          Số tiền: {{ formatMoney(totalPrice) }}
+        </div>
+
+        <div style="font-size: 13px; color: #6b7280">
+          Nội dung: THANH TOAN HOA DON
+        </div>
+      </div>
+
+      <div class="payment-footer">
+        <button class="btn-pay" @click="confirmCreateOrder">
+  {{ orderType === 'TAI_QUAY' ? 'THANH TOÁN' : 'TẠO ĐƠN ONLINE' }}
+</button>
+      </div>
+    </div>
   </div>
 
-  <div
-    class="tab-item"
-    :class="{ active: paymentMethod === 'CASH' }"
-    @click="paymentMethod = 'CASH'"
-  >
-    Tiền mặt
-  </div>
-</div>
+  <!-- ===== MODAL NHÂN VIÊN ===== -->
+  <div v-if="showStaffModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header-flex">
+        <h3>Chọn nhân viên</h3>
+        <button class="close-btn" @click="showStaffModal = false">×</button>
+      </div>
 
-<!-- CASH -->
-<div v-if="paymentMethod === 'CASH'">
-  <input
-    v-model.number="customerCash"
-    type="number"
-    class="search-input"
-    placeholder="Tiền khách đưa"
-  />
-  <div class="p-price">
-    Còn lại: {{ formatMoney(calculateRemaining) }}
-  </div>
-</div>
+      <input v-model="staffKeyword" class="search-input" placeholder="Tìm mã / tên nhân viên" />
 
-<!-- TRANSFER -->
-<div v-if="paymentMethod === 'TRANSFER'" class="qr-section">
-  <div class="qr-code">
-    <img :src="qrImageUrl" alt="QR chuyển khoản" />
-  </div>
-
-  <div class="p-price">
-    Số tiền: {{ formatMoney(totalPrice) }}
-  </div>
-
-  <div style="font-size: 13px; color: #6b7280">
-    Nội dung: THANH TOAN HOA DON
-  </div>
-</div>
-
-<div class="payment-footer">
-  <button class="btn-submit-payment" @click="confirmCreateOrder">
-    Xác nhận thanh toán
-  </button>
-</div>
+      <table class="table modal-table">
+        <thead>
+          <tr>
+            <th>Mã NV</th>
+            <th>Tên NV</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="s in staffs.filter(st =>
+            [st.code, st.name].join(' ').toLowerCase().includes(staffKeyword.toLowerCase())
+          )" :key="s.id">
+            <td>{{ s.code }}</td>
+            <td>{{ s.name }}</td>
+            <td>
+              <button class="btn-select" @click="selectStaff(s)">
+                Chọn
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
@@ -519,17 +596,17 @@ const loadDiscounts = async () => {
     trangThai: 1
   })
 
-  discountList.value = res.data.content.map(d => ({
-    id: d.id,
-    code: d.maPhieuGiamGia,
-    name: d.tenPhieuGiamGia,
-    type: d.loaiPhieu === 'PERCENT' ? 'percent' : 'money',
-    value: d.giaTriGiam,
-    startDate: d.ngayBatDau,
-    endDate: d.ngayKetThuc,
-    trangThai: d.trangThai,
-    checked: false
-  }))
+discountList.value = res.data.content.map(d => ({
+  id: d.id,
+  code: d.maPhieuGiamGia,
+  name: d.tenPhieuGiamGia,
+  type: d.loaiPhieu === 'PhanTram' ? 'percent' : 'money',
+  value: d.giaTriGiam,
+  startDate: d.ngayBatDau,
+  endDate: d.ngayKetThuc,
+  trangThai: d.trangThai,
+  checked: false
+}))
 
   totalDiscountPages.value = res.data.totalPages
 }
@@ -606,24 +683,31 @@ const handleCreateOrder = async () => {
   if (!confirm('Xác nhận tạo hóa đơn?')) return
 
   try {
-    const payload = {
-      tenKhachHang: customer.value.name,
-      soDienThoai: customer.value.phone,
-      diaChi: customer.value.address,
-      email: customer.value.email,
+const payload = {
+  tenKhachHang: customer.value.name,
+  soDienThoai: customer.value.phone,
+  diaChi: customer.value.address,
+  email: customer.value.email,
+  maNhanVien: staff.value.code,
+  tienGiamGia: totalDiscount.value,
 
-      tongTien: totalProductPrice.value,
-      tienGiamGia: totalDiscount.value,
-      tongTienSauGiam: totalPrice.value,
+phieuGiamGia: discounts.value.map(d => ({
+  loaiPhieu: d.type === 'percent' ? 'PhanTram' : 'TienMat',
+  giaTriGiam: d.value,
+  trangThai: 1
+})),
 
-      phieuGiamGiaIds: discounts.value.map(d => d.id),
+  hinhThucThanhToan:
+    paymentMethod.value === 'CASH'
+      ? 'TIEN_MAT'
+      : 'CHUYEN_KHOAN',
 
-      items: cart.value.map(i => ({
-        idChiTietSanPham: i.id,
-        soLuong: i.qty,
-        donGia: i.price
-      }))
-    }
+  items: cart.value.map(i => ({
+    idChiTietSanPham: i.id,
+    soLuong: i.qty,
+    donGia: i.price
+  }))
+}
 
     await createOrder(payload)
 
@@ -688,6 +772,100 @@ const qrImageUrl = computed(() => {
 
   return `https://img.vietqr.io/image/${bank}-${account}-compact.png?amount=${amount}&addInfo=THANH TOAN HOA DON&accountName=${encodeURIComponent(name)}`
 })
+
+/* ================= STAFF ================= */
+const staff = ref({
+  id: null,
+  code: '',
+  name: ''
+})
+const showStaffModal = ref(false)
+const staffKeyword = ref('')
+import { getNhanVien } from '@/api/NhanVienApi'
+
+const staffs = ref([])
+const staffPage = ref(0)
+const staffSize = ref(10)
+const totalStaffPages = ref(0)
+
+const loadStaffs = async () => {
+  const res = await getNhanVien({
+    page: staffPage.value,
+    size: staffSize.value,
+    status: 1
+  })
+
+  console.log('NHAN VIEN API:', res.data)
+
+  staffs.value = res.data.content.map(s => ({
+    id: s.id,
+    code: s.maNhanVien,
+    name: s.tenNhanVien
+  }))
+
+  totalStaffPages.value = res.data.totalPages
+}
+
+const openStaffModal = async () => {
+  await loadStaffs()
+  showStaffModal.value = true
+}
+const selectStaff = (s) => {
+  staff.value = {
+    id: s.id,
+    code: s.code,
+    name: s.name
+  }
+  showStaffModal.value = false
+
+}
+
+
+import { createOrderOnline } from '@/api/HoaDonApi'
+
+const orderType = ref('TAI_QUAY') // TAI_QUAY | ONLINE
+const note = ref('')
+const handleSubmitOrder = async () => {
+  if (orderType.value === 'TAI_QUAY') {
+    openPaymentModal()
+  } else {
+    await handleCreateOrderOnline()
+  }
+}
+
+const handleCreateOrderOnline = async () => {
+  if (!customer.value.name || !customer.value.phone || !customer.value.address) {
+    alert('Vui lòng nhập đầy đủ thông tin người nhận')
+    return
+  }
+
+  const payload = {
+    tenKhachHang: customer.value.name,
+    soDienThoai: customer.value.phone,
+    diaChi: customer.value.address,
+    email: customer.value.email,
+    ghiChu: note.value,
+
+    tienGiamGia: totalDiscount.value,
+
+    phieuGiamGia: discounts.value.map(d => ({
+      loaiPhieu: d.type === 'percent' ? 'PhanTram' : 'TienMat',
+      giaTriGiam: d.value,
+      trangThai: 1
+    })),
+
+    items: cart.value.map(i => ({
+      idChiTietSanPham: i.id,
+      soLuong: i.qty,
+      donGia: i.price
+    }))
+  }
+
+  await createOrderOnline(payload)
+
+  alert('Tạo đơn online thành công – chờ xác nhận')
+  router.push({ name: 'admin-order-list' })
+}
 </script>
 
 <style scoped>
@@ -1506,7 +1684,8 @@ const qrImageUrl = computed(() => {
 
 /* ===== DISCOUNT MODAL WIDE ===== */
 .modal-content.discount-modal {
-  width: 900px;        /* 👈 rộng hẳn ra */
+  width: 900px;
+  /* 👈 rộng hẳn ra */
   max-width: 95vw;
 }
 

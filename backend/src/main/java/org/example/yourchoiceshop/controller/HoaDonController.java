@@ -6,6 +6,7 @@ import org.example.yourchoiceshop.dto.request.HoaDonRequest; // <--- Import DTO 
 import org.example.yourchoiceshop.dto.request.ThanhToanRequest;
 import org.example.yourchoiceshop.dto.response.HoaDonDetailResponse;
 import org.example.yourchoiceshop.dto.response.HoaDonResponse;
+import org.example.yourchoiceshop.service.HoaDonService;
 import org.example.yourchoiceshop.service.ThanhToanService;
 import org.example.yourchoiceshop.service.impl.HoaDonServiceImpl;
 import org.springframework.data.domain.Page;
@@ -27,9 +28,11 @@ import java.time.LocalDateTime;
 public class HoaDonController {
 
     private final HoaDonServiceImpl service;
+    private final HoaDonService hoaDonService;
 
     // API danh sách
     @GetMapping
+    
     public ResponseEntity<Page<HoaDonResponse>> getOrders(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
@@ -115,4 +118,21 @@ public class HoaDonController {
         return ResponseEntity.ok("Thanh toán thành công");
     }
 
+    @PostMapping("/online")
+    public ResponseEntity<?> createOrderOnline(
+            @RequestBody CreateOrderRequest req) {
+
+        hoaDonService.createOrderOnline(req);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/tai-quay")
+    public ResponseEntity<?> createOrderAtCounter(
+            @RequestBody CreateOrderRequest req) {
+
+        hoaDonService.createOrderAtCounter(req);
+        return ResponseEntity.ok().build();
+    }
+
+    
 }

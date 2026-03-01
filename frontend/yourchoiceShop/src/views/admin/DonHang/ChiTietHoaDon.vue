@@ -57,7 +57,13 @@
               </div>
               <div class="info-line">
                 <span class="label">Email:</span>
-                <span class="value">{{ order.emailKhachHang }}</span>
+                <span class="value">
+  {{ 
+    order.emailKhachHang 
+    || order.khachHang?.email 
+    || 'Không có' 
+  }}
+</span>
               </div>
             </div>
           </div>

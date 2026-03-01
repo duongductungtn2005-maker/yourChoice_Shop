@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List; // Nhớ import List
+import java.util.Optional;
 
 @Repository
 public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
@@ -26,4 +27,5 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
             @Param("roleIds") List<Integer> roleIds,
             Pageable pageable
     );
+    Optional<NhanVien> findByMaNhanVien(String maNhanVien);
 }

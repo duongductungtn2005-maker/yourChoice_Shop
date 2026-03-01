@@ -8,9 +8,12 @@ import org.example.yourchoiceshop.dto.response.HoaDonResponse;
 import org.example.yourchoiceshop.entity.ChiTietSanPham;
 import org.example.yourchoiceshop.entity.HoaDon;
 import org.example.yourchoiceshop.entity.HoaDonChiTiet;
+import org.example.yourchoiceshop.entity.LichSuThanhToan;
 import org.example.yourchoiceshop.repository.ChiTietSanPhamRepository;
 import org.example.yourchoiceshop.repository.HoaDonChiTietRepository;
 import org.example.yourchoiceshop.repository.HoaDonRepository;
+import org.example.yourchoiceshop.repository.LichSuThanhToanRepository;
+import org.example.yourchoiceshop.repository.NhanVienRepository;
 import org.example.yourchoiceshop.service.HoaDonService; // <--- Import Interface này
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,9 +27,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.example.yourchoiceshop.dto.request.HoaDonRequest; // <--- Import DTO mớiimport org.apache.poi.ss.usermodel.*;
+import org.example.yourchoiceshop.dto.request.PhieuGiamGiaRequest;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.ByteArrayOutputStream;
-import org.springframework.data.jpa.repository.EntityGraph; // Thêm import này
+// import org.springframework.data.jpa.repository.EntityGraph; // Thêm import này
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -35,41 +40,41 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
     private final HoaDonRepository hoaDonRepo;
     private final HoaDonChiTietRepository hoaDonChiTietRepo;
     private final ChiTietSanPhamRepository chiTietSanPhamRepo;
+    private final NhanVienRepository nhanVienRepo; // Thêm Repository này để lấy tên nhân viên
+    private final LichSuThanhToanRepository lichSuThanhToanRepo; // Thêm Repository này để lấy lịch sử thanh toán
 
     @Override // <--- Thêm Override cho chắc chắn
     public Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, LocalDateTime from,
-                                          LocalDateTime to, Pageable pageable) {
+            LocalDateTime to, Pageable pageable) {
         Page<HoaDon> page = hoaDonRepo.searchOrders(keyword, status, type, from, to, pageable);
 
         return page.map(hd -> {
-    HoaDonResponse res = new HoaDonResponse();
-    res.setMaHoaDon(hd.getMaHoaDon());
+            HoaDonResponse res = new HoaDonResponse();
+            res.setMaHoaDon(hd.getMaHoaDon());
 
-    int totalItems = hd.getHoaDonChiTiets() != null
-            ? hd.getHoaDonChiTiets().stream().mapToInt(HoaDonChiTiet::getSoLuong).sum()
-            : 0;
-    res.setTongSanPham(totalItems);
+            int totalItems = hd.getHoaDonChiTiets() != null
+                    ? hd.getHoaDonChiTiets().stream().mapToInt(HoaDonChiTiet::getSoLuong).sum()
+                    : 0;
+            res.setTongSanPham(totalItems);
 
-    res.setTongTienSauGiam(hd.getTongTienSauGiam());
+            res.setTongTienSauGiam(hd.getTongTienSauGiam());
 
-    res.setTenKhachHang(
-            hd.getTenNguoiNhan() != null
-                    ? hd.getTenNguoiNhan()
-                    : (hd.getKhachHang() != null ? hd.getKhachHang().getTenKhachHang() : "Khách lẻ")
-    );
+            res.setTenKhachHang(
+                    hd.getTenNguoiNhan() != null
+                            ? hd.getTenNguoiNhan()
+                            : (hd.getKhachHang() != null ? hd.getKhachHang().getTenKhachHang() : "Khách lẻ"));
 
-    // ✅ CHỖ QUYẾT ĐỊNH
-    res.setTenNhanVien(
-            hd.getNhanVien() != null
-                    ? hd.getNhanVien().getTenNhanVien()
-                    : null
-    );
+            // ✅ CHỖ QUYẾT ĐỊNH
+            res.setTenNhanVien(
+                    hd.getNhanVien() != null
+                            ? hd.getNhanVien().getTenNhanVien()
+                            : null);
 
-    res.setNgayTao(hd.getNgayTao());
-    res.setLoaiHoaDon(convertTypeToDisplay(hd.getLoaiHoaDon()));
-    res.setTrangThai(hd.getTrangThai());
-    return res;
-});
+            res.setNgayTao(hd.getNgayTao());
+            res.setLoaiHoaDon(convertTypeToDisplay(hd.getLoaiHoaDon()));
+            res.setTrangThai(hd.getTrangThai());
+            return res;
+        });
     }
 
     @Override
@@ -93,6 +98,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         HoaDonDetailResponse res = new HoaDonDetailResponse();
         res.setMaHoaDon(hd.getMaHoaDon());
         res.setTenKhachHang(hd.getKhachHang() != null ? hd.getKhachHang().getTenKhachHang() : "Khách lẻ");
+        res.setEmailKhachHang(hd.getEmailKhachHang()); // ✅ DÒNG QUYẾT ĐỊNH
         res.setLoaiHoaDon(convertTypeToDisplay(hd.getLoaiHoaDon()));
         res.setTrangThai(hd.getTrangThai());
         res.setNgayTao(hd.getNgayTao());
@@ -184,6 +190,18 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         hd.setSdtNguoiNhan(req.getSoDienThoai());
         hd.setDiaChiNguoiNhan(req.getDiaChi());
         hd.setEmailKhachHang(req.getEmail());
+        hd.setGhiChu(req.getGhiChu());
+
+        // fallback từ khách hàng (nếu có)
+        if (hd.getEmailKhachHang() == null && hd.getKhachHang() != null) {
+            hd.setEmailKhachHang(hd.getKhachHang().getEmail());
+        }
+        // ✅ GÁN NHÂN VIÊN THEO MÃ
+        if (req.getMaNhanVien() != null && !req.getMaNhanVien().isBlank()) {
+            hd.setNhanVien(
+                    nhanVienRepo.findByMaNhanVien(req.getMaNhanVien())
+                            .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên")));
+        }
 
         hoaDonRepo.save(hd);
 
@@ -192,49 +210,92 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
         for (CreateOrderRequest.CartItem item : req.getItems()) {
 
-    ChiTietSanPham sp = chiTietSanPhamRepo
-            .findById(item.getIdChiTietSanPham())
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+            ChiTietSanPham sp = chiTietSanPhamRepo
+                    .findById(item.getIdChiTietSanPham())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
 
-    // ✅ Check tồn kho
-    if (sp.getSoLuong() < item.getSoLuong()) {
-        throw new RuntimeException(
-            "Sản phẩm " + sp.getSanPham().getTenSanPham() + " không đủ tồn kho"
-        );
-    }
+            // ✅ Check tồn kho
+            if (sp.getSoLuong() < item.getSoLuong()) {
+                throw new RuntimeException(
+                        "Sản phẩm " + sp.getSanPham().getTenSanPham() + " không đủ tồn kho");
+            }
 
-    // ✅ Trừ tồn kho
-    sp.setSoLuong(sp.getSoLuong() - item.getSoLuong());
-    chiTietSanPhamRepo.save(sp);
+            // ✅ Trừ tồn kho
+            sp.setSoLuong(sp.getSoLuong() - item.getSoLuong());
+            chiTietSanPhamRepo.save(sp);
 
-    HoaDonChiTiet ct = new HoaDonChiTiet();
-    ct.setHoaDon(hd);
-    ct.setChiTietSanPham(sp);
-    ct.setSoLuong(item.getSoLuong());
-    ct.setDonGia(BigDecimal.valueOf(item.getDonGia()));
+            HoaDonChiTiet ct = new HoaDonChiTiet();
+            ct.setHoaDon(hd);
+            ct.setChiTietSanPham(sp);
+            ct.setSoLuong(item.getSoLuong());
+            ct.setDonGia(BigDecimal.valueOf(item.getDonGia()));
 
-    BigDecimal thanhTien = ct.getDonGia()
-            .multiply(BigDecimal.valueOf(item.getSoLuong()));
+            BigDecimal thanhTien = ct.getDonGia()
+                    .multiply(BigDecimal.valueOf(item.getSoLuong()));
 
-    ct.setThanhTien(thanhTien);
-    tongTien = tongTien.add(thanhTien);
+            ct.setThanhTien(thanhTien);
+            tongTien = tongTien.add(thanhTien);
 
-    hoaDonChiTietRepo.save(ct);
-}
-
+            hoaDonChiTietRepo.save(ct);
+        }
         // 3. Cập nhật tiền
-        // 3. Cập nhật tiền (LẤY TỪ REQUEST)
-        // ✅ 3. Cập nhật tiền (DÙNG TIỀN ĐÃ TÍNH)
         hd.setTongTien(tongTien);
 
-        BigDecimal tienGiam = req.getTienGiamGia() != null
-                ? req.getTienGiamGia()
-                : BigDecimal.ZERO;
+        BigDecimal tienGiam = BigDecimal.ZERO;
+
+        if (req.getPhieuGiamGia() != null) {
+            for (PhieuGiamGiaRequest p : req.getPhieuGiamGia()) {
+
+                // Check hiệu lực cơ bản (nên có)
+                if (p.getTrangThai() != null && p.getTrangThai() != 1)
+                    continue;
+
+                if ("PhanTram".equalsIgnoreCase(p.getLoaiPhieu())) {
+
+                    // 15.00 => 15%
+                    BigDecimal percent = p.getGiaTriGiam()
+                            .divide(BigDecimal.valueOf(100));
+
+                    BigDecimal giam = tongTien.multiply(percent);
+
+                    // có giới hạn tối đa
+                    if (p.getGiaTriGiamToiDa() != null
+                            && p.getGiaTriGiamToiDa().compareTo(BigDecimal.ZERO) > 0
+                            && giam.compareTo(p.getGiaTriGiamToiDa()) > 0) {
+                        giam = p.getGiaTriGiamToiDa();
+                    }
+
+                    tienGiam = tienGiam.add(giam);
+
+                } else if ("TienMat".equalsIgnoreCase(p.getLoaiPhieu())) {
+
+                    tienGiam = tienGiam.add(p.getGiaTriGiam());
+                }
+            }
+        }
+
+        // không cho âm tiền
+        if (tienGiam.compareTo(tongTien) > 0) {
+            tienGiam = tongTien;
+        }
 
         hd.setTienGiamGia(tienGiam);
         hd.setTongTienSauGiam(tongTien.subtract(tienGiam));
 
         hoaDonRepo.save(hd);
+
+        // 4. ✅ TẠO LỊCH SỬ THANH TOÁN (DUY NHẤT 1 BẢN GHI)
+        LichSuThanhToan ls = new LichSuThanhToan();
+        ls.setHoaDon(hd);
+        ls.setSoTien(hd.getTongTienSauGiam());
+        ls.setHinhThucThanhToan(
+                req.getHinhThucThanhToan() != null
+                        ? req.getHinhThucThanhToan()
+                        : "TIEN_MAT");
+        ls.setNgayThanhToan(LocalDateTime.now());
+        ls.setTrangThai(1);
+
+        lichSuThanhToanRepo.save(ls);
     }
 
     @Override
@@ -289,6 +350,67 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         } catch (Exception e) {
             throw new RuntimeException("Lỗi xuất Excel: " + e.getMessage());
         }
+    }
+
+    @Override
+    @Transactional
+    public void createOrderOnline(CreateOrderRequest req) {
+
+        HoaDon hd = new HoaDon();
+        hd.setMaHoaDon("HD" + System.currentTimeMillis());
+        hd.setNgayTao(LocalDateTime.now());
+        hd.setTrangThai(1);
+        hd.setLoaiHoaDon("TRUC_TUYEN");
+
+        hd.setTenNguoiNhan(
+                req.getTenKhachHang() != null ? req.getTenKhachHang() : "Khách lẻ");
+        hd.setSdtNguoiNhan(req.getSoDienThoai());
+        hd.setDiaChiNguoiNhan(req.getDiaChi());
+        hd.setEmailKhachHang(req.getEmail());
+        hd.setGhiChu(req.getGhiChu());
+
+        // fallback từ khách hàng (nếu có)
+        if (hd.getEmailKhachHang() == null && hd.getKhachHang() != null) {
+            hd.setEmailKhachHang(hd.getKhachHang().getEmail());
+        }
+        // ✅ GÁN NHÂN VIÊN THEO MÃ
+        if (req.getMaNhanVien() != null && !req.getMaNhanVien().isBlank()) {
+            hd.setNhanVien(
+                    nhanVienRepo.findByMaNhanVien(req.getMaNhanVien())
+                            .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên")));
+        }
+
+        hoaDonRepo.save(hd);
+
+        BigDecimal tongTien = BigDecimal.ZERO;
+
+        for (CreateOrderRequest.CartItem item : req.getItems()) {
+            ChiTietSanPham sp = chiTietSanPhamRepo.findById(item.getIdChiTietSanPham())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+
+            if (sp.getSoLuong() < item.getSoLuong()) {
+                throw new RuntimeException("Không đủ tồn kho");
+            }
+
+            HoaDonChiTiet ct = new HoaDonChiTiet();
+            ct.setHoaDon(hd);
+            ct.setChiTietSanPham(sp);
+            ct.setSoLuong(item.getSoLuong());
+            ct.setDonGia(BigDecimal.valueOf(item.getDonGia()));
+
+            BigDecimal thanhTien = ct.getDonGia()
+                    .multiply(BigDecimal.valueOf(item.getSoLuong()));
+            ct.setThanhTien(thanhTien);
+
+            tongTien = tongTien.add(thanhTien);
+            hoaDonChiTietRepo.save(ct);
+        }
+
+        hd.setTongTien(tongTien);
+        hd.setTienGiamGia(req.getTienGiamGia());
+        hd.setTongTienSauGiam(tongTien.subtract(req.getTienGiamGia()));
+
+        hoaDonRepo.save(hd);
     }
 
     private String convertStatusToText(Integer status) {
