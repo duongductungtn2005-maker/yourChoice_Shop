@@ -57,7 +57,7 @@
             Gửi Báo Cáo
           </button>
 
-          <button @click="handleExportExcel" class="btn btn-excel">
+          <button @click="showConfirmExportModal = true" class="btn btn-excel">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
             Xuất Excel
           </button>
@@ -226,6 +226,27 @@
       </div>
     </div>
 
+    <div v-if="showConfirmExportModal" class="modal-overlay">
+      <div class="confirm-modal">
+        <div class="confirm-icon">
+          <span class="question-mark">?</span>
+        </div>
+        <h3 class="confirm-title">Xác nhận</h3>
+        <p class="confirm-text">Bạn có muốn tải xuống danh sách đơn hàng không?</p>
+        <div class="confirm-actions">
+          <button class="btn btn-yes" @click="handleExportExcel">Có</button>
+          <button class="btn btn-no" @click="showConfirmExportModal = false">Hủy</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showSuccessToast" class="toast-success">
+      <div class="toast-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <span>Xuất Excel thành công</span>
+    </div>
+
   </div>
 </template>
 
@@ -336,6 +357,10 @@ const emailConfig = ref({
   email: '',
   frequency: 'DAILY_17H' // Default gửi lúc 17h
 })
+
+// --- STATES EXCEL CONFIRM & TOAST ---
+const showConfirmExportModal = ref(false)
+const showSuccessToast = ref(false)
 
 // --- LINE CHART DATA ---
 const lineChartData = ref({
@@ -679,8 +704,19 @@ const handleExportExcel = async () => {
     document.body.appendChild(link);
     link.click();
     link.remove();
+    
+    // Tắt modal confirm và hiện thông báo thành công
+    showConfirmExportModal.value = false;
+    showSuccessToast.value = true;
+    
+    // Tự động ẩn toast sau 3 giây
+    setTimeout(() => {
+      showSuccessToast.value = false;
+    }, 3000);
+
   } catch (error) { 
     console.error("Lỗi xuất Excel:", error);
+    showConfirmExportModal.value = false; // Tắt modal kể cả khi lỗi
   }
 }
 
@@ -965,17 +1001,121 @@ onMounted(() => {
 .empty-growth { display: flex; align-items: center; justify-content: center; height: 100px; color: #6b7280; font-size: 13px; }
 .empty-state { text-align: center; padding: 40px 20px; color: #6b7280; font-size: 13px; }
 
-/* --- EMAIL MODAL CSS --- */
+/* --- CSS DÀNH RIÊNG CHO MODAL CONFIRM & TOAST THÔNG BÁO --- */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
 
+.confirm-modal {
+  background: #fff;
+  padding: 32px 24px;
+  border-radius: 12px;
+  width: 400px;
+  max-width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.confirm-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 3px solid #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.question-mark {
+  font-size: 36px;
+  color: #6b7280;
+  font-weight: 300;
+}
+
+.confirm-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px 0;
+}
+
+.confirm-text {
+  font-size: 15px;
+  color: #4b5563;
+  margin: 0 0 24px 0;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-yes {
+  background-color: #7c3aed !important;
+  color: white !important;
+  border: none !important;
+  padding: 10px 32px !important;
+  font-size: 14px !important;
+  font-weight: 600;
+  border-radius: 6px !important;
+}
+
+.btn-yes:hover { background-color: #6d28d9 !important; }
+
+.btn-no {
+  background-color: #6b7280 !important;
+  color: white !important;
+  border: none !important;
+  padding: 10px 32px !important;
+  font-size: 14px !important;
+  font-weight: 600;
+  border-radius: 6px !important;
+}
+
+.btn-no:hover { background-color: #4b5563 !important; }
+
+/* TOAST THÔNG BÁO THÀNH CÔNG */
+.toast-success {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 9999;
+  font-weight: 500;
+  color: #4b5563;
+  animation: slideIn 0.3s ease-out;
+}
+
+.toast-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #dcfce7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* EMAIL MODAL (Giữ nguyên) */
 .modal-content {
   background: #fff;
   padding: 24px;

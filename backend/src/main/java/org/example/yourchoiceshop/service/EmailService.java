@@ -161,15 +161,22 @@ public class EmailService {
     @Autowired
     private JavaMailSender emailSender;
 
-    public void sendStatisticEmail(String to, String subject, String text) {
-        SimpleMailMessage message = new SimpleMailMessage(); 
-        message.setFrom("mochimomo0707@gmail.com"); // Thay bằng email gửi đi của hệ thống
-        message.setTo(to); 
-        message.setSubject(subject); 
-        message.setText(text);
-        
-        emailSender.send(message);
-        System.out.println("Đã gửi email báo cáo tới: " + to);
+    public void sendHtmlEmail(String to, String subject, String htmlBody) {
+        try {
+            MimeMessage message = emailSender.createMimeMessage();
+            // true = báo cho Spring biết mail này có chứa HTML
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setFrom("mochimomo0707@gmail.com"); // Mail gửi đi của mày
+            helper.setTo(to); 
+            helper.setSubject(subject); 
+            helper.setText(htmlBody, true); // true = bật chế độ render HTML
+            
+            emailSender.send(message);
+            System.out.println("Đã gửi email báo cáo HTML tới: " + to);
+        } catch (Exception e) {
+            System.err.println("Lỗi khi gửi email HTML: " + e.getMessage());
+        }
     }
 
     // --- 4. Dành cho KHÁCH HÀNG: Thông báo phiếu giảm giá ngừng hoạt động ---
@@ -205,4 +212,6 @@ public class EmailService {
 
         sendEmail(toEmail, subject, htmlContent, senderName);
     }
+
+    
 }
