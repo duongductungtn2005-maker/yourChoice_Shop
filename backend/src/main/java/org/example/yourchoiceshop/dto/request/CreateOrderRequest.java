@@ -14,10 +14,11 @@ public class CreateOrderRequest {
 
     private String ghiChu;
 
-    private String maNhanVien;
+    private Integer idNhanVien;
 
     private BigDecimal tongTien;
     private BigDecimal tienGiamGia;
+    private BigDecimal phiVanChuyen;
     private BigDecimal tongTienSauGiam;
     private String hinhThucThanhToan; 
 

@@ -197,9 +197,9 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             hd.setEmailKhachHang(hd.getKhachHang().getEmail());
         }
         // ✅ GÁN NHÂN VIÊN THEO MÃ
-        if (req.getMaNhanVien() != null && !req.getMaNhanVien().isBlank()) {
+        if (req.getIdNhanVien() != null) {
             hd.setNhanVien(
-                    nhanVienRepo.findByMaNhanVien(req.getMaNhanVien())
+                    nhanVienRepo.findById(req.getIdNhanVien())
                             .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên")));
         }
 
@@ -374,9 +374,9 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             hd.setEmailKhachHang(hd.getKhachHang().getEmail());
         }
         // ✅ GÁN NHÂN VIÊN THEO MÃ
-        if (req.getMaNhanVien() != null && !req.getMaNhanVien().isBlank()) {
+        if (req.getIdNhanVien() != null) {
             hd.setNhanVien(
-                    nhanVienRepo.findByMaNhanVien(req.getMaNhanVien())
+                    nhanVienRepo.findById(req.getIdNhanVien())
                             .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên")));
         }
 
@@ -406,9 +406,19 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             hoaDonChiTietRepo.save(ct);
         }
 
+        BigDecimal phiVanChuyen = req.getPhiVanChuyen() != null
+                ? req.getPhiVanChuyen()
+                : BigDecimal.ZERO;
+
+        hd.setPhiVanChuyen(phiVanChuyen);
+
         hd.setTongTien(tongTien);
         hd.setTienGiamGia(req.getTienGiamGia());
-        hd.setTongTienSauGiam(tongTien.subtract(req.getTienGiamGia()));
+
+        hd.setTongTienSauGiam(
+                tongTien
+                        .subtract(req.getTienGiamGia())
+                        .add(phiVanChuyen));
 
         hoaDonRepo.save(hd);
     }

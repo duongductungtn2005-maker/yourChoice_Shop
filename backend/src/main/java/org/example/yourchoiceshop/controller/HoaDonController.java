@@ -27,7 +27,6 @@ import java.time.LocalDateTime;
 @CrossOrigin("*")
 public class HoaDonController {
 
-    private final HoaDonServiceImpl service;
     private final HoaDonService hoaDonService;
 
     // API danh sách
@@ -50,13 +49,13 @@ public class HoaDonController {
             typeDb = "TAI_QUAY";
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("ngayTao").descending());
 
-        return ResponseEntity.ok(service.getOrders(keyword, status, typeDb, from, to, pageable));
+        return ResponseEntity.ok(hoaDonService.getOrders(keyword, status, typeDb, from, to, pageable));
     }
 
     // API chi tiết
     @GetMapping("/{maHoaDon}")
     public ResponseEntity<HoaDonDetailResponse> getDetail(@PathVariable String maHoaDon) {
-        return ResponseEntity.ok(service.getOrderDetail(maHoaDon));
+        return ResponseEntity.ok(hoaDonService.getOrderDetail(maHoaDon));
     }
 
     // API đổi trạng thái (Giao hàng, Hủy...)
@@ -64,7 +63,7 @@ public class HoaDonController {
     public ResponseEntity<?> updateStatus(
             @PathVariable String maHoaDon,
             @RequestParam Integer newStatus) {
-        service.updateStatus(maHoaDon, newStatus);
+        hoaDonService.updateStatus(maHoaDon, newStatus);
         return ResponseEntity.ok().body("Cập nhật trạng thái thành công");
     }
 
@@ -73,13 +72,13 @@ public class HoaDonController {
     public ResponseEntity<?> updateOrderInfo(
             @PathVariable String maHoaDon,
             @RequestBody HoaDonRequest request) {
-        service.updateOrderInfo(maHoaDon, request);
+        hoaDonService.updateOrderInfo(maHoaDon, request);
         return ResponseEntity.ok().body("Cập nhật thông tin thành công");
     }
 
     @PostMapping("/create")
     public ResponseEntity<?> createOrder(@RequestBody CreateOrderRequest req) {
-        service.createOrderAtCounter(req);
+        hoaDonService.createOrderAtCounter(req);
         return ResponseEntity.ok("Tạo hóa đơn thành công");
     }
 
@@ -98,7 +97,7 @@ public class HoaDonController {
         if ("Tại quầy".equals(type))
             typeDb = "TAI_QUAY";
 
-        byte[] excelData = service.exportExcel(keyword, status, typeDb, from, to);
+        byte[] excelData = hoaDonService.exportExcel(keyword, status, typeDb, from, to);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=DanhSachHoaDon.xlsx")

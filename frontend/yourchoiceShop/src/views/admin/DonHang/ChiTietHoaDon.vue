@@ -218,7 +218,11 @@
 </div>
         <div class="form-group">
           <label>Trạng thái đơn hàng</label>
-          <select v-model="selectedStatus" class="select-status">
+          <select
+  v-model="selectedStatus"
+  class="select-status"
+  :disabled="order.trangThai === 5 || order.trangThai === 0 || order.trangThai === 4"
+>
             <option v-for="st in availableStatuses" :key="st.value" :value="Number(st.value)">
               {{ st.label }}
             </option>
@@ -650,13 +654,20 @@ const availableStatuses = computed(() => {
 
   const current = order.value.trangThai;
 
-  return statusMap
-    .filter(s =>
-      s.value === current ||
-      s.value === current - 1 ||
-      s.value === current + 1
-    )
-    .sort((a, b) => a.value - b.value);
+  // 🚫 ĐÃ HOÀN THÀNH hoặc ĐÃ HỦY → KHÓA CỨNG
+  if (current === 5 || current === 0) {
+    return statusMap.filter(s => s.value === current);
+  }
+
+  // 🚫 ĐANG CHỜ THANH TOÁN → KHÔNG CHO LÊN HOÀN THÀNH
+  if (current === 4) {
+    return statusMap.filter(s => s.value === 4);
+  }
+
+  // ✅ Các trạng thái khác → chỉ cho tiến lên 1 bước
+  return statusMap.filter(s =>
+    s.value === current || s.value === current + 1
+  );
 });
 const selectedStatus = ref(null);
 

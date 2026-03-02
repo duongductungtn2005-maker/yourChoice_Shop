@@ -1,172 +1,176 @@
 <template>
-  <div class="payment-tabs">
-  <div
-    class="tab-item"
-    :class="{ active: orderType === 'TAI_QUAY' }"
-    @click="orderType = 'TAI_QUAY'"
-  >
-    Tại quầy
+  <button class="btn-add" @click="createNewTab">
+    + Tạo đơn hàng
+  </button>
+
+  <!-- TAB BAR -->
+  <div v-if="orderTabs.length" class="order-tabs">
+    <div v-for="tab in orderTabs" :key="tab.id" class="order-tab"
+      :class="{ active: tab.id === activeTabId, disabled: showModal }" @click="!showModal && (activeTabId = tab.id)">
+      {{ tab.maHoaDon || 'Đơn mới' }}
+      <span class="close-tab" @click.stop="closeTab(tab.id)">×</span>
+    </div>
   </div>
 
-  <div
-    class="tab-item"
-    :class="{ active: orderType === 'ONLINE' }"
-    @click="orderType = 'ONLINE'"
-  >
-    Online
-  </div>
-</div>
-  <div class="pos-container">
+  <!-- 🔥 TOÀN BỘ POS CHỈ HIỆN KHI CÓ TAB -->
+  <div v-if="currentOrder" class="pos-main-container">
+    <!-- ORDER TYPE TABS - HORIZONTAL -->
+    <div class="order-type-tabs">
+      <div class="tab-item" :class="{ active: orderType === 'TAI_QUAY' }" @click="orderType = 'TAI_QUAY'">
+        Tại quầy
+      </div>
+
+      <div class="tab-item" :class="{ active: orderType === 'ONLINE' }" @click="orderType = 'ONLINE'">
+        Online
+      </div>
+    </div>
+
     <!-- ===== LEFT: CART ===== -->
     <div class="pos-cart">
-      <div class="cart-header">
-        <h3>Sản phẩm trong hóa đơn</h3>
-        <button class="btn-add" @click="openProductModal">+ Thêm sản phẩm</button>
+    <div class="cart-header">
+      <h3>Sản phẩm trong hóa đơn</h3>
+      <button class="btn-add" @click="openProductModal">+ Thêm sản phẩm</button>
+    </div>
+
+    <div class="cart-items">
+      <div v-if="cart.length === 0" class="empty-cart">
+        Chưa có sản phẩm nào
       </div>
 
-      <div class="cart-items">
-        <div v-if="cart.length === 0" class="empty-cart">
-          Chưa có sản phẩm nào
-        </div>
-
-        <table v-else class="table">
-          <thead>
-            <tr>
-              <th>Mã</th>
-              <th>Tên</th>
-              <th>Giá</th>
-              <th>SL</th>
-              <th>Thành tiền</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, i) in cart" :key="item.id">
-              <td>{{ item.code }}</td>
-              <td>{{ item.name }}</td>
-              <td class="p-price">{{ formatMoney(item.price) }}</td>
-              <td>
-                <div class="item-control">
-                  <button @click="item.qty--" :disabled="item.qty === 1">-</button>
-                  <span>{{ item.qty }}</span>
-                  <button @click="item.qty++">+</button>
-                </div>
-              </td>
-              <td class="p-price">
-                {{ formatMoney(item.price * item.qty) }}
-              </td>
-              <td>
-                <button class="btn-remove" @click="cart.splice(i, 1)">×</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <table v-else class="table">
+        <thead>
+          <tr>
+            <th>Mã</th>
+            <th>Tên</th>
+            <th>Giá</th>
+            <th>SL</th>
+            <th>Thành tiền</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, i) in cart" :key="item.id">
+            <td>{{ item.code }}</td>
+            <td>{{ item.name }}</td>
+            <td class="p-price">{{ formatMoney(item.price) }}</td>
+            <td>
+              <div class="item-control">
+                <button @click="item.qty--" :disabled="item.qty === 1">-</button>
+                <span>{{ item.qty }}</span>
+                <button @click="item.qty++">+</button>
+              </div>
+            </td>
+            <td class="p-price">
+              {{ formatMoney(item.price * item.qty) }}
+            </td>
+            <td>
+              <button class="btn-remove" @click="cart.splice(i, 1)">×</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- ===== CUSTOMER ===== -->
+    <div class="customer-box" style="margin-top: 16px">
+      <div class="box-header">
+        <h4>Khách hàng</h4>
+        <button class="btn-outline" @click="openCustomerModal">Chọn</button>
       </div>
-      <!-- ===== CUSTOMER ===== -->
-      <div class="customer-box" style="margin-top: 16px">
-        <div class="box-header">
-          <h4>Khách hàng</h4>
-          <button class="btn-outline" @click="openCustomerModal">Chọn</button>
-        </div>
 
-        <input v-model="customer.name" placeholder="Tên khách hàng" />
-        <input v-model="customer.phone" placeholder="SĐT" />
-        <input v-model="customer.email" placeholder="Email khách hàng" />
-      </div>
-      
+      <input v-model="customer.name" placeholder="Tên khách hàng" />
+      <input v-model="customer.phone" placeholder="SĐT" />
+      <input v-model="customer.email" placeholder="Email khách hàng" />
+    </div>
 
-      <div v-if="orderType === 'ONLINE'" class="customer-box">
-  <h4>Thông tin người nhận</h4>
 
-  <input v-model="customer.name" placeholder="Tên người nhận" />
-  <input v-model="customer.phone" placeholder="SĐT người nhận" />
-  <input v-model="customer.address" placeholder="Địa chỉ nhận hàng" />
-  <textarea v-model="note" placeholder="Ghi chú"></textarea>
-</div>
+    <div v-if="orderType === 'ONLINE'" class="customer-box">
+      <h4>Thông tin người nhận</h4>
+
+      <input v-model="customer.name" placeholder="Tên người nhận" />
+      <input v-model="customer.phone" placeholder="SĐT người nhận" />
+      <input v-model="customer.address" placeholder="Địa chỉ nhận hàng" />
+      <textarea v-model="note" placeholder="Ghi chú"></textarea>
+    </div>
     </div>
 
     <!-- ===== RIGHT: INFO BAR ===== -->
     <div class="pos-info">
-      <!-- DISCOUNT -->
-      <div class="discount-box">
-        <div class="box-header">
-          <h4>Giảm giá</h4>
-          <button class="btn-add" @click="openDiscountModal">+ Thêm</button>
-        </div>
-
-        <table class="table small-table">
-          <thead>
-            <tr>
-              <th>Tên phiếu</th>
-              <th>Giảm</th>
-              <th>Thời hạn</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(d, i) in discounts" :key="d.id">
-              <td>{{ d.name }}</td>
-              <td class="p-price">
-                -{{ d.type === 'percent' ? d.value + '%' : formatMoney(d.value) }}
-              </td>
-              <td>{{ d.startDate }} → {{ d.endDate }}</td>
-              <td>
-                <button class="btn-remove" @click="discounts.splice(i, 1)">×</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div v-if="discounts.length === 0" class="empty-small">
-          Chưa áp dụng
-        </div>
+    <!-- DISCOUNT -->
+    <div class="discount-box">
+      <div class="box-header">
+        <h4>Giảm giá</h4>
+        <button class="btn-add" @click="openDiscountModal">+ Thêm</button>
       </div>
 
-      <!-- ===== STAFF ===== -->
-      <div class="customer-box">
-        <div class="box-header">
-          <h4>Nhân viên</h4>
-          <button class="btn-outline" @click="openStaffModal">Chọn</button>
-        </div>
+      <table class="table small-table">
+        <thead>
+          <tr>
+            <th>Tên phiếu</th>
+            <th>Giảm</th>
+            <th>Thời hạn</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(d, i) in discounts" :key="d.id">
+            <td>{{ d.name }}</td>
+            <td class="p-price">
+              -{{ d.type === 'percent' ? d.value + '%' : formatMoney(d.value) }}
+            </td>
+            <td>{{ d.startDate }} → {{ d.endDate }}</td>
+            <td>
+              <button class="btn-remove" @click="discounts.splice(i, 1)">×</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-        <input :value="staff.code" placeholder="Mã nhân viên" disabled />
-        <input :value="staff.name" placeholder="Tên nhân viên" disabled />
+      <div v-if="discounts.length === 0" class="empty-small">
+        Chưa áp dụng
+      </div>
+    </div>
+
+    <!-- ===== STAFF ===== -->
+    <div class="customer-box">
+      <div class="box-header">
+        <h4>Nhân viên</h4>
+        <button class="btn-outline" @click="openStaffModal">Chọn</button>
       </div>
 
+      <input :value="staff.code" placeholder="Mã nhân viên" disabled />
+      <input :value="staff.name" placeholder="Tên nhân viên" disabled />
+    </div>
 
-      <!-- PAYMENT -->
-      <div class="payment-box">
-        <div class="row">
-          <span>Tổng sản phẩm</span>
-          <span>{{ formatMoney(totalProductPrice) }}</span>
-        </div>
-
-        <div class="row">
-          <span>Giảm giá</span>
-          <span class="p-price">-{{ formatMoney(totalDiscount) }}</span>
-        </div>
-
-        <div class="row total-row">
-          <span>Khách cần trả</span>
-          <span class="p-price">{{ formatMoney(totalPrice) }}</span>
-        </div>
-
-<button
-  v-if="orderType === 'TAI_QUAY'"
-  class="btn-pay"
-  @click="openPaymentModal"
->
-  THANH TOÁN
-</button>
-
-<button
-  v-else
-  class="btn-pay"
-  @click="handleCreateOrderOnline"
->
-  TẠO HÓA ĐƠN
-</button>
+    <!-- PAYMENT -->
+    <div class="payment-box">
+      <div class="row">
+        <span>Tổng sản phẩm</span>
+        <span class="price-col">{{ formatMoney(totalProductPrice) }}</span>
       </div>
+
+      <div class="row">
+        <span>Giảm giá</span>
+        <span class="price-col">-{{ formatMoney(totalDiscount) }}</span>
+      </div>
+
+      <div class="row" v-if="orderType === 'ONLINE'">
+        <span>Phí vận chuyển</span>
+        <input type="number" min="0" v-model.number="shippingFee" class="price-col ship-input" placeholder="0" />
+      </div>
+
+      <div class="row total-row">
+        <span>Khách cần trả</span>
+        <span class="price-col">{{ formatMoney(totalPrice) }}</span>
+      </div>
+
+      <button v-if="orderType === 'TAI_QUAY'" class="btn-pay" @click="openPaymentModal">
+        THANH TOÁN
+      </button>
+
+      <button v-else class="btn-pay" @click="handleCreateOrderOnline">
+        TẠO HÓA ĐƠN
+      </button>
+    </div>
     </div>
   </div>
   <!-- ===== MODAL SẢN PHẨM ===== -->
@@ -300,11 +304,11 @@
             <td>{{ d.code }}</td>
             <td>{{ d.name }}</td>
             <td class="p-price">
-  {{ d.type === 'percent'
-    ? d.value + '%'
-    : formatMoney(d.value)
-  }}
-</td>
+              {{ d.type === 'percent'
+                ? d.value + '%'
+                : formatMoney(d.value)
+              }}
+            </td>
             <td>
               {{ d.startDate }} → {{ d.endDate }}
             </td>
@@ -371,8 +375,8 @@
 
       <div class="payment-footer">
         <button class="btn-pay" @click="confirmCreateOrder">
-  {{ orderType === 'TAI_QUAY' ? 'THANH TOÁN' : 'TẠO ĐƠN ONLINE' }}
-</button>
+          {{ orderType === 'TAI_QUAY' ? 'THANH TOÁN' : 'TẠO ĐƠN ONLINE' }}
+        </button>
       </div>
     </div>
   </div>
@@ -396,9 +400,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="s in staffs.filter(st =>
-            [st.code, st.name].join(' ').toLowerCase().includes(staffKeyword.toLowerCase())
-          )" :key="s.id">
+          <tr v-for="s in filteredStaffs" :key="s.id">
             <td>{{ s.code }}</td>
             <td>{{ s.name }}</td>
             <td>
@@ -409,14 +411,32 @@
           </tr>
         </tbody>
       </table>
+      <div class="pagination">
+        <button @click="staffPage--" :disabled="staffPage === 0">
+          ‹ Trước
+        </button>
+
+        <span>Trang {{ staffPage + 1 }} / {{ totalStaffPages }}</span>
+
+        <button @click="staffPage++" :disabled="staffPage + 1 >= totalStaffPages">
+          Sau ›
+        </button>
+      </div>
     </div>
+  </div>
+
+  <!-- GỢI Ý KHI CHƯA CÓ ĐƠN -->
+  <div v-if="orderTabs.length === 0" class="empty-pos">
+    <p>Chưa có đơn hàng nào</p>
+    <p>Nhấn <b>“+ Tạo đơn hàng”</b> để bắt đầu</p>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { createOrder } from '@/api/HoaDonApi'
+
 /* ================= FILTER SẢN PHẨM ================= */
 const productKeyword = ref('')
 const priceRange = ref([0, 1000000])
@@ -426,12 +446,12 @@ const priceRange = ref([0, 1000000])
 const router = useRouter()
 
 /* ================= CUSTOMER ================= */
-const customer = ref({
-  name: '',
-  phone: '',
-  email: '',
-  address: ''
-})
+// const customer = ref({
+//   name: '',
+//   phone: '',
+//   email: '',
+//   address: ''
+// })
 
 /* ================= MODAL KHÁCH HÀNG ================= */
 const showCustomerModal = ref(false)
@@ -486,12 +506,11 @@ const selectCustomer = (c) => {
 }
 
 /* ================= CART ================= */
-const cart = ref([])
+// const cart = ref([])
 
 /* ================= MODAL SẢN PHẨM ================= */
 const showModal = ref(false)
 
-import { onMounted } from 'vue'
 import { getChiTietSanPham } from '@/api/ChiTietSanPhamApi'
 
 const products = ref([])
@@ -577,7 +596,7 @@ const filteredProducts = computed(() =>
 
 
 /* ================= GIẢM GIÁ ================= */
-const discounts = ref([])
+// const discounts = ref([])
 const showDiscountModal = ref(false)
 const discountKeyword = ref('')
 
@@ -596,17 +615,17 @@ const loadDiscounts = async () => {
     trangThai: 1
   })
 
-discountList.value = res.data.content.map(d => ({
-  id: d.id,
-  code: d.maPhieuGiamGia,
-  name: d.tenPhieuGiamGia,
-  type: d.loaiPhieu === 'PhanTram' ? 'percent' : 'money',
-  value: d.giaTriGiam,
-  startDate: d.ngayBatDau,
-  endDate: d.ngayKetThuc,
-  trangThai: d.trangThai,
-  checked: false
-}))
+  discountList.value = res.data.content.map(d => ({
+    id: d.id,
+    code: d.maPhieuGiamGia,
+    name: d.tenPhieuGiamGia,
+    type: d.loaiPhieu === 'PhanTram' ? 'percent' : 'money',
+    value: d.giaTriGiam,
+    startDate: d.ngayBatDau,
+    endDate: d.ngayKetThuc,
+    trangThai: d.trangThai,
+    checked: false
+  }))
 
   totalDiscountPages.value = res.data.totalPages
 }
@@ -665,7 +684,10 @@ const totalDiscount = computed(() => {
 })
 
 const totalPrice = computed(() =>
-  Math.max(totalProductPrice.value - totalDiscount.value, 0)
+  Math.max(
+    totalProductPrice.value - totalDiscount.value + shippingFee.value,
+    0
+  )
 )
 
 /* ================= THANH TOÁN ================= */
@@ -683,39 +705,48 @@ const handleCreateOrder = async () => {
   if (!confirm('Xác nhận tạo hóa đơn?')) return
 
   try {
-const payload = {
-  tenKhachHang: customer.value.name,
-  soDienThoai: customer.value.phone,
-  diaChi: customer.value.address,
-  email: customer.value.email,
-  maNhanVien: staff.value.code,
-  tienGiamGia: totalDiscount.value,
+    const payload = {
+      tenKhachHang: customer.value.name,
+      soDienThoai: customer.value.phone,
+      diaChi: customer.value.address,
+      email: customer.value.email,
+      idNhanVien: staff.value.id,
+      tienGiamGia: totalDiscount.value,
 
-phieuGiamGia: discounts.value.map(d => ({
-  loaiPhieu: d.type === 'percent' ? 'PhanTram' : 'TienMat',
-  giaTriGiam: d.value,
-  trangThai: 1
-})),
+      phieuGiamGia: discounts.value.map(d => ({
+        loaiPhieu: d.type === 'percent' ? 'PhanTram' : 'TienMat',
+        giaTriGiam: d.value,
+        trangThai: 1
+      })),
 
-  hinhThucThanhToan:
-    paymentMethod.value === 'CASH'
-      ? 'TIEN_MAT'
-      : 'CHUYEN_KHOAN',
+      hinhThucThanhToan:
+        paymentMethod.value === 'CASH'
+          ? 'TIEN_MAT'
+          : 'CHUYEN_KHOAN',
 
-  items: cart.value.map(i => ({
-    idChiTietSanPham: i.id,
-    soLuong: i.qty,
-    donGia: i.price
-  }))
-}
+      items: cart.value.map(i => ({
+        idChiTietSanPham: i.id,
+        soLuong: i.qty,
+        donGia: i.price
+      }))
+    }
 
     await createOrder(payload)
 
     alert('Tạo hóa đơn thành công!')
 
-    cart.value = []
-    discounts.value = []
-    customer.value = { name: '', phone: '', email: '', address: '' }
+    // Đóng tab hiện tại và xóa lưu trữ
+    const tabIndex = orderTabs.value.findIndex(t => t.id === activeTabId.value)
+    if (tabIndex !== -1) {
+      orderTabs.value.splice(tabIndex, 1)
+      // Update active tab
+      activeTabId.value = orderTabs.value.length > 0 ? orderTabs.value[0].id : null
+    }
+
+    // Nếu không còn tab nào, xóa localStorage
+    if (orderTabs.value.length === 0) {
+      clearOrderTabs()
+    }
 
     router.push({ name: 'admin-order-list' })
   } catch (err) {
@@ -774,11 +805,11 @@ const qrImageUrl = computed(() => {
 })
 
 /* ================= STAFF ================= */
-const staff = ref({
-  id: null,
-  code: '',
-  name: ''
-})
+// const staff = ref({
+//   id: null,
+//   code: '',
+//   name: ''
+// })
 const showStaffModal = ref(false)
 const staffKeyword = ref('')
 import { getNhanVien } from '@/api/NhanVienApi'
@@ -806,7 +837,17 @@ const loadStaffs = async () => {
   totalStaffPages.value = res.data.totalPages
 }
 
+const filteredStaffs = computed(() =>
+  staffs.value.filter(s =>
+    [s.code, s.name]
+      .join(' ')
+      .toLowerCase()
+      .includes(staffKeyword.value.toLowerCase())
+  )
+)
+
 const openStaffModal = async () => {
+  staffPage.value = 0
   await loadStaffs()
   showStaffModal.value = true
 }
@@ -823,8 +864,8 @@ const selectStaff = (s) => {
 
 import { createOrderOnline } from '@/api/HoaDonApi'
 
-const orderType = ref('TAI_QUAY') // TAI_QUAY | ONLINE
-const note = ref('')
+// const orderType = ref('TAI_QUAY') // TAI_QUAY | ONLINE
+// const note = ref('')
 const handleSubmitOrder = async () => {
   if (orderType.value === 'TAI_QUAY') {
     openPaymentModal()
@@ -846,7 +887,11 @@ const handleCreateOrderOnline = async () => {
     email: customer.value.email,
     ghiChu: note.value,
 
+    // ✅ THÊM DÒNG NÀY
+    idNhanVien: staff.value.id,
+
     tienGiamGia: totalDiscount.value,
+    phiVanChuyen: shippingFee.value,
 
     phieuGiamGia: discounts.value.map(d => ({
       loaiPhieu: d.type === 'percent' ? 'PhanTram' : 'TienMat',
@@ -860,12 +905,162 @@ const handleCreateOrderOnline = async () => {
       donGia: i.price
     }))
   }
-
   await createOrderOnline(payload)
 
   alert('Tạo đơn online thành công – chờ xác nhận')
+
+  // Đóng tab hiện tại
+  const tabIndex = orderTabs.value.findIndex(t => t.id === activeTabId.value)
+  if (tabIndex !== -1) {
+    orderTabs.value.splice(tabIndex, 1)
+    activeTabId.value = orderTabs.value.length > 0 ? orderTabs.value[0].id : null
+  }
+
+  // Nếu không còn tab nào, xóa localStorage
+  if (orderTabs.value.length === 0) {
+    clearOrderTabs()
+  }
+
   router.push({ name: 'admin-order-list' })
+
 }
+// const shippingFee = ref(0)
+
+const MAX_TABS = 5
+
+const orderTabs = ref([])
+const activeTabId = ref(null)
+
+/* ================= LOCALSTORAGE PERSISTENCE ================= */
+const STORAGE_KEY = 'pos_order_tabs'
+
+const saveOrderTabs = () => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      orderTabs: orderTabs.value,
+      activeTabId: activeTabId.value
+    }))
+  } catch (err) {
+    console.error('Lỗi khi lưu dữ liệu:', err)
+  }
+}
+
+const loadOrderTabs = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      const data = JSON.parse(stored)
+      orderTabs.value = data.orderTabs || []
+      activeTabId.value = data.activeTabId || null
+    }
+  } catch (err) {
+    console.error('Lỗi khi tải dữ liệu:', err)
+  }
+}
+
+const clearOrderTabs = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch (err) {
+    console.error('Lỗi khi xóa dữ liệu:', err)
+  }
+}
+
+// Load tabs khi component mount
+onMounted(() => {
+  loadOrderTabs()
+})
+
+// Save tabs whenever they change
+watch(orderTabs, saveOrderTabs, { deep: true })
+watch(activeTabId, saveOrderTabs)
+
+// Load data whenever pagination changes
+watch(staffPage, loadStaffs)
+watch(productPage, loadProducts)
+watch(customerPage, loadCustomers)
+watch(discountPage, loadDiscounts)
+
+const createNewTab = () => {
+  if (orderTabs.value.length >= MAX_TABS) {
+    alert('Chỉ được tối đa 5 đơn hàng')
+    return
+  }
+
+  const newTab = {
+    id: Date.now(),
+    maHoaDon: null,
+    orderType: 'TAI_QUAY',
+    cart: [],
+    customer: { name: '', phone: '', email: '', address: '' },
+    staff: { id: null, code: '', name: '' },
+    discounts: [],
+    shippingFee: 0,
+    note: ''
+  }
+
+  orderTabs.value.push(newTab)
+  activeTabId.value = newTab.id
+}
+
+const closeTab = (id) => {
+  const index = orderTabs.value.findIndex(t => t.id === id)
+  if (index === -1) return
+
+  const tab = orderTabs.value[index]
+
+  if (tab.cart.length > 0) {
+    if (!confirm('Đơn hàng này chưa thanh toán, vẫn đóng?')) return
+  }
+
+  orderTabs.value.splice(index, 1)
+
+  if (activeTabId.value === id) {
+    activeTabId.value = orderTabs.value.length
+      ? orderTabs.value[orderTabs.value.length - 1].id
+      : null
+  }
+}
+
+
+const currentOrder = computed(() =>
+  orderTabs.value.find(t => t.id === activeTabId.value)
+)
+
+const cart = computed({
+  get: () => currentOrder.value?.cart || [],
+  set: v => currentOrder.value && (currentOrder.value.cart = v)
+})
+
+const customer = computed({
+  get: () => currentOrder.value?.customer || {},
+  set: v => currentOrder.value && (currentOrder.value.customer = v)
+})
+
+const staff = computed({
+  get: () => currentOrder.value?.staff || {},
+  set: v => currentOrder.value && (currentOrder.value.staff = v)
+})
+
+const discounts = computed({
+  get: () => currentOrder.value?.discounts || [],
+  set: v => currentOrder.value && (currentOrder.value.discounts = v)
+})
+
+const shippingFee = computed({
+  get: () => currentOrder.value?.shippingFee ?? 0,
+  set: v => currentOrder.value && (currentOrder.value.shippingFee = Number(v) || 0)
+})
+
+const note = computed({
+  get: () => currentOrder.value?.note || '',
+  set: v => currentOrder.value && (currentOrder.value.note = v)
+})
+
+const orderType = computed({
+  get: () => currentOrder.value?.orderType || 'TAI_QUAY',
+  set: v => currentOrder.value && (currentOrder.value.orderType = v)
+})
 </script>
 
 <style scoped>
@@ -975,18 +1170,6 @@ const handleCreateOrderOnline = async () => {
   margin-left: 15px;
 }
 
-.customer-box {
-  padding: 15px;
-  border-top: 1px solid #eee;
-}
-
-.customer-box input,
-.customer-box textarea {
-  width: 100%;
-  margin-bottom: 8px;
-  padding: 8px;
-}
-
 /* MODAL */
 .modal {
   position: fixed;
@@ -1025,22 +1208,46 @@ const handleCreateOrderOnline = async () => {
   margin-top: 15px;
 }
 
-.btn-submit-payment {
+.btn-pay {
   width: 100%;
   padding: 12px;
-  background: #16a34a;
+  background: #2563eb;
   color: white;
   border: none;
-  border-radius: 10px;
-  font-size: 15px;
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
+  margin-top: 12px;
+  transition: background 0.2s ease;
+}
+
+.btn-pay:hover {
+  background: #1d4ed8;
 }
 
 .payment-tabs {
   display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.payment-tabs .tab-item {
+  flex: none;
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.payment-tabs .tab-item.active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
 }
 
 .tab-item {
@@ -1111,18 +1318,47 @@ const handleCreateOrderOnline = async () => {
 
 .payment-box {
   background: white;
-  padding: 20px;
-  border-top: 1px solid #e5e7eb;
-  position: sticky;
-  bottom: 0;
-  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.06);
+  padding: 0;
+  border-top: none;
+  position: static;
+  box-shadow: none;
+  padding: 16px;
 }
 
-.payment-box .row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
+.discount-box {
+  background: white;
+  padding: 0;
+}
+
+.discount-box h4 {
+  margin: 0 0 8px 0;
   font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.customer-box {
+  padding: 0;
+  border-top: none;
+  background: white;
+}
+
+.customer-box h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.customer-box input,
+.customer-box textarea {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  font-size: 13px;
 }
 
 .total-row {
@@ -1185,8 +1421,11 @@ const handleCreateOrderOnline = async () => {
 
 /* ===== CART ===== */
 .pos-cart {
-  padding: 16px;
+  padding: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
 }
 
 /* EMPTY CART */
@@ -1199,27 +1438,63 @@ const handleCreateOrderOnline = async () => {
 
 /* ===== RIGHT INFO ===== */
 .pos-info {
-  background: #ffffff;
-  padding: 16px;
+  background: #f8fafc;
+  padding: 0;
   border-left: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
+  overflow-y: auto;
+  height: 100%;
 }
 
-/* INFO CARD */
-.info-box {
+.pos-info .discount-box,
+.pos-info .customer-box,
+.pos-info .payment-box {
+  padding: 14px 12px;
+  border-bottom: 1px solid #e5e7eb;
   background: white;
-  border-radius: 12px;
-  padding: 14px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1px;
 }
 
-/* PAYMENT */
-.payment-box {
+.pos-info .payment-box {
   margin-top: auto;
-  position: sticky;
-  bottom: 0;
+  border-bottom: none;
+}
+
+.box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.box-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.payment-box .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 13px;
+}
+
+.payment-box .row:last-of-type {
+  border-bottom: none;
+}
+
+.payment-box .total-row {
+  font-size: 15px;
+  font-weight: bold;
+  padding: 12px 0;
+  margin-top: 8px;
+  border-top: 2px solid #e5e7eb;
 }
 
 /* ===== FIX MODAL ===== */
@@ -1251,11 +1526,35 @@ const handleCreateOrderOnline = async () => {
 }
 
 /* ================= ROOT ================= */
+.pos-main-container {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  height: calc(100vh - 100px);
+  background: #ffffff;
+}
+
+.pos-main-container > .order-type-tabs {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.pos-main-container > .pos-cart {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.pos-main-container > .pos-info {
+  grid-column: 2;
+  grid-row: 2;
+}
+
 .pos-container {
   display: grid;
   grid-template-columns: 1fr 480px;
-  height: 100vh;
-  background: #f3f4f6;
+  min-height: calc(100vh - 60px);
+  /* nếu có header */
   overflow: hidden;
 }
 
@@ -1273,6 +1572,14 @@ const handleCreateOrderOnline = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
+}
+
+.cart-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 .cart-items {
@@ -1342,8 +1649,16 @@ const handleCreateOrderOnline = async () => {
 .customer-box {
   background: white;
   padding: 14px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, .05);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.discount-box h4,
+.customer-box h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 .box-header {
@@ -1353,31 +1668,47 @@ const handleCreateOrderOnline = async () => {
   margin-bottom: 10px;
 }
 
-.customer-box input {
+.box-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.customer-box input,
+.customer-box textarea {
   width: 100%;
   padding: 8px;
   margin-bottom: 6px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+  box-sizing: border-box;
 }
 
 /* PAYMENT */
 .payment-box {
   margin-top: auto;
-  padding-top: 14px;
+  padding: 14px;
   border-top: 1px dashed #e5e7eb;
+  padding-top: 14px;
+  background: white;
 }
 
 .payment-box .row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  /* 👈 cột tiền cố định */
+  align-items: center;
   margin-bottom: 8px;
-  font-size: 14px;
+  font-size: 13px;
 }
 
-.total-row {
-  font-size: 18px;
+.payment-box .total-row {
+  font-size: 14px;
   font-weight: 700;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
 }
 
 /* ================= BUTTON ================= */
@@ -1386,8 +1717,10 @@ const handleCreateOrderOnline = async () => {
   color: white;
   border: none;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .btn-outline {
@@ -1395,19 +1728,27 @@ const handleCreateOrderOnline = async () => {
   border: 1px solid #2563eb;
   color: #2563eb;
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
 }
 
 .btn-pay {
   width: 100%;
-  padding: 14px;
-  margin-top: 10px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  padding: 12px;
+  margin-top: 12px;
+  background: #2563eb;
   color: white;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 700;
   border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-pay:hover {
+  background: #1d4ed8;
 }
 
 /* ================= PRICE ================= */
@@ -1558,16 +1899,20 @@ const handleCreateOrderOnline = async () => {
 }
 
 .btn-remove {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 1px solid #fecaca;
   background: #fff5f5;
   color: #dc2626;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   transition: all .2s;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-remove:hover {
@@ -1631,34 +1976,55 @@ const handleCreateOrderOnline = async () => {
 .small-table {
   width: 100%;
   table-layout: fixed;
+  margin: 12px 0 8px 0;
+  font-size: 12px;
 }
 
 .small-table th,
 .small-table td {
-  padding: 8px;
-  font-size: 13px;
+  padding: 6px 4px;
+  font-size: 12px;
   vertical-align: top;
-}
-
-.small-table th:nth-child(1) {
-  width: 30%;
-}
-
-.small-table th:nth-child(2) {
-  width: 20%;
-}
-
-.small-table th:nth-child(3) {
-  width: 40%;
-}
-
-.small-table th:nth-child(4) {
-  width: 10%;
-}
-
-.small-table td {
   word-break: break-word;
-  white-space: normal;
+  overflow: hidden;
+}
+
+.small-table th:nth-child(1),
+.small-table td:nth-child(1) {
+  width: 40%;
+  max-width: 90px;
+}
+
+.small-table th:nth-child(2),
+.small-table td:nth-child(2) {
+  width: 25%;
+  text-align: right;
+}
+
+.small-table th:nth-child(3),
+.small-table td:nth-child(3) {
+  width: 28%;
+  font-size: 11px;
+  max-width: 85px;
+}
+
+.small-table th:nth-child(4),
+.small-table td:nth-child(4) {
+  width: 7%;
+  text-align: center;
+  padding: 4px 2px;
+}
+
+.small-table thead {
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.empty-small {
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 12px 0;
 }
 
 .price-range {
@@ -1726,5 +2092,114 @@ const handleCreateOrderOnline = async () => {
 /* Thời hạn */
 .discount-modal .modal-table th:nth-child(5) {
   width: 280px;
+}
+
+.ship-input.inline {
+  width: 120px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  text-align: right;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.price-col {
+  text-align: right;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.ship-input {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  padding: 4px 8px;
+  text-align: right;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+/* ===== ORDER TABS ===== */
+.order-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.order-tab {
+  padding: 8px 14px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.order-tab:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.order-tab.active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.close-tab {
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order-tab.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.order-type-tabs {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+}
+
+.order-type-tabs .tab-item {
+  flex: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-type-tabs .tab-item.active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.payment-modal .tab-item {
+  flex: 1;
 }
 </style>
