@@ -46,7 +46,7 @@ public class EmailService {
     }
 
     // --- 2. Dành cho NHÂN VIÊN (Giữ nguyên logic cũ) ---
-    public void sendEmployeeWelcome(String toEmail, String tenNhanVien, String matKhau) {
+    public void sendEmployeeWelcome(String toEmail, String tenTaiKhoan, String tenNhanVien, String matKhau) {
         String subject = "THÔNG BÁO TẠO TÀI KHOẢN NHÂN VIÊN";
         String senderName = "Hệ thống Quản lý Nhân sự";
 
@@ -74,7 +74,7 @@ public class EmailService {
                         <div style="display:block;">
                             
                             <div style="margin-bottom:20px;">
-                                <div style="color:#6b7280; font-size:18px;">Email đăng nhập:</div>
+                                <div style="color:#6b7280; font-size:18px;">Tên tài khoản:</div>
                                 <div style="color:#0b3b8c; font-size:20px; font-weight:700;">%s</div>
                             </div>
                             
@@ -103,7 +103,7 @@ public class EmailService {
                 </div>
             </div>
         </div>
-        """.formatted(tenNhanVien, toEmail, matKhau);
+        """.formatted(tenNhanVien, tenTaiKhoan, matKhau);
 
         sendEmail(toEmail, subject, htmlContent, senderName);
 

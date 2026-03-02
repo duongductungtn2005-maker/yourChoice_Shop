@@ -224,6 +224,9 @@ const toggleStatus = async (shift, event) => {
 };
 
 const editShift = (shift) => {
+    // log thử xem id có bị undefined không
+    console.log("Chuyển đến ID:", shift.id); 
+    
     router.push({ 
         name: 'admin-shift-edit', 
         params: { id: shift.id } 
@@ -388,7 +391,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
+  text-align: center;
 }
 
 th, td {

@@ -130,6 +130,9 @@
             <router-link to="/admin/schedules" class="submenu-item" active-class="active-sub">
               <span class="dot">•</span> Xếp lịch nhân viên
             </router-link>
+            <router-link to="/admin/history-activity" class="submenu-item" active-class="active-sub">
+              <span class="dot">•</span> Lịch sử hoạt động
+            </router-link>
           </div>
         </div>
 

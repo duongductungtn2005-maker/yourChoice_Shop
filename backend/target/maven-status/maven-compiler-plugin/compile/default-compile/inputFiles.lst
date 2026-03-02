@@ -1,151 +1,151 @@
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\StatisticServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\SendMailRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\HinhAnhRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\QuanLyDonHangRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\LichLamViec.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\StatisticFilterRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\QuanLyDonHangResponse.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\EmployeeExcelExporter.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\ChatLieuServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\HoaDonRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\CaLamViecRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\DiscountCampaignStatDTO.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\GiaoDichThanhToan.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\HoaDonChiTietRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\CustomerStatDTO.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\UploadController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\ThuongHieuController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\KichThuocServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\NhanVienServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\SanPham.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\MauSacRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\DotGiamGiaRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\QuyenHan.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\HoaDonServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\ChiTietDonHangController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\CoAoController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\ChiTietSanPhamController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\XuatXu.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\StatisticController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\CreateOrderRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\CreateProductRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\MauSac.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\DotGiamGia.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\ChiTietDotGiamGia.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\PhieuGiamGiaCaNhan.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\ChiTietDonHangService.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\config\JpaAuditingConfig.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\XuatXuServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\enums\TrangThaiHoaDon.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\PhuongThucThanhToan.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\TayAoRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\DotGiamGiaController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\SanPhamHoaDonResponse.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\ProductStatDTO.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\LichSuThanhToanService.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\ThanhToanRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\KhachHangRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\LichLamViecService.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\PaymentRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\config\WebConfig.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\PhieuGiamGiaCaNhanRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\CaLamViec.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\ProductResponse.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\RevenueSummaryDTO.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\OrderStatusDTO.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\RevenueChartDTO.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\HoaDonController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\HoaDonChiTiet.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\LichSuThanhToanResponse.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\PrimaryEntity.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\ChiTietDotGiamGiaRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\NhanVienController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\ChatLieuController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\LichSuThanhToan.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\enums\LoaiHoaDon.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\KichThuocController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\NhanVienRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\LichSuHoaDon.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\ChatLieuRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\KhachHangServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\KhachHangController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\ChiTietDonHangServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\ProductServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\LichLamViecRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\CoAo.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\KhachHang.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\HoaDonService.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\CoAoServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\DotGiamGiaRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\enums\HinhThucThanhToan.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\HinhAnh.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\SanPhamRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\LichSuThanhToanController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\ChiTietSanPham.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\TayAo.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\CaLamViecController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\BaseStatusEntity.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\MauSacController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\DotGiamGiaServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\ThanhToanServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\StatisticService.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\StatisticRepositoryImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\KhachHangResponse.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\DiaChiRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\MauSacServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\GiaoCa.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\LichLamViecRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\PhieuGiamGia.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\ChatLieu.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\StatisticRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\DiaChiService.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\HoaDon.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\LichSuHoaDonRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\BulkUpdateWrapper.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\CaLamViecService.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\PhieuGiamGiaServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\LichLamViecController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\KichThuoc.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\HoaDonResponse.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\ThuongHieuServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\EmployeeStatDTO.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\DiaChiKhachHangController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\HoaDonDetailResponse.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\UpdateVariantRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\StoreAttributeRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\config\CorsConfig.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\TayAoController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\ProductVariantRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\NhanVienService.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\XuatXuController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\DiaChiKhachHangRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\PhieuGiamGiaRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\EmailService.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\BulkUpdateVariantRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\KhachHangRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\StandardStatisticResponse.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\PhieuGiamGiaRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\ChiTietSanPhamRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\CoAoRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\LichSuThanhToanRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\ChiTietDonHangResponse.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\ThuongHieuRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\KichThuocRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\ThuongHieu.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\ProductController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\DiaChiServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\EmployeeRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\YourChoiceShopApplication.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\ThanhToanService.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\KhachHangService.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\service\impl\TayAoServiceImpl.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\DiaChiKhachHang.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\VoucherStatDTO.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\CaLamViecRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\VariantResponse.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\ChiTietDonHangRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\controller\PhieuGiamGiaController.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\repository\XuatXuRepository.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\response\LichSuHoaDonResponse.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\dto\request\HoaDonRequest.java
-E:\SD-31 new\yourChoice_Shop-main (3)\yourChoice_Shop-main\backend\src\main\java\org\example\yourchoiceshop\entity\NhanVien.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\StatisticFilterRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\QuanLyDonHangResponse.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\LichSuThanhToanController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\LichSuHoaDonRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\DiaChiRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\GiaoCa.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\CreateOrderRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\LichLamViecRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\DotGiamGiaController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\CaLamViecService.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\YourChoiceShopApplication.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\DiaChiService.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\ThuongHieuController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\ProductResponse.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\MauSacController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\StatisticController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\ChiTietDonHangRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\LichLamViecController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\KichThuocRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\LichSuThanhToanRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\HoaDonServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\BulkUpdateWrapper.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\HoaDonResponse.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\DiaChiKhachHangController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\RevenueChartDTO.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\NhanVien.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\config\WebConfig.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\PhieuGiamGiaRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\PhieuGiamGiaRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\TayAoController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\XuatXuServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\HoaDonService.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\ThanhToanRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\StandardStatisticResponse.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\HoaDonChiTietRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\HoaDon.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\ThanhToanServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\SanPhamHoaDonResponse.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\HoaDonController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\ChatLieu.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\KichThuocServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\HinhAnhRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\StatisticService.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\VariantResponse.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\DotGiamGia.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\PhieuGiamGiaServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\PhieuGiamGiaCaNhanRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\PhieuGiamGiaCaNhan.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\KhachHangRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\DotGiamGiaRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\config\JpaAuditingConfig.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\OrderStatusDTO.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\CaLamViec.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\ProductController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\enums\LoaiHoaDon.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\enums\TrangThaiHoaDon.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\HoaDonDetailResponse.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\ChiTietSanPhamController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\StatisticRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\BaseStatusEntity.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\NhanVienRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\ChatLieuRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\NhanVienController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\ChatLieuController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\ProductStatDTO.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\CaLamViecRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\DiaChiServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\EmployeeStatDTO.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\LichSuThanhToan.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\DotGiamGiaServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\DiscountCampaignStatDTO.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\ChiTietDotGiamGiaRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\TayAo.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\CoAoRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\ChiTietDotGiamGia.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\enums\HinhThucThanhToan.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\LichSuHoaDon.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\KhachHangResponse.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\QuanLyDonHangRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\PhuongThucThanhToan.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\KhachHangController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\ChatLieuServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\HoaDonRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\ThuongHieuServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\KhachHangServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\HoaDonChiTiet.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\EmailService.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\SendMailRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\UploadController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\HinhAnh.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\KhachHangRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\KichThuocController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\config\CorsConfig.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\GiaoDichThanhToan.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\ChiTietDonHangService.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\XuatXu.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\ChiTietDonHangController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\StoreAttributeRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\PrimaryEntity.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\StatisticServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\MauSac.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\PaymentRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\LichLamViecService.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\DotGiamGiaRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\MauSacRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\CoAo.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\LichSuThanhToanResponse.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\ChiTietSanPhamRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\EmployeeExcelExporter.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\StatisticRepositoryImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\CoAoController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\NhanVienServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\CreateProductRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\ProductServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\DiaChiKhachHangRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\SanPhamRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\QuyenHan.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\LichSuThanhToanService.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\ChiTietDonHangResponse.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\CoAoServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\KhachHangService.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\KichThuoc.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\XuatXuController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\ChiTietSanPham.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\BulkUpdateVariantRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\PhieuGiamGia.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\EmployeeRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\CustomerStatDTO.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\LichSuHoaDonResponse.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\ChiTietDonHangServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\PhieuGiamGiaController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\ThuongHieuRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\UpdateVariantRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\XuatXuRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\LichLamViec.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\repository\TayAoRepository.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\HoaDonRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\ProductVariantRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\MauSacServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\ThanhToanService.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\controller\CaLamViecController.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\KhachHang.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\LichLamViecRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\NhanVienService.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\request\CaLamViecRequest.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\RevenueSummaryDTO.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\DiaChiKhachHang.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\service\impl\TayAoServiceImpl.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\SanPham.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\dto\response\VoucherStatDTO.java
+C:\Users\phong\Desktop\git\backend\src\main\java\org\example\yourchoiceshop\entity\ThuongHieu.java

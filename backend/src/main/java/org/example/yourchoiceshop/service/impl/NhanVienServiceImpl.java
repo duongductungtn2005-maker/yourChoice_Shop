@@ -75,7 +75,7 @@ public class NhanVienServiceImpl implements NhanVienService {
 
         int randomNum = (int) (Math.floor(Math.random() * 90000) + 10000);
         nv.setMaNhanVien("NV" + randomNum);
-
+        nv.setTenTaiKhoan(req.getTenTaiKhoan());
         nv.setTenNhanVien(req.getTenNhanVien());
         nv.setEmail(req.getEmail());
         nv.setSoDienThoai(req.getSoDienThoai());
@@ -102,7 +102,7 @@ public class NhanVienServiceImpl implements NhanVienService {
         if ("ADMIN".equalsIgnoreCase(req.getChucVu())) {
             quyenHan.setId(1);
         } else {
-            quyenHan.setId(4);
+            quyenHan.setId(2); // Đổi 4 thành 2 để khớp với Database của bạn
         }
         nv.setQuyenHan(quyenHan);
 
@@ -110,7 +110,13 @@ public class NhanVienServiceImpl implements NhanVienService {
 
         if (savedNv.getEmail() != null && !savedNv.getEmail().isEmpty()) {
             new Thread(() -> {
-                emailService.sendEmployeeWelcome(savedNv.getEmail(), savedNv.getTenNhanVien(), matKhauMacDinh);
+                // Đã bổ sung savedNv.getTenTaiKhoan() vào vị trí thứ 2 👇
+                emailService.sendEmployeeWelcome(
+                    savedNv.getEmail(), 
+                    savedNv.getTenTaiKhoan(), 
+                    savedNv.getTenNhanVien(), 
+                    matKhauMacDinh
+                );
             }).start();
         }
 
@@ -120,7 +126,7 @@ public class NhanVienServiceImpl implements NhanVienService {
     @Override
     public NhanVien update(Integer id, EmployeeRequest req) {
         NhanVien nv = findById(id);
-
+        nv.setTenTaiKhoan(req.getTenTaiKhoan());
         nv.setTenNhanVien(req.getTenNhanVien());
         nv.setEmail(req.getEmail());
         nv.setSoDienThoai(req.getSoDienThoai());
@@ -138,9 +144,9 @@ public class NhanVienServiceImpl implements NhanVienService {
             QuyenHan qh = new QuyenHan();
             if ("ADMIN".equalsIgnoreCase(req.getChucVu())) {
                 qh.setId(1);
-            } else {
-                qh.setId(4);
-            }
+                } else {
+                    qh.setId(2); // Đổi 4 thành 2 để khớp với Database của bạn
+                }
             nv.setQuyenHan(qh);
         }
 
@@ -205,4 +211,14 @@ public class NhanVienServiceImpl implements NhanVienService {
         // Gọi searchNhanVien với roleId = null
         return nhanVienRepo.searchNhanVien(keyword, status, null, Pageable.unpaged()).getContent();
     }
+    @Override
+public boolean checkTrungTaiKhoan(String tenTaiKhoan, Integer id) {
+    if (id == null) {
+        // Trường hợp Thêm mới: Chỉ cần tìm xem tên tài khoản này đã có ai dùng chưa
+        return nhanVienRepo.existsByTenTaiKhoan(tenTaiKhoan);
+    } else {
+        // Trường hợp Cập nhật: Tìm xem có ai dùng chưa, nhưng phải LOẠI TRỪ nhân viên hiện tại ra
+        return nhanVienRepo.existsByTenTaiKhoanAndIdNot(tenTaiKhoan, id);
+    }
+}
 }

@@ -53,4 +53,20 @@ public class CaLamViecController {
         Page<CaLamViec> result = caLamViecService.searchAndFilter(keyword, status, startTime, endTime, pageable);
         return ResponseEntity.ok(result);
     }
+    // 1. Thêm API lấy chi tiết để đổ dữ liệu vào Form Edit
+@GetMapping("/{id}")
+public ResponseEntity<CaLamViec> getById(@PathVariable("id") Integer id) {
+    // Đảm bảo trong CaLamViecService đã có hàm findById hoặc getById
+    CaLamViec ca = caLamViecService.getById(id); 
+    return ResponseEntity.ok(ca);
+}
+
+// 2. Thêm API cập nhật thông tin ca làm việc
+@PutMapping("/{id}")
+public ResponseEntity<CaLamViec> update(
+        @PathVariable("id") Integer id, 
+        @RequestBody CaLamViecRequest request) {
+    CaLamViec updatedCa = caLamViecService.update(id, request);
+    return ResponseEntity.ok(updatedCa);
+}
 }

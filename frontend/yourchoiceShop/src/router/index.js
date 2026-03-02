@@ -131,11 +131,20 @@ const router = createRouter({
           component: () => import("../views/admin/employee/schedule/ShiftCreate.vue"),
         },
         {
+          path: "shifts/edit/:id",
+          name: "admin-shift-edit",
+          component: () => import("../views/admin/employee/schedule/ShiftEdit.vue"),
+        },
+        {
           path: "schedules",
           name: "admin-schedule",
           component: () => import("../views/admin/employee/schedule/ScheduleManager.vue"),
         },
-
+        {
+          path: "history-activity",
+          name: "admin-history-activity",
+          component: () => import("../views/admin/employee/schedule/HistoryActivity.vue"),
+        },
         /* Products */
         {
           path: "products",

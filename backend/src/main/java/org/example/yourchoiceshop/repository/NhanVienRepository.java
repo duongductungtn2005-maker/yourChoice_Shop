@@ -26,4 +26,6 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
             @Param("roleIds") List<Integer> roleIds,
             Pageable pageable
     );
+        boolean existsByTenTaiKhoan(String tenTaiKhoan);
+        boolean existsByTenTaiKhoanAndIdNot(String tenTaiKhoan, Integer id);
 }

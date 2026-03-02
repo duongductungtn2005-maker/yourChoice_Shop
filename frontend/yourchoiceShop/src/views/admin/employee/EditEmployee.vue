@@ -1,7 +1,7 @@
 <template>
   <div class="edit-employee-page">
     <div class="header-section">
-       <h1 class="page-title">Quản lý nhân viên / Cập nhật thông tin</h1>
+      <h1 class="page-title">Quản lý nhân viên / Cập nhật thông tin</h1>
     </div>
 
     <div class="card">
@@ -11,14 +11,13 @@
             
             <div class="left-col">
               <h3 class="section-title">Thông tin nhân viên</h3>
-              
               <div class="avatar-upload-container">
                 <div class="avatar-preview" @click="triggerFileInput">
-                    <img v-if="previewImage" :src="previewImage" alt="Avatar Preview" class="avatar-img">
-                    <div v-else class="upload-placeholder">
-                        <i class="fas fa-camera"></i>
-                        <span>Chọn ảnh</span>
-                    </div>
+                  <img v-if="previewImage" :src="previewImage" alt="Avatar Preview" class="avatar-img">
+                  <div v-else class="upload-placeholder">
+                    <i class="fas fa-camera"></i>
+                    <span>Chọn ảnh</span>
+                  </div>
                 </div>
                 <input type="file" ref="fileInput" class="hidden-input" accept="image/*" @change="handleFileChange">
               </div>
@@ -30,18 +29,17 @@
             </div>
 
             <div class="right-col">
-              <div class="section-header-row">
-                 <h3 class="section-title">Thông tin chi tiết</h3>
-              </div>
+              <h3 class="section-title">Thông tin chi tiết</h3>
+              
               <div class="form-row">
                 <div class="form-group half">
-                    <label class="required">Số điện thoại</label>
-                    <input type="text" v-model="employee.soDienThoai" class="form-control">
-                 </div>
-                 <div class="form-group half">
-                    <label class="required">Email</label>
-                    <input type="email" v-model="employee.email" class="form-control">
-                 </div>
+                  <label class="required">Số điện thoại</label>
+                  <input type="text" v-model="employee.soDienThoai" class="form-control">
+                </div>
+                <div class="form-group half">
+                  <label class="required">Email</label>
+                  <input type="email" v-model="employee.email" class="form-control">
+                </div>
               </div>
 
               <div class="form-row">
@@ -50,59 +48,67 @@
                   <input type="number" v-model="employee.cccd" class="form-control">
                 </div>
                 <div class="form-group half">
+                  <label class="required">Ngày sinh</label>
+                  <input type="date" v-model="employee.ngaySinh" class="form-control">
+                </div>
+                <div class="form-group half">
                   <label class="required">Giới tính</label>
                   <div class="radio-group">
                     <label class="radio-item"><input type="radio" :value="true" v-model="employee.gioiTinh"> Nam</label>
                     <label class="radio-item"><input type="radio" :value="false" v-model="employee.gioiTinh"> Nữ</label>
                   </div>
                 </div>
-                <div class="form-group half">
-                  <label class="required">Ngày sinh</label>
-                  <input type="date" v-model="employee.ngaySinh" class="form-control">
-                </div>
               </div>
-              <div class="form-row">
-                <div class="form-group third">
-                   <label>Tỉnh/Thành</label>
-                   <select v-model="address.provinceId" @change="onProvinceChange" class="form-control">
-                      <option value="">-- Tỉnh --</option>
-                      <option v-for="p in locationData.provinces" :key="p.code" :value="p.code">{{ p.name }}</option>
-                   </select>
-                </div>
-                <div class="form-group third">
-                   <label>Quận/Huyện</label>
-                   <select v-model="address.districtId" @change="onDistrictChange" class="form-control" :disabled="!address.provinceId">
-                      <option value="">-- Huyện --</option>
-                      <option v-for="d in locationData.districts" :key="d.code" :value="d.code">{{ d.name }}</option>
-                   </select>
-                </div>
-                <div class="form-group third">
-                   <label>Xã/Phường</label>
-                   <select v-model="address.wardCode" class="form-control" :disabled="!address.districtId">
-                      <option value="">-- Xã --</option>
-                      <option v-for="w in locationData.wards" :key="w.code" :value="w.code">{{ w.name }}</option>
-                   </select>
-                </div>
-              </div>
+
               <div class="form-row">
                 <div class="form-group half">
-                   <label class="required">Quyền hạn</label>
-                   <select v-model="employee.chucVu" class="form-control">
-                      <option value="STAFF">Nhân viên</option>
-                      <option value="ADMIN">Quản lý (Admin)</option>
-                   </select>
+                  <label class="required">Tên tài khoản</label>
+                  <input type="text" v-model="employee.tenTaiKhoan" class="form-control" placeholder="Nhập tên tài khoản">
+                </div>
+                <div class="form-group half">
+                  <label class="required">Quyền hạn</label>
+                  <select v-model="employee.chucVu" class="form-control">
+                    <option value="STAFF">Nhân viên</option>
+                    <option value="ADMIN">Quản lý (Admin)</option>
+                  </select>
                 </div>
               </div>
+
+              <div class="form-row">
+                <div class="form-group third">
+                  <label>Tỉnh/Thành</label>
+                  <select v-model="address.provinceId" @change="onProvinceChange" class="form-control">
+                    <option value="">-- Tỉnh --</option>
+                    <option v-for="p in locationData.provinces" :key="p.code" :value="p.code">{{ p.name }}</option>
+                  </select>
+                </div>
+                <div class="form-group third">
+                  <label>Quận/Huyện</label>
+                  <select v-model="address.districtId" @change="onDistrictChange" class="form-control" :disabled="!address.provinceId">
+                    <option value="">-- Huyện --</option>
+                    <option v-for="d in locationData.districts" :key="d.code" :value="d.code">{{ d.name }}</option>
+                  </select>
+                </div>
+                <div class="form-group third">
+                  <label>Xã/Phường</label>
+                  <select v-model="address.wardCode" class="form-control" :disabled="!address.districtId">
+                    <option value="">-- Xã --</option>
+                    <option v-for="w in locationData.wards" :key="w.code" :value="w.code">{{ w.name }}</option>
+                  </select>
+                </div>
+              </div>
+
               <div class="form-group">
-                 <label class="required">Địa chỉ cụ thể</label>
-                 <input type="text" v-model="employee.diaChiCuThe" class="form-control" placeholder="Số nhà, đường...">
+                <label class="required">Địa chỉ cụ thể</label>
+                <input type="text" v-model="employee.diaChiCuThe" class="form-control" placeholder="Số nhà, đường...">
               </div>
 
               <div class="form-actions">
-                 <button type="button" class="btn btn-outline" @click="goBack">Hủy</button>
-                 <button type="submit" class="btn btn-gradient">Lưu thay đổi</button>
+                <button type="button" class="btn btn-outline" @click="goBack">Hủy</button>
+                <button type="submit" class="btn btn-gradient">Lưu thay đổi</button>
               </div>
             </div>
+
           </div>
         </form>
       </div>
@@ -122,8 +128,14 @@ const route = useRoute();
 const id = route.params.id; 
 
 const employee = reactive({ 
-    tenNhanVien: '', cccd: '', gioiTinh: true, ngaySinh: '', 
-    email: '', soDienThoai: '', diaChiCuThe: '', 
+    tenNhanVien: '', 
+    tenTaiKhoan: '', // 1. Bổ sung trường này để bind v-model
+    cccd: '', 
+    gioiTinh: true, 
+    ngaySinh: '', 
+    email: '', 
+    soDienThoai: '', 
+    diaChiCuThe: '', 
     chucVu: 'STAFF' 
 });
 const address = reactive({ provinceId: '', districtId: '', wardCode: '' });
@@ -141,7 +153,9 @@ const loadData = async () => {
         const res = await request.get(`/nhan-vien/${id}`); 
         const data = res.data; 
 
+        // 2. Gán dữ liệu Tên tài khoản từ database vào form
         employee.tenNhanVien = data.tenNhanVien;
+        employee.tenTaiKhoan = data.tenTaiKhoan; 
         employee.cccd = data.cccd;
         employee.email = data.email;
         employee.soDienThoai = data.soDienThoai;
@@ -149,11 +163,10 @@ const loadData = async () => {
         employee.ngaySinh = data.ngaySinh;
         employee.chucVu = (data.quyenHan && data.quyenHan.id === 1) ? 'ADMIN' : 'STAFF';
 
+        // ... (Xử lý ảnh và địa chỉ giữ nguyên bên dưới)
         if (data.anhDaiDien) {
             previewImage.value = `http://localhost:8080/api/v1/nhan-vien/images/${data.anhDaiDien}`;
         }
-
-        // 3. Xử lý địa chỉ (QUAN TRỌNG: Cần await)
         if (data.diaChi && data.diaChi !== 'Chưa cập nhật') {
             await parseAddressString(data.diaChi);
         } else {
@@ -276,7 +289,23 @@ const handleFileChange = (event) => {
 };
 
 const validateForm = () => {
-    if (!employee.tenNhanVien.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên nhân viên' });
+    if (!employee.tenNhanVien.trim()) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập họ tên' });
+        return false;
+    }
+    if (!employee.tenTaiKhoan.trim()) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập tên tài khoản' });
+        return false;
+    }
+    // Kiểm tra tên tài khoản không chứa khoảng trắng
+    if (/\s/.test(employee.tenTaiKhoan)) {
+        Toast.fire({ icon: 'warning', title: 'Tên tài khoản không được chứa khoảng trắng' });
+        return false;
+    }
+    if (!employee.email.trim()) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập email' });
+        return false;
+    }
     return true;
 };
 
@@ -284,7 +313,9 @@ const handleSubmit = async () => {
     if (!validateForm()) return;
     try {
         const fd = new FormData();
+        // 3. Đưa tên tài khoản vào FormData để gửi lên Backend
         fd.append("tenNhanVien", employee.tenNhanVien); 
+        fd.append("tenTaiKhoan", employee.tenTaiKhoan); 
         fd.append("cccd", employee.cccd);
         fd.append("email", employee.email); 
         fd.append("soDienThoai", employee.soDienThoai);

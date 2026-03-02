@@ -145,4 +145,13 @@ public class NhanVienController {
         EmployeeExcelExporter excelExporter = new EmployeeExcelExporter(listNhanVien);
         excelExporter.export(response);
     }
+    // Đổi đường dẫn ở đây 👇
+    @GetMapping("/xac-thuc/tai-khoan") // (Hoặc đường dẫn bạn đang dùng)
+public ResponseEntity<Boolean> checkTenTaiKhoan(
+        @RequestParam String tenTaiKhoan, 
+        @RequestParam(required = false) Integer id) { // CHÚ Ý: Dùng Integer ở đây
+    
+    boolean isExist = nhanVienService.checkTrungTaiKhoan(tenTaiKhoan, id);
+    return ResponseEntity.ok(isExist);
+}
 }
