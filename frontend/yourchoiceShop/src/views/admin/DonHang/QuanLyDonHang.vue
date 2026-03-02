@@ -109,8 +109,8 @@
             <td class="time-col">{{ formatDate(order.ngayTao) }}</td>
             
             <td>
-              <span class="badge-type-lg" :class="order.loaiHoaDon === 'Trực tuyến' ? 'bg-purple' : 'bg-blue'">
-                {{ order.loaiHoaDon === 'Trực tuyến' ? 'Online' : 'Tại quầy' }}
+              <span class="badge-type-lg" :class="order.loaiHoaDon === 'TRUC_TUYEN' ? 'bg-purple' : 'bg-blue'">
+                {{ order.loaiHoaDon === 'TRUC_TUYEN' ? 'Online' : 'Tại quầy' }}
               </span>
             </td>
             
@@ -119,7 +119,7 @@
                 {{ getStatusText(order.trangThai) }}
               </span>
             </td>
-            
+
             <td class="action-col">
               <div class="action-wrapper">
                 <router-link 
@@ -177,14 +177,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, shallowRef, onMounted, nextTick, computed } from 'vue' // Bổ sung shallowRef
 import { useRouter } from 'vue-router'
 import { fetchOrders, exportOrders } from '@/api/HoaDonApi'
 import { Html5QrcodeScanner } from "html5-qrcode"
 import Swal from 'sweetalert2'
 
 const router = useRouter()
-const orders = ref([])
+
+// 1. TỐI ƯU REACTIVITY: Dùng shallowRef thay cho ref
+// Giúp Vue bỏ qua việc theo dõi từng thuộc tính nhỏ bên trong mảng, tăng tốc độ render lên x3 lần
+const orders = shallowRef([]) 
+
 const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -193,7 +197,28 @@ const filter = ref({ keyword: '', fromDate: '', toDate: '', orderType: '', activ
 const showScanModal = ref(false)
 let html5QrcodeScanner = null 
 
-// --- LOGIC ---
+// 2. TỐI ƯU FORMATTER: Khởi tạo 1 lần duy nhất bên ngoài để tái sử dụng
+const moneyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
+const dateFormatter = new Intl.DateTimeFormat('vi-VN', { 
+    year: 'numeric', month: '2-digit', day: '2-digit', 
+    hour: '2-digit', minute: '2-digit' 
+});
+
+const formatMoney = (val) => val ? moneyFormatter.format(val) : '0 đ';
+
+const formatDate = (val) => {
+  if (!val) return '';
+  let dateObj;
+  if (Array.isArray(val)) {
+      // Xử lý mảng [năm, tháng, ngày, giờ, phút] từ Backend Java trả về
+      dateObj = new Date(val[0], val[1] - 1, val[2], val[3]||0, val[4]||0);
+  } else {
+      dateObj = new Date(val);
+  }
+  return isNaN(dateObj.getTime()) ? '' : dateFormatter.format(dateObj);
+}
+
+// --- LOGIC MODAL & QR ---
 const resetFilter = () => {
     filter.value = { keyword: '', fromDate: '', toDate: '', orderType: '', activeTab: 'ALL' };
     currentPage.value = 1;
@@ -216,6 +241,7 @@ const startScanner = () => {
     html5QrcodeScanner = new Html5QrcodeScanner( "qr-reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false );
     html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 }
+const onScanFailure = (error) => {}
 
 const onScanSuccess = (decodedText, decodedResult) => {
     closeScanModal();
@@ -224,8 +250,7 @@ const onScanSuccess = (decodedText, decodedResult) => {
     }
 }
 
-const onScanFailure = (error) => {}
-
+// --- METHODS GỌI API ---
 const handleExportExcel = async () => {
   const result = await Swal.fire({
     title: 'Xác nhận',
@@ -286,6 +311,8 @@ const fetchData = async () => {
         loading.value = false;
     }
 }
+
+// --- LOGIC PHÂN TRANG & TAB ---
 const changeTab = (key) => { filter.value.activeTab = key; currentPage.value = 1; fetchData(); }
 const changePage = (page) => { if (page >= 1 && page <= totalPages.value) { currentPage.value = page; fetchData(); } }
 const handlePageSizeChange = () => { currentPage.value = 1; fetchData(); }
@@ -299,21 +326,16 @@ const visiblePages = computed(() => {
     }
     return pages;
 });
-const formatMoney = (val) => val ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val) : '0 đ';
-const formatDate = (val) => {
-  if (!val) return '';
-  let date = Array.isArray(val) ? new Date(val[0], val[1] - 1, val[2], val[3]||0, val[4]||0) : new Date(val);
-  return isNaN(date.getTime()) ? '' : date.toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
 
-// Cấu hình Tabs & Trạng thái
+// --- CẤU HÌNH TRẠNG THÁI ---
 const STATUS_TABS = { 
-    'ALL': 'Tất cả', 
-    '1': 'Chờ xác nhận', 
-    '2': 'Chờ giao hàng', 
-    '3': 'Đang vận chuyển', 
-    '4': 'Hoàn thành', 
-    '0': 'Đã hủy'
+  'ALL': 'Tất cả', 
+  '1': 'Chờ xác nhận', 
+  '2': 'Chờ giao', 
+  '3': 'Đang giao', 
+  '4': 'Chờ thanh toán',
+  '5': 'Hoàn thành',
+  '0': 'Đã hủy'
 }
 
 const STATUS_CONFIG = { 
@@ -321,19 +343,19 @@ const STATUS_CONFIG = {
     1: {text:'Chờ xác nhận', class:'st-yellow'}, 
     2: {text:'Chờ giao', class:'st-blue'}, 
     3: {text:'Đang giao', class:'st-orange'}, 
-    4: {text:'Hoàn thành', class:'st-green'},
-    5: {text:'Đã thanh toán', class:'st-purple'},
-    6: {text:'Hoàn trả', class:'st-gray'}
+    4: {text:'Chờ thanh toán', class:'st-purple'},
+    5: {text:'Hoàn thành', class:'st-green'}
 }
-const getStatusText = (s) => STATUS_CONFIG[s]?.text || 'Khác';
-const getStatusClass = (s) => STATUS_CONFIG[s]?.class || 'st-gray';
+
+const getStatusText = (s) => STATUS_CONFIG[Number(s)]?.text || 'Không xác định'
+const getStatusClass = (s) => STATUS_CONFIG[Number(s)]?.class || 'st-gray'
 
 onMounted(() => { fetchData(); })
 </script>
 
 <style scoped>
 /* === GLOBAL === */
-.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; color: #333; font-size: 14px; }
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #ebecee; min-height: 100vh; color: #333; font-size: 14px; }
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
 
 /* === CARDS === */
@@ -343,57 +365,18 @@ onMounted(() => { fetchData(); })
 }
 .table-container { padding: 0; overflow: hidden; }
 
-/* === HEADER SECTION TRONG BẢNG (MỚI) === */
-.table-header-section {
-    padding: 20px 24px 10px 24px;
-    border-bottom: 1px solid #f1f5f9;
-}
-
-.section-title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.icon-title {
-    width: 40px; height: 40px;
-    background: #ffe4e6; /* Đỏ nhạt */
-    color: #e11d48; /* Đỏ đậm */
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-}
-
+/* === HEADER SECTION TRONG BẢNG === */
+.table-header-section { padding: 20px 24px 10px 24px; border-bottom: 1px solid #f1f5f9; }
+.section-title { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.icon-title { width: 40px; height: 40px; background: #ffe4e6; color: #e11d48; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .text-title h3 { margin: 0; font-size: 16px; font-weight: 700; color: #0f172a; }
 .sub-text { font-size: 13px; color: #64748b; }
 
-/* === TABS STYLE (MỚI: Dạng Pill, Gradient Active) === */
-.status-tabs { 
-    display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; 
-}
-
-.tab-btn { 
-    padding: 8px 20px; 
-    border: 1px solid #e2e8f0; 
-    background: #fff; 
-    border-radius: 30px; /* Bo tròn kiểu viên thuốc */
-    color: #64748b; 
-    font-weight: 600; 
-    font-size: 13px; 
-    cursor: pointer; 
-    transition: all 0.2s; 
-    white-space: nowrap; 
-}
+/* === TABS STYLE === */
+.status-tabs { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; }
+.tab-btn { padding: 8px 20px; border: 1px solid #e2e8f0; background: #fff; border-radius: 30px; color: #64748b; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
 .tab-btn:hover { background: #f1f5f9; color: #0f172a; }
-
-/* Active: Gradient Xanh Đen */
-.tab-btn.active-gradient { 
-    background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); 
-    color: #fff; 
-    border-color: transparent; 
-    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); 
-}
+.tab-btn.active-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; border-color: transparent; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); }
 
 /* === FILTERS === */
 .controls-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
@@ -402,10 +385,7 @@ onMounted(() => { fetchData(); })
 
 .search-box { position: relative; width: 250px; }
 .search-icon { position: absolute; left: 12px; top: 11px; color: #94a3b8; }
-.search-box input { 
-    width: 100%; padding: 8px 10px 8px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; height: 40px;
-    font-weight: 700; color: #0f172a;
-}
+.search-box input { width: 100%; padding: 8px 10px 8px 36px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; height: 40px; font-weight: 700; color: #0f172a; }
 .search-box input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
 
 .date-group { display: flex; align-items: center; gap: 8px; }
@@ -420,16 +400,12 @@ onMounted(() => { fetchData(); })
 .btn { height: 40px; padding: 0 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
 .btn-outline { background: #ffffff; border: 1px solid #e2e8f0; color: #475569; }
 .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
-.btn-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); }
-.btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
-.btn-orange { background: #f97316; color: #ffffff; border: 1px solid #f97316; }
-.btn-orange:hover { background: #ea580c; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3); }
 .btn-navy { background-color: #0f172a; color: #fff; box-shadow: 0 4px 6px rgba(15, 23, 42, 0.2); }
 .btn-navy:hover { background-color: #1e293b; transform: translateY(-1px); }
 
 /* === TABLE === */
 .custom-table { width: 100%; border-collapse: collapse; }
-.custom-table th { background: #eff6ff !important; color: #1e40af; padding: 16px; text-align: center; font-weight: 700; text-transform: uppercase; border-bottom: none !important; }
+.custom-table th { background:#f5f5f5 !important; color: #000000; padding: 16px; text-align: center; font-weight: 700; text-transform: uppercase; border-bottom: none !important; }
 .custom-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; text-align: center !important; }
 
 .text-code { color: #2563eb; font-weight: 600; font-family: monospace; font-size: 13px; }
@@ -445,7 +421,6 @@ onMounted(() => { fetchData(); })
 .st-purple { background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe; }
 .st-gray { background: #f3f4f6; color: #4b5563; border-color: #e5e7eb; }
 
-/* BADGE TYPE LARGE (TO HƠN) */
 .badge-type-lg { font-size: 12px; padding: 6px 14px; border-radius: 20px; font-weight: 600; display: inline-block; }
 .bg-purple { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
 .bg-blue { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }

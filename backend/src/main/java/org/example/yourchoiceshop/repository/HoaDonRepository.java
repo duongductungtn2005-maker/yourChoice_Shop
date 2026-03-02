@@ -3,6 +3,7 @@ package org.example.yourchoiceshop.repository;
 import org.example.yourchoiceshop.entity.HoaDon;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,7 +15,8 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
 
     Optional<HoaDon> findByMaHoaDon(String maHoaDon);
 
-    // Query tìm kiếm nâng cao cho màn danh sách
+    // THÊM DÒNG NÀY ĐỂ TỐI ƯU QUERY KHÁCH HÀNG
+    @EntityGraph(attributePaths = {"khachHang"})
     @Query("SELECT h FROM HoaDon h WHERE " +
             "(:keyword IS NULL OR h.maHoaDon LIKE %:keyword% OR h.tenNguoiNhan LIKE %:keyword%) AND " +
             "(:status IS NULL OR h.trangThai = :status) AND " +

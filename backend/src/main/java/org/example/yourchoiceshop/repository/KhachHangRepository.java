@@ -24,6 +24,9 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer>, 
         @Param("status") Integer status, 
         Pageable pageable
     );
+    boolean existsByTenTaiKhoanIgnoreCase(String tenTaiKhoan);
+    boolean existsByTenTaiKhoanIgnoreCaseAndMatKhau(String tenTaiKhoan, String matKhau);
+    boolean existsByTenTaiKhoanIgnoreCaseAndIdNot(String tenTaiKhoan, Integer id);
     boolean existsByEmail(String email);
     boolean existsBySoDienThoai(String soDienThoai);
 }

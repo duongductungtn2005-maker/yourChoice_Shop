@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,12 +34,16 @@ public class KhachHangServiceImpl implements KhachHangService {
     private final KhachHangRepository khachHangRepository;
     private final EmailService emailService;
     private static final String UPLOAD_DIR = "uploads/images/khach-hang/";
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
+    private static final int PASSWORD_LENGTH = 6;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Override
     public Page<KhachHang> findAll(String keyword, Boolean gender, Integer status, Pageable pageable) {
         Specification<KhachHang> spec = createSpecification(keyword, gender, status);
         return khachHangRepository.findAll(spec, pageable);
     }
+
 
     @Override
     public KhachHang findById(Integer id) {
@@ -66,11 +71,15 @@ public class KhachHangServiceImpl implements KhachHangService {
         kh.setTrangThai(1);
 
         // Xử lý Username & Password
-        String finalUsername = (request.getUsername() != null && !request.getUsername().isEmpty())
-                ? request.getUsername() : request.getEmail();
+        String finalUsername = request.getUsername() != null ? request.getUsername().trim() : "";
+        if (finalUsername.isEmpty()) {
+            throw new RuntimeException("Tên tài khoản không được để trống");
+        }
+        if (khachHangRepository.existsByTenTaiKhoanIgnoreCase(finalUsername)) {
+            throw new RuntimeException("Tên tài khoản đã tồn tại");
+        }
 
-        String rawPassword = (request.getPassword() != null && !request.getPassword().isEmpty())
-                ? request.getPassword() : "123456";
+        String rawPassword = generateRandomPassword();
 
         kh.setTenTaiKhoan(finalUsername);
         kh.setMatKhau(rawPassword);
@@ -125,6 +134,15 @@ public class KhachHangServiceImpl implements KhachHangService {
         kh.setNgaySinh(request.getNgaySinh());
         if (request.getTrangThai() != null) kh.setTrangThai(request.getTrangThai());
 
+        String username = request.getUsername() != null ? request.getUsername().trim() : "";
+        if (username.isEmpty()) {
+            throw new RuntimeException("Tên tài khoản không được để trống");
+        }
+        if (khachHangRepository.existsByTenTaiKhoanIgnoreCaseAndIdNot(username, id)) {
+            throw new RuntimeException("Tên tài khoản đã tồn tại");
+        }
+        kh.setTenTaiKhoan(username);
+
         if (request.getAvatarFile() != null && !request.getAvatarFile().isEmpty()) {
             kh.setAvatar(saveFile(request.getAvatarFile()));
         }
@@ -168,6 +186,24 @@ public class KhachHangServiceImpl implements KhachHangService {
     }
 
     @Override
+    public boolean existsByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            return false;
+        }
+        return khachHangRepository.existsByTenTaiKhoanIgnoreCase(username.trim());
+    }
+
+    @Override
+    public boolean authenticateCustomer(String username, String password) {
+        String usernameValue = username != null ? username.trim() : "";
+        String passwordValue = password != null ? password.trim() : "";
+        if (usernameValue.isEmpty() || passwordValue.isEmpty()) {
+            return false;
+        }
+        return khachHangRepository.existsByTenTaiKhoanIgnoreCaseAndMatKhau(usernameValue, passwordValue);
+    }
+
+    @Override
     public ByteArrayInputStream exportToExcel(String keyword, Boolean gender, Integer status) throws IOException {
         Specification<KhachHang> spec = createSpecification(keyword, gender, status);
         List<KhachHang> list = khachHangRepository.findAll(spec);
@@ -187,6 +223,9 @@ public class KhachHangServiceImpl implements KhachHangService {
                 row.createCell(2).setCellValue(kh.getTenKhachHang());
                 row.createCell(3).setCellValue(kh.getEmail());
                 row.createCell(4).setCellValue(kh.getSoDienThoai());
+                row.createCell(5).setCellValue(kh.getGioiTinh() ? "Nam" : "Nữ");
+                row.createCell(6).setCellValue(kh.getNgaySinh() != null ? kh.getNgaySinh().toString() : "");
+                row.createCell(7).setCellValue(kh.getTrangThai() == 1 ? "Hoạt động" : "Không hoạt động");
                 // ...
             }
             workbook.write(out);
@@ -224,6 +263,15 @@ public class KhachHangServiceImpl implements KhachHangService {
         } catch (IOException e) {
             throw new RuntimeException("Lỗi lưu ảnh: " + e.getMessage());
         }
+    }
+
+    private String generateRandomPassword() {
+        StringBuilder password = new StringBuilder(PASSWORD_LENGTH);
+        for (int i = 0; i < PASSWORD_LENGTH; i++) {
+            int idx = SECURE_RANDOM.nextInt(PASSWORD_CHARS.length());
+            password.append(PASSWORD_CHARS.charAt(idx));
+        }
+        return password.toString();
     }
 
     @Override

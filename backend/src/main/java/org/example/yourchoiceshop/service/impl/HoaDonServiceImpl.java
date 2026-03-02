@@ -5,13 +5,18 @@ import org.apache.poi.ss.usermodel.*;
 import org.example.yourchoiceshop.dto.request.CreateOrderRequest;
 import org.example.yourchoiceshop.dto.response.HoaDonDetailResponse;
 import org.example.yourchoiceshop.dto.response.HoaDonResponse;
+import org.example.yourchoiceshop.entity.ChiTietSanPham;
 import org.example.yourchoiceshop.entity.HoaDon;
 import org.example.yourchoiceshop.entity.HoaDonChiTiet;
+import org.example.yourchoiceshop.repository.ChiTietSanPhamRepository;
+import org.example.yourchoiceshop.repository.HoaDonChiTietRepository;
 import org.example.yourchoiceshop.repository.HoaDonRepository;
 import org.example.yourchoiceshop.service.HoaDonService; // <--- Import Interface này
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,30 +26,38 @@ import java.util.stream.Collectors;
 import org.example.yourchoiceshop.dto.request.HoaDonRequest; // <--- Import DTO mớiimport org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.ByteArrayOutputStream;
+import org.springframework.data.jpa.repository.EntityGraph; // Thêm import này
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true) // THÊM DÒNG NÀY CHO TOÀN BỘ CLASS
 public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implements HoaDonService
 
     private final HoaDonRepository hoaDonRepo;
+    private final HoaDonChiTietRepository hoaDonChiTietRepo;
+    private final ChiTietSanPhamRepository chiTietSanPhamRepo;
 
     @Override // <--- Thêm Override cho chắc chắn
-    public Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, LocalDateTime from, LocalDateTime to, Pageable pageable) {
+    public Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, LocalDateTime from,
+                                          LocalDateTime to, Pageable pageable) {
         Page<HoaDon> page = hoaDonRepo.searchOrders(keyword, status, type, from, to, pageable);
 
         return page.map(hd -> {
             HoaDonResponse res = new HoaDonResponse();
             res.setMaHoaDon(hd.getMaHoaDon());
-            int totalItems = hd.getHoaDonChiTiets() != null ?
-                    hd.getHoaDonChiTiets().stream().mapToInt(HoaDonChiTiet::getSoLuong).sum() : 0;
+            int totalItems = hd.getHoaDonChiTiets() != null
+                    ? hd.getHoaDonChiTiets().stream().mapToInt(HoaDonChiTiet::getSoLuong).sum()
+                    : 0;
             res.setTongSanPham(totalItems);
             res.setTongTienSauGiam(hd.getTongTienSauGiam());
-            res.setTenKhachHang(hd.getTenNguoiNhan() != null ? hd.getTenNguoiNhan() : (hd.getKhachHang() != null ? hd.getKhachHang().getTenKhachHang() : "Khách lẻ"));
+            res.setTenKhachHang(hd.getTenNguoiNhan() != null ? hd.getTenNguoiNhan()
+                    : (hd.getKhachHang() != null ? hd.getKhachHang().getTenKhachHang() : "Khách lẻ"));
             res.setNgayTao(hd.getNgayTao());
             res.setLoaiHoaDon(convertTypeToDisplay(hd.getLoaiHoaDon()));
             res.setTrangThai(hd.getTrangThai());
             return res;
         });
     }
+
     @Override
     public void updateOrderInfo(String maHoaDon, HoaDonRequest req) {
         HoaDon hd = hoaDonRepo.findByMaHoaDon(maHoaDon)
@@ -57,6 +70,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
         hoaDonRepo.save(hd);
     }
+
     @Override // <--- Thêm Override
     public HoaDonDetailResponse getOrderDetail(String maHoaDon) {
         HoaDon hd = hoaDonRepo.findByMaHoaDon(maHoaDon)
@@ -70,17 +84,16 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         res.setNgayTao(hd.getNgayTao());
 
         res.setTongTien(hd.getTongTien());
-        res.setGiamGia(hd.getTienGiamGia());
+        res.setTienGiam(
+                hd.getTienGiamGia() != null ? hd.getTienGiamGia() : BigDecimal.ZERO);
         res.setPhiVanChuyen(hd.getPhiVanChuyen());
         res.setTongTienSauGiam(hd.getTongTienSauGiam());
 
-        if ("TRUC_TUYEN".equals(hd.getLoaiHoaDon()) || "Trực tuyến".equals(hd.getLoaiHoaDon())) {
-            HoaDonDetailResponse.ThongTinNhanHang info = new HoaDonDetailResponse.ThongTinNhanHang();
-            info.setTenNguoiNhan(hd.getTenNguoiNhan());
-            info.setSdt(hd.getSdtNguoiNhan());
-            info.setDiaChi(hd.getDiaChiNguoiNhan());
-            res.setThongTinNhanHang(info);
-        }
+        HoaDonDetailResponse.ThongTinNhanHang info = new HoaDonDetailResponse.ThongTinNhanHang();
+        info.setTenNguoiNhan(hd.getTenNguoiNhan());
+        info.setSdt(hd.getSdtNguoiNhan());
+        info.setDiaChi(hd.getDiaChiNguoiNhan());
+        res.setThongTinNhanHang(info);
 
         List<HoaDonDetailResponse.SanPhamHoaDonResponse> products = new ArrayList<>();
         if (hd.getHoaDonChiTiets() != null) {
@@ -113,15 +126,21 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
     }
 
     private String convertTypeToDisplay(String dbType) {
-        if ("TRUC_TUYEN".equalsIgnoreCase(dbType)) return "Trực tuyến";
-        if ("TAI_QUAY".equalsIgnoreCase(dbType)) return "Tại quầy";
+        if ("TRUC_TUYEN".equalsIgnoreCase(dbType))
+            return "Trực tuyến";
+        if ("TAI_QUAY".equalsIgnoreCase(dbType))
+            return "Tại quầy";
         return dbType; // Nếu không khớp thì trả về nguyên gốc
     }
+
     private String convertPaymentMethod(String dbMethod) {
-        if ("TIEN_MAT".equalsIgnoreCase(dbMethod)) return "Tiền mặt";
-        if ("CHUYEN_KHOAN".equalsIgnoreCase(dbMethod)) return "Chuyển khoản";
+        if ("TIEN_MAT".equalsIgnoreCase(dbMethod))
+            return "Tiền mặt";
+        if ("CHUYEN_KHOAN".equalsIgnoreCase(dbMethod))
+            return "Chuyển khoản";
         return dbMethod;
     }
+
     @Override // <--- Override từ Interface
     public void updateStatus(String maHoaDon, Integer newStatus) {
         // 1. Tìm hóa đơn theo mã
@@ -134,53 +153,83 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         // 3. Lưu vào Database
         hoaDonRepo.save(hd);
     }
+
     @Override
+    @Transactional
     public void createOrderAtCounter(CreateOrderRequest req) {
-        // 1. Tạo Hóa Đơn mới
+
+        // 1. Tạo hóa đơn
         HoaDon hd = new HoaDon();
-        hd.setMaHoaDon("HD" + System.currentTimeMillis()); // Tự sinh mã: HD + thời gian
+        hd.setMaHoaDon("HD" + System.currentTimeMillis());
         hd.setNgayTao(LocalDateTime.now());
-        hd.setTrangThai(4); // 4 = Hoàn thành (Vì đã thanh toán tại quầy)
+        hd.setTrangThai(5);
         hd.setLoaiHoaDon("TAI_QUAY");
-        hd.setTenNguoiNhan(req.getTenKhachHang() != null ? req.getTenKhachHang() : "Khách lẻ");
 
-        // Lưu tạm để có ID
-        hd = hoaDonRepo.save(hd);
+        hd.setTenNguoiNhan(
+                req.getTenKhachHang() != null ? req.getTenKhachHang() : "Khách lẻ");
+        hd.setSdtNguoiNhan(req.getSoDienThoai());
+        hd.setDiaChiNguoiNhan(req.getDiaChi());
+        hd.setEmailKhachHang(req.getEmail());
 
-        // 2. Lưu các sản phẩm vào Hóa Đơn Chi Tiết
-        double tongTien = 0;
-        List<HoaDonChiTiet> chiTiets = new ArrayList<>();
+        hoaDonRepo.save(hd);
+
+        // 2. Lưu chi tiết hóa đơn
+        BigDecimal tongTien = BigDecimal.ZERO;
 
         for (CreateOrderRequest.CartItem item : req.getItems()) {
-            HoaDonChiTiet ct = new HoaDonChiTiet();
-            ct.setHoaDon(hd);
 
-            // Tìm sản phẩm từ DB (Giả sử bạn có repo này)
-            // ChiTietSanPham sp = chiTietSanPhamRepo.findById(item.getIdSanPham()).orElseThrow();
-            // ct.setChiTietSanPham(sp);
-            // --- TẠM THỜI ĐỂ FIX NHANH, BẠN CÓ THỂ BỎ QUA SET SẢN PHẨM NẾU CHƯA CÓ REPO ---
+    ChiTietSanPham sp = chiTietSanPhamRepo
+            .findById(item.getIdChiTietSanPham())
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
 
-            ct.setSoLuong(item.getSoLuong());
-            ct.setDonGia(BigDecimal.valueOf(item.getDonGia()));
-            ct.setThanhTien(BigDecimal.valueOf(item.getDonGia() * item.getSoLuong()));
+    // ✅ Check tồn kho
+    if (sp.getSoLuong() < item.getSoLuong()) {
+        throw new RuntimeException(
+            "Sản phẩm " + sp.getSanPham().getTenSanPham() + " không đủ tồn kho"
+        );
+    }
 
-            tongTien += ct.getThanhTien().doubleValue();
+    // ✅ Trừ tồn kho
+    sp.setSoLuong(sp.getSoLuong() - item.getSoLuong());
+    chiTietSanPhamRepo.save(sp);
 
-            // Lưu chi tiết (Cần inject hoaDonChiTietRepo)
-            // hoaDonChiTietRepo.save(ct);
-        }
+    HoaDonChiTiet ct = new HoaDonChiTiet();
+    ct.setHoaDon(hd);
+    ct.setChiTietSanPham(sp);
+    ct.setSoLuong(item.getSoLuong());
+    ct.setDonGia(BigDecimal.valueOf(item.getDonGia()));
 
-        // 3. Cập nhật tổng tiền
-        hd.setTongTien(BigDecimal.valueOf(tongTien));
-        hd.setTongTienSauGiam(BigDecimal.valueOf(tongTien));
+    BigDecimal thanhTien = ct.getDonGia()
+            .multiply(BigDecimal.valueOf(item.getSoLuong()));
+
+    ct.setThanhTien(thanhTien);
+    tongTien = tongTien.add(thanhTien);
+
+    hoaDonChiTietRepo.save(ct);
+}
+
+        // 3. Cập nhật tiền
+        // 3. Cập nhật tiền (LẤY TỪ REQUEST)
+        // ✅ 3. Cập nhật tiền (DÙNG TIỀN ĐÃ TÍNH)
+        hd.setTongTien(tongTien);
+
+        BigDecimal tienGiam = req.getTienGiamGia() != null
+                ? req.getTienGiamGia()
+                : BigDecimal.ZERO;
+
+        hd.setTienGiamGia(tienGiam);
+        hd.setTongTienSauGiam(tongTien.subtract(tienGiam));
 
         hoaDonRepo.save(hd);
     }
+
     @Override
     public byte[] exportExcel(String keyword, Integer status, String type, LocalDateTime from, LocalDateTime to) {
         // 1. Lấy danh sách hóa đơn (Không phân trang để xuất hết)
-        // Lưu ý: Bạn cần viết thêm hàm searchOrdersNoPage trong Repo hoặc dùng list findAll có điều kiện
-        // Ở đây mình ví dụ lấy tạm tất cả để demo, bạn nên dùng hàm search giống hệt hàm getOrders nhưng bỏ Pageable
+        // Lưu ý: Bạn cần viết thêm hàm searchOrdersNoPage trong Repo hoặc dùng list
+        // findAll có điều kiện
+        // Ở đây mình ví dụ lấy tạm tất cả để demo, bạn nên dùng hàm search giống hệt
+        // hàm getOrders nhưng bỏ Pageable
         List<HoaDon> list = hoaDonRepo.findAll();
 
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -188,7 +237,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
             // 2. Tạo Header (Dòng tiêu đề)
             Row headerRow = sheet.createRow(0);
-            String[] columns = {"STT", "Mã HĐ", "Khách hàng", "Ngày tạo", "Loại", "Trạng thái", "Tổng tiền"};
+            String[] columns = { "STT", "Mã HĐ", "Khách hàng", "Ngày tạo", "Loại", "Trạng thái", "Tổng tiền" };
 
             CellStyle headerStyle = workbook.createCellStyle();
             Font headerFont = workbook.createFont();
@@ -211,12 +260,13 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
                 row.createCell(2).setCellValue(hd.getTenNguoiNhan() != null ? hd.getTenNguoiNhan() : "Khách lẻ");
                 row.createCell(3).setCellValue(hd.getNgayTao().toString());
                 row.createCell(4).setCellValue(convertTypeToDisplay(hd.getLoaiHoaDon()));
-                row.createCell(5).setCellValue(convertStatusToText(hd.getTrangThai())); // Bạn tự viết hàm convert int -> String nhé
+                row.createCell(5).setCellValue(convertStatusToText(hd.getTrangThai())); // Bạn tự viết hàm convert int
+                // -> String nhé
                 row.createCell(6).setCellValue(hd.getTongTienSauGiam().doubleValue());
             }
 
             // Auto size cột cho đẹp
-            for(int i = 0; i < columns.length; i++) {
+            for (int i = 0; i < columns.length; i++) {
                 sheet.autoSizeColumn(i);
             }
 
@@ -228,8 +278,11 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
     }
 
     private String convertStatusToText(Integer status) {
-        if(status == 1) return "Chờ xác nhận";
-        if(status == 4) return "Hoàn thành";
+        if (status == 1)
+            return "Chờ xác nhận";
+        if (status == 4)
+            return "Hoàn thành";
         return "Khác";
     }
+
 }

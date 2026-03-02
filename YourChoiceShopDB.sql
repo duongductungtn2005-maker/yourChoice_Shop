@@ -286,6 +286,7 @@ CREATE TABLE lich_su_thanh_toan (
 INSERT INTO quyen_han (ten_quyen_han, trang_thai) VALUES (N'Nhân viên', 1);
 
 select * from nhan_vien;
+select * from khach_hang
 
 INSERT INTO quyen_han (ten_quyen_han, trang_thai) VALUES (N'Nhân viên', 1);
 select * from quyen_han;
