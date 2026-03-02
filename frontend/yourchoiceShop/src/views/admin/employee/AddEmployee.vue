@@ -458,7 +458,7 @@ const handleSubmit = async () => {
         fd.append("soDienThoai", employee.soDienThoai);
         fd.append("gioiTinh", employee.gioiTinh); 
         fd.append("ngaySinh", employee.ngaySinh);
-        fd.append("chucVu", 'STAFF');
+        fd.append("chucVu", employee.chucVu);
 
         // Gửi cờ (flag) lên server
         fd.append("isSendEmail", isSendEmail); 

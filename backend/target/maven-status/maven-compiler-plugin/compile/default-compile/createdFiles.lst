@@ -65,6 +65,7 @@ org\example\yourchoiceshop\entity\HinhAnh.class
 org\example\yourchoiceshop\repository\StatisticRepository.class
 org\example\yourchoiceshop\service\impl\ChatLieuServiceImpl.class
 org\example\yourchoiceshop\service\impl\StatisticServiceImpl.class
+org\example\yourchoiceshop\controller\LichSuHoatDongController.class
 org\example\yourchoiceshop\dto\response\VariantResponse$AttributeDTO.class
 org\example\yourchoiceshop\service\impl\ChiTietDonHangServiceImpl.class
 org\example\yourchoiceshop\dto\response\HoaDonDetailResponse.class

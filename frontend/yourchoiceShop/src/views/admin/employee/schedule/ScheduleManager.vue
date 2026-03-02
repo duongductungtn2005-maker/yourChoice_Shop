@@ -24,6 +24,17 @@
             <i class="fas fa-list"></i> Danh sách
           </button>
         </div>
+
+        <button class="btn btn-import" @click="triggerFileUpload" style="background-color: #10b981; color: white; margin-right: 8px;">
+          <i class="fas fa-file-excel"></i> Nhập Excel
+        </button>
+        <input 
+          type="file" 
+          ref="fileInput" 
+          accept=".xlsx, .xls" 
+          style="display: none" 
+          @change="handleFileUpload"
+        />
         <button class="btn btn-refresh" @click="fetchSchedules">
           <i class="fas fa-sync-alt"></i> Làm mới
         </button>
@@ -456,7 +467,45 @@ const filteredSchedules = computed(() => {
     return matchEmp && matchShift && matchDate;
   });
 });
+// Reference tới thẻ input ẩn
+const fileInput = ref(null);
 
+// Hàm kích hoạt thẻ input khi bấm nút
+const triggerFileUpload = () => {
+  if (fileInput.value) {
+    fileInput.value.click();
+  }
+};
+
+// Hàm xử lý file sau khi người dùng chọn
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Sử dụng FormData để gửi file
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    // Gọi API của Spring Boot (thay thế URL cho đúng với API của bạn)
+    // Ví dụ: http://localhost:8080/api/v1/lich-lam-viec/import
+    const response = await axios.post('http://localhost:8080/api/v1/lich-lam-viec/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    alert('Nhập dữ liệu Excel thành công!');
+    fetchSchedules(); // Gọi lại hàm lấy dữ liệu để update giao diện
+    
+  } catch (error) {
+    console.error('Lỗi khi import Excel:', error);
+    alert('Có lỗi xảy ra khi nhập file Excel. Vui lòng kiểm tra lại định dạng file!');
+  } finally {
+    // Reset giá trị input để lần sau chọn lại đúng file đó vẫn nhận sự kiện
+    event.target.value = '';
+  }
+};
 const closeModal = () => { 
   showModal.value = false; 
   isEditMode.value = false; 

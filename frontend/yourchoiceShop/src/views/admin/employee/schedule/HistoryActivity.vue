@@ -5,7 +5,9 @@
         <h1 class="title">Lịch sử hoạt động</h1>
         <p class="subtitle">Theo dõi thời gian ra/vào ca của nhân viên</p>
       </div>
-      <button class="btn-refresh"><i class="fas fa-sync-alt"></i> Làm mới</button>
+      <button class="btn-refresh" @click="handleRefresh">
+        <i class="fas fa-sync-alt"></i> Làm mới
+        </button>
     </div>
 
     <div class="main-content-card">
@@ -60,91 +62,179 @@
               <th>GHI CHÚ</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td class="center">1</td>
-              <td>
+          <tbody v-if="!isLoading">
+            <tr v-for="(item, index) in activities" :key="item.id">
+            <td class="center">{{ (currentPage * pageSize) + index + 1 }}</td>
+            <td>
                 <div class="user-info">
-                  <div class="user-vatar">H</div>
-                  <div class="user-detail">
-                    <div class="u-name">Hoàng</div>
-                    <div class="u-sub">Ca tối - phamduong030222</div>
-                  </div>
+                <div class="user-vatar">{{ item.tenNhanVien?.charAt(0) }}</div>
+                <div class="user-detail">
+                    <div class="u-name">{{ item.tenNhanVien }}</div>
+                    <div class="u-sub">{{ item.tenCa }} – {{ item.maNhanVien }}</div>
                 </div>
-              </td>
-              <td>
+                </div>
+            </td>
+            <td>
                 <div class="check-box">
-                  <i class="fas fa-sign-in-alt in"></i>
-                  <div class="t-wrap">
-                    <span class="t-main">19:51</span>
-                    <span class="t-sub">21/2/2026</span>
-                  </div>
+                <i class="fas fa-sign-in-alt in"></i>
+                <div class="t-wrap">
+                    <span class="t-main">{{ formatTime(item.vaoCaThucTe) }}</span>
+                    <span class="t-sub">{{ formatDate(item.vaoCaThucTe) }}</span>
                 </div>
-              </td>
-              <td>
+                </div>
+            </td>
+            <td>
                 <div class="check-box">
-                  <i class="fas fa-sign-out-alt out"></i>
-                  <div class="t-wrap">
-                    <span class="t-none">---</span>
-                  </div>
+                <i class="fas fa-sign-out-alt out"></i>
+                <div class="t-wrap">
+                    <span v-if="item.raCaThucTe" class="t-main">{{ formatTime(item.raCaThucTe) }}</span>
+                    <span v-if="item.raCaThucTe" class="t-sub">{{ formatDate(item.raCaThucTe) }}</span>
+                    <span v-else class="t-none">---</span>
                 </div>
-              </td>
-              <td>
-                <span class="status-pill">Đang làm việc</span>
-              </td>
-              <td class="note">---</td>
+                </div>
+            </td>
+                <td>
+                <span :class="['status-pill', getStatusClass(item.trangThai)]">
+                    {{ item.trangThai === 1 ? 'Đang làm việc' : 'Đã đóng ca' }}
+                </span>
+                </td>
+                <td class="note">{{ item.ghiChu || '---' }}</td>
             </tr>
-          </tbody>
+            </tbody>
+            <tbody v-else>
+            <tr>
+                <td colspan="6" class="center">Đang tải dữ liệu...</td></tr>
+            </tbody>
         </table>
       </div>
 
       <div class="pagination-footer">
         <div class="show-limit">
-          Hiện <select><option>10</option></select> dòng
+          Hiện 
+          <select v-model="pageSize" @change="handlePageSizeChange">
+            <option :value="5">5</option>
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+          </select> 
+          dòng (Tổng: {{ totalElements }} bản ghi)
         </div>
-        <div class="page-nav">
-          <button class="p-btn"><i class="fas fa-chevron-left"></i></button>
-          <button class="p-btn active">1</button>
-          <button class="p-btn">2</button>
-          <button class="p-btn"><i class="fas fa-chevron-right"></i></button>
+        
+        <div class="page-nav" v-if="totalPages > 0">
+          <button class="p-btn" @click="prevPage" :disabled="currentPage === 0">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          
+          <button 
+            v-for="page in totalPages" 
+            :key="page"
+            class="p-btn" 
+            :class="{ active: currentPage === page - 1 }"
+            @click="goToPage(page - 1)"
+          >
+            {{ page }}
+          </button>
+          
+          <button class="p-btn" @click="nextPage" :disabled="currentPage >= totalPages - 1">
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import axios from 'axios';
 
 const pageSize = ref(10);
-const filters = ref({
-  keyword: '',
-  fromDate: '',
-  toDate: ''
+const currentPage = ref(0);
+const totalElements = ref(0);
+const totalPages = ref(0); // <== Thêm biến này để lưu tổng số trang
+
+const searchEmployee = ref('');
+const searchShift    = ref('');
+const filterStartDate = ref('');
+const filterEndDate   = ref('');
+
+const activities = ref([]);
+const isLoading  = ref(false);
+
+const fetchActivities = async () => {
+  isLoading.value = true;
+  try {
+    const resp = await axios.get('http://localhost:8080/api/v1/lich-su-hoat-dong', {
+      params: {
+        employee: searchEmployee.value,
+        shift:    searchShift.value,
+        // Sửa lại ngày tháng: Gửi thẳng chuỗi YYYY-MM-DD cho Spring Boot (LocalDate)
+        startDate: filterStartDate.value || null,
+        endDate:   filterEndDate.value || null,
+        page: currentPage.value,
+        size: pageSize.value
+      }
+    });
+    console.log('API response:', resp.data); // Debug
+    
+    activities.value    = resp.data.content || [];
+    totalElements.value = resp.data.totalElements || 0;
+    totalPages.value    = resp.data.totalPages || 0; // <== Lấy tổng số trang từ API
+  } catch (err) {
+    console.error('Lỗi khi lấy dữ liệu:', err);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// --- CÁC HÀM XỬ LÝ PHÂN TRANG ---
+const goToPage = (pageIndex) => {
+  if (pageIndex >= 0 && pageIndex < totalPages.value) {
+    currentPage.value = pageIndex;
+    fetchActivities();
+  }
+};
+
+const prevPage = () => goToPage(currentPage.value - 1);
+const nextPage = () => goToPage(currentPage.value + 1);
+
+const handlePageSizeChange = () => {
+  currentPage.value = 0; // Reset về trang đầu khi đổi số lượng dòng
+  fetchActivities();
+};
+// ---------------------------------
+
+const getStatusClass = status => status === 1 ? 'status-working' : 'status-done';
+const formatTime = dt => {
+  if (!dt) return '---';
+  const d = new Date(dt);
+  return d.toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit' });
+};
+const formatDate = dt => {
+  if (!dt) return '';
+  const d = new Date(dt);
+  return d.toLocaleDateString('vi-VN');
+};
+
+const clearFilters = () => {
+  searchEmployee.value = '';
+  searchShift.value = '';
+  filterStartDate.value = '';
+  filterEndDate.value   = '';
+  // Không cần gọi fetchActivities() ở đây vì watch đã xử lý
+};
+
+// Đặt { deep: true } nếu cần, nhưng mảng phụ thuộc này sẽ kích hoạt khi thay đổi
+watch([searchEmployee, searchShift, filterStartDate, filterEndDate], () => {
+  currentPage.value = 0; // Khi lọc, luôn đưa về trang 0
+  fetchActivities();
 });
 
-const activities = ref([
-  {
-    id: 1,
-    tenNhanVien: 'Hoàng',
-    maNhanVien: 'phamduong030222',
-    tenCa: 'Ca tối',
-    gioVao: '19:51',
-    ngayVao: '21/2/2026',
-    gioRa: null,
-    ngayRa: '',
-    trangThai: 'Đang làm việc',
-    ghiChu: ''
-  }
-]);
-
-const getStatusClass = (status) => {
-  if (status === 'Đang làm việc') return 'status-working';
-  return 'status-done';
+const handleRefresh = () => {
+  currentPage.value = 0;
+  fetchActivities();
 };
 
-const resetFilters = () => {
-  filters.value = { keyword: '', fromDate: '', toDate: '' };
-};
+onMounted(fetchActivities);
 </script>
 
 <style scoped>
