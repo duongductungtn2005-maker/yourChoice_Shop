@@ -153,7 +153,7 @@ public class EmailService {
                                 </div>
                             </div>
                         </div>
-                """.formatted(tenKhachHang, matKhau);
+                """.formatted(username, matKhau);
 
         sendEmail(toEmail, subject, htmlContent, senderName);
     }

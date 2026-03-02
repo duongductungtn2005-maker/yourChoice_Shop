@@ -10,11 +10,11 @@ import java.time.LocalTime;
 @Entity
 @Table(name = "ca_lam_viec")
 @Data
+<<<<<<< HEAD
 @Getter
 @Setter
+>>>>>>> nope/bach
 public class CaLamViec extends BaseStatusEntity {
-
-    @Column(name = "ma_ca")
     private String maCa;
 
     @Column(name = "ten_ca")

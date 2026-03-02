@@ -216,7 +216,6 @@ public boolean checkTrungTaiKhoan(String tenTaiKhoan, Integer id) {
     if (id == null) {
         // Trường hợp Thêm mới: Chỉ cần tìm xem tên tài khoản này đã có ai dùng chưa
         return nhanVienRepo.existsByTenTaiKhoan(tenTaiKhoan);
-    } else {
         // Trường hợp Cập nhật: Tìm xem có ai dùng chưa, nhưng phải LOẠI TRỪ nhân viên hiện tại ra
         return nhanVienRepo.existsByTenTaiKhoanAndIdNot(tenTaiKhoan, id);
     }

@@ -53,6 +53,7 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
+import request from '@/services/request';
 
 const router = useRouter();
 const username = ref('');
@@ -65,25 +66,51 @@ const resolveRoleFromUsername = (value) => {
   const account = String(value || '').toLowerCase();
   if (account.includes('admin') || account.includes('quantri') || account.includes('quan-tri')) return 'ADMIN';
   if (account.includes('employee') || account.includes('nhanvien') || account.includes('nhan-vien')) return 'STAFF';
-  if (account.includes('customer') || account.includes('khachhang') || account.includes('khach-hang')) return 'CUSTOMER';
   return null;
 };
 
-const handleLogin = () => {
+const authenticateCustomer = async (usernameValue, passwordValue) => {
+  const finalUsername = String(usernameValue || '').trim();
+  const finalPassword = String(passwordValue || '').trim();
+  if (!finalUsername || !finalPassword) return false;
+
+  try {
+    const response = await request.get('/khach-hang/authenticate', {
+      params: {
+        username: finalUsername,
+        password: finalPassword
+      }
+    });
+    return response?.data?.authenticated === true;
+  } catch {
+    return false;
+  }
+};
+
+const handleLogin = async () => {
   if (!canSubmit.value) {
     errorMessage.value = 'Vui lòng nhập đầy đủ tài khoản và mật khẩu.';
     return;
   }
 
-  if (password.value !== '123456') {
-    errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
-    return;
+  errorMessage.value = '';
+  let role = resolveRoleFromUsername(username.value);
+
+  if (role === 'ADMIN' || role === 'STAFF') {
+    if (password.value !== '123456') {
+      errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
+      return;
+    }
+  } else {
+    const isAuthenticatedCustomer = await authenticateCustomer(username.value, password.value);
+    if (isAuthenticatedCustomer) {
+      role = 'CUSTOMER';
+    } else {
+      errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
+      return;
+    }
   }
 
-  errorMessage.value = '';
-  // Giả lập đăng nhập thành công
-  // Sau này sẽ gọi API Login ở đây
-  const role = resolveRoleFromUsername(username.value);
   if (!role) {
     errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
     return;

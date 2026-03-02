@@ -26,6 +26,7 @@
           <div class="form-body">
             <div class="form-group"><label>Mã KH</label><input type="text" v-model="form.maKhachHang" class="form-control" disabled></div>
             <div class="form-group"><label class="required">Tên khách hàng</label><input type="text" v-model="form.tenKhachHang" class="form-control"></div>
+            <div class="form-group"><label class="required">Tên tài khoản</label><input type="text" v-model="form.username" class="form-control"></div>
             <div class="form-group"><label class="required">Email</label><input type="email" v-model="form.email" class="form-control"></div>
             <div class="form-group"><label class="required">Số điện thoại</label><input type="text" v-model="form.soDienThoai" class="form-control"></div>
             <div class="form-group"><label>Ngày sinh</label><input type="date" v-model="form.ngaySinh" class="form-control"></div>
@@ -154,7 +155,7 @@ const loading = ref(false);
 const fileInput = ref(null);
 const previewImage = ref(null);
 const avatarFile = ref(null);
-const form = reactive({ tenKhachHang: '', email: '', soDienThoai: '', ngaySinh: '', gioiTinh: true, maKhachHang: '', trangThai: 1, avatar: '' });
+const form = reactive({ tenKhachHang: '', username: '', email: '', soDienThoai: '', ngaySinh: '', gioiTinh: true, maKhachHang: '', trangThai: 1, avatar: '' });
 
 // --- STATE ĐỊA CHỈ ---
 const addresses = ref([]);
@@ -175,6 +176,7 @@ const fetchCustomer = async () => {
     const res = await request.get(`/khach-hang/${id}`);
     const data = res.data;
     Object.assign(form, data);
+    form.username = data.tenTaiKhoan || data.username || '';
     if (data.ngaySinh && Array.isArray(data.ngaySinh)) {
         form.ngaySinh = `${data.ngaySinh[0]}-${String(data.ngaySinh[1]).padStart(2,'0')}-${String(data.ngaySinh[2]).padStart(2,'0')}`;
     }
@@ -283,17 +285,34 @@ const setDefaultAddress = async (addr) => {
 const triggerFileInput = () => fileInput.value.click();
 const handleFileUpload = (e) => { const f = e.target.files[0]; if(f){ avatarFile.value=f; previewImage.value=URL.createObjectURL(f); }};
 const updateCustomer = async () => {
+  if (!form.username || !form.username.trim()) {
+    return Swal.fire('Cảnh báo', 'Tên tài khoản không được để trống', 'warning');
+  }
+
     loading.value = true;
     try {
         const fd = new FormData();
         fd.append('tenKhachHang', form.tenKhachHang); fd.append('email', form.email);
+    fd.append('username', form.username.trim());
         fd.append('soDienThoai', form.soDienThoai); fd.append('gioiTinh', form.gioiTinh);
         if(form.ngaySinh) fd.append('ngaySinh', form.ngaySinh);
         if(avatarFile.value) fd.append('avatarFile', avatarFile.value);
         await request.put(`/khach-hang/${id}`, fd);
-        await Swal.fire({ icon: 'success', title: 'Thành công', timer: 1500, showConfirmButton: false });
+        await Swal.fire({
+          icon: 'success',
+          title: 'Thành công',
+          text: 'Cập nhật thông tin khách hàng thành công',
+          timer: 1500,
+          showConfirmButton: false
+        });
         router.push({ name: customerListRouteName });
-    } catch(e) { console.error(e); Swal.fire('Lỗi', 'Không thể cập nhật thông tin', 'error'); } finally { loading.value = false; }
+  } catch(e) {
+    console.error(e);
+    const backendMessage = typeof e.response?.data === 'string'
+      ? e.response.data
+      : (e.response?.data?.message || 'Không thể cập nhật thông tin');
+    Swal.fire('Lỗi', backendMessage, 'error');
+  } finally { loading.value = false; }
 };
 
 onMounted(() => {
