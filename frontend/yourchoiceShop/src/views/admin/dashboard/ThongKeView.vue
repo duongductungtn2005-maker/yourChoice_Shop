@@ -200,29 +200,177 @@
     </div>
 
     <div v-if="showEmailModal" class="modal-overlay">
-      <div class="modal-content">
-        <h3 class="modal-title">Cài đặt gửi báo cáo qua Email</h3>
-        <p class="modal-subtitle">Hệ thống sẽ tự động tổng hợp số liệu và gửi về email đã đăng ký.</p>
-        
-        <div class="form-group">
-          <label class="form-label">Email nhận báo cáo:</label>
-          <input type="email" v-model="emailConfig.email" class="form-input" placeholder="ví dụ: admin@gmail.com" />
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label">Chu kỳ gửi báo cáo:</label>
-          <select v-model="emailConfig.frequency" class="form-input">
-            <option value="DAILY_17H">Hàng ngày (gửi lúc 17:00)</option>
-            <option value="MONTHLY">Hàng tháng (gửi ngày cuối tháng)</option>
-            <option value="QUARTERLY">Hàng quý (3 tháng/lần)</option>
-            <option value="YEARLY">Hàng năm (tổng kết năm)</option>
-          </select>
+      <div class="modal-content large-modal">
+        <div class="modal-header">
+          <h3 class="modal-title">Gửi Báo Cáo & Quản Lý Danh Bạ</h3>
+          <button class="close-btn" @click="closeEmailModal">✕</button>
         </div>
 
-        <div class="modal-actions">
-          <button class="btn btn-outline" @click="showEmailModal = false">Hủy</button>
-          <button class="btn btn-active" @click="handleSaveEmailConfig">Lưu thiết lập</button>
+        <div class="tab-nav">
+          <button class="tab-btn" :class="{ active: activeEmailTab === 'SEND' }" @click="activeEmailTab = 'SEND'">📤 Gửi Báo Cáo</button>
+          <button class="tab-btn" :class="{ active: activeEmailTab === 'MANAGE' }" @click="activeEmailTab = 'MANAGE'">👥 Quản Lý Danh Bạ</button>
         </div>
+
+        <div class="tab-body" v-if="activeEmailTab === 'SEND'">
+          <div class="tab-content-wrapper">
+            
+            <div class="form-section">
+              <label class="form-label font-bold">1. Tìm kiếm / Nhập Email người nhận:</label>
+              <div class="search-add-group">
+                <input type="email" v-model="searchEmailQuery" class="form-input input-den" placeholder="Nhập email và ấn Thêm..." @keyup.enter="handleSearchAndAddEmail" />
+                <button class="btn btn-primary" @click="handleSearchAndAddEmail">Thêm</button>
+              </div>
+            </div>
+
+            <div class="form-section mt-16">
+              <label class="form-label font-bold">Hoặc chọn nhanh từ danh bạ:</label>
+              <div class="checkbox-list-container">
+                 <div v-if="emailDatabaseList.length === 0" class="text-muted text-sm p-2 text-center">Danh bạ trống. Hãy qua tab Quản lý để thêm!</div>
+                 <label v-for="e in paginatedSendEmails" :key="e.id" class="checkbox-item">
+                   <input type="checkbox" :value="e.email" v-model="selectedEmailAddresses" />
+                   <span class="font-medium text-dark">{{ e.name }}</span> <span class="text-muted">({{ e.email }})</span>
+                 </label>
+              </div>
+              <div class="mini-pagination" v-if="totalSendPages > 1">
+                <button :disabled="sendPage === 1" @click="sendPage--">‹</button>
+                <span class="page-info-text">{{ sendPage }} / {{ totalSendPages }}</span>
+                <button :disabled="sendPage === totalSendPages" @click="sendPage++">›</button>
+              </div>
+            </div>
+
+            <div class="form-section mt-16 flex-grow-1">
+              <label class="form-label font-bold">Danh sách sẽ nhận báo cáo ({{ computedSelectedEmails.length }}):</label>
+              <div class="table-container max-h-150">
+                <table class="modern-table border-table">
+                  <thead>
+                    <tr>
+                      <th class="text-left">Email</th>
+                      <th class="text-left">Tên người nhận</th>
+                      <th class="text-center w-50">Xóa</th>
+                    </tr>
+                  </thead>
+                  <tbody style="text-align: center;">
+                    <tr v-if="computedSelectedEmails.length === 0">
+                      <td colspan="3" class="text-center text-muted">Chưa chọn người nhận nào</td>
+                    </tr>
+                    <tr v-for="item in computedSelectedEmails" :key="item.email">
+                      <td class="code-text">
+                        {{ item.email }}
+                        <span v-if="!item.isSaved" class="badge-temp ml-2">Tạm thời</span>
+                      </td>
+                      <td>{{ item.name }}</td>
+                      <td class="text-center">
+                        <button class="btn-delete" @click="removeSelectedEmail(item.email)" title="Xóa khỏi danh sách gửi">✕</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="form-section mt-16 config-box">
+              <label class="form-label font-bold">2. Chọn dữ liệu báo cáo:</label>
+              
+              <div class="radio-group flex gap-8 mb-8 mt-4">
+                <label class="cursor-pointer font-medium text-dark flex align-center gap-2">
+                  <input type="radio" value="TODAY" v-model="sendMode" /> Dữ liệu hôm nay (Từ 00:00 đến hiện tại)
+                </label>
+                <label class="cursor-pointer font-medium text-dark flex align-center gap-2" style="margin-left: 20px;">
+                  <input type="radio" value="CUSTOM" v-model="sendMode" /> Tùy chỉnh mốc thời gian
+                </label>
+              </div>
+
+              <div class="custom-date-box" v-if="sendMode === 'CUSTOM'">
+                <div class="date-picker-group">
+                  <div class="w-full">
+                    <label class="text-xs text-muted block mb-4">Từ ngày giờ:</label>
+                    <input type="datetime-local" v-model="reportConfig.fromDate" class="form-input input-den w-full" />
+                  </div>
+                  <span class="separator mt-16 px-12">-</span>
+                  <div class="w-full">
+                    <label class="text-xs text-muted block mb-4">Đến ngày giờ:</label>
+                    <input type="datetime-local" v-model="reportConfig.toDate" class="form-input input-den w-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="modal-actions border-top pt-16 mt-16">
+            <span class="text-xs text-muted flex-grow-1" style="align-self: center;">
+              *Lưu ý: Hệ thống vẫn sẽ tự động gửi báo cáo vào 17h hàng ngày cho các email trong danh bạ.
+            </span>
+            <button class="btn btn-outline" @click="closeEmailModal">Đóng</button>
+            <button class="btn btn-gradient" @click="handleSendNow" :disabled="isSendingEmail">
+              <i class="fas" :class="isSendingEmail ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i> 
+              {{ isSendingEmail ? 'Đang xử lý...' : 'Gửi Báo Cáo Này Đi' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="tab-body" v-if="activeEmailTab === 'MANAGE'">
+          <div class="tab-content-wrapper">
+            <div class="add-new-box mb-16">
+              <label class="form-label font-bold">Thêm liên hệ mới:</label>
+              <div class="flex gap-8">
+                <input type="text" v-model="newContact.name" class="form-input input-den flex-1" placeholder="Tên (VD: Giám đốc)" />
+                <input type="email" v-model="newContact.email" class="form-input input-den flex-2" placeholder="Địa chỉ Email" />
+                <button class="btn btn-primary" @click="addNewContact">
+                  <i class="fas fa-plus"></i> Lưu DB
+                </button>
+              </div>
+            </div>
+
+            <label class="form-label font-bold">Danh sách Email sẽ nhận báo cáo tự động ({{ emailDatabaseList.length }}):</label>
+            <div class="table-container flex-grow-1 border-table-wrapper">
+              <table class="modern-table border-table">
+                <thead>
+                  <tr>
+                    <th class="text-center w-50">STT</th>
+                    <th class="text-left">Tên</th>
+                    <th class="text-left">Email</th>
+                    <th class="text-center w-80">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody style="text-align: center;">
+                  <tr v-if="emailDatabaseList.length === 0">
+                    <td colspan="4" class="text-center empty-state">Không có dữ liệu danh bạ</td>
+                  </tr>
+                  <tr v-for="(dbItem, index) in paginatedManageEmails" :key="dbItem.id">
+                    <td class="text-center text-muted">{{ (managePage - 1) * managePageSize + index + 1 }}</td>
+                    <td class="font-medium text-dark">{{ dbItem.name }}</td>
+                    <td class="code-text">{{ dbItem.email }}</td>
+                    <td class="text-center">
+                      <button class="btn-delete px-12" @click="deleteContact(dbItem.id)" title="Xóa khỏi DB">
+                        <i class="fas fa-trash-alt"></i> Xóa
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              
+              <div class="pagination-footer bg-white" v-if="totalManagePages > 1">
+                <div class="page-info text-muted">
+                  Hiển thị trang {{ managePage }} / {{ totalManagePages }}
+                </div>
+                <div class="page-controls">
+                  <button :disabled="managePage === 1" @click="changeManagePage(managePage - 1)">‹</button>
+                  <button 
+                    v-for="p in visibleManagePages" 
+                    :key="p" 
+                    :class="{ active: p === managePage }" 
+                    @click="changeManagePage(p)"
+                  >
+                    {{ p }}
+                  </button>
+                  <button :disabled="managePage === totalManagePages" @click="changeManagePage(managePage + 1)">›</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -251,7 +399,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import axios from 'axios'
+import Swal from 'sweetalert2'
 import { statisticApi } from '@/api/statisticApi' 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, Filler } from 'chart.js'
 import { Doughnut, Line } from 'vue-chartjs'
@@ -261,7 +411,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointE
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0)
 const formatNumber = (val) => new Intl.NumberFormat('vi-VN').format(val || 0)
 
-// --- PLUGIN VẼ DÂY VÀ CHỮ NGOÀI BIỂU ĐỒ TRẠNG THÁI ---
+// --- PLUGIN VẼ DÂY VÀ CHỮ NGOÀI BIỂU ĐỒ TRẠNG THÁI (ĐÃ FIX) ---
 const outlabelsPlugin = {
   id: 'outlabels',
   afterDraw(chart) {
@@ -273,13 +423,18 @@ const outlabelsPlugin = {
           const dataVal = dataset.data[index];
           if (dataVal <= 0) return; 
 
-          const startAngle = element.startAngle;
-          const endAngle = element.endAngle;
-          const midAngle = startAngle + (endAngle - startAngle) / 2;
+          let startAngle = element.startAngle;
+          let endAngle = element.endAngle;
+          let midAngle = startAngle + (endAngle - startAngle) / 2;
+
+          // FIX ĐÈ CHỮ: Nếu chiếm 100% vòng tròn, bẻ góc sang ngang phải thay vì chĩa thẳng xuống
+          if (endAngle - startAngle >= Math.PI * 1.99) {
+             midAngle = 0; // Góc 0 radian là chĩa sang mạn phải
+          }
 
           const outerRadius = element.outerRadius;
           const lineStartRadius = outerRadius; 
-          const lineEndRadius = outerRadius + 15; 
+          const lineEndRadius = outerRadius + 20; // Kéo dài đường thẳng cắm ra một tí
 
           const x = element.x;
           const y = element.y;
@@ -289,8 +444,8 @@ const outlabelsPlugin = {
           const edgeX = x + Math.cos(midAngle) * lineEndRadius;
           const edgeY = y + Math.sin(midAngle) * lineEndRadius;
 
-          const isRight = Math.cos(midAngle) > 0;
-          const endX = edgeX + (isRight ? 15 : -15); 
+          const isRight = Math.cos(midAngle) >= 0;
+          const endX = edgeX + (isRight ? 20 : -20); // Gấp khúc dài ra xíu
           const endY = edgeY;
 
           ctx.beginPath();
@@ -312,6 +467,7 @@ const outlabelsPlugin = {
           ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
           ctx.fillText(label, endX + (isRight ? 5 : -5), endY - 8);
           
+          ctx.fillStyle = '#1f2937'; // Chữ đậm hơn tí
           ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
           ctx.fillText(`${dataVal} đơn (${percent})`, endX + (isRight ? 5 : -5), endY + 8);
         });
@@ -351,14 +507,57 @@ const summaryCards = ref([
   { title: 'Năm nay', revenue: 0, products: 0, successOrders: 0, cancelOrders: 0, returnOrders: 0 }
 ])
 
-// --- STATES EMAIL MODAL ---
+// --- STATES EMAIL MODAL & QUẢN LÝ EMAIL ---
 const showEmailModal = ref(false)
-const emailConfig = ref({
-  email: '',
-  frequency: 'DAILY_17H' // Default gửi lúc 17h
+const activeEmailTab = ref('SEND')
+
+// Data Database Mock
+const emailDatabaseList = ref([]) 
+const newContact = ref({ name: '', email: '' })
+
+// Phân trang Quản lý Email
+const managePage = ref(1);
+const managePageSize = 5;
+const totalManagePages = computed(() => Math.ceil(emailDatabaseList.value.length / managePageSize));
+const paginatedManageEmails = computed(() => {
+  const start = (managePage.value - 1) * managePageSize;
+  return emailDatabaseList.value.slice(start, start + managePageSize);
+});
+const changeManagePage = (p) => { if (p >= 1 && p <= totalManagePages.value) managePage.value = p; };
+const visibleManagePages = computed(() => {
+  let p = []; for (let i = 1; i <= totalManagePages.value; i++) {
+    if (i===1 || i===totalManagePages.value || (i>=managePage.value-1 && i<=managePage.value+1)) p.push(i);
+  }
+  return [...new Set(p)].sort((a,b)=>a-b);
+});
+
+// Data Send Form
+const EMAIL_API_URL = 'http://localhost:8080/api/v1/email-recipients';
+const isSendingEmail = ref(false);
+const sendMode = ref('TODAY'); // 'TODAY' hoặc 'CUSTOM'
+const searchEmailQuery = ref('')
+const selectedEmailAddresses = ref([]) 
+const reportConfig = ref({ fromDate: '', toDate: '' })
+
+// Phân trang Chọn Nhanh (Tab Gửi)
+const sendPage = ref(1);
+const sendPageSize = 5;
+const totalSendPages = computed(() => Math.ceil(emailDatabaseList.value.length / sendPageSize));
+const paginatedSendEmails = computed(() => {
+  const start = (sendPage.value - 1) * sendPageSize;
+  return emailDatabaseList.value.slice(start, start + sendPageSize);
+});
+
+// Bảng dữ liệu đã chọn
+const computedSelectedEmails = computed(() => {
+  return selectedEmailAddresses.value.map(emailStr => {
+    const foundInDB = emailDatabaseList.value.find(e => e.email === emailStr);
+    return foundInDB ? { email: foundInDB.email, name: foundInDB.name, isSaved: true } 
+                     : { email: emailStr, name: '(Email ngoài)', isSaved: false };
+  });
 })
 
-// --- STATES EXCEL CONFIRM & TOAST ---
+// --- EXCEL STATES ---
 const showConfirmExportModal = ref(false)
 const showSuccessToast = ref(false)
 
@@ -384,40 +583,26 @@ const lineChartOptions = ref({
   responsive: true,
   maintainAspectRatio: false,
   plugins: { legend: { display: false } }, 
-  scales: {
-    y: { beginAtZero: true },
-    x: { grid: { display: false } }
-  }
+  scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }
 })
 
 // --- DOUGHNUT CHART DATA ---
 const chartData = ref({
   labels: [],
-  datasets: [{
-    backgroundColor: [],
-    data: [],
-    borderWidth: 1,
-    hoverOffset: 4
-  }]
+  datasets: [{ backgroundColor: [], data: [], borderWidth: 1, hoverOffset: 4 }]
 })
 
+// FIX: Tăng padding bottom lên 50 để chú thích (legend) không dính vào chart
 const chartOptions = ref({
-  responsive: true,
-  maintainAspectRatio: false,
-  cutout: '55%', 
-  layout: {
-    padding: { top: 30, bottom: 30, left: 70, right: 70 } 
-  },
+  responsive: true, maintainAspectRatio: false, cutout: '55%', 
+  layout: { padding: { top: 40, bottom: 50, left: 80, right: 80 } },
   plugins: {
-    legend: { 
-      position: 'bottom', 
-      labels: { boxWidth: 12, padding: 15, font: { size: 12, family: 'sans-serif' }, color: '#4b5563', usePointStyle: true } 
-    },
-    tooltip: { enabled: false } 
+    legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15, font: { size: 12, family: 'sans-serif' }, color: '#4b5563', usePointStyle: true } },
+    tooltip: { enabled: true } 
   }
 })
 
-// --- TÍNH TOÁN THỜI GIAN ---
+// --- TÍNH TOÁN THỜI GIAN DÙNG CHUNG ---
 const formatToLocalDateTime = (date, isEnd = false) => {
   const d = new Date(date);
   if (isEnd) d.setHours(23, 59, 59, 999);
@@ -462,7 +647,7 @@ const getTimeframes = () => {
   ]
 }
 
-// --- LOGIC API ---
+// --- LOGIC API DỮ LIỆU BẢNG ĐIỀU KHIỂN ---
 
 const fetchSummaryCards = async () => {
   isLoadingCards.value = true;
@@ -487,140 +672,120 @@ const fetchSummaryCards = async () => {
       summaryCards.value[index].returnOrders = summary.returnOrders || 0;
 
       revenues.push({
-          label: `Doanh thu ${periods[index]}`,
-          value: summary.totalRevenue || 0,
-          percent: summary.growthPercent || summary.revenueGrowth || 0,
-          type: 'currency',
-          icon: 'revenue',
-          colorClass: 'text-blue'
+          label: `Doanh thu ${periods[index]}`, value: summary.totalRevenue || 0,
+          percent: summary.growthPercent || summary.revenueGrowth || 0, type: 'currency', icon: 'revenue', colorClass: 'text-blue'
       });
-
       orders.push({
-          label: `Đơn hàng ${periods[index]}`,
-          value: summary.totalOrders || 0,
-          percent: summary.orderGrowth || summary.growthPercent || 0,
-          type: 'number',
-          icon: 'order',
-          colorClass: 'text-success-icon' 
+          label: `Đơn hàng ${periods[index]}`, value: summary.totalOrders || 0,
+          percent: summary.orderGrowth || summary.growthPercent || 0, type: 'number', icon: 'order', colorClass: 'text-success-icon' 
       });
-
       products.push({
-          label: `Sản phẩm ${periods[index]}`,
-          value: summary.totalProducts || 0,
-          percent: summary.productGrowth || summary.growthPercent || 0,
-          type: 'number',
-          icon: 'product',
-          colorClass: 'text-warning-icon' 
+          label: `Sản phẩm ${periods[index]}`, value: summary.totalProducts || 0,
+          percent: summary.productGrowth || summary.growthPercent || 0, type: 'number', icon: 'product', colorClass: 'text-warning-icon' 
       });
     });
-
     growthList.value = [...revenues, ...orders, ...products];
-
   } catch (error) { console.error(error) } finally { isLoadingCards.value = false; }
 }
 
 const fetchFilterSummary = async (payload) => {
   try {
-    // 1. Gọi API lấy TẤT CẢ trạng thái (để đếm tổng đơn, số đơn đang xử lý, số đơn huỷ...)
     const payloadAll = { ...payload, status: null }; 
     const resAll = await statisticApi.getRevenue(payloadAll);
     const summaryAll = resAll.data?.summary || {};
     
-    // 2. Gọi API lần 2: Lọc riêng đơn HOÀN THÀNH (status = 5) để lấy Doanh Thu Thực Tế
     const payloadSuccess = { ...payload, status: 5 };
     const resSuccess = await statisticApi.getRevenue(payloadSuccess);
     const summarySuccess = resSuccess.data?.summary || {};
 
-    // Doanh thu thực tế = Tiền của các đơn status 5
     const actualRev = summarySuccess.totalRevenue || 0;
-
-    // Doanh thu tạm tính = Doanh thu của tất cả đơn (Bao gồm Hoàn thành + Đang xử lý)
-    // Tùy thuộc vào việc backend của mày tính totalRevenue ở resAll đã trừ đơn Hủy chưa, 
-    // tao sẽ lấy mặc định summaryAll.totalRevenue làm DT dự kiến.
     const expectedRev = summaryAll.totalRevenue || actualRev; 
 
-    // Gán lại vào biến hiển thị lên UI
-    filterSummary.value.actualRevenue = actualRev;
-    filterSummary.value.expectedRevenue = expectedRev;
-    
-    // Gán các thông số đếm đơn
-    filterSummary.value.totalOrders = summaryAll.totalOrders || 0;
-    filterSummary.value.totalProducts = summaryAll.totalProducts || 0;
-    filterSummary.value.successOrders = summaryAll.successOrders || 0;
-    filterSummary.value.processingOrders = summaryAll.processingOrders || 0; 
+    filterSummary.value.actualRevenue = actualRev; filterSummary.value.expectedRevenue = expectedRev;
+    filterSummary.value.totalOrders = summaryAll.totalOrders || 0; filterSummary.value.totalProducts = summaryAll.totalProducts || 0;
+    filterSummary.value.successOrders = summaryAll.successOrders || 0; filterSummary.value.processingOrders = summaryAll.processingOrders || 0; 
     filterSummary.value.cancelOrders = summaryAll.cancelOrders || 0;
-    
-  } catch (error) { 
-    console.error("Lỗi fetchFilterSummary:", error); 
-  }
+  } catch (error) { console.error("Lỗi fetchFilterSummary:", error); }
 }
 
 const fetchLineChartData = async (payload) => {
   try {
     const res = await statisticApi.getRevenue(payload); 
     const dataList = res.data?.chartData || res.data?.data || []; 
-    
     if(Array.isArray(dataList) && dataList.length > 0) {
        lineChartData.value = {
          labels: dataList.map(item => item.date || item.ngay || item.label || item.thoiGian || ''),
-         datasets: [{
-           ...lineChartData.value.datasets[0],
-           data: dataList.map(item => item.value || item.doanhThu || item.revenue || item.tongTien || 0)
-         }]
+         datasets: [{ ...lineChartData.value.datasets[0], data: dataList.map(item => item.value || item.doanhThu || item.revenue || item.tongTien || 0) }]
        };
-    } else {
-       lineChartData.value = { labels: [], datasets: [{ ...lineChartData.value.datasets[0], data: [] }] };
-    }
+    } else { lineChartData.value = { labels: [], datasets: [{ ...lineChartData.value.datasets[0], data: [] }] }; }
   } catch (error) { console.error("Lỗi fetchLineChartData:", error); }
 }
 
 const fetchChartStatus = async (customPayload) => {
   try {
     const payloadForChart = { ...customPayload, status: null };
-    const res = await statisticApi.getOrderStatus(payloadForChart);
-    const dataList = res.data?.data || res.data;
+    
+    // Dùng getRevenue để đồng bộ số liệu biểu đồ khớp 100% với text bên ngoài
+    const res = await statisticApi.getRevenue(payloadForChart);
+    const summary = res.data?.summary || {};
 
-    if(dataList && dataList.length > 0) {
-        hasChartData.value = true;
-        
-        const statusMap = { 
-            0: 'Đã hủy', 1: 'Chờ xác nhận', 2: 'Chờ giao', 
-            3: 'Đang giao', 4: 'Chờ thanh toán', 5: 'Hoàn thành' 
-        };
-        const colorMap = {
-            0: '#ef4444', 1: '#3b82f6', 2: '#eab308', 
-            3: '#f97316', 4: '#a855f7', 
-            5: '#10b981' 
-        };
+    const success = summary.successOrders || 0;
+    const processing = summary.processingOrders || 0;
+    const cancel = summary.cancelOrders || 0;
 
-        chartData.value.labels = dataList.map(i => statusMap[i.trangThai] || 'Khác');
-        chartData.value.datasets[0].data = dataList.map(i => i.soLuong);
-        chartData.value.datasets[0].backgroundColor = dataList.map(i => colorMap[i.trangThai] || '#cbd5e1');
-    } else { hasChartData.value = false; }
-  } catch (error) { console.error(error) }
+    // Ẩn chart nếu không có data
+    if (success === 0 && processing === 0 && cancel === 0) {
+        hasChartData.value = false;
+        return;
+    }
+
+    hasChartData.value = true;
+    
+    const labels = [];
+    const data = [];
+    const bgColors = [];
+
+    // Chỉ đẩy vào chart những trạng thái có số lượng > 0
+    if (success > 0) { 
+        labels.push('Hoàn thành'); 
+        data.push(success); 
+        bgColors.push('#10b981'); 
+    }
+    if (processing > 0) { 
+        labels.push('Đang xử lý'); 
+        data.push(processing); 
+        bgColors.push('#f59e0b'); 
+    }
+    if (cancel > 0) { 
+        labels.push('Đã hủy'); 
+        data.push(cancel); 
+        bgColors.push('#ef4444'); 
+    }
+
+    // FIX CHÍNH LÀ ĐÂY: Tạo ra 1 object mới hoàn toàn để ép Vue-ChartJS re-render
+    chartData.value = {
+        labels: labels,
+        datasets: [{
+            ...chartData.value.datasets[0],
+            data: data,
+            backgroundColor: bgColors
+        }]
+    };
+
+  } catch (error) { 
+    console.error("Lỗi fetchChartStatus:", error);
+    hasChartData.value = false; 
+  }
 }
 
 const applyQuickFilter = (type) => {
   activeFilter.value = type;
-  const now = new Date();
-  let start = '';
-  const end = formatYYYYMMDD(now); 
-
-  if (type === 'DAY') {
-    start = end;
-  } else if (type === 'WEEK') {
-    const d = new Date();
-    const firstDay = new Date(d.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1)));
-    start = formatYYYYMMDD(firstDay);
-  } else if (type === 'MONTH') {
-    start = formatYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 1));
-  } else if (type === 'YEAR') {
-    start = formatYYYYMMDD(new Date(now.getFullYear(), 0, 1));
-  }
-
-  filter.value.fromDate = start;
-  filter.value.toDate = end;
-  
+  const now = new Date(); let start = ''; const end = formatYYYYMMDD(now); 
+  if (type === 'DAY') start = end;
+  else if (type === 'WEEK') { const d = new Date(); start = formatYYYYMMDD(new Date(d.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1)))); } 
+  else if (type === 'MONTH') start = formatYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 1));
+  else if (type === 'YEAR') start = formatYYYYMMDD(new Date(now.getFullYear(), 0, 1));
+  filter.value.fromDate = start; filter.value.toDate = end;
   applyCustomFilter();
 }
 
@@ -628,25 +793,16 @@ const applyCustomFilter = async () => {
   const payload = {
     fromDate: filter.value.fromDate ? `${filter.value.fromDate}T00:00:00` : null,
     toDate: filter.value.toDate ? `${filter.value.toDate}T23:59:59` : null,
-    status: 5, 
-    size: filter.value.size,
-    page: filter.value.page
+    status: 5, size: filter.value.size, page: filter.value.page
   }
-  
   try {
     const resTop = await statisticApi.getProductStats(payload);
     let dataList = resTop.data?.chartData || resTop.data?.data || resTop.data;
-
     if (dataList && !Array.isArray(dataList) && typeof dataList === 'object') {
-       const key = Object.keys(dataList).find(k => Array.isArray(dataList[k]));
-       if (key) dataList = dataList[key];
+       const key = Object.keys(dataList).find(k => Array.isArray(dataList[k])); if (key) dataList = dataList[key];
     }
-
-    if (Array.isArray(dataList)) {
-        topProducts.value = dataList.filter(item => item != null);
-    } else {
-        topProducts.value = [];
-    }
+    if (Array.isArray(dataList)) topProducts.value = dataList.filter(item => item != null);
+    else topProducts.value = [];
   } catch (error) { console.error("Lỗi applyCustomFilter:", error); }
 
   fetchChartStatus({ fromDate: payload.fromDate, toDate: payload.toDate });
@@ -654,39 +810,17 @@ const applyCustomFilter = async () => {
   fetchLineChartData({ fromDate: payload.fromDate, toDate: payload.toDate });
 }
 
-const validateAndFetchLowStock = () => {
-    if (lowStockThreshold.value < 1) lowStockThreshold.value = 1;
-    if (lowStockThreshold.value > 100) lowStockThreshold.value = 100;
-    fetchLowStock();
-}
+const changeTopPage = (newPage) => { filter.value.page = newPage; applyCustomFilter(); }
 
 const fetchLowStock = async () => {
     isLoadingLowStock.value = true;
     try {
-        const payload = { 
-            threshold: lowStockThreshold.value,
-            size: lowStockFilter.value.size,
-            page: lowStockFilter.value.page 
-        };
+        const payload = { threshold: lowStockThreshold.value, size: lowStockFilter.value.size, page: lowStockFilter.value.page };
         const resLow = await statisticApi.getLowStock(payload); 
         const dataList = resLow.data?.data || resLow.data;
-
-        if(dataList && Array.isArray(dataList)) {
-           lowStockProducts.value = dataList.filter(item => item != null);
-        } else {
-           lowStockProducts.value = [];
-        }
-    } catch (error) { console.error(error); } 
-    finally { isLoadingLowStock.value = false; }
-}
-
-const changeTopPage = (newPage) => {
-    filter.value.page = newPage;
-    applyCustomFilter();
-}
-const changeLowStockPage = (newPage) => {
-    lowStockFilter.value.page = newPage;
-    fetchLowStock();
+        if(dataList && Array.isArray(dataList)) lowStockProducts.value = dataList.filter(item => item != null);
+        else lowStockProducts.value = [];
+    } catch (error) { console.error(error); } finally { isLoadingLowStock.value = false; }
 }
 
 const handleExportExcel = async () => {
@@ -698,43 +832,191 @@ const handleExportExcel = async () => {
     }
     const res = await statisticApi.exportRevenueExcel(payload);
     const url = window.URL.createObjectURL(new Blob([res.data]));
-    const link = document.createElement('a');
-    link.href = url;
+    const link = document.createElement('a'); link.href = url;
     link.setAttribute('download', `BaoCao_ThongKe_${formatYYYYMMDD(new Date())}.xlsx`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    document.body.appendChild(link); link.click(); link.remove();
     
-    // Tắt modal confirm và hiện thông báo thành công
     showConfirmExportModal.value = false;
     showSuccessToast.value = true;
-    
-    // Tự động ẩn toast sau 3 giây
-    setTimeout(() => {
-      showSuccessToast.value = false;
-    }, 3000);
-
+    setTimeout(() => { showSuccessToast.value = false; }, 3000);
   } catch (error) { 
-    console.error("Lỗi xuất Excel:", error);
-    showConfirmExportModal.value = false; // Tắt modal kể cả khi lỗi
+    console.error("Lỗi xuất Excel:", error); showConfirmExportModal.value = false; 
   }
 }
 
-// Xử lý lưu cấu hình Email
-const handleSaveEmailConfig = async () => {
-  if (!emailConfig.value.email) {
-    alert("Vui lòng nhập địa chỉ email nhận báo cáo!");
-    return;
+// ===============================================
+// LOGIC API CHO MODAL EMAIL MỚI
+// ===============================================
+
+const fetchEmailDatabase = async () => {
+  try {
+    const res = await axios.get(EMAIL_API_URL);
+    emailDatabaseList.value = res.data;
+  } catch (error) {
+    console.error("Lỗi lấy danh bạ email:", error);
+  }
+}
+
+const resetEmailModalData = () => {
+  searchEmailQuery.value = '';
+  selectedEmailAddresses.value = [];
+  reportConfig.value = { fromDate: '', toDate: '' };
+  sendMode.value = 'TODAY';
+  managePage.value = 1;
+  sendPage.value = 1;
+  activeEmailTab.value = 'SEND';
+}
+
+const closeEmailModal = () => {
+  showEmailModal.value = false;
+}
+
+const handleSearchAndAddEmail = async () => {
+  const emailStr = searchEmailQuery.value.trim();
+  if (!emailStr) return;
+
+  if (selectedEmailAddresses.value.includes(emailStr)) {
+    searchEmailQuery.value = ''; return;
+  }
+
+  const foundInDB = emailDatabaseList.value.find(e => e.email === emailStr);
+  
+  if (foundInDB) {
+    selectedEmailAddresses.value.push(emailStr);
+  } else {
+    const result = await Swal.fire({
+      title: 'Chưa có trong danh bạ!',
+      text: `Email "${emailStr}" là email mới. Bạn có muốn thêm vào danh bạ luôn không?`,
+      icon: 'question', showCancelButton: true, confirmButtonText: 'Có, lưu danh bạ', cancelButtonText: 'Không, chỉ gửi tạm'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const tempName = emailStr.split('@')[0]; 
+        const res = await axios.post(EMAIL_API_URL, { name: tempName, email: emailStr });
+        emailDatabaseList.value.unshift(res.data);
+        Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã lưu vào danh bạ!', showConfirmButton: false, timer: 1500 });
+      } catch (error) {
+        Swal.fire('Lỗi', error.response?.data || 'Lỗi khi lưu DB.', 'error');
+      }
+    } 
+    selectedEmailAddresses.value.push(emailStr);
+  }
+  searchEmailQuery.value = '';
+}
+
+const removeSelectedEmail = (emailToRemove) => {
+  selectedEmailAddresses.value = selectedEmailAddresses.value.filter(e => e !== emailToRemove);
+}
+
+// API Thêm liên hệ
+const addNewContact = async () => {
+  if (!newContact.value.name || !newContact.value.email) {
+    Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng điền đủ Tên và Email!' }); return;
+  }
+  const exist = emailDatabaseList.value.find(e => e.email === newContact.value.email);
+  if (exist) {
+    Swal.fire({ icon: 'error', title: 'Trùng lặp', text: 'Email này đã tồn tại trong danh bạ!' }); return;
+  }
+
+  const result = await Swal.fire({
+    title: 'Xác nhận Thêm mới?', text: `Thêm "${newContact.value.email}" vào danh bạ hệ thống?`,
+    icon: 'question', showCancelButton: true, confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy'
+  });
+
+  if(result.isConfirmed) {
+    try {
+      const res = await axios.post(EMAIL_API_URL, { name: newContact.value.name, email: newContact.value.email });
+      emailDatabaseList.value.unshift(res.data);
+      newContact.value = { name: '', email: '' };
+      
+      if (managePage.value > totalManagePages.value) managePage.value = totalManagePages.value;
+      Swal.fire({ icon: 'success', title: 'Đã thêm!', showConfirmButton: false, timer: 1500 });
+    } catch (error) { Swal.fire('Lỗi', error.response?.data || 'Không thể thêm liên hệ', 'error'); }
+  }
+}
+
+// API Xóa liên hệ
+const deleteContact = async (id) => {
+  const emailObj = emailDatabaseList.value.find(e => e.id === id);
+  if(!emailObj) return;
+
+  const result = await Swal.fire({
+    title: 'Xác nhận Xóa?', text: `Bạn có chắc muốn xóa "${emailObj.email}" khỏi danh bạ?`,
+    icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa ngay', cancelButtonText: 'Hủy', confirmButtonColor: '#ef4444'
+  });
+
+  if(result.isConfirmed) {
+    try {
+      await axios.delete(`${EMAIL_API_URL}/${id}`);
+      emailDatabaseList.value = emailDatabaseList.value.filter(e => e.id !== id);
+      selectedEmailAddresses.value = selectedEmailAddresses.value.filter(e => e !== emailObj.email);
+      if (paginatedManageEmails.value.length === 0 && managePage.value > 1) managePage.value--;
+
+      Swal.fire({ icon: 'success', title: 'Đã xóa!', showConfirmButton: false, timer: 1500 });
+    } catch (error) { Swal.fire('Lỗi', 'Không thể xóa liên hệ', 'error'); }
+  }
+}
+
+// GỬI BÁO CÁO THỦ CÔNG CHỐT HẠ
+const handleSendNow = async () => {
+  if (selectedEmailAddresses.value.length === 0) {
+    Swal.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Vui lòng chọn ít nhất 1 người nhận!' }); return;
   }
   
-  try {
-    // Đoạn này mày cần mở cmt và gọi API thực tế nếu đã viết API ở backend
-    // await statisticApi.saveEmailReportConfig(emailConfig.value);
+  // Format để giữ đúng múi giờ và giờ:phút:giây
+  const formatExactTime = (d) => {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  let startTimeStr, endTimeStr;
+  
+  if (sendMode.value === 'CUSTOM') {
+    if (!reportConfig.value.fromDate || !reportConfig.value.toDate) {
+      Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng chọn đủ Từ ngày giờ & Đến ngày giờ!' }); return;
+    }
+    startTimeStr = reportConfig.value.fromDate; 
+    endTimeStr = reportConfig.value.toDate;
+  } else {
+    // TODAY
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
     
-    alert(`Đã lưu cấu hình! Hệ thống sẽ gửi báo cáo về [${emailConfig.value.email}] với chu kỳ: ${emailConfig.value.frequency}.\n\n(Lưu ý: Mày cần setup hàm @Scheduled ở phía Backend để việc gửi mail này thực sự chạy ngầm nhé!)`);
+    startTimeStr = formatExactTime(start); 
+    endTimeStr = formatExactTime(now); 
+  }
+
+  const payload = {
+    emails: selectedEmailAddresses.value,
+    startTime: startTimeStr,
+    endTime: endTimeStr
+  };
+
+  isSendingEmail.value = true;
+  Swal.fire({
+    title: 'Đang xử lý...',
+    text: 'Đang tổng hợp dữ liệu và gửi báo cáo, vui lòng đợi!',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
+
+  try {
+    await axios.post('http://localhost:8080/api/v1/reports/send-manual', payload);
+    
+    Swal.fire({
+      title: 'Đã gửi thành công!',
+      text: `Hệ thống đã báo cáo tới ${payload.emails.length} liên hệ.`,
+      icon: 'success', showConfirmButton: false, timer: 2000
+    });
+    
+    resetEmailModalData();
     showEmailModal.value = false;
   } catch (error) {
-    console.error("Lỗi khi lưu cấu hình mail:", error);
+    console.error("Lỗi gửi mail:", error);
+    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra phía máy chủ!' });
+  } finally {
+    isSendingEmail.value = false;
   }
 }
 
@@ -742,6 +1024,7 @@ onMounted(() => {
   fetchSummaryCards();
   fetchLowStock(); 
   applyQuickFilter('MONTH'); 
+  fetchEmailDatabase(); 
 })
 </script>
 
@@ -769,37 +1052,25 @@ onMounted(() => {
 .mb-24 { margin-bottom: 24px; }
 .mt-1 { margin-top: 4px; }
 .w-full { width: 100%; }
+.flex { display: flex; }
+.gap-8 { gap: 8px; }
+.gap-2 { gap: 4px; }
+.flex-1 { flex: 1; }
+.flex-2 { flex: 2; }
+.p-2 { padding: 8px; }
+.text-center { text-align: center;}
+.align-center { align-items: center; }
 
 /* GRID LAYOUTS */
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.row-layout {
-  display: grid;
-  grid-template-columns: 7fr 5fr;
-  gap: 24px;
-}
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px; }
+.row-layout { display: grid; grid-template-columns: 7fr 5fr; gap: 24px; }
 
 /* CONTENT CARDS */
 .content-card {
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #f3f4f6;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  background: #fff; border-radius: 8px; border: 1px solid #f3f4f6;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column; overflow: hidden;
 }
-
-.card-header {
-  font-size: 16px; font-weight: 600; color: #374151;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f3f4f6;
-}
+.card-header { font-size: 16px; font-weight: 600; color: #374151; padding: 16px 20px; border-bottom: 1px solid #f3f4f6; }
 .border-none { border-bottom: none !important; padding-bottom: 8px; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 .flex-center { display: flex; align-items: center; justify-content: center; }
@@ -807,34 +1078,16 @@ onMounted(() => {
 
 /* SUMMARY CARDS */
 .stat-card {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  border: 1px solid #f3f4f6;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  background-color: #fff; border-radius: 8px; padding: 20px;
+  display: flex; flex-direction: column; position: relative; border: 1px solid #f3f4f6; box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
-
-.stat-title {
-  font-size: 14px; color: #6b7280; font-weight: 600; margin: 0 0 12px 0;
-}
-
-.stat-value {
-  font-size: 24px; font-weight: 700; margin: 0 0 16px 0; letter-spacing: -0.5px;
-}
-
+.stat-title { font-size: 14px; color: #6b7280; font-weight: 600; margin: 0 0 12px 0; }
+.stat-value { font-size: 24px; font-weight: 700; margin: 0 0 16px 0; letter-spacing: -0.5px; }
 .stat-sub-info { font-size: 12px; color: #6b7280; }
 .divider { margin: 0 4px; color: #d1d5db; }
 
 /* COLOR UTILS */
-.text-success { 
-  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  color: #1e3a8a !important; 
-}
+.text-success { color: #1e3a8a !important; background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; }
 .text-danger { color: #ef4444 !important; }
 .text-warning { color: #f59e0b !important; }
 .text-primary { color: #3b82f6 !important; }
@@ -844,142 +1097,60 @@ onMounted(() => {
 .text-black { color: #000 !important; font-weight: 600;}
 .font-medium { font-weight: 500; }
 .font-bold { font-weight: 700; }
-.text-xs { font-size: 11px; }
+.text-xs { font-size: 10px; }
 .text-sm { font-size: 13px; }
 .block { display: block; }
 .cursor-pointer { cursor: pointer; }
 .hover-dark:hover { color: #374151 !important; }
-.text-blue { color: #1e3a8a; }
-.text-success-icon { color: #10b981; }
-.text-warning-icon { color: #f59e0b; }
-
-/* SPINNER */
-.loading-overlay {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(255,255,255, 0.8);
-  display: flex; align-items: center; justify-content: center; z-index: 10;
-}
-.spinner {
-  width: 24px; height: 24px; border: 3px solid #e5e7eb;
-  border-top-color: #1e3a8a; border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin { 100% { transform: rotate(360deg); } }
 
 /* FILTER SECTION */
-.filter-card {
-  background: #fff;
-  border-radius: 8px;
-  margin-bottom: 24px;
-  border: 1px solid #f3f4f6;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-}
-
-.filter-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 20px; border-bottom: 1px solid #f3f4f6;
-}
-
+.filter-card { background: #fff; border-radius: 8px; margin-bottom: 24px; border: 1px solid #f3f4f6; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+.filter-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #f3f4f6; }
 .filter-title { font-size: 16px; font-weight: 600; color: #374151; margin: 0 0 4px 0; }
 .filter-subtitle { font-size: 13px; color: #6b7280; margin: 0; }
-
 .filter-right { display: flex; align-items: center; gap: 16px; }
 
 .button-group { display: flex; gap: 8px; }
 .btn {
-  padding: 6px 16px; font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: all 0.2s;
-  background: #fff; border: 1px solid #e5e7eb; color: #6b7280;
-  border-radius: 6px !important;
+  padding: 6px 16px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+  background: #fff; border: 1px solid #e5e7eb; color: #6b7280; border-radius: 6px !important;
 }
+.btn:not(.btn-excel):not(.btn-outline):hover { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; border-color: transparent; }
+.btn-active { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%) !important; color: #fff !important; border-color: transparent !important; z-index: 2; position: relative; }
+.btn-primary { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: white; border-color: transparent;}
+.btn-primary:hover { box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); transform: translateY(-1px);}
+.btn-warning { background: #f59e0b; color: white; border-color: #f59e0b; font-weight: 600;}
+.btn-warning:hover:not(:disabled) { background: #d97706; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed;}
+.btn-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); border: none; font-weight: 600;}
+.btn-gradient:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
 
-.btn:not(.btn-excel):not(.btn-outline):hover { 
-  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); 
-  color: #fff; 
-  border-color: transparent; 
-}
-
-.btn-active { 
-  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%) !important; 
-  color: #fff !important; 
-  border-color: transparent !important;
-  z-index: 2; 
-  position: relative;
-}
-
-.btn-excel {
-  background: #fff !important; 
-  border: 1px solid #e5e7eb !important; 
-  color: #334155 !important; 
-  border-radius: 6px; 
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px; 
-}
+.btn-excel { background: #fff !important; border: 1px solid #e5e7eb !important; color: #334155 !important; border-radius: 6px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
 .btn-excel:hover { background: #f8fafc !important; color: #0f172a !important; }
 
 .date-picker-group { display: flex; align-items: center; gap: 8px; border: 1px solid #e5e7eb; padding: 4px 8px; border-radius: 6px; }
 .date-input { border: none; font-size: 13px; color: #4b5563; outline: none; }
-.separator { color: #6b7280; }
 
-.filter-summary-row {
-  display: grid; grid-template-columns: repeat(7, 1fr); 
-  padding: 16px 20px; background: #fafafa; border-radius: 0 0 8px 8px;
-}
+.filter-summary-row { display: grid; grid-template-columns: repeat(7, 1fr); padding: 16px 20px; background: #fafafa; border-radius: 0 0 8px 8px; }
 .f-stat-item { display: flex; flex-direction: column; gap: 4px; }
 .f-label { font-size: 12px; color: #6b7280; }
 .f-value { font-size: 16px; font-weight: 700; }
 
 /* TABLE STYLES */
 .table-responsive { overflow-x: auto; flex: 1; padding: 0 20px; }
-.max-h-400 { max-height: 400px; overflow-y: auto; }
-
 .modern-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.modern-table thead th {
-  background: #fff; color: #6b7280; font-weight: 500;
-  padding: 12px 8px; text-align: left;
-  border-bottom: 1px solid #e5e7eb;
-}
+.modern-table thead th { background: #fff; color: #6b7280; font-weight: 500; padding: 12px 8px; text-align: left; border-bottom: 1px solid #e5e7eb; }
 .modern-table tbody tr { border-bottom: 1px dashed #f3f4f6; transition: background 0.2s; }
 .modern-table tbody tr:hover { background: #f9fafb; }
-.modern-table tbody td { 
-  padding: 12px 8px; 
-  color: #4b5563; 
-  vertical-align: middle !important; 
-}
+.modern-table tbody td { padding: 12px 8px; color: #4b5563; vertical-align: middle !important; }
 
-.text-left { text-align: left; }
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.w-50 { width: 50px; }
-.w-80 { width: 80px; }
-.w-100 { width: 100px; }
-.w-120 { width: 120px; }
-
-.product-img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #f3f4f6; margin: 0 auto; }
-.no-img { background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6b7280; }
-
-.badge-success-light { background: #e0e7ff; color: #1e3a8a; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 12px; }
-
-/* PAGINATION */
-.pagination {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 16px 20px; background: #fff; font-size: 13px; color: #6b7280;
-}
-.border-top { border-top: 1px solid #f3f4f6; }
-
-.page-size { display: flex; align-items: center; gap: 8px; }
+/* PAGINATION CHUNG DƯỚI BẢNG LỚN */
+.pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #fff; font-size: 13px; color: #6b7280; }
 .page-controls { display: flex; align-items: center; gap: 4px; }
-.page-btn {
-  width: 28px; height: 28px; border: 1px solid transparent; background: #fff;
-  border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #4b5563; font-weight: 500;
-}
+.page-btn { width: 28px; height: 28px; border: 1px solid transparent; background: #fff; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #4b5563; font-weight: 500; }
 .page-btn:hover:not(:disabled) { background: #f3f4f6; }
 .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
 .page-btn.active { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; border-color: transparent; }
-.page-dots { color: #6b7280; padding: 0 4px; }
 
 /* CHARTS */
 .chart-card { min-height: 300px; }
@@ -990,167 +1161,103 @@ onMounted(() => {
 /* GROWTH LIST */
 .growth-list { padding: 0 20px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
 .growth-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed #f3f4f6; }
-.growth-item:last-child { border-bottom: none; }
-.growth-label { display: flex; align-items: center; gap: 12px; color: #4b5563; font-size: 13px; font-weight: 500; }
+.empty-state { text-align: center; padding: 40px 20px; color: #6b7280; font-style: italic; font-size: 13px; }
 
-.growth-value-box { display: flex; align-items: center; gap: 16px; }
-.growth-number { font-size: 14px; font-weight: 600; color: #1f2937; }
-.growth-percent { font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 4px; }
-.bg-success-light { background: #e0e7ff; }
-.bg-danger-light { background: #fef2f2; }
-.empty-growth { display: flex; align-items: center; justify-content: center; height: 100px; color: #6b7280; font-size: 13px; }
-.empty-state { text-align: center; padding: 40px 20px; color: #6b7280; font-size: 13px; }
+/* --- CSS DÀNH RIÊNG CHO MODAL CONFIRM & TOAST EXCEL --- */
+.confirm-modal { background: #fff; padding: 32px 24px; border-radius: 12px; width: 400px; max-width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+.confirm-icon { width: 70px; height: 70px; border-radius: 50%; border: 3px solid #6b7280; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+.question-mark { font-size: 36px; color: #6b7280; font-weight: 300; }
+.confirm-actions { display: flex; justify-content: center; gap: 12px; }
+.btn-yes { background-color: #7c3aed !important; color: white !important; padding: 10px 32px !important; border-radius: 6px !important; }
+.btn-no { background-color: #6b7280 !important; color: white !important; padding: 10px 32px !important; border-radius: 6px !important; }
 
-/* --- CSS DÀNH RIÊNG CHO MODAL CONFIRM & TOAST THÔNG BÁO --- */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+.toast-success { position: fixed; top: 24px; right: 24px; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 16px 24px; display: flex; align-items: center; gap: 12px; z-index: 9999; font-weight: 500; color: #4b5563; animation: slideIn 0.3s ease-out; }
+.toast-icon { width: 32px; height: 32px; border-radius: 50%; background: #dcfce7; display: flex; align-items: center; justify-content: center; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ========================================= */
+/* CSS CHO MODAL EMAIL MỚI (TABBED & FIX SIZE)*/
+/* ========================================= */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-content { background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
+.large-modal { width: 750px; max-width: 95%; max-height: 90vh; }
+
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #eee; }
+.modal-title { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
+.close-btn { background: none; border: none; font-size: 20px; color: #64748b; cursor: pointer; }
+.close-btn:hover { color: #ef4444; }
+
+/* TABS */
+.tab-nav { display: flex; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+.tab-btn { flex: 1; padding: 14px 0; font-size: 14px; font-weight: 600; color: #64748b; border: none; background: none; border-bottom: 2px solid transparent; cursor: pointer; transition: 0.2s; }
+.tab-btn:hover { color: #1e3a8a; }
+.tab-btn.active { color: #1e3a8a; border-bottom-color: #1e3a8a; background: #fff; }
+
+/* Fix cứng kích thước tab body */
+.tab-body { 
+  height: 580px; 
+  padding: 24px; 
+  overflow-y: auto; 
+  display: flex; 
+  flex-direction: column;
 }
+.tab-content-wrapper { display: flex; flex-direction: column; height: 100%; }
 
-.confirm-modal {
-  background: #fff;
-  padding: 32px 24px;
-  border-radius: 12px;
-  width: 400px;
-  max-width: 90%;
-  text-align: center;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-}
+/* FORM ELEMENTS DÙNG CHUNG */
+.input-den::placeholder { color: #000000 !important; opacity: 1 !important; font-weight: 500; }
+.input-den { font-weight: 600; color: #1e293b;}
+.mt-16 { margin-top: 16px; } .mb-16 { margin-bottom: 16px; } .mb-8 { margin-bottom: 8px; } .mb-4 { margin-bottom: 4px; }
+.px-12 { padding-left: 12px !important; padding-right: 12px !important; }
+.form-section { display: flex; flex-direction: column; gap: 8px; }
+.form-label { font-size: 14px; color: #374151; }
+.form-input { padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; }
+.form-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
 
-.confirm-icon {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  border: 3px solid #6b7280;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 20px;
-}
+.search-add-group { display: flex; gap: 8px; }
+.search-add-group .form-input { flex: 1; }
 
-.question-mark {
-  font-size: 36px;
-  color: #6b7280;
-  font-weight: 300;
-}
+.checkbox-list-container { border: 1px solid #e5e7eb; border-radius: 6px 6px 0 0; max-height: 140px; overflow-y: auto; padding: 4px; border-bottom: none;}
+.checkbox-item { display: flex; align-items: center; gap: 8px; padding: 8px; cursor: pointer; border-radius: 4px; }
+.checkbox-item:hover { background: #f3f4f6; }
+.checkbox-item input { width: 16px; height: 16px; cursor: pointer; }
 
-.confirm-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 12px 0;
-}
+/* MINI PAGINATION CHO CHỌN NHANH */
+.mini-pagination { display: flex; align-items: center; justify-content: center; gap: 10px; background: #f8fafc; padding: 6px; border: 1px solid #e5e7eb; border-radius: 0 0 6px 6px;}
+.mini-pagination button { border: 1px solid #d1d5db; background: #fff; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #475569;}
+.mini-pagination button:hover:not(:disabled) { background: #e2e8f0; }
+.mini-pagination button:disabled { opacity: 0.4; cursor: not-allowed;}
+.page-info-text { font-size: 12px; font-weight: 600; color: #64748b;}
 
-.confirm-text {
-  font-size: 15px;
-  color: #4b5563;
-  margin: 0 0 24px 0;
-}
+.flex-grow-1 { flex-grow: 1; }
+.table-container { border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column;}
+.border-table-wrapper { box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+.max-h-150 { max-height: 180px; overflow-y: auto; } 
 
-.confirm-actions {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
+.border-table th { background: #f1f5f9; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding: 12px; }
+.border-table td { font-size: 13px; padding: 12px; border-bottom: 1px solid #f1f5f9;}
 
-.btn-yes {
-  background-color: #7c3aed !important;
-  color: white !important;
-  border: none !important;
-  padding: 10px 32px !important;
-  font-size: 14px !important;
-  font-weight: 600;
-  border-radius: 6px !important;
-}
+.btn-delete { background: #fee2e2; color: #ef4444; border: none; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 12px; font-weight: 600;}
+.btn-delete:hover { background: #fca5a5; }
 
-.btn-yes:hover { background-color: #6d28d9 !important; }
+.config-box { background: #ffffff; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; }
+.custom-date-box { padding-top: 12px; border-top: 1px dashed #cbd5e1; }
 
-.btn-no {
-  background-color: #6b7280 !important;
-  color: white !important;
-  border: none !important;
-  padding: 10px 32px !important;
-  font-size: 14px !important;
-  font-weight: 600;
-  border-radius: 6px !important;
-}
+.modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: auto;}
+.border-top { border-top: 1px solid #e2e8f0; } .pt-16 { padding-top: 16px; }
 
-.btn-no:hover { background-color: #4b5563 !important; }
+.badge-temp { background: #fef3c7; color: #d97706; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #fde68a; }
 
-/* TOAST THÔNG BÁO THÀNH CÔNG */
-.toast-success {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 9999;
-  font-weight: 500;
-  color: #4b5563;
-  animation: slideIn 0.3s ease-out;
-}
-
-.toast-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #dcfce7;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-@keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-/* EMAIL MODAL (Giữ nguyên) */
-.modal-content {
-  background: #fff;
-  padding: 24px;
-  border-radius: 8px;
-  width: 450px;
-  max-width: 90%;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-}
-
-.modal-title { font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 8px 0; }
-.modal-subtitle { font-size: 13px; color: #6b7280; margin: 0 0 20px 0; }
-
-.form-group { margin-bottom: 16px; }
-.form-label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 6px; }
-.form-input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #1f2937;
-  outline: none;
-}
-.form-input:focus { border-color: #1e3a8a; box-shadow: 0 0 0 2px rgba(30,58,138,0.1); }
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-}
+/* PHÂN TRANG CUSTOM STYLE GIỐNG YÊU CẦU */
+.pagination-footer { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-top: 1px solid #e2e8f0; background: #fff;}
+.page-info { font-size: 13px; font-weight: 500;}
+.page-controls button { width: 30px; height: 30px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; font-weight: 600; color: #475569;}
+.page-controls button:hover:not(:disabled) { background: #f1f5f9; }
+.page-controls button:disabled { opacity: 0.4; cursor: not-allowed;}
+.page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
 
 /* SCROLLBAR CUSTOMIZATION */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background-color: #6b7280; }
+::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
 </style>
