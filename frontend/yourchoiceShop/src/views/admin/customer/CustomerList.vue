@@ -138,21 +138,6 @@
           </button>
           <button :disabled="page === totalPages" @click="changePage(page + 1)">›</button>
         </div>
-
-        <div class="action-group">
-          <button class="btn btn-navy" @click="resetFilter">
-            <font-awesome-icon :icon="['fas', 'sync-alt']" /> Đặt lại
-          </button>
-
-          <button class="btn btn-outline" @click="exportExcel">
-            <font-awesome-icon :icon="['fas', 'file-excel']" /> Xuất Excel
-          </button>
-          
-          <button class="btn btn-gradient" @click="$router.push({ name: customerCreateRouteName })">
-            <font-awesome-icon :icon="['fas', 'plus']" /> Thêm mới
-          </button>
-        </div>
-
       </div>
     </div>
 

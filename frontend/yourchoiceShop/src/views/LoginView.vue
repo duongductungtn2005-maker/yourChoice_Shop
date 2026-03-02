@@ -87,6 +87,24 @@ const authenticateCustomer = async (usernameValue, passwordValue) => {
   }
 };
 
+const authenticateEmployee = async (usernameValue, passwordValue) => {
+  const finalUsername = String(usernameValue || '').trim();
+  const finalPassword = String(passwordValue || '').trim();
+  if (!finalUsername || !finalPassword) return false;
+
+  try {
+    const response = await request.get('/nhan-vien/authenticate', {
+      params: {
+        username: finalUsername,
+        password: finalPassword
+      }
+    });
+    return response?.data?.authenticated === true;
+  } catch {
+    return false;
+  }
+};
+
 const handleLogin = async () => {
   if (!canSubmit.value) {
     errorMessage.value = 'Vui lòng nhập đầy đủ tài khoản và mật khẩu.';
@@ -94,43 +112,44 @@ const handleLogin = async () => {
   }
 
   errorMessage.value = '';
-  let role = resolveRoleFromUsername(username.value);
 
-  if (role === 'ADMIN' || role === 'STAFF') {
-    if (password.value !== '123456') {
-      errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
+  // 1. Thử đăng nhập Admin (mật khẩu cứng, tên tài khoản chứa "admin")
+  const accountLower = username.value.toLowerCase();
+  if (accountLower.includes('admin') || accountLower.includes('quantri') || accountLower.includes('quan-tri')) {
+    if (password.value === '123456') {
+      localStorage.setItem('token', 'demo-token');
+      localStorage.setItem('userRole', 'ADMIN');
+      toastSuccess('Đăng nhập thành công!');
+      router.push('/admin/dashboard');
       return;
-    }
-  } else {
-    const isAuthenticatedCustomer = await authenticateCustomer(username.value, password.value);
-    if (isAuthenticatedCustomer) {
-      role = 'CUSTOMER';
     } else {
       errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
       return;
     }
   }
 
-  if (!role) {
-    errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
-    return;
-  }
-
-  localStorage.setItem('token', 'demo-token');
-  localStorage.setItem('userRole', role);
-  toastSuccess('Đăng nhập thành công!');
-
-  if (role === 'CUSTOMER') {
-    router.push('/');
-    return;
-  }
-
-  if (role === 'STAFF') {
+  // 2. Thử đăng nhập Nhân viên (từ database)
+  const isEmployee = await authenticateEmployee(username.value, password.value);
+  if (isEmployee) {
+    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('userRole', 'STAFF');
+    toastSuccess('Đăng nhập thành công!');
     router.push('/staff/pos');
     return;
   }
 
-  router.push('/admin/dashboard');
+  // 3. Thử đăng nhập Khách hàng (từ database)
+  const isCustomer = await authenticateCustomer(username.value, password.value);
+  if (isCustomer) {
+    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('userRole', 'CUSTOMER');
+    toastSuccess('Đăng nhập thành công!');
+    router.push('/');
+    return;
+  }
+
+  // Không khớp gì
+  errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
 };
 
 const handleGoBack = () => {

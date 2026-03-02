@@ -1,14 +1,16 @@
 package org.example.yourchoiceshop.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import java.io.UnsupportedEncodingException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import java.io.UnsupportedEncodingException;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class EmailService {
@@ -90,7 +92,7 @@ public class EmailService {
                     </p>
 
                     <div style="text-align:center; margin-top:18px;">
-                        <a href="http://localhost:5173/login"
+                        <a href="http://localhost:5174/login"
                            style="display:inline-block; background: linear-gradient(90deg,#0b3b8c,#1e40af); color:#fff; padding:12px 26px; border-radius:30px; text-decoration:none; font-weight:600;">
                            ĐĂNG NHẬP HỆ THỐNG
                         </a>

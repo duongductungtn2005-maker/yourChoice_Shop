@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class GiaoCaService {
     @Autowired
-    private final GiaoCaRepository repo;
+    private GiaoCaRepository repo;
 
     public Page<LichSuHoatDongDTO> getLichSu(String search, String tenCa, Pageable pageable) {
         Page<Object[]> results = repo.findLichSuHoatDong(search, tenCa, pageable);

@@ -4,52 +4,423 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="38409911-da0f-48ec-b1f0-02a1a371f6e6" name="Changes" comment="" />
+    <list default="true" id="38409911-da0f-48ec-b1f0-02a1a371f6e6" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/.gitattributes" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/.mvn/wrapper/maven-wrapper.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/mvnw" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/mvnw.cmd" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/rewrite.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src.zip" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java.zip" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/YourChoiceShopApplication.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/config/CorsConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/config/JpaAuditingConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/config/WebConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/ChatLieuController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/ChiTietDonHangController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/ChiTietSanPhamController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/CoAoController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/DiaChiKhachHangController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/DotGiamGiaController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/EmployeeExcelExporter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/HoaDonController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/KhachHangController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/KichThuocController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/LichSuThanhToanController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/MauSacController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/NhanVienController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/PhieuGiamGiaController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/ProductController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/StatisticController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/TayAoController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/ThuongHieuController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/UploadController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/controller/XuatXuController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/BulkUpdateVariantRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/BulkUpdateWrapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/CreateOrderRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/CreateProductRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/DiaChiRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/DotGiamGiaRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/EmployeeRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/HoaDonRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/KhachHangRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/PaymentRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/PhieuGiamGiaRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/ProductVariantRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/QuanLyDonHangRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/SendMailRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/StatisticFilterRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/StoreAttributeRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/ThanhToanRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/request/UpdateVariantRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/ChiTietDonHangResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/CustomerStatDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/DiscountCampaignStatDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/EmployeeStatDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/HoaDonDetailResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/HoaDonResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/KhachHangResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/LichSuHoaDonResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/LichSuThanhToanResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/OrderStatusDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/ProductResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/ProductStatDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/QuanLyDonHangResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/RevenueChartDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/RevenueSummaryDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/SanPhamHoaDonResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/StandardStatisticResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/VariantResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/dto/response/VoucherStatDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/BaseStatusEntity.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/ChatLieu.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/ChiTietDotGiamGia.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/ChiTietSanPham.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/CoAo.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/DiaChiKhachHang.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/DotGiamGia.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/GiaoDichThanhToan.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/HinhAnh.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/HoaDon.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/HoaDonChiTiet.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/KhachHang.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/KichThuoc.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/LichSuHoaDon.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/LichSuThanhToan.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/MauSac.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/NhanVien.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/PhieuGiamGia.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/PhieuGiamGiaCaNhan.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/PhuongThucThanhToan.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/PrimaryEntity.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/QuyenHan.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/SanPham.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/TayAo.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/ThuongHieu.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/XuatXu.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/enums/HinhThucThanhToan.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/enums/LoaiHoaDon.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/entity/enums/TrangThaiHoaDon.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/ChatLieuRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/ChiTietDonHangRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/ChiTietDotGiamGiaRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/ChiTietSanPhamRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/CoAoRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/DiaChiKhachHangRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/DotGiamGiaRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/HinhAnhRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/HoaDonChiTietRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/HoaDonRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/KhachHangRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/KichThuocRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/LichSuHoaDonRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/LichSuThanhToanRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/MauSacRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/NhanVienRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/PhieuGiamGiaCaNhanRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/PhieuGiamGiaRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/SanPhamRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/StatisticRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/StatisticRepositoryImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/TayAoRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/ThuongHieuRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/repository/XuatXuRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/ChiTietDonHangService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/DiaChiService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/EmailService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/HoaDonService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/KhachHangService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/LichSuThanhToanService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/NhanVienService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/StatisticService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/ThanhToanService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/ChatLieuServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/ChiTietDonHangServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/CoAoServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/DiaChiServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/DotGiamGiaServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/HoaDonServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/KhachHangServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/KichThuocServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/MauSacServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/NhanVienServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/PhieuGiamGiaServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/ProductServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/StatisticServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/TayAoServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/ThanhToanServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/ThuongHieuServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/java/org/example/yourchoiceshop/service/impl/XuatXuServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/application.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/0b1e1093-484d-42ee-afd5-fb878ad5f527_tải xuống.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/269440ff-8be8-4735-9ddd-e890f84e136e_Chitietsp.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/34cf583b-3185-4cbf-8561-e52c586dca1c_QuanLyDonHang.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/4a2873f2-fcba-4655-a037-f6a9dead43f6_tải xuống.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/4e8e94f2-026e-489b-aa8e-5c01a9683e12_QLSP_1.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/5dcc6679-a93a-48d8-8eaf-3cbcda9616f3_QLSP_1.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/88eeed74-f493-4963-b36b-04a2a8b95add_tải xuống.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/9730e5d5-3129-4186-a958-c17dff518fc6_tải xuống.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/a67daa72-9554-4401-930f-07ebcae6f419_QLSP_1.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/aa328ba7-b550-47c1-a3c2-be33b27c953d_tải xuống.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/b006297a-8374-42d1-ab8a-5195a43e6549_QLSP_2.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/c6996ccc-67f1-4b37-8766-cc4d9ac9c0e9_tải xuống.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/d87f0800-a2ed-4d9f-a2fc-84a5ebd57e1c_QLSP_1.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/d96a461a-f1aa-42ff-8923-407ece30f5c4_QLDH_chitiet.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/main/resources/static/images/db4eadee-4bc8-4611-a3f8-6d35d808df01_QLSP_2.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/src/test/java/org/example/yourchoiceshop/YourChoiceShopApplicationTests.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769074213978_tải xuống.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769074282806_QLSP_1.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769074315609_tải xuống.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769074340705_Thong_ke.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769075438102_Chitietsp.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769400784252_anh1.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769492615837_22.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769492621309_23.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769492626084_24.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769492634061_25.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769572665725_82.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769572677480_82.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769572699956_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769575519665_82.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769575522384_84.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769576400198_82.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769576403067_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769590502241_82.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769590504541_85.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769591139841_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769591142255_85.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769591884809_82.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769591887213_85.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769592576902_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769592578777_84.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769593219153_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769593220951_85.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769596121263_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670518936_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670521111_84.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670867277_82.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670869867_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670877897_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670882049_86.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670884402_87.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670973029_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670974890_84.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670976876_82.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670979222_87.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769670981809_86.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769672102857_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769672104625_84.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769674780032_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769674782011_85.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769784561344_90.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769784564120_91.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1769784566446_89.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770284268422_95.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770303409606_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770303412204_23.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770303415036_86.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770694259140_97.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770706713020_26.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770706717928_86.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770774951286_42.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770774955204_85.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770808774842_87.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770808777462_84.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770808849209_27.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770808852458_105.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770818519180_84.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770824190850_96.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1770824194660_86.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/1771835350700_92.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/818c4f25-c658-4ea1-872d-84a60bd4b6cb_tải xuống.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/b3062973-80f7-433c-ae6a-03de0714002e_tải xuống.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1769410034644_anh1.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1769414022471_anh1.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1769414421238_anh1.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1769616473515_83.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1769751359748_91.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1769757955579_92.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1770304033221_90.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1770704693747_22.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1770710226025_87.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1770710573564_91.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1770714628731_27.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/khach-hang/1771833528032_92.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/0f25fc02-f800-492b-89e7-ed9f7e5975bd.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/16cb6c3d-d19a-4b14-b1ff-a765d40946e5.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/1fad26a2-1a95-4622-beb0-6cf482c13df3.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/256f37f0-6688-4699-b26d-33d0377b990b.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/361bab5a-fe2a-4e39-ad8f-3bc601a3d5de.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/3c862fe1-6619-49b4-925c-bd69c8c7db6c.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/401867b7-619d-4d8a-ae41-ee6e723c15a8.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/57370863-87db-4259-a9b6-f68a12a5e424.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/61d9b1d7-d0c6-42f9-b2d0-6ded71710d80.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/767573b0-c7d3-4792-a8ea-8806732adc82.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/ad90e9cd-4596-48ab-9c3c-6dc14b5678cf.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/bd4fa366-c1e9-4a75-94ea-60a6679ac8c7.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/c280b4c4-24ff-4973-844b-8168551bc716.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/c95743ec-0539-4f90-a48e-e518384b868f.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/dce4d711-1079-4c90-84c4-13d5119a5a63.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/backend/uploads/images/nhan-vien/f5fbd361-6e34-42c6-b119-ddd6708349b4.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/package-lock.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/jsconfig.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/package-lock.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/public/favicon.ico" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/App.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/api/ChiTietHoaDon.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/api/ChiTietSanPhamApi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/api/HoaDonApi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/api/KhachHangApi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/api/PhieuGiamGiaApi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/api/statisticApi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/assets/main.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/components/Sidebar.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/img/logo1.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/layouts/AdminLayout.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/layouts/ClientLayout.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/main.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/router/index.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/services/request.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/utils/toast.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/utils/validate.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/BasePage.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/LoginView.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/DonHang/ChiTietDonHang.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/DonHang/QuanLyDonHang.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/attribute/ChatLieuIndex.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/attribute/CoAoIndex.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/attribute/KichThuoc.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/attribute/MauSac.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/attribute/TayAoIndex.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/attribute/ThuongHieuIndex.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/attribute/XuatXuIndex.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/customer/CustomerCreate.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/customer/CustomerDetail.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/customer/CustomerIndex.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/customer/CustomerList.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/dashboard/ThongKeView.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/employee/AddEmployee.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/employee/EditEmployee.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/employee/EmployeeList.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/pos/BanHangTaiQuay.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/pos/CounterSales.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/product/AttributeSelectionModal.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/product/ImageGalleryModal.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/product/ProductCreate.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/product/ProductDetail.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/product/ProductIndex.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/product/ProductUpdateModal.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/promotion/SaleCreate.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/promotion/SaleIndex.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/voucher/VoucherCreate.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/admin/voucher/VoucherIndex.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/client/ContactView.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/client/CouponView.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/client/HomeView.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/client/NewsView.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/client/ProductDetailView.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/src/views/client/ProductView.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../New folder/frontend/yourchoiceShop/vite.config.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../uploads/images/nhan-vien/64c2592c-533c-4b76-b509-b8667c843b1b.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../YourChoiceShopDB.sql" beforeDir="false" afterPath="$PROJECT_DIR$/../YourChoiceShopDB.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/controller/KhachHangController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/controller/KhachHangController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/dto/request/LichSuHoatDongDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/dto/request/LichSuHoatDongDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/entity/CaLamViec.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/entity/CaLamViec.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/repository/KhachHangRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/repository/KhachHangRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/service/EmailService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/service/EmailService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/service/GiaoCaService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/service/GiaoCaService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/service/KhachHangService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/service/KhachHangService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/service/impl/KhachHangServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/service/impl/KhachHangServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/service/impl/NhanVienServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/yourchoiceshop/service/impl/NhanVienServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_fontawesome-svg-core.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_fontawesome-svg-core.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_fontawesome-svg-core.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_fontawesome-svg-core.js.map" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_free-regular-svg-icons.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_free-regular-svg-icons.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_free-regular-svg-icons.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_free-regular-svg-icons.js.map" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_free-solid-svg-icons.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_free-solid-svg-icons.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_free-solid-svg-icons.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_free-solid-svg-icons.js.map" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_vue-fontawesome.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_vue-fontawesome.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_vue-fontawesome.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/@fortawesome_vue-fontawesome.js.map" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/_metadata.json" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/_metadata.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/axios.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/axios.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/axios.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/axios.js.map" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/chunk-G3PMV62Z.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/chunk-G3PMV62Z.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/chunk-G3PMV62Z.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/chunk-G3PMV62Z.js.map" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/html5-qrcode.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/html5-qrcode.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/html5-qrcode.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/html5-qrcode.js.map" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/qrcode__vue.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/qrcode__vue.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/qrcode__vue.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/qrcode__vue.js.map" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/sweetalert2.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/sweetalert2.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/sweetalert2.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/sweetalert2.js.map" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/vue-router.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/vue-router.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/vue-router.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/vue-router.js.map" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/vue.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/vue.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/vue.js.map" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/node_modules/.vite/deps/vue.js.map" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/src/views/LoginView.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/src/views/LoginView.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/src/views/admin/customer/CustomerCreate.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/src/views/admin/customer/CustomerCreate.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/src/views/admin/customer/CustomerDetail.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/src/views/admin/customer/CustomerDetail.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/yourchoiceShop/src/views/admin/customer/CustomerList.vue" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/yourchoiceShop/src/views/admin/customer/CustomerList.vue" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="MavenImportPreferences">
-    <option name="generalSettings">
-      <MavenGeneralSettings>
-        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
-      </MavenGeneralSettings>
-    </option>
-  </component>
-  <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 6
-}</component>
   <component name="ProjectId" id="38Kq0689GWe1JfHfsM3illHyqj1" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RequestMappingsPanelOrder0": "0",
-    "RequestMappingsPanelOrder1": "1",
-    "RequestMappingsPanelWidth0": "75",
-    "RequestMappingsPanelWidth1": "75",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "Spring Boot.YourChoiceShopApplication.executor": "Run",
-    "git-widget-placeholder": "master",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/phong/Desktop/git/yourChoice_Shop-main/backend",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
-  }
-}]]></component>
-  <component name="RunManager">
+  <component name="PropertiesComponent">
+    <property name="RequestMappingsPanelOrder0" value="0" />
+    <property name="RequestMappingsPanelOrder1" value="1" />
+    <property name="RequestMappingsPanelWidth0" value="75" />
+    <property name="RequestMappingsPanelWidth1" value="75" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="aspect.path.notification.shown" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+  </component>
+  <component name="RunManager" selected="Spring Boot.YourChoiceShopApplication (1)">
+    <configuration default="true" type="ArquillianJUnit" factoryName="" nameIsGenerated="true">
+      <option name="arquillianRunConfiguration">
+        <value>
+          <option name="containerStateName" value="" />
+        </value>
+      </option>
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="YourChoiceShopApplication (1)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <module name="backend" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.example.yourchoiceshop.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="SPRING_BOOT_MAIN_CLASS" value="org.example.yourchoiceshop.YourChoiceShopApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="YourChoiceShopApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <module name="YourChoiceShop" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="org.example.yourchoiceshop.YourChoiceShopApplication" />
@@ -57,6 +428,11 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Spring Boot.YourChoiceShopApplication (1)" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -66,6 +442,7 @@
       </set>
     </attachedChunks>
   </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="38409911-da0f-48ec-b1f0-02a1a371f6e6" name="Changes" comment="" />
@@ -76,6 +453,7 @@
       <workItem from="1768558385365" duration="4221000" />
       <workItem from="1768805522375" duration="151000" />
       <workItem from="1771946655497" duration="3035000" />
+      <workItem from="1772464769094" duration="737000" />
     </task>
     <servers />
   </component>

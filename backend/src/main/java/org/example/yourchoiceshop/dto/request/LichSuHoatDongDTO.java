@@ -1,6 +1,7 @@
 package org.example.yourchoiceshop.dto.request;
 
 import java.time.LocalDateTime;
+import lombok.Data;
 
 @Data
 public class LichSuHoatDongDTO {

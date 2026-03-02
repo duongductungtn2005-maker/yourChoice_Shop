@@ -265,6 +265,8 @@ public class KhachHangServiceImpl implements KhachHangService {
     }
 
     private String generateRandomPassword() {
+        StringBuilder password = new StringBuilder(PASSWORD_LENGTH);
+        for (int i = 0; i < PASSWORD_LENGTH; i++) {
             int idx = SECURE_RANDOM.nextInt(PASSWORD_CHARS.length());
             password.append(PASSWORD_CHARS.charAt(idx));
         }
@@ -273,5 +275,11 @@ public class KhachHangServiceImpl implements KhachHangService {
 
     @Override
     public List<KhachHang> findAllList(String keyword, Boolean gender, Integer status) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            keyword = "%" + keyword.trim().toLowerCase() + "%";
+        } else {
+            keyword = null;
+        }
+        return khachHangRepository.searchKhachHang(keyword, gender, status, Pageable.unpaged()).getContent();
     }
 }

@@ -27,6 +27,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/nhan-vien")
@@ -154,4 +155,13 @@ public ResponseEntity<Boolean> checkTenTaiKhoan(
     boolean isExist = nhanVienService.checkTrungTaiKhoan(tenTaiKhoan, id);
     return ResponseEntity.ok(isExist);
 }
+
+    @GetMapping("/authenticate")
+    public ResponseEntity<?> authenticate(
+            @RequestParam String username,
+            @RequestParam String password
+    ) {
+        boolean authenticated = nhanVienService.authenticateEmployee(username, password);
+        return ResponseEntity.ok(Map.of("authenticated", authenticated));
+    }
 }

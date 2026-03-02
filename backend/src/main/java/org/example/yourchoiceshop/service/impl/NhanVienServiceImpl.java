@@ -8,6 +8,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.security.SecureRandom;
 
 import org.example.yourchoiceshop.dto.request.EmployeeRequest;
 import org.example.yourchoiceshop.entity.NhanVien;
@@ -32,6 +33,9 @@ public class NhanVienServiceImpl implements NhanVienService {
     private NhanVienRepository nhanVienRepo;
     @Autowired
     private EmailService emailService;
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
+    private static final int PASSWORD_LENGTH = 6;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final String UPLOAD_ROOT = "uploads/images/nhan-vien/";
 
@@ -93,13 +97,20 @@ public class NhanVienServiceImpl implements NhanVienService {
             nv.setAnhDaiDien(saveFile(req.getAvatarFile()));
         }
 
-        String matKhauMacDinh = "123456";
-        nv.setMatKhau(matKhauMacDinh);
+        // Tạo mật khẩu: ADMIN dùng "123456", STAFF dùng random
+        String matKhau;
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(req.getChucVu());
+        if (isAdmin) {
+            matKhau = "123456";
+        } else {
+            matKhau = generateRandomPassword();
+        }
+        nv.setMatKhau(matKhau);
         nv.setTrangThai(1);
 
         // Map Quyền hạn
         QuyenHan quyenHan = new QuyenHan();
-        if ("ADMIN".equalsIgnoreCase(req.getChucVu())) {
+        if (isAdmin) {
             quyenHan.setId(1);
         } else {
             quyenHan.setId(2); // Đổi 4 thành 2 để khớp với Database của bạn
@@ -110,12 +121,11 @@ public class NhanVienServiceImpl implements NhanVienService {
 
         if (savedNv.getEmail() != null && !savedNv.getEmail().isEmpty()) {
             new Thread(() -> {
-                // Đã bổ sung savedNv.getTenTaiKhoan() vào vị trí thứ 2 👇
                 emailService.sendEmployeeWelcome(
                     savedNv.getEmail(), 
                     savedNv.getTenTaiKhoan(), 
                     savedNv.getTenNhanVien(), 
-                    matKhauMacDinh
+                    matKhau
                 );
             }).start();
         }
@@ -216,8 +226,27 @@ public boolean checkTrungTaiKhoan(String tenTaiKhoan, Integer id) {
     if (id == null) {
         // Trường hợp Thêm mới: Chỉ cần tìm xem tên tài khoản này đã có ai dùng chưa
         return nhanVienRepo.existsByTenTaiKhoan(tenTaiKhoan);
-        // Trường hợp Cập nhật: Tìm xem có ai dùng chưa, nhưng phải LOẠI TRỪ nhân viên hiện tại ra
-        return nhanVienRepo.existsByTenTaiKhoanAndIdNot(tenTaiKhoan, id);
     }
+    // Trường hợp Cập nhật: Tìm xem có ai dùng chưa, nhưng phải LOẠI TRỪ nhân viên hiện tại ra
+    return nhanVienRepo.existsByTenTaiKhoanAndIdNot(tenTaiKhoan, id);
 }
+
+    @Override
+    public boolean authenticateEmployee(String username, String password) {
+        String usernameValue = username != null ? username.trim() : "";
+        String passwordValue = password != null ? password.trim() : "";
+        if (usernameValue.isEmpty() || passwordValue.isEmpty()) {
+            return false;
+        }
+        return nhanVienRepo.existsByTenTaiKhoanAndMatKhau(usernameValue, passwordValue);
+    }
+
+    private String generateRandomPassword() {
+        StringBuilder password = new StringBuilder(PASSWORD_LENGTH);
+        for (int i = 0; i < PASSWORD_LENGTH; i++) {
+            int idx = SECURE_RANDOM.nextInt(PASSWORD_CHARS.length());
+            password.append(PASSWORD_CHARS.charAt(idx));
+        }
+        return password.toString();
+    }
 }

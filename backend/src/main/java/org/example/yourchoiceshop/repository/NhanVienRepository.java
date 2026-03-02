@@ -28,4 +28,5 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
     );
         boolean existsByTenTaiKhoan(String tenTaiKhoan);
         boolean existsByTenTaiKhoanAndIdNot(String tenTaiKhoan, Integer id);
+        boolean existsByTenTaiKhoanAndMatKhau(String tenTaiKhoan, String matKhau);
 }
