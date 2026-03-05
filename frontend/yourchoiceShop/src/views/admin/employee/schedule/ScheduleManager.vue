@@ -25,6 +25,10 @@
           </button>
         </div>
 
+        <button class="btn btn-export" @click="downloadTemplate" style="background-color: #3b82f6; color: white; margin-right: 8px;">
+          <i class="fas fa-download"></i> Tải Template
+        </button>
+
         <button class="btn btn-import" @click="triggerFileUpload" style="background-color: #10b981; color: white; margin-right: 8px;">
           <i class="fas fa-file-excel"></i> Nhập Excel
         </button>
@@ -226,6 +230,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import request from '@/services/request'; 
 import Swal from 'sweetalert2';           
+import axios from 'axios';
 
 const currentView = ref('calendar');
 
@@ -482,28 +487,72 @@ const handleFileUpload = async (event) => {
   const file = event.target.files[0];
   if (!file) return;
 
-  // Sử dụng FormData để gửi file
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('file', file); // Gói món 1: File Excel
+  
+  // Gói món 2: Ngày từ giao diện (Nhớ dùng hàm format để ép về chuẩn YYYY-MM-DD)
+  // Lưu ý: Sửa 'selectedDate.value' thành biến lưu ngày hiện tại của bạn nếu khác nhé
+  const dateString = formatDateToYYYYMMDD(selectedDate.value); 
+  formData.append('ngayLamViec', dateString); 
 
   try {
-    // Gọi API của Spring Boot (thay thế URL cho đúng với API của bạn)
-    // Ví dụ: http://localhost:8080/api/v1/lich-lam-viec/import
     const response = await axios.post('http://localhost:8080/api/v1/lich-lam-viec/import', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     });
-
-    alert('Nhập dữ liệu Excel thành công!');
-    fetchSchedules(); // Gọi lại hàm lấy dữ liệu để update giao diện
     
+    alert('Import thành công!');
+    // fetchSchedules(); 
   } catch (error) {
     console.error('Lỗi khi import Excel:', error);
-    alert('Có lỗi xảy ra khi nhập file Excel. Vui lòng kiểm tra lại định dạng file!');
+    
+    // Moi thông báo lỗi chi tiết từ Backend (Spring Boot) gửi về
+    const backendMessage = error.response?.data;
+    
+    if (typeof backendMessage === 'string') {
+      // Nếu là lỗi Validate trong file Excel do chúng ta tự viết
+      alert("Chi tiết lỗi Import:\n\n" + backendMessage);
+    } else {
+      // Lỗi hệ thống khác
+      alert("Import thất bại: " + error.message);
+    }
   } finally {
-    // Reset giá trị input để lần sau chọn lại đúng file đó vẫn nhận sự kiện
-    event.target.value = '';
+    event.target.value = null; 
+  }
+};
+const downloadTemplate = async () => {
+  try {
+    // Gọi API lấy file Excel từ Backend (Nhớ thêm responseType: 'blob' để nhận file)
+    const response = await axios.get('http://localhost:8080/api/v1/lich-lam-viec/template', {
+      responseType: 'blob' 
+    });
+
+    // 1. Lấy ngày đang chọn trên UI và format về chuẩn YYYY-MM-DD
+    // (Đảm bảo bạn dùng đúng biến chứa ngày của bạn nhé, ví dụ selectedDate)
+    const dateString = formatDateToYYYYMMDD(selectedDate.value); 
+
+    // 2. Tạo tên file động có chứa ngày
+    const fileName = `Template_LichLamViec_${dateString}.xlsx`;
+
+    // 3. Xử lý tải file xuống trình duyệt
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Gán cái tên file vừa tạo vào đây
+    link.setAttribute('download', fileName); 
+    
+    document.body.appendChild(link);
+    link.click(); // Giả lập hành động click để tải file
+
+    // Dọn dẹp rác bộ nhớ sau khi tải xong
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error('Lỗi khi tải template:', error);
+    alert('Không thể tải file template!');
   }
 };
 const closeModal = () => { 
