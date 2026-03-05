@@ -52,10 +52,10 @@
             <th class="text-center" width="5%">STT</th>
             <th width="8%" class="text-center">Ảnh</th>
             <th width="10%">Mã NV</th>
+            <th width="15%">Tên tài khoản</th>
             <th width="15%">Họ tên</th>
             <th width="10%">SĐT</th>
             <th width="15%">Email</th>
-            
             <th width="15%">Địa chỉ</th>
             <th class="text-center" width="10%">Chức vụ</th>
             <th class="text-center" width="10%">Trạng thái</th>
@@ -84,6 +84,7 @@
             </td>
 
             <td class="code-text">{{ emp.maNhanVien }}</td>
+            <td class="name-text">{{ emp.tenTaiKhoan }}</td>
             <td class="name-text">{{ emp.tenNhanVien }}</td>
             <td>{{ emp.soDienThoai }}</td>
             <td class="text-gray">{{ emp.email }}</td>

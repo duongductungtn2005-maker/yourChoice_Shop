@@ -22,6 +22,3 @@ public interface StatisticService {
     // 2. Lấy danh sách sản phẩm sắp hết hàng (Tồn kho <= 10)
     StandardStatisticResponse getLowStockStats(StatisticFilterRequest filter);
 }
-
-
-

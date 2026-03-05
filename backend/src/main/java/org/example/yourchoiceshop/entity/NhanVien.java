@@ -3,7 +3,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
 
-@Entity @Table(name = "nhan_vien") @Data
+@Entity @Table(name = "nhan_vien") @Data @NoArgsConstructor @AllArgsConstructor @Getter @Setter
 public class NhanVien extends BaseStatusEntity {
     @Column(name = "ma_nhan_vien") private String maNhanVien;
     @Column(name = "ten_nhan_vien") private String tenNhanVien;
@@ -18,6 +18,8 @@ public class NhanVien extends BaseStatusEntity {
 
     @Column(name = "cccd")
     private String cccd;
+    @Column(name = "ten_tai_khoan")
+    private String tenTaiKhoan;
 
     @ManyToOne @JoinColumn(name = "id_quyen_han") private QuyenHan quyenHan;
 }

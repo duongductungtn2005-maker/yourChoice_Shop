@@ -1,17 +1,11 @@
 package org.example.yourchoiceshop.controller;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-
+import jakarta.servlet.http.HttpServletResponse;
 import org.example.yourchoiceshop.dto.request.EmployeeRequest;
 import org.example.yourchoiceshop.entity.NhanVien;
 import org.example.yourchoiceshop.service.NhanVienService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -23,10 +17,15 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletResponse;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/nhan-vien")
@@ -41,17 +40,16 @@ public class NhanVienController {
         this.nhanVienService = nhanVienService;
     }
 
-    // [UPDATED] Sửa tham số nhận vào: Bỏ gender, thêm role
+    // [UPDATED] Bỏ gender, thêm role
     @GetMapping
     public ResponseEntity<?> getAllNhanVien(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String role // Thêm tham số role
+            @RequestParam(required = false) String role
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        // Gọi service findAll mới
         Page<NhanVien> result = nhanVienService.findAll(keyword, status, role, pageable);
         return ResponseEntity.ok(result);
     }
@@ -127,10 +125,12 @@ public class NhanVienController {
     }
 
     @GetMapping("/export-excel")
-    public void exportToExcel(HttpServletResponse response,
-                              @RequestParam(required = false) String keyword,
-                              @RequestParam(required = false) Boolean gender,
-                              @RequestParam(required = false) Integer status) throws IOException {
+    public void exportToExcel(
+            HttpServletResponse response,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Boolean gender,
+            @RequestParam(required = false) Integer status
+    ) throws IOException {
 
         response.setContentType("application/octet-stream");
         DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
@@ -144,5 +144,35 @@ public class NhanVienController {
 
         EmployeeExcelExporter excelExporter = new EmployeeExcelExporter(listNhanVien);
         excelExporter.export(response);
+    }
+
+    // Check trùng tài khoản (phục vụ validate create/update)
+    @GetMapping("/xac-thuc/tai-khoan")
+    public ResponseEntity<Boolean> checkTenTaiKhoan(
+            @RequestParam String tenTaiKhoan,
+            @RequestParam(required = false) Integer id
+    ) {
+        boolean isExist = nhanVienService.checkTrungTaiKhoan(tenTaiKhoan, id);
+        return ResponseEntity.ok(isExist);
+    }
+
+    // ✅ Check trùng SĐT (File 1 có, File 2 thiếu)
+    @GetMapping("/xac-thuc/sdt")
+    public ResponseEntity<Boolean> checkSoDienThoai(
+            @RequestParam String soDienThoai,
+            @RequestParam(required = false) Integer id
+    ) {
+        boolean isExist = nhanVienService.checkTrungSoDienThoai(soDienThoai, id);
+        return ResponseEntity.ok(isExist);
+    }
+
+    // Authenticate (đăng nhập)
+    @GetMapping("/authenticate")
+    public ResponseEntity<?> authenticate(
+            @RequestParam String username,
+            @RequestParam String password
+    ) {
+        boolean authenticated = nhanVienService.authenticateEmployee(username, password);
+        return ResponseEntity.ok(Map.of("authenticated", authenticated));
     }
 }

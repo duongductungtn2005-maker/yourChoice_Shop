@@ -1,13 +1,14 @@
 package org.example.yourchoiceshop.repository;
 
+import java.util.List;
+
 import org.example.yourchoiceshop.entity.NhanVien;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-import java.util.List; // Nhớ import List
+import org.springframework.stereotype.Repository; // Nhớ import List
 
 @Repository
 public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
@@ -26,4 +27,11 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
             @Param("roleIds") List<Integer> roleIds,
             Pageable pageable
     );
+        boolean existsByTenTaiKhoan(String tenTaiKhoan);
+        boolean existsByTenTaiKhoanAndIdNot(String tenTaiKhoan, Integer id);
+        boolean existsByTenTaiKhoanAndMatKhau(String tenTaiKhoan, String matKhau);
+
+        // Check trùng Số điện thoại
+        boolean existsBySoDienThoai(String soDienThoai);
+        boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);
 }

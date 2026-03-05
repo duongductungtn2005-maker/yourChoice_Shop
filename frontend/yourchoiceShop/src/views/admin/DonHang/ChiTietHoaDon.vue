@@ -1,8 +1,13 @@
+** Bạn là 1 Senior Frontend Dev .
+** Giao diện phần  Trạng thái đơn hàng đang bị xấu như hình.
+** Bạn hãy sửa các icon trạng thái, đang ở trang thái nào thì chỉ hiện trạng thái hiện tại và các trạng thái trước đó. Khi cập nhật trạng thái tiếp theo mới tiếp tục hiện trạng thái đó.
+
+** Đây là code:
 <template>
   <div class="page-container">
     <div class="header-section">
       <div class="header-left">
-        <h1 class="page-title">Chi tiết đơn hàng</h1>
+        <h1 class="page-title">Chi tiết hóa đơn</h1>
         <div class="sub-info" v-if="!loading && order">
           <span>Mã đơn hàng: <strong class="text-primary">{{ order.maHoaDon }}</strong></span>
           <span class="divider">|</span>
@@ -31,8 +36,7 @@
           </div>
           <div class="timeline-wrapper">
             <div class="steps-container">
-              <div v-for="(step, index) in steps" :key="index" class="step-item"
-                :class="{ active: index <= getCurrentStepIndex(order.trangThai) }">
+              <div v-for="(step, index) in visibleSteps" :key="index" class="step-item active">
                 <div class="step-icon">
                   <i :class="step.icon"></i>
                 </div>
@@ -58,7 +62,13 @@
               </div>
               <div class="info-line">
                 <span class="label">Email:</span>
-                <span class="value">{{ order.emailKhachHang }}</span>
+                <span class="value">
+  {{ 
+    order.emailKhachHang 
+    || order.khachHang?.email 
+    || 'Không có' 
+  }}
+</span>
               </div>
             </div>
           </div>
@@ -190,10 +200,7 @@
             <i class="fas fa-print"></i> In hóa đơn
           </button>
           <button class="btn btn-orange-block" @click="openEditOrder">
-            <i class="fas fa-edit"></i> Chỉnh sửa trạng thái
-          </button>
-          <button class="btn btn-outline" @click="showEditInfoModal = true">
-            <i class="fas fa-pen"></i> Sửa thông tin
+            <i class="fas fa-edit"></i> Sửa thông tin
           </button>
         </div>
       </div>
@@ -202,23 +209,62 @@
     <div v-if="showEditStatusModal" class="modal-backdrop">
       <div class="modal-container">
         <h3 class="modal-title">Cập nhật trạng thái đơn hàng</h3>
-        <p class="modal-current">
-          Trạng thái hiện tại: <b>{{ statusMap[currentStatusIndex]?.label }}</b>
-        </p>
-        <div class="modal-actions">
-          <button class="btn btn-outline" :disabled="currentStatusIndex <= 0" @click="goPrevStatus">
-            ⬅ Trạng thái trước
-          </button>
-          <button class="btn btn-primary" :disabled="currentStatusIndex >= statusMap.length - 1" @click="goNextStatus">
-            Trạng thái tiếp theo ➡
-          </button>
+        <div class="order-meta">
+  <div>
+    <span class="label">Mã đơn hàng: </span>
+    <br/>
+    <span class="value">{{ order.maHoaDon }}</span>
+  </div>
+  <div>
+    <span class="label">Ngày tạo:</span>
+    <br/>
+    <span class="value">{{ formatDate(order.ngayTao) }}</span>
+  </div>
+</div>
+        <div class="form-group">
+          <label>Trạng thái đơn hàng</label>
+          <select
+  v-model="selectedStatus"
+  class="select-status"
+  :disabled="order.trangThai === 5 || order.trangThai === 0 || order.trangThai === 4"
+>
+            <option v-for="st in availableStatuses" :key="st.value" :value="Number(st.value)">
+              {{ st.label }}
+            </option>
+          </select>
         </div>
-        <div class="modal-footer modal-footer-between">
-          <button class="btn btn-cancel" @click="closeEditStatusModal">Đóng</button>
-          <button v-if="[1, 2, 3, 4].includes(order?.trangThai)" class="btn btn-danger" @click="cancelOrder">
-            Hủy đơn hàng
-          </button>
-        </div>
+<!-- ===== THÔNG TIN NHẬN HÀNG ===== -->
+<div class="form-group">
+  <label>Tên người nhận</label>
+  <input v-model="editForm.tenKhachHang" />
+</div>
+
+<div class="form-group">
+  <label>SĐT người nhận</label>
+  <input v-model="editForm.sdt" />
+</div>
+
+<div class="form-group">
+  <label>Địa chỉ nhận hàng</label>
+  <input v-model="editForm.diaChi" />
+</div>
+<div class="modal-actions">
+  <button class="btn btn-outline" @click="closeEditStatusModal">
+    Hủy
+  </button>
+
+  <button
+    v-if="order.trangThai !== 5 && order.trangThai !== 0"
+    class="btn btn-danger"
+    @click="cancelOrder"
+  >
+    Hủy đơn hàng
+  </button>
+
+  <button class="btn btn-primary" @click="confirmUpdateStatus">
+    Cập nhật
+  </button>
+</div>
       </div>
     </div>
 
@@ -586,15 +632,7 @@ const printOrder = () => {
 };
 
 // --- MODAL CONTROLLERS ---
-const openEditOrder = () => {
-  const idx = getStatusIndex(order.value.trangThai);
-  if (idx === -1) {
-    toastError('Không thể chỉnh sửa trạng thái này');
-    return;
-  }
-  currentStatusIndex.value = idx;
-  showEditStatusModal.value = true;
-};
+
 
 const closeEditStatusModal = () => showEditStatusModal.value = false;
 
@@ -610,6 +648,67 @@ const goNextStatus = () => {
   }
 };
 
+const visibleSteps = computed(() => {
+  const idx = getCurrentStepIndex(order.value?.trangThai);
+  if (idx < 0) return [];
+  return steps.slice(0, idx + 1);
+});
+
+const availableStatuses = computed(() => {
+  if (!order.value) return [];
+
+  const current = order.value.trangThai;
+
+  // 🚫 ĐÃ HOÀN THÀNH hoặc ĐÃ HỦY → KHÓA CỨNG
+  if (current === 5 || current === 0) {
+    return statusMap.filter(s => s.value === current);
+  }
+
+  // 🚫 ĐANG CHỜ THANH TOÁN → KHÔNG CHO LÊN HOÀN THÀNH
+  if (current === 4) {
+    return statusMap.filter(s => s.value === 4);
+  }
+
+  // ✅ Các trạng thái khác → chỉ cho tiến lên 1 bước
+  return statusMap.filter(s =>
+    s.value === current || s.value === current + 1
+  );
+});
+const selectedStatus = ref(null);
+
+const openEditOrder = () => {
+  selectedStatus.value = order.value.trangThai;
+  showEditStatusModal.value = true;
+};
+
+const confirmUpdateStatus = async () => {
+  try {
+    // 1️⃣ Update thông tin nhận hàng
+    const payload = {
+      tenNguoiNhan: editForm.value.tenKhachHang,
+      sdtNguoiNhan: editForm.value.sdt,
+      diaChiNguoiNhan: editForm.value.diaChi
+    };
+
+    await request.put(`/hoa-don/${orderId}/info`, payload);
+
+    // 2️⃣ Update trạng thái (nếu có thay đổi)
+    const newStatus = Number(selectedStatus.value);
+    if (newStatus !== order.value.trangThai) {
+      await request.put(`/hoa-don/${orderId}/status`, null, {
+        params: { newStatus }
+      });
+    }
+
+    toastSuccess('Cập nhật thông tin thành công');
+    await fetchOrderDetail();
+    closeEditStatusModal();
+
+  } catch (e) {
+    console.error(e);
+    toastError('Cập nhật thất bại');
+  }
+};
 // --- LIFECYCLE ---
 onMounted(() => {
   if (orderId) fetchOrderDetail();
@@ -1413,5 +1512,22 @@ onMounted(() => {
 
 .text-center {
   text-align: center;
+}
+.order-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.order-meta .label {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.order-meta .value {
+  font-weight: 600;
+  color: #1e293b;
 }
 </style>

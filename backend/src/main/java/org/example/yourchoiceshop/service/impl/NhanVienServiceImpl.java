@@ -8,6 +8,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.security.SecureRandom;
 
 import org.example.yourchoiceshop.dto.request.EmployeeRequest;
 import org.example.yourchoiceshop.entity.NhanVien;
@@ -32,6 +33,9 @@ public class NhanVienServiceImpl implements NhanVienService {
     private NhanVienRepository nhanVienRepo;
     @Autowired
     private EmailService emailService;
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
+    private static final int PASSWORD_LENGTH = 6;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final String UPLOAD_ROOT = "uploads/images/nhan-vien/";
 
@@ -73,9 +77,19 @@ public class NhanVienServiceImpl implements NhanVienService {
     public NhanVien create(EmployeeRequest req) {
         NhanVien nv = new NhanVien();
 
+        // Kiểm tra trùng tên tài khoản
+        if (nhanVienRepo.existsByTenTaiKhoan(req.getTenTaiKhoan())) {
+            throw new RuntimeException("Tên tài khoản đã tồn tại");
+        }
+        // Kiểm tra trùng số điện thoại
+        if (req.getSoDienThoai() != null && !req.getSoDienThoai().trim().isEmpty()
+                && nhanVienRepo.existsBySoDienThoai(req.getSoDienThoai().trim())) {
+            throw new RuntimeException("Số điện thoại đã tồn tại");
+        }
+
         int randomNum = (int) (Math.floor(Math.random() * 90000) + 10000);
         nv.setMaNhanVien("NV" + randomNum);
-
+        nv.setTenTaiKhoan(req.getTenTaiKhoan());
         nv.setTenNhanVien(req.getTenNhanVien());
         nv.setEmail(req.getEmail());
         nv.setSoDienThoai(req.getSoDienThoai());
@@ -93,16 +107,23 @@ public class NhanVienServiceImpl implements NhanVienService {
             nv.setAnhDaiDien(saveFile(req.getAvatarFile()));
         }
 
-        String matKhauMacDinh = "123456";
-        nv.setMatKhau(matKhauMacDinh);
+        // Tạo mật khẩu: ADMIN dùng "123456", STAFF dùng random
+        String matKhau;
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(req.getChucVu());
+        if (isAdmin) {
+            matKhau = "123456";
+        } else {
+            matKhau = generateRandomPassword();
+        }
+        nv.setMatKhau(matKhau);
         nv.setTrangThai(1);
 
         // Map Quyền hạn
         QuyenHan quyenHan = new QuyenHan();
-        if ("ADMIN".equalsIgnoreCase(req.getChucVu())) {
+        if (isAdmin) {
             quyenHan.setId(1);
         } else {
-            quyenHan.setId(4);
+            quyenHan.setId(2); // Đổi 4 thành 2 để khớp với Database của bạn
         }
         nv.setQuyenHan(quyenHan);
 
@@ -110,7 +131,12 @@ public class NhanVienServiceImpl implements NhanVienService {
 
         if (savedNv.getEmail() != null && !savedNv.getEmail().isEmpty()) {
             new Thread(() -> {
-                emailService.sendEmployeeWelcome(savedNv.getEmail(), savedNv.getTenNhanVien(), matKhauMacDinh);
+                emailService.sendEmployeeWelcome(
+                    savedNv.getEmail(), 
+                    savedNv.getTenTaiKhoan(), 
+                    savedNv.getTenNhanVien(), 
+                    matKhau
+                );
             }).start();
         }
 
@@ -121,6 +147,17 @@ public class NhanVienServiceImpl implements NhanVienService {
     public NhanVien update(Integer id, EmployeeRequest req) {
         NhanVien nv = findById(id);
 
+        // Kiểm tra trùng tên tài khoản (loại trừ chính mình)
+        if (nhanVienRepo.existsByTenTaiKhoanAndIdNot(req.getTenTaiKhoan(), id)) {
+            throw new RuntimeException("Tên tài khoản đã tồn tại");
+        }
+        // Kiểm tra trùng số điện thoại (loại trừ chính mình)
+        if (req.getSoDienThoai() != null && !req.getSoDienThoai().trim().isEmpty()
+                && nhanVienRepo.existsBySoDienThoaiAndIdNot(req.getSoDienThoai().trim(), id)) {
+            throw new RuntimeException("Số điện thoại đã tồn tại");
+        }
+
+        nv.setTenTaiKhoan(req.getTenTaiKhoan());
         nv.setTenNhanVien(req.getTenNhanVien());
         nv.setEmail(req.getEmail());
         nv.setSoDienThoai(req.getSoDienThoai());
@@ -138,9 +175,9 @@ public class NhanVienServiceImpl implements NhanVienService {
             QuyenHan qh = new QuyenHan();
             if ("ADMIN".equalsIgnoreCase(req.getChucVu())) {
                 qh.setId(1);
-            } else {
-                qh.setId(4);
-            }
+                } else {
+                    qh.setId(2); // Đổi 4 thành 2 để khớp với Database của bạn
+                }
             nv.setQuyenHan(qh);
         }
 
@@ -204,5 +241,40 @@ public class NhanVienServiceImpl implements NhanVienService {
         }
         // Gọi searchNhanVien với roleId = null
         return nhanVienRepo.searchNhanVien(keyword, status, null, Pageable.unpaged()).getContent();
+    }
+    @Override
+public boolean checkTrungTaiKhoan(String tenTaiKhoan, Integer id) {
+    if (id == null) {
+        return nhanVienRepo.existsByTenTaiKhoan(tenTaiKhoan);
+    }
+    return nhanVienRepo.existsByTenTaiKhoanAndIdNot(tenTaiKhoan, id);
+}
+
+    @Override
+    public boolean checkTrungSoDienThoai(String soDienThoai, Integer id) {
+        if (soDienThoai == null || soDienThoai.trim().isEmpty()) return false;
+        if (id == null) {
+            return nhanVienRepo.existsBySoDienThoai(soDienThoai.trim());
+        }
+        return nhanVienRepo.existsBySoDienThoaiAndIdNot(soDienThoai.trim(), id);
+    }
+
+    @Override
+    public boolean authenticateEmployee(String username, String password) {
+        String usernameValue = username != null ? username.trim() : "";
+        String passwordValue = password != null ? password.trim() : "";
+        if (usernameValue.isEmpty() || passwordValue.isEmpty()) {
+            return false;
+        }
+        return nhanVienRepo.existsByTenTaiKhoanAndMatKhau(usernameValue, passwordValue);
+    }
+
+    private String generateRandomPassword() {
+        StringBuilder password = new StringBuilder(PASSWORD_LENGTH);
+        for (int i = 0; i < PASSWORD_LENGTH; i++) {
+            int idx = SECURE_RANDOM.nextInt(PASSWORD_CHARS.length());
+            password.append(PASSWORD_CHARS.charAt(idx));
+        }
+        return password.toString();
     }
 }

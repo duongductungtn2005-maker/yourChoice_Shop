@@ -12,6 +12,7 @@ public class EmployeeRequest {
     private String soDienThoai;
     private String cccd;
     private Boolean gioiTinh;
+    private String tenTaiKhoan;
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate ngaySinh;

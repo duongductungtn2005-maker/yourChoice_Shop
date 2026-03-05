@@ -6,6 +6,7 @@ import org.example.yourchoiceshop.dto.request.HoaDonRequest; // <--- Import DTO 
 import org.example.yourchoiceshop.dto.request.ThanhToanRequest;
 import org.example.yourchoiceshop.dto.response.HoaDonDetailResponse;
 import org.example.yourchoiceshop.dto.response.HoaDonResponse;
+import org.example.yourchoiceshop.service.HoaDonService;
 import org.example.yourchoiceshop.service.ThanhToanService;
 import org.example.yourchoiceshop.service.impl.HoaDonServiceImpl;
 import org.springframework.data.domain.Page;
@@ -26,10 +27,11 @@ import java.time.LocalDateTime;
 @CrossOrigin("*")
 public class HoaDonController {
 
-    private final HoaDonServiceImpl service;
+    private final HoaDonService hoaDonService;
 
     // API danh sách
     @GetMapping
+    
     public ResponseEntity<Page<HoaDonResponse>> getOrders(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size,
@@ -47,13 +49,13 @@ public class HoaDonController {
             typeDb = "TAI_QUAY";
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("ngayTao").descending());
 
-        return ResponseEntity.ok(service.getOrders(keyword, status, typeDb, from, to, pageable));
+        return ResponseEntity.ok(hoaDonService.getOrders(keyword, status, typeDb, from, to, pageable));
     }
 
     // API chi tiết
     @GetMapping("/{maHoaDon}")
     public ResponseEntity<HoaDonDetailResponse> getDetail(@PathVariable String maHoaDon) {
-        return ResponseEntity.ok(service.getOrderDetail(maHoaDon));
+        return ResponseEntity.ok(hoaDonService.getOrderDetail(maHoaDon));
     }
 
     // API đổi trạng thái (Giao hàng, Hủy...)
@@ -61,7 +63,7 @@ public class HoaDonController {
     public ResponseEntity<?> updateStatus(
             @PathVariable String maHoaDon,
             @RequestParam Integer newStatus) {
-        service.updateStatus(maHoaDon, newStatus);
+        hoaDonService.updateStatus(maHoaDon, newStatus);
         return ResponseEntity.ok().body("Cập nhật trạng thái thành công");
     }
 
@@ -70,13 +72,13 @@ public class HoaDonController {
     public ResponseEntity<?> updateOrderInfo(
             @PathVariable String maHoaDon,
             @RequestBody HoaDonRequest request) {
-        service.updateOrderInfo(maHoaDon, request);
+        hoaDonService.updateOrderInfo(maHoaDon, request);
         return ResponseEntity.ok().body("Cập nhật thông tin thành công");
     }
 
     @PostMapping("/create")
     public ResponseEntity<?> createOrder(@RequestBody CreateOrderRequest req) {
-        service.createOrderAtCounter(req);
+        hoaDonService.createOrderAtCounter(req);
         return ResponseEntity.ok("Tạo hóa đơn thành công");
     }
 
@@ -95,7 +97,7 @@ public class HoaDonController {
         if ("Tại quầy".equals(type))
             typeDb = "TAI_QUAY";
 
-        byte[] excelData = service.exportExcel(keyword, status, typeDb, from, to);
+        byte[] excelData = hoaDonService.exportExcel(keyword, status, typeDb, from, to);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=DanhSachHoaDon.xlsx")
@@ -115,4 +117,21 @@ public class HoaDonController {
         return ResponseEntity.ok("Thanh toán thành công");
     }
 
+    @PostMapping("/online")
+    public ResponseEntity<?> createOrderOnline(
+            @RequestBody CreateOrderRequest req) {
+
+        hoaDonService.createOrderOnline(req);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/tai-quay")
+    public ResponseEntity<?> createOrderAtCounter(
+            @RequestBody CreateOrderRequest req) {
+
+        hoaDonService.createOrderAtCounter(req);
+        return ResponseEntity.ok().build();
+    }
+
+    
 }

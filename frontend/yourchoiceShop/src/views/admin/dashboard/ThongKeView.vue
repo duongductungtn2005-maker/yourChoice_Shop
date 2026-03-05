@@ -141,15 +141,15 @@
                 <td class="text-center text-muted">{{ i + 1 + (filter.page * filter.size) }}</td>
                 <td class="text-center">
                   <img v-if="prod?.anh" :src="prod.anh" class="product-img" />
-                  <div v-else class="product-img no-img">No Img</div>
+                  <div v-else class="product-img no-img" style="text-align: left !important">No Img</div>
                 </td>
                 <td class="font-medium text-dark text-left">
                   {{ prod?.tenSanPham }} 
                   <span v-if="prod?.kichCo" class="text-xs text-muted block mt-1">Size: {{ prod.kichCo }}</span>
                 </td>
                 <td class="text-right text-danger font-medium">{{ formatCurrency(prod?.doanhThu) }}</td>
-                <td class="text-center">
-                  <span class="badge-success-light">{{ prod?.soLuongBan }}</span>
+                <td class="text-center" style="text-align: left !important">
+                  <span class="badge-success-light" >{{ prod?.soLuongBan }}</span>
                 </td>
               </tr>
             </tbody>

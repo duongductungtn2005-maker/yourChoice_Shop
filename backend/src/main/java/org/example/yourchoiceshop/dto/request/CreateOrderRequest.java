@@ -1,7 +1,6 @@
 package org.example.yourchoiceshop.dto.request;
 
 import lombok.Data;
-
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -13,12 +12,19 @@ public class CreateOrderRequest {
     private String diaChi;
     private String email;
 
+    private String ghiChu;
+
+    private Integer idNhanVien;
+
     private BigDecimal tongTien;
     private BigDecimal tienGiamGia;
+    private BigDecimal phiVanChuyen;
     private BigDecimal tongTienSauGiam;
+    private String hinhThucThanhToan; 
+
+    private List<PhieuGiamGiaRequest> phieuGiamGia;
 
     private List<CartItem> items;
-    private Integer idKhachHang;
 
     @Data
     public static class CartItem {
