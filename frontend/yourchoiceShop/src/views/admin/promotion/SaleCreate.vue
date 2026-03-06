@@ -26,16 +26,6 @@
             </div>
 
             <div class="form-group">
-                <label>Loại giảm giá</label>
-                <div class="radio-group">
-                    <label class="radio-item">
-                        <input type="radio" value="%" v-model="form.loaiGiamGia" />
-                        <span>% Phần trăm</span>
-                    </label>
-                </div>
-            </div>
-
-            <div class="form-group">
                 <label>Giá trị giảm (%) <span class="required">*</span></label>
                 <input v-model="form.giaTriGiam" type="number" class="form-control input-den" placeholder="Nhập % giảm..." />
             </div>
@@ -203,11 +193,24 @@
                             <div class="img-wrapper-sm">
                                 <img v-if="v.hinhAnh" :src="'http://localhost:8080/api/v1/product-images/' + v.hinhAnh" class="thumb-img" @error="handleImgError" />
                                 <div v-else class="img-placeholder"><i class="far fa-image"></i></div>
+                                
+                                <span v-if="form.giaTriGiam > 0" class="discount-badge" :style="{ backgroundColor: getBadgeColor(form.giaTriGiam) }">
+                                    -{{ form.giaTriGiam }}%
+                                </span>
                             </div>
                         </td>
                         <td class="code-text text-center">{{ v.maCtsp }}</td>
                         <td class="text-center">{{ v.tenSanPham }}</td>
-                        <td class="text-center font-bold">{{ formatCurrency(v.giaBan) }}</td>
+                        
+                        <td class="text-center">
+                            <div v-if="form.giaTriGiam > 0">
+                                <div class="old-price">{{ formatCurrency(v.giaBan) }}</div>
+                                <div class="new-price font-bold">{{ formatCurrency(v.giaBan - (v.giaBan * form.giaTriGiam / 100)) }}</div>
+                            </div>
+                            <div v-else class="font-bold">
+                                {{ formatCurrency(v.giaBan) }}
+                            </div>
+                        </td>
                         
                         <td class="text-center">{{ v.tenThuongHieu }}</td>
                         <td class="text-center">{{ v.tenChatLieu }}</td>
@@ -441,11 +444,19 @@ const createSale = async () => {
     }
 };
 
+// --- UTILS ---
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 const handleImgError = (e) => { e.target.src = "https://via.placeholder.com/50?text=IMG"; };
 const getColorCode = (name) => {
     const map = { 'Đen': '#000', 'Trắng': '#fff', 'Xanh': '#3b82f6', 'Đỏ': '#ef4444', 'Vàng': '#eab308', 'Hồng': '#ec4899', 'Xám': '#6b7280', 'Cam': '#f97316', 'Tím': '#a855f7' };
     return map[name] || '#e5e7eb';
+};
+
+// Hàm lấy màu cho Badge %
+const getBadgeColor = (percent) => {
+    if (percent < 50) return '#ef4444'; // Đỏ
+    if (percent >= 50 && percent <= 70) return '#eab308'; // Vàng
+    return '#22c55e'; // Xanh lá
 };
 
 onMounted(() => { fetchFilterOptions(); loadParentProducts(); });
@@ -475,43 +486,6 @@ onMounted(() => { fetchFilterOptions(); loadParentProducts(); });
 .required { color: #ef4444; }
 .form-control { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; outline: none; transition: 0.2s; font-size: 14px; }
 .form-control:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-/* Container chứa cả cụm radio */
-.radio-group {
-    display: flex;
-    align-items: center;
-    padding: 5px 0; /* Tạo chút khoảng trống trên dưới cho thoáng */
-}
-
-/* Từng item radio */
-.radio-item {
-    display: grid;
-    grid-template-columns: auto 1fr; /* Cột 1 là nút, cột 2 là chữ */
-    align-items: center;             /* Căn giữa theo trục dọc của Grid */
-    gap: 8px;
-    cursor: pointer;
-}
-
-.radio-item input[type="radio"] {
-    /* Ép kích thước chuẩn để không bị trình duyệt nhảy size */
-    width: 16px;
-    height: 16px;
-    margin: 0;
-    padding: 0;
-    
-    /* Chiêu cuối: Dùng transform để nhích cái nút lên 1-2px nếu font chữ của mày 
-       có "chân" làm cảm giác nút bị thấp hơn */
-    transform: translateY(-1px); 
-    
-    cursor: pointer;
-    accent-color: #0f172a;
-}
-
-.radio-item span {
-    font-size: 14px;
-    line-height: 1; /* Rất quan trọng để triệt tiêu khoảng cách thừa trên dưới chữ */
-    display: inline-block;
-    vertical-align: middle;
-}
 .form-footer { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e2e8f0; flex-shrink: 0; }
 .btn-create { width: 100%; background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #fff; padding: 12px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 15px; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2); transition: all 0.2s; }
 .btn-create:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
@@ -533,10 +507,15 @@ onMounted(() => { fetchFilterOptions(); loadParentProducts(); });
 .custom-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; text-align: center; }
 .selected-row { background-color: #f0f9ff; }
 .img-wrapper { width: 40px; height: 40px; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
-.img-wrapper-sm { width: 35px; height: 35px; border-radius: 4px; overflow: hidden; border: 1px solid #e2e8f0; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
-.thumb-img { width: 100%; height: 100%; object-fit: cover; }
+.img-wrapper-sm { width: 35px; height: 35px; border-radius: 4px; border: 1px solid #e2e8f0; margin: 0 auto; display: flex; align-items: center; justify-content: center; position: relative; }
+.thumb-img { width: 100%; height: 100%; object-fit: cover; border-radius: 3px;}
 .prod-code { font-family: monospace; color: #2563eb; font-weight: 600; }
 .prod-name { font-weight: 600; color: #1e293b; }
+
+/* BADGE & PRICING MỚI THÊM */
+.discount-badge { position: absolute; top: -6px; right: -8px; color: white; font-size: 10px; font-weight: bold; padding: 2px 4px; border-radius: 10px; z-index: 10; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+.old-price { text-decoration: line-through; color: #94a3b8; font-size: 12px; margin-bottom: 2px; }
+.new-price { color: #ef4444; }
 
 /* BOTTOM PANEL */
 .bottom-panel { height: auto; min-height: 200px; margin-top: 30px; overflow: visible; }

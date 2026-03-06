@@ -1,14 +1,16 @@
-import request from '@/services/request'
+import axios from 'axios'
 
-// Lấy danh sách nhân viên
-export const getNhanVien = () => {
-  return request({
-    url: '/nhan-vien',
-    method: 'get',
+const API_URL = 'http://localhost:8080/api/v1/nhan-vien'
+
+export const getNhanVien = (params) => {
+  return axios.get(API_URL, { params })
+}
+
+export const authenticateEmployee = (username, password) => {
+  return axios.get(`${API_URL}/authenticate`, {
     params: {
-      page: 0,
-      size: 1000,
-      status: 1   // chỉ lấy nhân viên đang hoạt động
+      username,
+      password
     }
   })
 }

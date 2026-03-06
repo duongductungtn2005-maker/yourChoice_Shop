@@ -130,6 +130,9 @@
             <router-link to="/admin/schedules" class="submenu-item" active-class="active-sub">
               <span class="dot">•</span> Xếp lịch nhân viên
             </router-link>
+            <router-link to="/admin/history-activity" class="submenu-item" active-class="active-sub">
+              <span class="dot">•</span> Lịch sử hoạt động
+            </router-link>
           </div>
         </div>
 
@@ -200,6 +203,7 @@
 import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toastSuccess } from '@/utils/toast'; // Nếu chưa có util này, bạn có thể xóa dòng import + dòng toastSuccess(...)
+import { logout as authLogout, getRole } from '@/services/auth';
 
 const route = useRoute();
 const router = useRouter();
@@ -245,9 +249,7 @@ const toggleUserDropdown = () => {
 };
 
 const handleLogout = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  localStorage.removeItem('userRole');
+  authLogout();
   isUserDropdownOpen.value = false;
 
   try {

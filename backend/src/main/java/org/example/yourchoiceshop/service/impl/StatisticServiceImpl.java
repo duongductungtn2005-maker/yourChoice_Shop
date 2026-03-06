@@ -13,7 +13,6 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-
 public class StatisticServiceImpl implements StatisticService {
 
     private final StatisticRepository statisticRepository;

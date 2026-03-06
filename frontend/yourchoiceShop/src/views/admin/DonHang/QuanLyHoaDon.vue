@@ -294,6 +294,10 @@ const fetchData = async () => {
     totalPages.value = res.data.totalPages > 0 ? res.data.totalPages : 1;
   } catch (error) {
     console.error("Lỗi:", error);
+    // nếu bị timeout thì báo cho người dùng
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      Swal.fire('Lỗi', 'Yêu cầu mất quá nhiều thời gian. Vui lòng thử lại sau.', 'warning');
+    }
     orders.value = [];
   } finally {
     loading.value = false;

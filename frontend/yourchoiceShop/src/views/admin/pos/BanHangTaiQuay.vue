@@ -1,434 +1,607 @@
 <template>
-  <button class="btn-add" @click="createNewTab">
-    + Tạo đơn hàng
-  </button>
-
-  <!-- TAB BAR -->
-  <div v-if="orderTabs.length" class="order-tabs">
-    <div v-for="tab in orderTabs" :key="tab.id" class="order-tab"
-      :class="{ active: tab.id === activeTabId, disabled: showModal }" @click="!showModal && (activeTabId = tab.id)">
-      {{ tab.maHoaDon || 'Đơn mới' }}
-      <span class="close-tab" @click.stop="closeTab(tab.id)">×</span>
-    </div>
-  </div>
-
-  <!-- 🔥 TOÀN BỘ POS CHỈ HIỆN KHI CÓ TAB -->
-  <div v-if="currentOrder" class="pos-main-container">
-    <!-- ORDER TYPE TABS - HORIZONTAL -->
-    <div class="order-type-tabs">
-      <div class="tab-item" :class="{ active: orderType === 'TAI_QUAY' }" @click="orderType = 'TAI_QUAY'">
-        Tại quầy
+  <div class="pos-page">
+    <!-- ===== TOP BAR ===== -->
+    <div class="pos-topbar">
+      <div class="topbar-left">
+        <div class="pos-title">
+          <div class="pos-badge">POS</div>
+          <div>
+            <h2>Bán hàng tại quầy</h2>
+            <p class="pos-sub">
+              Quản lý đơn nhanh • Tạo tối đa <b>{{ MAX_TABS }}</b> đơn cùng lúc
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div class="tab-item" :class="{ active: orderType === 'ONLINE' }" @click="orderType = 'ONLINE'">
-        Online
-      </div>
-    </div>
+      <div class="topbar-right">
+        <div class="tab-counter">
+          <span class="dot" :class="{ on: orderTabs.length > 0 }"></span>
+          <span>
+            Đang mở: <b>{{ orderTabs.length }}</b>/<b>{{ MAX_TABS }}</b>
+          </span>
+        </div>
 
-    <!-- ===== LEFT: CART ===== -->
-    <div class="pos-cart">
-    <div class="cart-header">
-      <h3>Sản phẩm trong hóa đơn</h3>
-      <button class="btn-add" @click="openProductModal">+ Thêm sản phẩm</button>
-    </div>
-
-    <div class="cart-items">
-      <div v-if="cart.length === 0" class="empty-cart">
-        Chưa có sản phẩm nào
-      </div>
-
-      <table v-else class="table">
-        <thead>
-          <tr>
-            <th>Mã</th>
-            <th>Tên</th>
-            <th>Giá</th>
-            <th>SL</th>
-            <th>Thành tiền</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(item, i) in cart" :key="item.id">
-            <td>{{ item.code }}</td>
-            <td>{{ item.name }}</td>
-            <td class="p-price">{{ formatMoney(item.price) }}</td>
-            <td>
-              <div class="item-control">
-                <button @click="item.qty--" :disabled="item.qty === 1">-</button>
-                <span>{{ item.qty }}</span>
-                <button @click="item.qty++">+</button>
-              </div>
-            </td>
-            <td class="p-price">
-              {{ formatMoney(item.price * item.qty) }}
-            </td>
-            <td>
-              <button class="btn-remove" @click="cart.splice(i, 1)">×</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <!-- ===== CUSTOMER ===== -->
-    <div class="customer-box" style="margin-top: 16px">
-      <div class="box-header">
-        <h4>Khách hàng</h4>
-        <button class="btn-outline" @click="openCustomerModal">Chọn</button>
-      </div>
-
-      <input v-model="customer.name" placeholder="Tên khách hàng" />
-      <input v-model="customer.phone" placeholder="SĐT" />
-      <input v-model="customer.email" placeholder="Email khách hàng" />
-    </div>
-
-
-    <div v-if="orderType === 'ONLINE'" class="customer-box">
-      <h4>Thông tin người nhận</h4>
-
-      <input v-model="customer.name" placeholder="Tên người nhận" />
-      <input v-model="customer.phone" placeholder="SĐT người nhận" />
-      <input v-model="customer.address" placeholder="Địa chỉ nhận hàng" />
-      <textarea v-model="note" placeholder="Ghi chú"></textarea>
-    </div>
-    </div>
-
-    <!-- ===== RIGHT: INFO BAR ===== -->
-    <div class="pos-info">
-    <!-- DISCOUNT -->
-    <div class="discount-box">
-      <div class="box-header">
-        <h4>Giảm giá</h4>
-        <button class="btn-add" @click="openDiscountModal">+ Thêm</button>
-      </div>
-
-      <table class="table small-table">
-        <thead>
-          <tr>
-            <th>Tên phiếu</th>
-            <th>Giảm</th>
-            <th>Thời hạn</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(d, i) in discounts" :key="d.id">
-            <td>{{ d.name }}</td>
-            <td class="p-price">
-              -{{ d.type === 'percent' ? d.value + '%' : formatMoney(d.value) }}
-            </td>
-            <td>{{ d.startDate }} → {{ d.endDate }}</td>
-            <td>
-              <button class="btn-remove" @click="discounts.splice(i, 1)">×</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div v-if="discounts.length === 0" class="empty-small">
-        Chưa áp dụng
-      </div>
-    </div>
-
-    <!-- ===== STAFF ===== -->
-    <div class="customer-box">
-      <div class="box-header">
-        <h4>Nhân viên</h4>
-        <button class="btn-outline" @click="openStaffModal">Chọn</button>
-      </div>
-
-      <input :value="staff.code" placeholder="Mã nhân viên" disabled />
-      <input :value="staff.name" placeholder="Tên nhân viên" disabled />
-    </div>
-
-    <!-- PAYMENT -->
-    <div class="payment-box">
-      <div class="row">
-        <span>Tổng sản phẩm</span>
-        <span class="price-col">{{ formatMoney(totalProductPrice) }}</span>
-      </div>
-
-      <div class="row">
-        <span>Giảm giá</span>
-        <span class="price-col">-{{ formatMoney(totalDiscount) }}</span>
-      </div>
-
-      <div class="row" v-if="orderType === 'ONLINE'">
-        <span>Phí vận chuyển</span>
-        <input type="number" min="0" v-model.number="shippingFee" class="price-col ship-input" placeholder="0" />
-      </div>
-
-      <div class="row total-row">
-        <span>Khách cần trả</span>
-        <span class="price-col">{{ formatMoney(totalPrice) }}</span>
-      </div>
-
-      <button v-if="orderType === 'TAI_QUAY'" class="btn-pay" @click="openPaymentModal">
-        THANH TOÁN
-      </button>
-
-      <button v-else class="btn-pay" @click="handleCreateOrderOnline">
-        TẠO HÓA ĐƠN
-      </button>
-    </div>
-    </div>
-  </div>
-  <!-- ===== MODAL SẢN PHẨM ===== -->
-  <div v-if="showModal" class="modal-overlay">
-    <div class="modal-content large">
-      <div class="modal-header-flex">
-        <h3>Chọn sản phẩm</h3>
-        <button class="close-btn" @click="showModal = false">×</button>
-      </div>
-
-      <input v-model="productKeyword" class="search-input" placeholder="Tìm theo tên hoặc mã" />
-      <div class="price-range">
-        <span>Giá</span>
-        <input type="number" v-model.number="priceRange[0]" placeholder="Từ" />
-        <span>–</span>
-        <input type="number" v-model.number="priceRange[1]" placeholder="Đến" />
-      </div>
-      <table class="table modal-table">
-        <thead>
-          <tr>
-            <th>Mã</th>
-            <th>Tên</th>
-            <th>Giá</th>
-            <th>Tồn kho</th>
-            <th>SL</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in filteredProducts" :key="p.id">
-            <td>{{ p.code }}</td>
-            <td>{{ p.name }}</td>
-            <td class="p-price">{{ formatMoney(p.price) }}</td>
-            <td>{{ p.tonKho }}</td>
-            <td>
-              <div class="item-control">
-                <button @click="p.qty--" :disabled="p.qty === 1">-</button>
-                <span>{{ p.qty }}</span>
-                <button @click="p.qty++" :disabled="p.qty >= p.tonKho">+</button>
-              </div>
-            </td>
-            <td><input type="checkbox" v-model="p.checked" /></td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="pagination">
-        <button @click="productPage--" :disabled="productPage === 0">
-          ‹ Trước
-        </button>
-
-        <span>Trang {{ productPage + 1 }} / {{ totalProductPages }}</span>
-
-        <button @click="productPage++" :disabled="productPage + 1 >= totalProductPages">
-          Sau ›
+        <button class="btn-primary" @click="createNewTab">
+          <span class="btn-icon">＋</span>
+          <span>Tạo đơn hàng</span>
         </button>
       </div>
-      <div class="modal-actions">
-        <button class="btn-outline" @click="showModal = false">Hủy</button>
-        <button class="btn-add" @click="confirmAddProduct">Thêm</button>
+    </div>
+
+    <!-- ===== TAB BAR ===== -->
+    <div v-if="orderTabs.length" class="order-tabs">
+      <div
+        v-for="tab in orderTabs"
+        :key="tab.id"
+        class="order-tab"
+        :class="{ active: tab.id === activeTabId, disabled: showModal }"
+        @click="!showModal && (activeTabId = tab.id)"
+      >
+        <div class="tab-pill">
+          <span class="tab-code">{{ tab.maHoaDon || 'Đơn mới' }}</span>
+          <span class="tab-meta" v-if="tab.cart?.length">• {{ tab.cart.length }} SP</span>
+        </div>
+
+        <button class="close-tab" title="Đóng tab" @click.stop="closeTab(tab.id)">×</button>
       </div>
     </div>
-  </div>
-  <!-- ===== MODAL KHÁCH HÀNG ===== -->
-  <div v-if="showCustomerModal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-header-flex">
-        <h3>Chọn khách hàng</h3>
-        <button class="close-btn" @click="showCustomerModal = false">×</button>
-      </div>
 
-      <input v-model="customerKeyword" class="search-input" placeholder="Tìm tên / SĐT / email" />
+    <!-- ===== EMPTY STATE (KHI CHƯA CÓ ĐƠN) ===== -->
+    <div v-if="orderTabs.length === 0" class="empty-shell">
+      <div class="empty-card">
+        <div class="empty-hero">
+          <div class="hero-left">
+            <div class="hero-icon">
+              <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M7 7h10l1 11H6L7 7Z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M9 7a3 3 0 0 1 6 0"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M8 21h8"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
 
-      <table class="table modal-table">
-        <thead>
-          <tr>
-            <th>Tên KH</th>
-            <th>SĐT</th>
-            <th>Email</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="c in filteredCustomers" :key="c.id">
-            <td>{{ c.name }}</td>
-            <td>{{ c.phone }}</td>
-            <td>{{ c.email }}</td>
-            <td>
-              <button class="btn-select" @click="selectCustomer(c)">
-                Chọn
+            <h3>Chưa có đơn hàng nào</h3>
+            <p>
+              Tạo đơn mới để bắt đầu thêm sản phẩm, chọn khách hàng, áp dụng phiếu giảm giá và thanh toán.
+            </p>
+
+            <div class="empty-actions">
+              <button class="btn-primary big" @click="createNewTab">
+                <span class="btn-icon">＋</span>
+                <span>Tạo đơn hàng đầu tiên</span>
               </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="pagination">
-        <button @click="customerPage--" :disabled="customerPage === 0">
-          ‹ Trước
-        </button>
+              <div class="hint">
+                Mẹo: Bạn có thể mở đồng thời tối đa <b>{{ MAX_TABS }}</b> đơn để xử lý nhanh.
+              </div>
+            </div>
+          </div>
 
-        <span>Trang {{ customerPage + 1 }} / {{ totalCustomerPages }}</span>
+          <div class="hero-right">
+            <div class="mock">
+              <div class="mock-top">
+                <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+              </div>
+              <div class="mock-body">
+                <div class="mock-row w-80"></div>
+                <div class="mock-row w-60"></div>
+                <div class="mock-row w-70"></div>
+                <div class="mock-row w-50"></div>
 
-        <button @click="customerPage++" :disabled="customerPage + 1 >= totalCustomerPages">
-          Sau ›
-        </button>
+                <div class="mock-divider"></div>
+
+                <div class="mock-kpi">
+                  <div class="kpi">
+                    <div class="kpi-label">Tổng tiền</div>
+                    <div class="kpi-val">0₫</div>
+                  </div>
+                  <div class="kpi">
+                    <div class="kpi-label">Giảm giá</div>
+                    <div class="kpi-val">0₫</div>
+                  </div>
+                </div>
+
+                <div class="mock-btn"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-steps">
+          <div class="step">
+            <div class="step-no">1</div>
+            <div class="step-text">
+              <b>Tạo đơn</b>
+              <div class="muted">Nhấn “Tạo đơn hàng” để mở tab mới</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-no">2</div>
+            <div class="step-text">
+              <b>Thêm sản phẩm</b>
+              <div class="muted">Tìm & chọn sản phẩm, điều chỉnh số lượng</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-no">3</div>
+            <div class="step-text">
+              <b>Thanh toán</b>
+              <div class="muted">Chọn hình thức thanh toán và hoàn tất</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-  <!-- ===== MODAL GIẢM GIÁ ===== -->
-  <div v-if="showDiscountModal" class="modal-overlay">
-    <div class="modal-content discount-modal">
-      <div class="modal-header-flex">
-        <h3>Phiếu giảm giá</h3>
-        <button class="close-btn" @click="showDiscountModal = false">×</button>
+
+    <!-- ===== POS MAIN (CHỈ HIỆN KHI CÓ TAB) ===== -->
+    <div v-if="currentOrder" class="pos-main-container">
+      <!-- ORDER TYPE TABS -->
+      <div class="order-type-tabs">
+        <div class="tab-item" :class="{ active: orderType === 'TAI_QUAY' }" @click="orderType = 'TAI_QUAY'">
+          Tại quầy
+        </div>
+
+        <div class="tab-item" :class="{ active: orderType === 'ONLINE' }" @click="orderType = 'ONLINE'">
+          Online
+        </div>
       </div>
 
-      <input v-model="discountKeyword" class="search-input" placeholder="Tìm mã / tên phiếu" />
+      <!-- ===== LEFT: CART ===== -->
+      <div class="pos-cart">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h3>Sản phẩm trong hóa đơn</h3>
+              <span class="chip" v-if="cart.length">{{ cart.length }} sản phẩm</span>
+            </div>
+            <button class="btn-primary" @click="openProductModal">+ Thêm sản phẩm</button>
+          </div>
 
-      <table class="table modal-table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>Mã</th>
-            <th>Tên</th>
-            <th>Giá trị</th>
-            <th>Thời hạn</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="d in filteredDiscounts" :key="d.id">
-            <td><input type="checkbox" v-model="d.checked" /></td>
-            <td>{{ d.code }}</td>
-            <td>{{ d.name }}</td>
-            <td class="p-price">
-              {{ d.type === 'percent'
-                ? d.value + '%'
-                : formatMoney(d.value)
-              }}
-            </td>
-            <td>
-              {{ d.startDate }} → {{ d.endDate }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="pagination">
-        <button @click="discountPage--" :disabled="discountPage === 0">
-          ‹ Trước
-        </button>
+          <div class="card-body">
+            <div v-if="cart.length === 0" class="empty-cart">
+              <div class="empty-icon">🛒</div>
+              <div class="empty-text">
+                <b>Giỏ hàng đang trống</b>
+                <div class="muted">Nhấn “Thêm sản phẩm” để bắt đầu</div>
+              </div>
+            </div>
 
-        <span>Trang {{ discountPage + 1 }} / {{ totalDiscountPages }}</span>
+            <div v-else class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Mã</th>
+                    <th>Tên</th>
+                    <th>Giá</th>
+                    <th>SL</th>
+                    <th>Thành tiền</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, i) in cart" :key="item.id">
+                    <td class="mono">{{ item.code }}</td>
+                    <td class="name-cell">
+                      <div class="name-main">{{ item.name }}</div>
+                      <div class="name-sub muted" v-if="item.brand || item.material">
+                        {{ item.brand || '—' }} • {{ item.material || '—' }}
+                      </div>
+                    </td>
+                    <td class="p-price">{{ formatMoney(item.price) }}</td>
+                    <td>
+                      <div class="item-control">
+                        <button @click="item.qty--" :disabled="item.qty === 1" title="Giảm">−</button>
+                        <span>{{ item.qty }}</span>
+                        <button @click="item.qty++" title="Tăng">＋</button>
+                      </div>
+                    </td>
+                    <td class="p-price">{{ formatMoney(item.price * item.qty) }}</td>
+                    <td>
+                      <button class="btn-remove" title="Xoá" @click="cart.splice(i, 1)">×</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
 
-        <button @click="discountPage++" :disabled="discountPage + 1 >= totalDiscountPages">
-          Sau ›
-        </button>
+        <!-- ===== CUSTOMER ===== -->
+        <div class="card mt">
+          <div class="card-header">
+            <div class="card-title">
+              <h3>Khách hàng</h3>
+              <span class="muted">Thông tin người mua</span>
+            </div>
+            <button class="btn-outline" @click="openCustomerModal">Chọn</button>
+          </div>
+
+          <div class="card-body form-grid">
+            <input v-model="customer.name" placeholder="Tên khách hàng" />
+            <input v-model="customer.phone" placeholder="SĐT" />
+            <input v-model="customer.email" placeholder="Email khách hàng" />
+          </div>
+        </div>
+
+        <div v-if="orderType === 'ONLINE'" class="card mt">
+          <div class="card-header">
+            <div class="card-title">
+              <h3>Thông tin người nhận</h3>
+              <span class="muted">Dùng cho đơn online</span>
+            </div>
+          </div>
+
+          <div class="card-body form-grid">
+            <input v-model="customer.name" placeholder="Tên người nhận" />
+            <input v-model="customer.phone" placeholder="SĐT người nhận" />
+            <input v-model="customer.address" placeholder="Địa chỉ nhận hàng" />
+            <textarea v-model="note" placeholder="Ghi chú"></textarea>
+          </div>
+        </div>
       </div>
-      <div class="modal-actions">
-        <button class="btn-outline" @click="showDiscountModal = false">Hủy</button>
-        <button class="btn-add" @click="confirmAddDiscount">Áp dụng</button>
+
+      <!-- ===== RIGHT: INFO BAR ===== -->
+      <div class="pos-info">
+        <!-- DISCOUNT -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h3>Giảm giá</h3>
+              <span class="muted">Phiếu áp dụng</span>
+            </div>
+            <button class="btn-primary" @click="openDiscountModal">+ Thêm</button>
+          </div>
+
+          <div class="card-body">
+            <div v-if="discounts.length === 0" class="empty-small">
+              Chưa áp dụng phiếu giảm giá
+            </div>
+
+            <div v-else class="table-wrap">
+              <table class="table small-table">
+                <thead>
+                  <tr>
+                    <th>Tên phiếu</th>
+                    <th>Giảm</th>
+                    <th>Thời hạn</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(d, i) in discounts" :key="d.id">
+                    <td class="name-cell">
+                      <div class="name-main">{{ d.name }}</div>
+                      <div class="muted mono" v-if="d.code">{{ d.code }}</div>
+                    </td>
+                    <td class="p-price">
+                      -{{ d.type === 'percent' ? d.value + '%' : formatMoney(d.value) }}
+                    </td>
+                    <td class="muted">{{ d.startDate }} → {{ d.endDate }}</td>
+                    <td>
+                      <button class="btn-remove" title="Gỡ" @click="discounts.splice(i, 1)">×</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- STAFF -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h3>Nhân viên</h3>
+              <span class="muted">Người tạo đơn</span>
+            </div>
+            <button class="btn-outline" @click="openStaffModal">Chọn</button>
+          </div>
+
+          <div class="card-body form-grid">
+            <input :value="staff.code" placeholder="Mã nhân viên" disabled />
+            <input :value="staff.name" placeholder="Tên nhân viên" disabled />
+          </div>
+        </div>
+
+        <!-- PAYMENT -->
+        <div class="card payment-card">
+          <div class="card-header">
+            <div class="card-title">
+              <h3>Thanh toán</h3>
+              <span class="muted">Tổng kết đơn hàng</span>
+            </div>
+          </div>
+
+          <div class="card-body pay-body">
+            <div class="row">
+              <span>Tổng sản phẩm</span>
+              <span class="price-col">{{ formatMoney(totalProductPrice) }}</span>
+            </div>
+
+            <div class="row">
+              <span>Giảm giá</span>
+              <span class="price-col">-{{ formatMoney(totalDiscount) }}</span>
+            </div>
+
+            <div class="row" v-if="orderType === 'ONLINE'">
+              <span>Phí vận chuyển</span>
+              <input
+                type="number"
+                min="0"
+                v-model.number="shippingFee"
+                class="price-col ship-input"
+                placeholder="0"
+              />
+            </div>
+
+            <div class="row total-row">
+              <span>Khách cần trả</span>
+              <span class="price-col total">{{ formatMoney(totalPrice) }}</span>
+            </div>
+
+            <button v-if="orderType === 'TAI_QUAY'" class="btn-pay" @click="openPaymentModal">
+              THANH TOÁN
+            </button>
+
+            <button v-else class="btn-pay" @click="handleCreateOrderOnline">
+              TẠO HÓA ĐƠN
+            </button>
+
+            <div class="pay-note muted">
+              Lưu ý: Vui lòng chọn nhân viên & nhập thông tin khách trước khi thanh toán.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-  <!-- ===== MODAL THANH TOÁN ===== -->
-  <div v-if="showPaymentModal" class="modal-overlay">
-    <div class="payment-modal">
-      <div class="modal-header-flex">
-        <h3>Thanh toán</h3>
-        <button class="close-btn" @click="showPaymentModal = false">×</button>
-      </div>
 
-      <div class="payment-tabs">
-        <div class="tab-item" :class="{ active: paymentMethod === 'TRANSFER' }" @click="paymentMethod = 'TRANSFER'">
-          Chuyển khoản
+    <!-- ===== MODAL SẢN PHẨM ===== -->
+    <div v-if="showModal" class="modal-overlay">
+      <div class="modal-content large">
+        <div class="modal-header-flex">
+          <h3>Chọn sản phẩm</h3>
+          <button class="close-btn" @click="showModal = false">×</button>
         </div>
 
-        <div class="tab-item" :class="{ active: paymentMethod === 'CASH' }" @click="paymentMethod = 'CASH'">
-          Tiền mặt
-        </div>
-      </div>
-
-      <!-- CASH -->
-      <div v-if="paymentMethod === 'CASH'">
-        <input v-model.number="customerCash" type="number" class="search-input" placeholder="Tiền khách đưa" />
-        <div class="p-price">
-          Còn lại: {{ formatMoney(calculateRemaining) }}
-        </div>
-      </div>
-
-      <!-- TRANSFER -->
-      <div v-if="paymentMethod === 'TRANSFER'" class="qr-section">
-        <div class="qr-code">
-          <img :src="qrImageUrl" alt="QR chuyển khoản" />
+        <input v-model="productKeyword" class="search-input" placeholder="Tìm theo tên hoặc mã" />
+        <div class="price-range">
+          <span>Giá</span>
+          <input type="number" v-model.number="priceRange[0]" placeholder="Từ" />
+          <span>–</span>
+          <input type="number" v-model.number="priceRange[1]" placeholder="Đến" />
         </div>
 
-        <div class="p-price">
-          Số tiền: {{ formatMoney(totalPrice) }}
+        <div class="modal-table-wrapper">
+          <table class="table modal-table">
+            <thead>
+              <tr>
+                <th>Mã</th>
+                <th>Tên</th>
+                <th>Giá</th>
+                <th>Tồn kho</th>
+                <th>SL</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in filteredProducts" :key="p.id">
+                <td class="mono">{{ p.code }}</td>
+                <td class="name-cell">
+                  <div class="name-main">{{ p.name }}</div>
+                  <div class="muted">{{ p.brand }} • {{ p.material }}</div>
+                </td>
+                <td class="p-price">{{ formatMoney(p.price) }}</td>
+                <td>{{ p.tonKho }}</td>
+                <td>
+                  <div class="item-control">
+                    <button @click="p.qty--" :disabled="p.qty === 1">−</button>
+                    <span>{{ p.qty }}</span>
+                    <button @click="p.qty++" :disabled="p.qty >= p.tonKho">＋</button>
+                  </div>
+                </td>
+                <td><input type="checkbox" v-model="p.checked" /></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <div style="font-size: 13px; color: #6b7280">
-          Nội dung: THANH TOAN HOA DON
+        <div class="pagination">
+          <button @click="productPage--" :disabled="productPage === 0">‹ Trước</button>
+          <span>Trang {{ productPage + 1 }} / {{ totalProductPages }}</span>
+          <button @click="productPage++" :disabled="productPage + 1 >= totalProductPages">Sau ›</button>
         </div>
-      </div>
 
-      <div class="payment-footer">
-        <button class="btn-pay" @click="confirmCreateOrder">
-          {{ orderType === 'TAI_QUAY' ? 'THANH TOÁN' : 'TẠO ĐƠN ONLINE' }}
-        </button>
+        <div class="modal-actions">
+          <button class="btn-outline" @click="showModal = false">Hủy</button>
+          <button class="btn-primary" @click="confirmAddProduct">Thêm</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- ===== MODAL NHÂN VIÊN ===== -->
-  <div v-if="showStaffModal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-header-flex">
-        <h3>Chọn nhân viên</h3>
-        <button class="close-btn" @click="showStaffModal = false">×</button>
-      </div>
+    <!-- ===== MODAL KHÁCH HÀNG ===== -->
+    <div v-if="showCustomerModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header-flex">
+          <h3>Chọn khách hàng</h3>
+          <button class="close-btn" @click="showCustomerModal = false">×</button>
+        </div>
 
-      <input v-model="staffKeyword" class="search-input" placeholder="Tìm mã / tên nhân viên" />
+        <input v-model="customerKeyword" class="search-input" placeholder="Tìm tên / SĐT / email" />
 
-      <table class="table modal-table">
-        <thead>
-          <tr>
-            <th>Mã NV</th>
-            <th>Tên NV</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="s in filteredStaffs" :key="s.id">
-            <td>{{ s.code }}</td>
-            <td>{{ s.name }}</td>
-            <td>
-              <button class="btn-select" @click="selectStaff(s)">
-                Chọn
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="pagination">
-        <button @click="staffPage--" :disabled="staffPage === 0">
-          ‹ Trước
-        </button>
+        <div class="modal-table-wrapper">
+          <table class="table modal-table">
+            <thead>
+              <tr>
+                <th>Tên KH</th>
+                <th>SĐT</th>
+                <th>Email</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="c in filteredCustomers" :key="c.id">
+                <td class="name-cell"><div class="name-main">{{ c.name }}</div></td>
+                <td class="mono">{{ c.phone }}</td>
+                <td>{{ c.email }}</td>
+                <td>
+                  <button class="btn-select" @click="selectCustomer(c)">Chọn</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <span>Trang {{ staffPage + 1 }} / {{ totalStaffPages }}</span>
-
-        <button @click="staffPage++" :disabled="staffPage + 1 >= totalStaffPages">
-          Sau ›
-        </button>
+        <div class="pagination">
+          <button @click="customerPage--" :disabled="customerPage === 0">‹ Trước</button>
+          <span>Trang {{ customerPage + 1 }} / {{ totalCustomerPages }}</span>
+          <button @click="customerPage++" :disabled="customerPage + 1 >= totalCustomerPages">Sau ›</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- GỢI Ý KHI CHƯA CÓ ĐƠN -->
-  <div v-if="orderTabs.length === 0" class="empty-pos">
-    <p>Chưa có đơn hàng nào</p>
-    <p>Nhấn <b>“+ Tạo đơn hàng”</b> để bắt đầu</p>
+    <!-- ===== MODAL GIẢM GIÁ ===== -->
+    <div v-if="showDiscountModal" class="modal-overlay">
+      <div class="modal-content discount-modal">
+        <div class="modal-header-flex">
+          <h3>Phiếu giảm giá</h3>
+          <button class="close-btn" @click="showDiscountModal = false">×</button>
+        </div>
+
+        <input v-model="discountKeyword" class="search-input" placeholder="Tìm mã / tên phiếu" />
+
+        <div class="modal-table-wrapper">
+          <table class="table modal-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Mã</th>
+                <th>Tên</th>
+                <th>Giá trị</th>
+                <th>Thời hạn</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="d in filteredDiscounts" :key="d.id">
+                <td><input type="checkbox" v-model="d.checked" /></td>
+                <td class="mono">{{ d.code }}</td>
+                <td class="name-cell"><div class="name-main">{{ d.name }}</div></td>
+                <td class="p-price">
+                  {{ d.type === 'percent' ? d.value + '%' : formatMoney(d.value) }}
+                </td>
+                <td class="muted">{{ d.startDate }} → {{ d.endDate }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <button @click="discountPage--" :disabled="discountPage === 0">‹ Trước</button>
+          <span>Trang {{ discountPage + 1 }} / {{ totalDiscountPages }}</span>
+          <button @click="discountPage++" :disabled="discountPage + 1 >= totalDiscountPages">Sau ›</button>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-outline" @click="showDiscountModal = false">Hủy</button>
+          <button class="btn-primary" @click="confirmAddDiscount">Áp dụng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL THANH TOÁN ===== -->
+    <div v-if="showPaymentModal" class="modal-overlay">
+      <div class="payment-modal">
+        <div class="modal-header-flex">
+          <h3>Thanh toán</h3>
+          <button class="close-btn" @click="showPaymentModal = false">×</button>
+        </div>
+
+        <div class="payment-tabs">
+          <div class="tab-item" :class="{ active: paymentMethod === 'TRANSFER' }" @click="paymentMethod = 'TRANSFER'">
+            Chuyển khoản
+          </div>
+
+          <div class="tab-item" :class="{ active: paymentMethod === 'CASH' }" @click="paymentMethod = 'CASH'">
+            Tiền mặt
+          </div>
+        </div>
+
+        <div v-if="paymentMethod === 'CASH'">
+          <input v-model.number="customerCash" type="number" class="search-input" placeholder="Tiền khách đưa" />
+          <div class="p-price">Còn lại: {{ formatMoney(calculateRemaining) }}</div>
+        </div>
+
+        <div v-if="paymentMethod === 'TRANSFER'" class="qr-section">
+          <div class="qr-code">
+            <img :src="qrImageUrl" alt="QR chuyển khoản" />
+          </div>
+
+          <div class="p-price">Số tiền: {{ formatMoney(totalPrice) }}</div>
+
+          <div style="font-size: 13px; color: #6b7280">
+            Nội dung: THANH TOAN HOA DON
+          </div>
+        </div>
+
+        <div class="payment-footer">
+          <button class="btn-pay" @click="confirmCreateOrder">
+            {{ orderType === 'TAI_QUAY' ? 'THANH TOÁN' : 'TẠO ĐƠN ONLINE' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL NHÂN VIÊN ===== -->
+    <div v-if="showStaffModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header-flex">
+          <h3>Chọn nhân viên</h3>
+          <button class="close-btn" @click="showStaffModal = false">×</button>
+        </div>
+
+        <input v-model="staffKeyword" class="search-input" placeholder="Tìm mã / tên nhân viên" />
+
+        <div class="modal-table-wrapper">
+          <table class="table modal-table">
+            <thead>
+              <tr>
+                <th>Mã NV</th>
+                <th>Tên NV</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="s in filteredStaffs" :key="s.id">
+                <td class="mono">{{ s.code }}</td>
+                <td class="name-cell"><div class="name-main">{{ s.name }}</div></td>
+                <td>
+                  <button class="btn-select" @click="selectStaff(s)">Chọn</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <button @click="staffPage--" :disabled="staffPage === 0">‹ Trước</button>
+          <span>Trang {{ staffPage + 1 }} / {{ totalStaffPages }}</span>
+          <button @click="staffPage++" :disabled="staffPage + 1 >= totalStaffPages">Sau ›</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -441,17 +614,8 @@ import { createOrder } from '@/api/HoaDonApi'
 const productKeyword = ref('')
 const priceRange = ref([0, 1000000])
 
-
 /* ================= ROUTER ================= */
 const router = useRouter()
-
-/* ================= CUSTOMER ================= */
-// const customer = ref({
-//   name: '',
-//   phone: '',
-//   email: '',
-//   address: ''
-// })
 
 /* ================= MODAL KHÁCH HÀNG ================= */
 const showCustomerModal = ref(false)
@@ -505,9 +669,6 @@ const selectCustomer = (c) => {
   showCustomerModal.value = false
 }
 
-/* ================= CART ================= */
-// const cart = ref([])
-
 /* ================= MODAL SẢN PHẨM ================= */
 const showModal = ref(false)
 
@@ -532,7 +693,7 @@ const loadProducts = async () => {
       id: p.id,
       code: p.maCtsp,
       name: p.sanPham.tenSanPham,
-      brand: p.thuongHieu?.tenThuongHieu || '—', // 👈 FIX LỖI THƯƠNG HIỆU
+      brand: p.thuongHieu?.tenThuongHieu || '—',
       material: p.chatLieu?.tenChatLieu || '—',
       price: p.giaBan,
       tonKho: p.soLuong,
@@ -567,7 +728,6 @@ const confirmAddProduct = () => {
         qty: p.qty,
         tonKho: p.tonKho
       })
-
     }
 
     p.checked = false
@@ -593,10 +753,7 @@ const filteredProducts = computed(() =>
   })
 )
 
-
-
 /* ================= GIẢM GIÁ ================= */
-// const discounts = ref([])
 const showDiscountModal = ref(false)
 const discountKeyword = ref('')
 
@@ -735,15 +892,12 @@ const handleCreateOrder = async () => {
 
     alert('Tạo hóa đơn thành công!')
 
-    // Đóng tab hiện tại và xóa lưu trữ
     const tabIndex = orderTabs.value.findIndex(t => t.id === activeTabId.value)
     if (tabIndex !== -1) {
       orderTabs.value.splice(tabIndex, 1)
-      // Update active tab
       activeTabId.value = orderTabs.value.length > 0 ? orderTabs.value[0].id : null
     }
 
-    // Nếu không còn tab nào, xóa localStorage
     if (orderTabs.value.length === 0) {
       clearOrderTabs()
     }
@@ -796,7 +950,7 @@ const confirmCreateOrder = async () => {
   await handleCreateOrder()
 }
 const qrImageUrl = computed(() => {
-  const bank = '970422' // MB Bank ví dụ
+  const bank = '970422'
   const account = '123456789'
   const name = 'NGUYEN VAN A'
   const amount = totalPrice.value
@@ -805,11 +959,6 @@ const qrImageUrl = computed(() => {
 })
 
 /* ================= STAFF ================= */
-// const staff = ref({
-//   id: null,
-//   code: '',
-//   name: ''
-// })
 const showStaffModal = ref(false)
 const staffKeyword = ref('')
 import { getNhanVien } from '@/api/NhanVienApi'
@@ -825,8 +974,6 @@ const loadStaffs = async () => {
     size: staffSize.value,
     status: 1
   })
-
-  console.log('NHAN VIEN API:', res.data)
 
   staffs.value = res.data.content.map(s => ({
     id: s.id,
@@ -858,14 +1005,10 @@ const selectStaff = (s) => {
     name: s.name
   }
   showStaffModal.value = false
-
 }
-
 
 import { createOrderOnline } from '@/api/HoaDonApi'
 
-// const orderType = ref('TAI_QUAY') // TAI_QUAY | ONLINE
-// const note = ref('')
 const handleSubmitOrder = async () => {
   if (orderType.value === 'TAI_QUAY') {
     openPaymentModal()
@@ -886,10 +1029,7 @@ const handleCreateOrderOnline = async () => {
     diaChi: customer.value.address,
     email: customer.value.email,
     ghiChu: note.value,
-
-    // ✅ THÊM DÒNG NÀY
     idNhanVien: staff.value.id,
-
     tienGiamGia: totalDiscount.value,
     phiVanChuyen: shippingFee.value,
 
@@ -909,22 +1049,18 @@ const handleCreateOrderOnline = async () => {
 
   alert('Tạo đơn online thành công – chờ xác nhận')
 
-  // Đóng tab hiện tại
   const tabIndex = orderTabs.value.findIndex(t => t.id === activeTabId.value)
   if (tabIndex !== -1) {
     orderTabs.value.splice(tabIndex, 1)
     activeTabId.value = orderTabs.value.length > 0 ? orderTabs.value[0].id : null
   }
 
-  // Nếu không còn tab nào, xóa localStorage
   if (orderTabs.value.length === 0) {
     clearOrderTabs()
   }
 
   router.push({ name: 'admin-order-list' })
-
 }
-// const shippingFee = ref(0)
 
 const MAX_TABS = 5
 
@@ -966,16 +1102,13 @@ const clearOrderTabs = () => {
   }
 }
 
-// Load tabs khi component mount
 onMounted(() => {
   loadOrderTabs()
 })
 
-// Save tabs whenever they change
 watch(orderTabs, saveOrderTabs, { deep: true })
 watch(activeTabId, saveOrderTabs)
 
-// Load data whenever pagination changes
 watch(staffPage, loadStaffs)
 watch(productPage, loadProducts)
 watch(customerPage, loadCustomers)
@@ -1022,7 +1155,6 @@ const closeTab = (id) => {
   }
 }
 
-
 const currentOrder = computed(() =>
   orderTabs.value.find(t => t.id === activeTabId.value)
 )
@@ -1064,1142 +1196,792 @@ const orderType = computed({
 </script>
 
 <style scoped>
-.filter-bar {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 15px;
+/* ===========================
+   ✅ SCROLL FIX TRIỆT ĐỂ
+   =========================== */
+
+/* ĐỪNG đặt overflow:auto ở pos-page (nó tạo container scroll riêng + dễ bị cắt trong layout cha) */
+.pos-page {
+  min-height: 100vh;
 }
 
-.price-filter {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 300px;
-}
-
-.customer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.btn-outline {
-  background: white;
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.search-input {
-  width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  border-radius: 8px;
-  border: 1px solid #dbeafe;
-}
-
-.modal-content.large {
-  width: 800px;
-}
-
-.btn-select {
-  background: #2563eb;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 6px;
-}
-
-.p-price {
-  color: #dc2626;
-  font-weight: 600;
-  min-width: 110px;
-}
-
-
-
-.left-panel {
-  width: 400px;
-  padding: 20px;
-  background: #fff;
-  border-right: 1px solid #ddd;
-}
-
-.section-title {
-  margin-bottom: 10px;
-}
-
-.customer-form input,
-.customer-form textarea {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
-.right-panel {
-  flex: 1;
-  background: white;
-  display: flex;
-  flex-direction: column;
-}
-
-.cart-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 15px;
-  border-bottom: 1px dashed #eee;
-  padding-bottom: 10px;
-}
-
-.item-name {
-  flex: 1;
-}
-
-.item-control {
-  display: flex;
-  gap: 8px;
-}
-
-.item-price {
-  font-weight: bold;
-  margin-left: 15px;
-}
-
-/* MODAL */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, .4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-content {
-  background: white;
-  padding: 20px;
-  width: 500px;
-  border-radius: 8px;
-}
-
-.product-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.btn-cancel {
-  background: #e5e7eb;
-}
-
-.payment-footer {
-  margin-top: 15px;
-}
-
-.btn-pay {
-  width: 100%;
-  padding: 12px;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  margin-top: 12px;
-  transition: background 0.2s ease;
-}
-
-.btn-pay:hover {
-  background: #1d4ed8;
-}
-
-.payment-tabs {
-  display: flex;
-  gap: 12px;
-  padding: 12px 16px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.payment-tabs .tab-item {
-  flex: none;
-  padding: 8px 20px;
-  border-radius: 999px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.payment-tabs .tab-item.active {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
-}
-
-.tab-item {
-  flex: 1;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.tab-item.active {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
-}
-
-.modal-header-flex {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 22px;
-  cursor: pointer;
-}
-
-.qr-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.qr-code img {
-  width: 220px;
-  height: 220px;
-  object-fit: contain;
-}
-
-.item-control button {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: 1px solid #dbeafe;
-  background: #eff6ff;
-  cursor: pointer;
-}
-
-.item-control span {
-  min-width: 24px;
-  text-align: center;
-  font-weight: 600;
-}
-
-.discount-header,
-.customer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.payment-box {
-  background: white;
-  padding: 0;
-  border-top: none;
-  position: static;
-  box-shadow: none;
-  padding: 16px;
-}
-
-.discount-box {
-  background: white;
-  padding: 0;
-}
-
-.discount-box h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.customer-box {
-  padding: 0;
-  border-top: none;
-  background: white;
-}
-
-.customer-box h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.customer-box input,
-.customer-box textarea {
-  width: 100%;
-  margin-bottom: 8px;
-  padding: 8px;
-  box-sizing: border-box;
-  border: 1px solid #dbeafe;
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-.total-row {
-  font-size: 18px;
-  font-weight: bold;
-}
-
-/* ===== MODAL THANH TOÁN ===== */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.payment-modal {
-  width: 420px;
-  max-width: 95%;
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
-  animation: pop 0.25s ease;
-}
-
-@keyframes pop {
-  from {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 15px;
-}
-
-.pagination button {
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid #dbeafe;
-  background: white;
-  cursor: pointer;
-}
-
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ===== CART ===== */
-.pos-cart {
-  padding: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  background: #f8fafc;
-}
-
-/* EMPTY CART */
-.empty-cart {
-  text-align: center;
-  color: #9ca3af;
-  padding: 80px 0;
-  font-size: 14px;
-}
-
-/* ===== RIGHT INFO ===== */
-.pos-info {
-  background: #f8fafc;
-  padding: 0;
-  border-left: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  overflow-y: auto;
+/* nếu layout cha có overflow hidden, cái này giúp body vẫn scroll */
+:global(html), :global(body) {
   height: 100%;
+  overflow: auto;
 }
 
-.pos-info .discount-box,
-.pos-info .customer-box,
-.pos-info .payment-box {
-  padding: 14px 12px;
-  border-bottom: 1px solid #e5e7eb;
-  background: white;
-  margin-bottom: 1px;
-}
-
-.pos-info .payment-box {
-  margin-top: auto;
-  border-bottom: none;
-}
-
-.box-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.box-header h4 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.payment-box .row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 13px;
-}
-
-.payment-box .row:last-of-type {
-  border-bottom: none;
-}
-
-.payment-box .total-row {
-  font-size: 15px;
-  font-weight: bold;
-  padding: 12px 0;
-  margin-top: 8px;
-  border-top: 2px solid #e5e7eb;
-}
-
-/* ===== FIX MODAL ===== */
-.modal,
-.modal-overlay {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 9999 !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal {
-  background: rgba(0, 0, 0, 0.45);
-}
-
-.modal-content,
-.payment-modal {
-  background: white;
-  border-radius: 16px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-content.large {
-  width: 800px;
-  max-width: 95%;
-}
-
-/* ================= ROOT ================= */
+/* ✅ tạo “khung” cho POS: 2 cột cuộn riêng */
 .pos-main-container {
   display: grid;
   grid-template-columns: 1fr 420px;
   grid-template-rows: auto 1fr;
-  gap: 0;
-  height: calc(100vh - 100px);
-  background: #ffffff;
+  gap: 12px;
+  margin-top: 12px;
+
+  /* cho phép item co giãn trong grid */
+  min-height: 0;
+
+  /* chiều cao làm việc: trừ topbar + tabs + padding.
+     Nếu bạn thấy thiếu/ dư, chỉnh 220-280 là hợp lý */
+  height: calc(100vh - 240px);
 }
 
-.pos-main-container > .order-type-tabs {
-  grid-column: 1 / -1;
-  grid-row: 1;
-}
+/* giữ vị trí */
+.pos-main-container > .order-type-tabs { grid-column: 1 / -1; }
 
-.pos-main-container > .pos-cart {
-  grid-column: 1;
-  grid-row: 2;
-}
-
+/* ✅ 2 cột cuộn độc lập */
+.pos-main-container > .pos-cart,
 .pos-main-container > .pos-info {
-  grid-column: 2;
   grid-row: 2;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 6px;
 }
 
-.pos-container {
-  display: grid;
-  grid-template-columns: 1fr 480px;
-  min-height: calc(100vh - 60px);
-  /* nếu có header */
-  overflow: hidden;
+/* Sticky cho tabs loại đơn trong khung cuộn */
+.order-type-tabs{
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
-/* ================= LEFT CART ================= */
-.pos-cart {
-  display: flex;
-  flex-direction: column;
-  background: #f8fafc;
+/* Mobile: không cuộn riêng, cuộn theo trang */
+@media (max-width: 1100px) {
+  .pos-main-container {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .pos-main-container > .pos-cart,
+  .pos-main-container > .pos-info {
+    overflow: visible;
+  }
+
+  .pos-main-container > .pos-info { grid-column: 1; }
 }
 
-.cart-header {
-  padding: 16px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
+/* ===========================
+   PHẦN CSS UI (giữ nguyên của bạn)
+   =========================== */
+
+.muted { color: #64748b; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.mt { margin-top: 12px; }
+
+/* ===== TOP BAR ===== */
+.pos-topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-shrink: 0;
+  gap: 12px;
+  padding: 14px 14px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.06);
 }
 
-.cart-header h3 {
+.pos-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pos-badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #1d4ed8;
+  background: linear-gradient(180deg, #eff6ff, #ffffff);
+  border: 1px solid #dbeafe;
+}
+.pos-title h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+.pos-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.tab-counter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 13px;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  box-shadow: 0 0 0 4px rgba(203, 213, 225, 0.25);
+}
+.dot.on {
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.20);
+}
+
+/* ===== BUTTONS ===== */
+.btn-primary {
+  border: none;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.btn-primary:hover { transform: translateY(-1px); filter: brightness(1.02); }
+.btn-primary:active { transform: translateY(0px); box-shadow: 0 8px 14px rgba(37, 99, 235, 0.18); }
+.btn-primary.big { padding: 12px 16px; font-size: 14px; border-radius: 14px; }
+.btn-icon { font-size: 18px; line-height: 1; }
+
+.btn-outline {
+  background: #fff;
+  border: 1px solid #c7d2fe;
+  color: #1d4ed8;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .12s ease, transform .12s ease;
+}
+.btn-outline:hover { background: #eff6ff; transform: translateY(-1px); }
+
+/* ===== ORDER TABS ===== */
+.order-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 12px 4px 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.order-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.05);
+}
+
+.order-tab:hover {
+  transform: translateY(-1px);
+  border-color: #c7d2fe;
+  box-shadow: 0 10px 22px rgba(2, 6, 23, 0.07);
+}
+
+.order-tab.active {
+  background: linear-gradient(180deg, rgba(37,99,235,0.98), rgba(29,78,216,0.98));
+  border-color: rgba(37, 99, 235, 0.55);
+  color: #fff;
+}
+
+.order-tab.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.tab-pill { display: inline-flex; align-items: center; gap: 8px; }
+.tab-code { font-size: 13px; font-weight: 800; }
+.tab-meta { font-size: 12px; opacity: 0.9; }
+
+.close-tab {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+.order-tab.active .close-tab {
+  border-color: rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-shell { padding-top: 14px; }
+.empty-card {
+  border-radius: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255,255,255,0.86);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.07);
+  overflow: hidden;
+}
+
+.empty-hero {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 14px;
+  padding: 18px;
+  align-items: center;
+}
+
+.hero-left h3 {
+  margin: 10px 0 6px;
+  font-size: 20px;
+}
+.hero-left p {
+  margin: 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 560px;
+}
+
+.hero-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  color: #1d4ed8;
+  background: linear-gradient(180deg, #eff6ff, #ffffff);
+  border: 1px solid #dbeafe;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.12);
+}
+
+.empty-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hint {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.hero-right { display: flex; justify-content: flex-end; }
+.mock {
+  width: min(360px, 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+  overflow: hidden;
+}
+.mock-top {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.mock-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+.mock-body {
+  padding: 12px;
+}
+.mock-row {
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  margin-bottom: 10px;
+}
+.w-80 { width: 80%; }
+.w-70 { width: 70%; }
+.w-60 { width: 60%; }
+.w-50 { width: 50%; }
+.mock-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 14px 0;
+}
+.mock-kpi {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.kpi {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+.kpi-label { font-size: 12px; color: #64748b; }
+.kpi-val { font-size: 14px; font-weight: 800; color: #dc2626; margin-top: 2px; }
+.mock-btn {
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  opacity: 0.35;
+}
+
+.empty-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 14px 18px 18px;
+  border-top: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(248, 250, 252, 0.7);
+}
+.step {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.8);
+}
+.step-no {
+  width: 30px;
+  height: 30px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+}
+.step-text { font-size: 13px; }
+.step-text b { display: block; margin-bottom: 2px; }
+.step-text .muted { font-size: 12px; }
+
+@media (max-width: 980px) {
+  .empty-hero { grid-template-columns: 1fr; }
+  .hero-right { justify-content: flex-start; }
+  .empty-steps { grid-template-columns: 1fr; }
+}
+
+/* ===== ORDER TYPE TABS ===== */
+.order-type-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.05);
+}
+
+.tab-item {
+  flex: none;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 13px;
+  transition: all .12s ease;
+}
+.tab-item.active {
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  border-color: rgba(37, 99, 235, 0.55);
+  color: #fff;
+}
+
+/* ===== CARDS ===== */
+.card {
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 26px rgba(2, 6, 23, 0.06);
+  overflow: hidden;
+}
+.card-header {
+  padding: 14px 14px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.card-title h3 {
   margin: 0;
   font-size: 15px;
-  font-weight: 600;
-  color: #1f2937;
+  font-weight: 900;
+}
+.card-title .muted {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+}
+.card-body {
+  padding: 14px;
 }
 
-.cart-items {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
+/* chips */
+.chip {
+  margin-left: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 800;
+  color: #334155;
 }
 
-/* TABLE */
+/* ===== FORMS ===== */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+input, textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 13px;
+  outline: none;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+textarea { min-height: 92px; resize: vertical; }
+input:focus, textarea:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.25);
+}
+input:disabled {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+/* ===== TABLE ===== */
+.table-wrap { overflow-x: auto; }
 .table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  background: transparent;
 }
-
-.table th,
+.table thead th {
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: .2px;
+  color: #475569;
+  background: rgba(248, 250, 252, 0.9);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+  padding: 10px 8px;
+}
 .table td {
-  text-align: center;
-  vertical-align: middle;
   padding: 12px 8px;
-  font-size: 14px;
-}
-
-.table th:nth-child(1) {
-  width: 140px;
-}
-
-/* Mã */
-.table th:nth-child(3) {
-  width: 120px;
-}
-
-/* Giá */
-.table th:nth-child(4) {
-  width: 120px;
-}
-
-/* SL */
-.table th:nth-child(6) {
-  width: 50px;
-}
-
-/* X */
-
-.table td:nth-child(2) {
-  text-align: left;
-}
-
-/* EMPTY */
-.empty-cart {
-  text-align: center;
-  color: #9ca3af;
-  padding: 80px 0;
-}
-
-/* ================= RIGHT INFO ================= */
-.pos-info {
-  background: white;
-  border-left: 1px solid #e5e7eb;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.discount-box,
-.customer-box {
-  background: white;
-  padding: 14px;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.discount-box h4,
-.customer-box h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.box-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.box-header h4 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.customer-box input,
-.customer-box textarea {
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 6px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  box-sizing: border-box;
-}
-
-/* PAYMENT */
-.payment-box {
-  margin-top: auto;
-  padding: 14px;
-  border-top: 1px dashed #e5e7eb;
-  padding-top: 14px;
-  background: white;
-}
-
-.payment-box .row {
-  display: grid;
-  grid-template-columns: 1fr 120px;
-  /* 👈 cột tiền cố định */
-  align-items: center;
-  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
   font-size: 13px;
+  vertical-align: middle;
+}
+.table tbody tr:hover td {
+  background: rgba(239, 246, 255, 0.35);
 }
 
-.payment-box .total-row {
-  font-size: 14px;
-  font-weight: 700;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #e5e7eb;
-}
+.name-cell { text-align: left; }
+.name-main { font-weight: 800; color: #0f172a; }
+.name-sub { font-size: 12px; }
 
-/* ================= BUTTON ================= */
-.btn-add {
-  background: #2563eb;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-}
+.p-price { color: #dc2626; font-weight: 900; }
+.price-col { text-align: right; font-weight: 900; color: #dc2626; }
+.price-col.total { font-size: 18px; }
 
-.btn-outline {
-  background: white;
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.btn-pay {
-  width: 100%;
-  padding: 12px;
-  margin-top: 12px;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.btn-pay:hover {
-  background: #1d4ed8;
-}
-
-/* ================= PRICE ================= */
-.p-price {
-  color: #dc2626;
-  font-weight: 600;
-}
-
-/* ================= ITEM CONTROL ================= */
+/* ===== ITEM CONTROL ===== */
 .item-control {
-  display: flex;
-  gap: 6px;
+  display: inline-flex;
+  gap: 8px;
   align-items: center;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.95);
 }
-
 .item-control button {
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: 10px;
   border: 1px solid #dbeafe;
   background: #eff6ff;
   cursor: pointer;
+  font-weight: 900;
 }
+.item-control button:disabled { opacity: 0.5; cursor: not-allowed; }
+.item-control span { min-width: 20px; text-align: center; font-weight: 900; }
 
-.item-control span {
-  min-width: 24px;
+/* ===== EMPTY CART ===== */
+.empty-cart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 44px 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.55);
+  background: rgba(248, 250, 252, 0.65);
+}
+.empty-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  font-size: 20px;
+}
+.empty-text b { font-size: 14px; }
+.empty-small {
+  font-size: 13px;
+  color: #64748b;
   text-align: center;
-  font-weight: 600;
+  padding: 12px 0;
 }
 
-/* ================= MODAL COMMON ================= */
+/* ===== PAYMENT CARD ===== */
+.payment-card { margin-top: auto; }
+.pay-body .row {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.75);
+  font-size: 13px;
+}
+.pay-body .row:last-of-type { border-bottom: none; }
+.total-row {
+  border-bottom: none !important;
+  padding-top: 14px !important;
+  margin-top: 6px;
+  border-top: 2px dashed rgba(226, 232, 240, 0.95);
+}
+.ship-input {
+  width: 100%;
+  text-align: right;
+  font-weight: 900;
+  color: #dc2626;
+}
+.btn-pay {
+  width: 100%;
+  padding: 12px 14px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 14px;
+  color: #fff;
+  background: linear-gradient(180deg, #16a34a, #15803d);
+  box-shadow: 0 12px 22px rgba(22, 163, 74, 0.22);
+  transition: transform .12s ease, filter .12s ease;
+}
+.btn-pay:hover { transform: translateY(-1px); filter: brightness(1.02); }
+.pay-note { margin-top: 10px; font-size: 12px; }
+
+/* ===== REMOVE BUTTON ===== */
+.btn-remove {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(254, 202, 202, 0.95);
+  background: rgba(255, 245, 245, 0.95);
+  color: #dc2626;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all .12s ease;
+}
+.btn-remove:hover {
+  background: #dc2626;
+  color: #fff;
+  border-color: #dc2626;
+}
+
+/* ===== MODAL ===== */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, .45);
+  background: rgba(2, 6, 23, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 
-.modal-content {
-  background: white;
-  padding: 20px;
-  width: 520px;
-  border-radius: 16px;
+.modal-content,
+.payment-modal {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 18px;
+  box-shadow: 0 26px 60px rgba(2, 6, 23, 0.25);
   max-height: 90vh;
   overflow-y: auto;
 }
 
-.modal-content.large {
-  width: 800px;
-  max-width: 95%;
+.modal-content {
+  padding: 16px;
+  width: 560px;
 }
+.modal-content.large { width: 900px; max-width: 95vw; }
+.modal-content.discount-modal { width: 980px; max-width: 95vw; }
 
 .modal-header-flex {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+}
+.modal-header-flex h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
 }
 
 .close-btn {
-  background: none;
-  border: none;
-  font-size: 22px;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: #fff;
   cursor: pointer;
+  font-size: 20px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #dbeafe;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
   margin-bottom: 12px;
-}
-
-/* PRODUCT ROW */
-.product-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0;
-  border-bottom: 1px dashed #e5e7eb;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-/* ================= PAYMENT MODAL ================= */
-.payment-modal {
-  width: 420px;
-  max-width: 95%;
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  animation: pop .25s ease;
-}
-
-@keyframes pop {
-  from {
-    transform: scale(.95);
-    opacity: 0;
-  }
-
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.payment-tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.tab-item {
-  flex: 1;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  cursor: pointer;
-  font-weight: 600;
-  text-align: center;
-}
-
-.tab-item.active {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
-}
-
-.btn-submit-payment {
-  width: 100%;
-  padding: 14px;
-  background: #16a34a;
-  color: white;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 700;
-  border: none;
-}
-
-.btn-remove {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid #fecaca;
-  background: #fff5f5;
-  color: #dc2626;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all .2s;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-remove:hover {
-  background: #dc2626;
-  color: white;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  font-size: 14px;
-}
-
-.pagination button {
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid #dbeafe;
-  background: white;
-  cursor: pointer;
-}
-
-.pagination button:disabled {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
-.modal-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.modal-table td,
-.modal-table th {
-  word-break: break-word;
-  white-space: normal;
-  text-align: left;
-}
-
-.modal-content.product-modal {
-  width: 900px;
-  max-width: 95vw;
-}
-
-.modal-content.normal-modal {
-  width: 600px;
-  max-width: 95vw;
+  outline: none;
 }
 
 .modal-table-wrapper {
   max-height: 55vh;
   overflow-y: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255,255,255,0.7);
 }
 
-.modal-table td:nth-child(3) {
-  max-width: 220px;
-}
-
-.small-table {
-  width: 100%;
-  table-layout: fixed;
-  margin: 12px 0 8px 0;
-  font-size: 12px;
-}
-
-.small-table th,
-.small-table td {
-  padding: 6px 4px;
-  font-size: 12px;
-  vertical-align: top;
-  word-break: break-word;
-  overflow: hidden;
-}
-
-.small-table th:nth-child(1),
-.small-table td:nth-child(1) {
-  width: 40%;
-  max-width: 90px;
-}
-
-.small-table th:nth-child(2),
-.small-table td:nth-child(2) {
-  width: 25%;
-  text-align: right;
-}
-
-.small-table th:nth-child(3),
-.small-table td:nth-child(3) {
-  width: 28%;
-  font-size: 11px;
-  max-width: 85px;
-}
-
-.small-table th:nth-child(4),
-.small-table td:nth-child(4) {
-  width: 7%;
-  text-align: center;
-  padding: 4px 2px;
-}
-
-.small-table thead {
-  background: #f3f4f6;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.empty-small {
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
   font-size: 13px;
-  color: #9ca3af;
-  text-align: center;
-  padding: 12px 0;
+}
+.pagination button {
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: #fff;
+  cursor: pointer;
+  font-weight: 800;
+}
+.pagination button:disabled { opacity: .5; cursor: not-allowed; }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
 }
 
+/* ===== PRICE RANGE ===== */
 .price-range {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
 }
-
 .price-range span {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.price-range input {
-  width: 140px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid #dbeafe;
-  font-size: 14px;
-}
-
-/* ===== DISCOUNT MODAL WIDE ===== */
-.modal-content.discount-modal {
-  width: 900px;
-  /* 👈 rộng hẳn ra */
-  max-width: 95vw;
-}
-
-/* ===== DISCOUNT TABLE ===== */
-.discount-modal .modal-table {
-  table-layout: fixed;
-}
-
-.discount-modal .modal-table th,
-.discount-modal .modal-table td {
-  word-break: break-word;
-  white-space: normal;
-  vertical-align: top;
-}
-
-/* checkbox */
-.discount-modal .modal-table th:nth-child(1),
-.discount-modal .modal-table td:nth-child(1) {
-  width: 40px;
-  text-align: center;
-}
-
-/* Mã */
-.discount-modal .modal-table th:nth-child(2) {
-  width: 140px;
-}
-
-/* Tên */
-.discount-modal .modal-table th:nth-child(3) {
-  width: 260px;
-}
-
-/* Giá trị */
-.discount-modal .modal-table th:nth-child(4) {
-  width: 140px;
-}
-
-/* Thời hạn */
-.discount-modal .modal-table th:nth-child(5) {
-  width: 280px;
-}
-
-.ship-input.inline {
-  width: 120px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  text-align: right;
-  font-weight: 600;
-  color: #dc2626;
-}
-
-.price-col {
-  text-align: right;
-  font-weight: 600;
-  color: #dc2626;
-}
-
-.ship-input {
-  width: 100%;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  padding: 4px 8px;
-  text-align: right;
-  font-weight: 600;
-  color: #dc2626;
-}
-
-/* ===== ORDER TABS ===== */
-.order-tabs {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e5e7eb;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.order-tab {
-  padding: 8px 14px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
   font-size: 13px;
-  font-weight: 500;
-  color: #374151;
+  font-weight: 900;
+  color: #334155;
+}
+.price-range input {
+  width: 160px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+/* ===== MODAL TABLE ===== */
+.modal-table { table-layout: fixed; }
+.small-table { table-layout: fixed; font-size: 12px; }
+.small-table th, .small-table td { padding: 8px 6px; font-size: 12px; }
+
+/* select button */
+.btn-select {
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-weight: 900;
   cursor: pointer;
+}
+
+/* ===== PAYMENT MODAL ===== */
+.payment-modal {
+  width: 440px;
+  max-width: 95vw;
+  padding: 16px;
+  animation: pop .18s ease;
+}
+@keyframes pop {
+  from { transform: translateY(6px) scale(.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+.payment-tabs {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-  transition: all 0.2s ease;
+  gap: 10px;
+  margin-bottom: 12px;
 }
-
-.order-tab:hover {
-  border-color: #2563eb;
-  background: #eff6ff;
-}
-
-.order-tab.active {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
-}
-
-.close-tab {
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  padding: 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.order-tab.disabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.order-type-tabs {
-  display: flex;
-  gap: 12px;
-  padding: 12px 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  flex-wrap: wrap;
-}
-
-.order-type-tabs .tab-item {
-  flex: none;
-  padding: 10px 24px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.order-type-tabs .tab-item.active {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
-}
-
-.payment-modal .tab-item {
-  flex: 1;
-}
+.payment-tabs .tab-item { flex: 1; text-align: center; }
+.qr-section { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.qr-code img { width: 220px; height: 220px; object-fit: contain; }
+.payment-footer { margin-top: 14px; }
 </style>

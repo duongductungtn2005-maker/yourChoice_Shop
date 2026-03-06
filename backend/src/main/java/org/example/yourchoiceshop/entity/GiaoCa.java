@@ -23,6 +23,11 @@ public class GiaoCa extends BaseStatusEntity {
     @JoinColumn(name = "id_nhan_vien_nhan_ca")
     private NhanVien nhanVienNhanCa;
 
+    // THÊM ĐOẠN NÀY VÀO ĐỂ KẾT NỐI VỚI LỊCH LÀM VIỆC
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_lich_lam_viec")
+    private LichLamViec lichLamViec;
+
     @Column(name = "thoi_gian_nhan_ca")
     private LocalDateTime thoiGianNhanCa;
 

@@ -53,6 +53,7 @@
             <th class="text-center" width="5%">STT</th>
             <th width="10%">Mã KH</th>
             <th width="15%">Họ tên</th>
+            <th width="12%">Tên tài khoản</th>
             <th width="10%">SĐT</th>
             <th width="15%">Email</th>
             <th width="20%">Địa chỉ</th>
@@ -63,16 +64,17 @@
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="9" class="text-center empty-state">Đang tải dữ liệu...</td>
+            <td colspan="10" class="text-center empty-state">Đang tải dữ liệu...</td>
           </tr>
           <tr v-else-if="items.length === 0">
-            <td colspan="9" class="text-center empty-state">Không tìm thấy khách hàng nào.</td>
+            <td colspan="10" class="text-center empty-state">Không tìm thấy khách hàng nào.</td>
           </tr>
 
           <tr v-else v-for="(item, index) in items" :key="item.id">
             <td class="text-center">{{ (page - 1) * pageSize + index + 1 }}</td>
             <td class="code-text">{{ item.maKhachHang }}</td>
             <td class="name-text">{{ item.tenKhachHang }}</td>
+            <td>{{ item.tenTaiKhoan || '-' }}</td>
             <td>{{ item.soDienThoai }}</td>
             <td class="text-gray">{{ item.email }}</td>
             
@@ -94,6 +96,10 @@
               <div class="action-wrapper">
                 <button class="icon-btn" @click="viewDetail(item)" title="Xem chi tiết">
                   <i class="far fa-eye"></i>
+                </button>
+
+                <button class="icon-btn" @click="openQuickAddressModal(item)" title="Thêm địa chỉ nhanh">
+                  <i class="fas fa-map-marker-alt"></i>
                 </button>
 
                 <label class="switch" title="Bật/Tắt trạng thái">
@@ -134,6 +140,190 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showAddressModal" class="quick-modal-overlay" @click.self="closeQuickAddressModal">
+      <div class="quick-modal-card">
+        <div class="quick-modal-header">
+          <div class="quick-title-wrap">
+            <i class="fas fa-map-marker-alt quick-title-icon"></i>
+            <div>
+              <h3 class="quick-title">Sổ địa chỉ khách hàng</h3>
+              <p class="quick-subtitle">
+                {{ selectedCustomer?.tenKhachHang || '-' }} · {{ selectedCustomer?.maKhachHang || '-' }}
+              </p>
+            </div>
+          </div>
+          <div class="quick-head-actions">
+            <button class="quick-head-btn" @click="refreshAddresses" title="Làm mới danh sách">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="quick-head-btn" @click="closeQuickAddressModal" title="Đóng">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="quick-modal-body">
+          <div class="quick-list-panel">
+            <div class="quick-panel-title">
+              <i class="fas fa-list"></i> Danh sách địa chỉ
+            </div>
+
+            <table class="quick-table">
+              <thead>
+                <tr>
+                  <th width="10%">STT</th>
+                  <th>Địa chỉ</th>
+                  <th width="20%">Mặc định</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="addressLoading">
+                  <td colspan="3" class="quick-empty">Đang tải địa chỉ...</td>
+                </tr>
+                <tr v-else-if="customerAddresses.length === 0">
+                  <td colspan="3" class="quick-empty">Chưa có địa chỉ nào.</td>
+                </tr>
+                <tr v-else v-for="(addr, idx) in customerAddresses" :key="addr.id || idx">
+                  <td>{{ idx + 1 }}</td>
+                  <td>
+                    <div class="quick-addr-line">{{ formatAddress(addr) }}</div>
+                    <div class="quick-addr-sub">Người nhận: {{ addr.tenNguoiNhan || '---' }} · SĐT: {{ addr.soDienThoai || '---' }}</div>
+                  </td>
+                  <td>
+                    <span v-if="addr.macDinh" class="quick-default-badge">Mặc định</span>
+                    <span v-else>--</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="quick-form-panel">
+            <div class="quick-panel-title">
+              <i class="fas fa-location-arrow"></i> Thêm nhanh địa chỉ
+            </div>
+
+            <div class="quick-form-grid two-cols">
+              <div class="quick-field">
+                <label>Họ tên người nhận</label>
+                <input v-model="quickAddressForm.tenNguoiNhan" class="form-control" type="text" placeholder="vd: Nguyễn Văn A">
+              </div>
+              <div class="quick-field">
+                <label>Số điện thoại</label>
+                <input v-model="quickAddressForm.soDienThoai" class="form-control" type="text" placeholder="vd: 09xxxxxxxx">
+              </div>
+            </div>
+
+            <div class="quick-form-grid two-cols">
+              <div class="quick-field">
+                <label>Thành phố/Tỉnh</label>
+                <div class="combo-box" @click.stop>
+                  <input
+                    v-model="quickAddressSearch.tinh"
+                    class="form-control combo-input"
+                    type="text"
+                    placeholder="Chọn hoặc nhập tỉnh/thành"
+                    @focus="openQuickDropdown('tinh')"
+                    @input="handleProvinceInput"
+                    @blur="closeQuickDropdown('tinh')"
+                  >
+                  <button type="button" class="combo-toggle" @mousedown.prevent @click="toggleQuickDropdown('tinh')">
+                    <i class="fas fa-chevron-down"></i>
+                  </button>
+                  <ul v-if="quickDropdownOpen.tinh" class="combo-menu">
+                    <li
+                      v-for="p in filteredProvinces"
+                      :key="p.code"
+                      class="combo-item"
+                      @mousedown.prevent="selectProvince(p)"
+                    >
+                      {{ p.name }}
+                    </li>
+                    <li v-if="filteredProvinces.length === 0" class="combo-item combo-empty">Không có kết quả</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="quick-field">
+                <label>Quận/Huyện</label>
+                <div class="combo-box" @click.stop>
+                  <input
+                    v-model="quickAddressSearch.huyen"
+                    class="form-control combo-input"
+                    type="text"
+                    placeholder="Chọn hoặc nhập quận/huyện"
+                    :disabled="!quickAddressForm.tinhId"
+                    @focus="openQuickDropdown('huyen')"
+                    @input="handleDistrictInput"
+                    @blur="closeQuickDropdown('huyen')"
+                  >
+                  <button type="button" class="combo-toggle" :disabled="!quickAddressForm.tinhId" @mousedown.prevent @click="toggleQuickDropdown('huyen')">
+                    <i class="fas fa-chevron-down"></i>
+                  </button>
+                  <ul v-if="quickDropdownOpen.huyen" class="combo-menu">
+                    <li
+                      v-for="d in filteredDistricts"
+                      :key="d.code"
+                      class="combo-item"
+                      @mousedown.prevent="selectDistrict(d)"
+                    >
+                      {{ d.name }}
+                    </li>
+                    <li v-if="filteredDistricts.length === 0" class="combo-item combo-empty">Không có kết quả</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="quick-form-grid two-cols">
+              <div class="quick-field">
+                <label>Phường/Xã</label>
+                <div class="combo-box" @click.stop>
+                  <input
+                    v-model="quickAddressSearch.xa"
+                    class="form-control combo-input"
+                    type="text"
+                    placeholder="Chọn hoặc nhập phường/xã"
+                    :disabled="!quickAddressForm.huyenId"
+                    @focus="openQuickDropdown('xa')"
+                    @input="handleWardInput"
+                    @blur="closeQuickDropdown('xa')"
+                  >
+                  <button type="button" class="combo-toggle" :disabled="!quickAddressForm.huyenId" @mousedown.prevent @click="toggleQuickDropdown('xa')">
+                    <i class="fas fa-chevron-down"></i>
+                  </button>
+                  <ul v-if="quickDropdownOpen.xa" class="combo-menu combo-menu-up">
+                    <li
+                      v-for="w in filteredWards"
+                      :key="w.code"
+                      class="combo-item"
+                      @mousedown.prevent="selectWard(w)"
+                    >
+                      {{ w.name }}
+                    </li>
+                    <li v-if="filteredWards.length === 0" class="combo-item combo-empty">Không có kết quả</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="quick-field">
+                <label>Địa chỉ cụ thể</label>
+                <input v-model="quickAddressForm.diaChiCuThe" class="form-control" type="text" placeholder="Số nhà, đường...">
+              </div>
+            </div>
+
+            <label class="quick-checkbox">
+              <input type="checkbox" v-model="quickAddressForm.macDinh"> Đặt làm địa chỉ mặc định
+            </label>
+
+            <div class="quick-submit-wrap">
+              <button class="btn btn-gradient" :disabled="addingAddress" @click="addQuickAddress">
+                {{ addingAddress ? 'Đang thêm...' : 'Thêm nhanh' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -141,6 +331,7 @@
 import { ref, reactive, onMounted, watch, computed } from 'vue';
 import request from '@/services/request'; 
 import Swal from 'sweetalert2';
+import axios from 'axios';
 import { useRouter } from 'vue-router';
 import { toastSuccess, toastError } from '@/utils/toast';
 
@@ -155,6 +346,128 @@ const API_URL = '/khach-hang';
 const role = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
 const customerCreateRouteName = computed(() => (role === 'STAFF' ? 'staff-customer-create' : 'admin-customer-create'));
 const customerDetailRouteName = computed(() => (role === 'STAFF' ? 'staff-customer-detail' : 'admin-customer-detail'));
+const showAddressModal = ref(false);
+const addressLoading = ref(false);
+const addingAddress = ref(false);
+const selectedCustomer = ref(null);
+const customerAddresses = ref([]);
+const provinces = ref([]);
+const quickDistricts = ref([]);
+const quickWards = ref([]);
+const quickAddressForm = reactive({
+  tenNguoiNhan: '',
+  soDienThoai: '',
+  tinhId: '',
+  huyenId: '',
+  xaId: '',
+  diaChiCuThe: '',
+  macDinh: false
+});
+const quickAddressSearch = reactive({ tinh: '', huyen: '', xa: '' });
+const quickDropdownOpen = reactive({ tinh: false, huyen: false, xa: false });
+
+const normalizeText = (value) => String(value || '')
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .trim();
+
+const filterOptions = (options, keyword) => {
+  const normalizedKeyword = normalizeText(keyword);
+  if (!normalizedKeyword) return options;
+  return options.filter(item => normalizeText(item.name).includes(normalizedKeyword));
+};
+
+const filteredProvinces = computed(() => filterOptions(provinces.value, quickAddressSearch.tinh));
+const filteredDistricts = computed(() => filterOptions(quickDistricts.value, quickAddressSearch.huyen));
+const filteredWards = computed(() => filterOptions(quickWards.value, quickAddressSearch.xa));
+
+const findExactMatchByName = (options, keyword) => options.find(item => normalizeText(item.name) === normalizeText(keyword));
+
+const openQuickDropdown = (type) => {
+  quickDropdownOpen[type] = true;
+};
+
+const closeQuickDropdown = (type) => {
+  setTimeout(() => {
+    quickDropdownOpen[type] = false;
+  }, 120);
+};
+
+const toggleQuickDropdown = (type) => {
+  quickDropdownOpen[type] = !quickDropdownOpen[type];
+};
+
+const resetDistrictAndWard = () => {
+  quickAddressForm.huyenId = '';
+  quickAddressForm.xaId = '';
+  quickAddressSearch.huyen = '';
+  quickAddressSearch.xa = '';
+  quickDistricts.value = [];
+  quickWards.value = [];
+};
+
+const resetWard = () => {
+  quickAddressForm.xaId = '';
+  quickAddressSearch.xa = '';
+  quickWards.value = [];
+};
+
+const selectProvince = async (province) => {
+  quickAddressForm.tinhId = province.code;
+  quickAddressSearch.tinh = province.name;
+  quickDropdownOpen.tinh = false;
+  await onQuickProvinceChange();
+};
+
+const selectDistrict = async (district) => {
+  quickAddressForm.huyenId = district.code;
+  quickAddressSearch.huyen = district.name;
+  quickDropdownOpen.huyen = false;
+  await onQuickDistrictChange();
+};
+
+const selectWard = (ward) => {
+  quickAddressForm.xaId = ward.code;
+  quickAddressSearch.xa = ward.name;
+  quickDropdownOpen.xa = false;
+};
+
+const handleProvinceInput = async () => {
+  quickDropdownOpen.tinh = true;
+  const matched = findExactMatchByName(provinces.value, quickAddressSearch.tinh);
+  if (matched) {
+    if (String(quickAddressForm.tinhId) !== String(matched.code)) {
+      await selectProvince(matched);
+    }
+    return;
+  }
+  if (quickAddressForm.tinhId) {
+    quickAddressForm.tinhId = '';
+    resetDistrictAndWard();
+  }
+};
+
+const handleDistrictInput = async () => {
+  quickDropdownOpen.huyen = true;
+  const matched = findExactMatchByName(quickDistricts.value, quickAddressSearch.huyen);
+  if (matched) {
+    if (String(quickAddressForm.huyenId) !== String(matched.code)) {
+      await selectDistrict(matched);
+    }
+    return;
+  }
+  if (quickAddressForm.huyenId) {
+    quickAddressForm.huyenId = '';
+    resetWard();
+  }
+};
+
+const handleWardInput = () => {
+  quickDropdownOpen.xa = true;
+  const matched = findExactMatchByName(quickWards.value, quickAddressSearch.xa);
+  quickAddressForm.xaId = matched ? matched.code : '';
+};
 
 // FETCH DATA
 const fetchData = async () => {
@@ -242,6 +555,136 @@ const exportExcel = async () => {
 const changePage = (p) => { if (p >= 1 && p <= totalPages.value) { page.value = p; fetchData(); } };
 const handlePageSizeChange = () => { page.value = 1; fetchData(); };
 const viewDetail = (item) => { router.push({ name: customerDetailRouteName.value, params: { id: item.id } }); };
+
+const formatAddress = (addr) => {
+  const street = addr.diaChiCuThe || addr.diaChiNhanHang || '';
+  const ward = addr.phuong || addr.tenXa || '';
+  const district = addr.quan || addr.tenHuyen || '';
+  const city = addr.thanhPho || addr.tenTinh || '';
+  const parts = [street, ward, district, city].filter(part => part && String(part).trim() !== '');
+  return parts.length > 0 ? parts.join(', ') : 'Địa chỉ trống';
+};
+
+const fetchProvinces = async () => {
+  if (provinces.value.length > 0) return;
+  try {
+    const res = await axios.get('https://provinces.open-api.vn/api/?depth=1');
+    provinces.value = res.data || [];
+  } catch (e) {
+    toastError('Không tải được danh mục tỉnh/thành');
+  }
+};
+
+const fetchCustomerAddresses = async () => {
+  if (!selectedCustomer.value?.id) return;
+  addressLoading.value = true;
+  try {
+    const res = await request.get('/dia-chi', { params: { khachHangId: selectedCustomer.value.id } });
+    customerAddresses.value = Array.isArray(res.data) ? res.data : [];
+  } catch (e) {
+    customerAddresses.value = [];
+    toastError('Không tải được sổ địa chỉ');
+  } finally {
+    addressLoading.value = false;
+  }
+};
+
+const resetQuickAddressForm = () => {
+  quickAddressForm.tenNguoiNhan = selectedCustomer.value?.tenKhachHang || '';
+  quickAddressForm.soDienThoai = selectedCustomer.value?.soDienThoai || '';
+  quickAddressForm.tinhId = '';
+  quickAddressForm.huyenId = '';
+  quickAddressForm.xaId = '';
+  quickAddressForm.diaChiCuThe = '';
+  quickAddressForm.macDinh = false;
+  quickAddressSearch.tinh = '';
+  quickAddressSearch.huyen = '';
+  quickAddressSearch.xa = '';
+  quickDropdownOpen.tinh = false;
+  quickDropdownOpen.huyen = false;
+  quickDropdownOpen.xa = false;
+  quickDistricts.value = [];
+  quickWards.value = [];
+};
+
+const openQuickAddressModal = async (customer) => {
+  selectedCustomer.value = customer;
+  showAddressModal.value = true;
+  resetQuickAddressForm();
+  await Promise.all([fetchProvinces(), fetchCustomerAddresses()]);
+};
+
+const closeQuickAddressModal = () => {
+  showAddressModal.value = false;
+  selectedCustomer.value = null;
+  customerAddresses.value = [];
+};
+
+const refreshAddresses = async () => {
+  await fetchCustomerAddresses();
+};
+
+const onQuickProvinceChange = async () => {
+  resetDistrictAndWard();
+
+  if (!quickAddressForm.tinhId) return;
+  try {
+    const res = await axios.get(`https://provinces.open-api.vn/api/p/${quickAddressForm.tinhId}?depth=2`);
+    quickDistricts.value = res.data?.districts || [];
+  } catch (e) {
+    toastError('Không tải được quận/huyện');
+  }
+};
+
+const onQuickDistrictChange = async () => {
+  resetWard();
+
+  if (!quickAddressForm.huyenId) return;
+  try {
+    const res = await axios.get(`https://provinces.open-api.vn/api/d/${quickAddressForm.huyenId}?depth=2`);
+    quickWards.value = res.data?.wards || [];
+  } catch (e) {
+    toastError('Không tải được phường/xã');
+  }
+};
+
+const addQuickAddress = async () => {
+  if (!selectedCustomer.value?.id) return;
+  if (!quickAddressForm.tenNguoiNhan.trim()) return toastError('Thiếu họ tên người nhận');
+  if (!quickAddressForm.soDienThoai.trim()) return toastError('Thiếu số điện thoại');
+  if (!quickAddressForm.tinhId || !quickAddressForm.huyenId || !quickAddressForm.xaId) {
+    return toastError('Vui lòng chọn đầy đủ tỉnh/huyện/xã');
+  }
+
+  const selectedProvince = provinces.value.find(p => String(p.code) === String(quickAddressForm.tinhId));
+  const selectedDistrict = quickDistricts.value.find(d => String(d.code) === String(quickAddressForm.huyenId));
+  const selectedWard = quickWards.value.find(w => String(w.code) === String(quickAddressForm.xaId));
+
+  const payload = {
+    idKhachHang: selectedCustomer.value.id,
+    tenNguoiNhan: quickAddressForm.tenNguoiNhan.trim(),
+    soDienThoai: quickAddressForm.soDienThoai.trim(),
+    thanhPho: selectedProvince?.name || '',
+    quan: selectedDistrict?.name || '',
+    phuong: selectedWard?.name || '',
+    diaChiCuThe: quickAddressForm.diaChiCuThe.trim(),
+    macDinh: quickAddressForm.macDinh,
+    trangThai: 1
+  };
+
+  addingAddress.value = true;
+  try {
+    await request.post('/dia-chi', payload);
+    toastSuccess('Thêm địa chỉ thành công!');
+    await fetchCustomerAddresses();
+    await fetchData();
+    resetQuickAddressForm();
+  } catch (e) {
+    toastError(e.response?.data?.message || 'Không thể thêm địa chỉ');
+  } finally {
+    addingAddress.value = false;
+  }
+};
 
 let searchTimer = null;
 watch(() => filter.keyword, () => {
@@ -358,5 +801,255 @@ input:checked + .slider:before { transform: translateX(16px); }
     color: #000000 !important;  /* Màu đen */
     opacity: 1 !important;      /* Chống mờ */
     font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
+}
+
+.quick-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+
+.quick-modal-card {
+  width: min(1060px, 92vw);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+  overflow: hidden;
+}
+
+.quick-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.quick-title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.quick-title-icon {
+  color: #f97373;
+  margin-top: 2px;
+}
+
+.quick-title {
+  margin: 0;
+  font-size: 22px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.quick-subtitle {
+  margin: 4px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.quick-head-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.quick-head-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+}
+
+.quick-head-btn:hover {
+  background: #f8fafc;
+}
+
+.quick-modal-body {
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr;
+  gap: 14px;
+  padding: 14px;
+}
+
+.quick-list-panel,
+.quick-form-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.quick-panel-title {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  font-weight: 600;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quick-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.quick-table th,
+.quick-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f8fafc;
+  font-size: 13px;
+  color: #334155;
+  vertical-align: top;
+}
+
+.quick-table th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.quick-empty {
+  text-align: center;
+  color: #64748b;
+  padding: 20px;
+}
+
+.quick-addr-line {
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.quick-addr-sub {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.quick-default-badge {
+  display: inline-block;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.quick-form-panel {
+  padding-bottom: 12px;
+}
+
+.quick-form-grid {
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px 0;
+}
+
+.quick-form-grid.two-cols {
+  grid-template-columns: 1fr 1fr;
+}
+
+.quick-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.combo-box {
+  position: relative;
+}
+
+.combo-input {
+  padding-right: 34px;
+}
+
+.combo-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+}
+
+.combo-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.combo-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 180px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  z-index: 25;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+}
+
+.combo-menu-up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.combo-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.combo-item:hover {
+  background: #f1f5f9;
+}
+
+.combo-empty {
+  color: #94a3b8;
+  cursor: default;
+}
+
+.quick-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.quick-submit-wrap {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px;
+}
+
+@media (max-width: 980px) {
+  .quick-modal-body {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-form-grid.two-cols {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

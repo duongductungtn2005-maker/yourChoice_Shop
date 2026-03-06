@@ -48,4 +48,15 @@ public class PhieuGiamGia extends PrimaryEntity {
 
     @Column(name = "trang_thai")
     private Integer trangThai;
+
+    @Column(name = "mo_ta", columnDefinition = "NVARCHAR(MAX)")
+    private String moTa;
+
+    public String getMoTa() {
+        return moTa;
+    }
+
+    public void setMoTa(String moTa) {
+        this.moTa = moTa;
+    }
 }

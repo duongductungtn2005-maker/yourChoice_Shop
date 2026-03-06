@@ -20,8 +20,8 @@ import org.example.yourchoiceshop.repository.MauSacRepository; // Import Repo
 @RequiredArgsConstructor
 @CrossOrigin("*")
 public class MauSacController {
-    private final MauSacServiceImpl service;
     private final MauSacRepository repository; // 1. Tiêm thêm Repository
+    private final MauSacServiceImpl service;
     @GetMapping
     public ResponseEntity<Page<MauSac>> getAll(
             @RequestParam(defaultValue = "0") int page,

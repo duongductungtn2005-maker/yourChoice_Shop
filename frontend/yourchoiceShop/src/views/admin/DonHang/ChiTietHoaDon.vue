@@ -1,3 +1,8 @@
+** Bạn là 1 Senior Frontend Dev .
+** Giao diện phần  Trạng thái đơn hàng đang bị xấu như hình.
+** Bạn hãy sửa các icon trạng thái, đang ở trang thái nào thì chỉ hiện trạng thái hiện tại và các trạng thái trước đó. Khi cập nhật trạng thái tiếp theo mới tiếp tục hiện trạng thái đó.
+
+** Đây là code:
 <template>
   <div class="page-container">
     <div class="header-section">

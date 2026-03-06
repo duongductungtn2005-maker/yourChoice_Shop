@@ -7,10 +7,9 @@
       <div class="card-body">
         <form @submit.prevent="handleSubmit">
           <div class="layout-grid">
-            
+
             <div class="left-col">
-              <h3 class="section-title">Thông tin nhân viên</h3>
-              
+              <h3 class="section-title" style="text-align: center;">Ảnh đại diện</h3>
               <div class="avatar-upload-container">
                 <div class="avatar-preview" @click="triggerFileInput">
                     <img v-if="previewImage" :src="previewImage" alt="Avatar Preview" class="avatar-img">
@@ -21,44 +20,57 @@
                 </div>
                 <input type="file" ref="fileInput" class="hidden-input" accept="image/*" @change="handleFileChange">
               </div>
-
-              <div class="form-group">
-                <label class="required">Họ và tên</label>
-                <input type="text" v-model="employee.tenNhanVien" class="form-control" placeholder="Nhập họ tên">
+              <div class="section-header-row" style="justify-content: center;">
+                 <button type="button" class="btn btn-teal" @click="startScan">
+                   <i class="fas fa-qrcode"></i> Quét QR
+                </button>
               </div>
             </div>
 
             <div class="right-col">
-              <div class="section-header-row">
-                 <h3 class="section-title">Thông tin chi tiết</h3>
-                 <button type="button" class="btn btn-orange" @click="startScan">
-                    <i class="fas fa-qrcode"></i> Quét QR
-                 </button>
-              </div>
+              <h3 class="section-title">Thông tin nhân viên</h3>
+              
               <div class="form-row">
-                <div class="form-group half">
+                 <div class="form-group third">
                     <label class="required">Số điện thoại</label>
                     <input type="text" v-model="employee.soDienThoai" class="form-control">
                  </div>
-                 <div class="form-group half">
+                 <div class="form-group third">
                     <label class="required">Email</label>
                     <input type="email" v-model="employee.email" class="form-control">
                  </div>
               </div>
+              
               <div class="form-row">
-
-                <div class="form-group half">
-                  <label class="required">Giới tính</label>
-                  <div class="radio-group">
-                    <label class="radio-item"><input type="radio" :value="true" v-model="employee.gioiTinh"> Nam</label>
-                    <label class="radio-item"><input type="radio" :value="false" v-model="employee.gioiTinh"> Nữ</label>
-                  </div>
-                </div>
-                <div class="form-group half">
-                  <label class="required">Ngày sinh</label>
-                  <input type="date" v-model="employee.ngaySinh" class="form-control">
-                </div>
+                 <div class="form-group third">
+                    <label class="required">Số CCCD</label>
+                    <input type="number" v-model="employee.cccd" class="form-control">
+                 </div>
+                 <div class="form-group third">
+                    <label class="required">Ngày sinh</label>
+                    <input type="date" v-model="employee.ngaySinh" class="form-control">
+                 </div>
+                 <div class="form-group third">
+                    <label class="required">Giới tính</label>
+                    <div class="radio-group">
+                      <label class="radio-item"><input type="radio" :value="true" v-model="employee.gioiTinh"> Nam</label>
+                      <label class="radio-item"><input type="radio" :value="false" v-model="employee.gioiTinh"> Nữ</label>
+                    </div>
+                 </div>
               </div>
+              <div class="form-row">
+                <div class="form-group third">
+                    <label class="required">Tên tài khoản</label>
+                    <input type="text" v-model="employee.tenTaiKhoan" class="form-control">
+                </div>
+                 <div class="form-group third">
+                   <label class="required">Quyền hạn</label>
+                   <select v-model="employee.chucVu" class="form-control">
+                      <option value="STAFF">Nhân viên</option>
+                      <option value="ADMIN">Quản lý (Admin)</option>
+                   </select>
+                </div>
+                </div>
               <div class="form-row">
                 <div class="form-group third">
                    <label>Tỉnh/Thành</label>
@@ -82,19 +94,12 @@
                    </select>
                 </div>
               </div>
+
               <div class="form-row">
-                
-                <div class="form-group half">
-                   <label class="required">Quyền hạn</label>
-                   <select v-model="employee.chucVu" class="form-control">
-                      <option value="STAFF">Nhân viên</option>
-                      <option value="ADMIN">Quản lý (Admin)</option>
-                   </select>
+                <div class="form-group" style="width: 100%;">
+                   <label class="required">Địa chỉ cụ thể</label>
+                   <input type="text" v-model="employee.diaChiCuThe" class="form-control" placeholder="Số nhà, đường...">
                 </div>
-              </div>
-              <div class="form-group">
-                 <label class="required">Địa chỉ cụ thể</label>
-                 <input type="text" v-model="employee.diaChiCuThe" class="form-control" placeholder="Số nhà, đường...">
               </div>
 
               <div class="form-actions">
@@ -103,8 +108,8 @@
                     {{ isEditMode ? 'Cập nhật' : 'Thêm nhân viên' }}
                  </button>
               </div>
+              </div>
             </div>
-          </div>
         </form>
       </div>
     </div>
@@ -288,12 +293,132 @@ const handleFileChange = (event) => {
   if (file) { selectedFile.value = file; previewImage.value = URL.createObjectURL(file); }
 };
 
-const validateForm = () => {
-    if (!employee.tenNhanVien.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên nhân viên' });
-    if (!employee.cccd) return Toast.fire({ icon: 'warning', title: 'Thiếu số CCCD' });
-    if (!employee.ngaySinh) return Toast.fire({ icon: 'warning', title: 'Thiếu ngày sinh' });
-    if (!employee.soDienThoai) return Toast.fire({ icon: 'warning', title: 'Thiếu số điện thoại' });
-    if (!employee.email) return Toast.fire({ icon: 'warning', title: 'Thiếu Email' });
+const validateForm = async () => {
+    // 1. Kiểm tra Họ và tên
+    if (!employee.tenNhanVien || !employee.tenNhanVien.trim()) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập họ và tên' });
+        return false;
+    }
+
+    // 2. Kiểm tra Ngày sinh và Tuổi (>= 18)
+    if (!employee.ngaySinh) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng chọn ngày sinh' });
+        return false;
+    } else {
+        const today = new Date();
+        const birthDate = new Date(employee.ngaySinh);
+        
+        // Tính tuổi
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        // Nếu chưa tới tháng sinh nhật, hoặc cùng tháng nhưng chưa tới ngày sinh nhật -> trừ đi 1 tuổi
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        
+        if (age < 18) {
+            Toast.fire({ icon: 'warning', title: 'Nhân viên phải từ đủ 18 tuổi trở lên' });
+            return false;
+        }
+    }
+
+    // 3. Kiểm tra Số điện thoại (Regex số điện thoại VN: 10 số, bắt đầu 03, 05, 07, 08, 09)
+    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+    if (!employee.soDienThoai || !employee.soDienThoai.trim()) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập số điện thoại' });
+        return false;
+    } else if (!phoneRegex.test(employee.soDienThoai)) {
+        Toast.fire({ icon: 'warning', title: 'Số điện thoại không hợp lệ' });
+        return false;
+    } else if (employee.soDienThoai.replace(/[^0-9]/g, '').length !== 10) {
+        Toast.fire({ icon: 'warning', title: 'Số điện thoại phải đúng 10 chữ số' });
+        return false;
+    } else {
+        // Kiểm tra trùng số điện thoại
+        try {
+            const idParam = isEditMode.value ? `&id=${route.params.id}` : '';
+            const res = await request.get(`/nhan-vien/xac-thuc/sdt?soDienThoai=${employee.soDienThoai}${idParam}`);
+            if (res.data === true) {
+                Toast.fire({ icon: 'warning', title: 'Số điện thoại này đã có người sử dụng!' });
+                return false;
+            }
+        } catch (error) {
+            console.error('Lỗi khi check trùng SĐT:', error);
+            Toast.fire({ icon: 'error', title: 'Lỗi kết nối khi kiểm tra số điện thoại!' });
+            return false;
+        }
+    }
+
+    // 4. Kiểm tra Email (Regex định dạng email cơ bản)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!employee.email || !employee.email.trim()) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập Email' });
+        return false;
+    } else if (!emailRegex.test(employee.email)) {
+        Toast.fire({ icon: 'warning', title: 'Email không đúng định dạng' });
+        return false;
+    }
+
+    // 5. Kiểm tra Tên tài khoản
+    if (!employee.tenTaiKhoan || !employee.tenTaiKhoan.trim()) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập tên tài khoản' });
+        return false;
+    } else if (/\s/.test(employee.tenTaiKhoan)) {
+        Toast.fire({ icon: 'warning', title: 'Tên tài khoản không được chứa khoảng trắng' });
+        return false;
+    } else {
+        // Gọi API xuống Spring Boot để hỏi xem tài khoản trùng không
+        try {
+            const idParam = isEditMode.value ? `&id=${route.params.id}` : '';
+            
+            // Cập nhật lại đường dẫn mới ở đây 👇
+            const res = await request.get(`/nhan-vien/xac-thuc/tai-khoan?tenTaiKhoan=${employee.tenTaiKhoan}${idParam}`);
+            
+            if (res.data === true) {
+                Toast.fire({ icon: 'warning', title: 'Tên tài khoản này đã có người sử dụng!' });
+                return false;
+            }
+        } catch (error) {
+            console.error("Lỗi khi check trùng tài khoản:", error);
+            Toast.fire({ icon: 'error', title: 'Lỗi kết nối khi kiểm tra tài khoản!' });
+            return false; // BẮT BUỘC PHẢI CÓ DÒNG NÀY ĐỂ CHẶN LƯU
+        }
+    }
+
+    // 6. Kiểm tra CCCD - 12 chữ số
+    if (!employee.cccd || !employee.cccd.toString().trim()) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập số CCCD' });
+        return false;
+    } else if (!/^\d{12}$/.test(employee.cccd.toString().trim())) {
+        Toast.fire({ icon: 'warning', title: 'CCCD phải đúng 12 chữ số' });
+        return false;
+    }
+
+    // 7. Kiểm tra Quyền hạn (Chức vụ)
+    if (!employee.chucVu) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng chọn quyền hạn' });
+        return false;
+    }
+
+    // 7. Kiểm tra Địa chỉ 4 cấp
+    if (!address.provinceId) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng chọn Tỉnh/Thành' });
+        return false;
+    }
+    if (!address.districtId) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng chọn Quận/Huyện' });
+        return false;
+    }
+    if (!address.wardCode) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng chọn Xã/Phường' });
+        return false;
+    }
+    if (!employee.diaChiCuThe || !employee.diaChiCuThe.trim()) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập địa chỉ cụ thể' });
+        return false;
+    }
+
     return true;
 };
 
@@ -312,8 +437,8 @@ const loadEmployeeData = async () => {
 };
 
 const handleSubmit = async () => {
-    // 1. Validate Form
-    if (!validateForm()) return;
+    // 1. Validate Form (Thêm await ở đây 👇)
+    if (!(await validateForm())) return;
 
     // 2. Hiển thị Popup với 2 lựa chọn chính + nút X
     const result = await Swal.fire({
@@ -352,6 +477,7 @@ const handleSubmit = async () => {
 
     try {
         const fd = new FormData();
+        fd.append("tenTaiKhoan", employee.tenTaiKhoan);
         fd.append("tenNhanVien", employee.tenNhanVien); 
         fd.append("cccd", employee.cccd);
         fd.append("email", employee.email); 
@@ -481,5 +607,39 @@ label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px; c
     opacity: 0.5 !important;      /* Chống mờ */
     font-weight: 500;           /* Đậm lên tí cho dễ đọc (tùy chọn) */
 
+}
+.btn-soft-blue {
+    background-color: #e0f2fe; /* Xanh dương pastel */
+    color: #1e3a8a; /* Chữ xanh đen đậm */
+    border: 1px solid #bae6fd;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.btn-soft-blue:hover {
+    background-color: #bae6fd;
+    transform: translateY(-1px);
+}
+.btn-outline-blue {
+    background-color: #ffffff;
+    color: #1e3a8a;
+    border: 2px solid #1e3a8a;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.btn-outline-blue:hover {
+    background-color: #f8fafc; /* Xám rất nhẹ khi hover */
+    box-shadow: 0 4px 6px rgba(30, 58, 138, 0.1);
+}
+.btn-teal {
+    background-color: #10b981; /* Xanh ngọc / Xanh lá */
+    color: #ffffff;
+    border: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.btn-teal:hover {
+    background-color: #059669; /* Đậm hơn khi hover */
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+    transform: translateY(-1px);
 }
 </style>

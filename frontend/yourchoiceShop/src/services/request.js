@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getToken, logout, isAuthenticated, touchSession } from './auth';
 
 const request = axios.create({
     baseURL: 'http://localhost:8080/api/v1',
@@ -7,7 +8,8 @@ const request = axios.create({
 
 request.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token'); 
+        // Kiểm tra phiên còn hiệu lực trước mỗi request
+        const token = getToken();
         if (token) config.headers.Authorization = `Bearer ${token}`;
 
         // Xóa Content-Type nếu là FormData để browser tự xử lý
@@ -22,10 +24,15 @@ request.interceptors.request.use(
 );
 
 request.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // Gia hạn phiên mỗi khi có response thành công
+        touchSession();
+        return response;
+    },
     (error) => {
         if (error.response && error.response.status === 401) {
-            localStorage.removeItem('token');
+            // Xoá toàn bộ auth state (token + role + user + loginTime)
+            logout();
             window.location.href = '/login';
         }
         return Promise.reject(error);

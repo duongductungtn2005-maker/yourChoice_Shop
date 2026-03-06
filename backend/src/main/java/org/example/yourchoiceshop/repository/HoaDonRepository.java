@@ -15,8 +15,9 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
 
         Optional<HoaDon> findByMaHoaDon(String maHoaDon);
 
-        // THÊM DÒNG NÀY ĐỂ TỐI ƯU QUERY KHÁCH HÀNG
-        @EntityGraph(attributePaths = { "khachHang", "nhanVien" })
+        // THÊM DÒNG NÀY ĐỂ TỐI ƯU QUERY KHÁCH HÀNG VÀ HÓA ĐƠN CHI TIẾT
+        // - tránh n+1 query khi lặp qua hd.getHoaDonChiTiets() trong service
+        @EntityGraph(attributePaths = { "khachHang", "nhanVien", "hoaDonChiTiets" })
         @Query("""
                             SELECT h FROM HoaDon h
                             WHERE

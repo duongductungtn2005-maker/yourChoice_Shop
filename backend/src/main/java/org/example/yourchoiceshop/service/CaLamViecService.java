@@ -55,4 +55,21 @@ public class CaLamViecService {
         ca.setTrangThai(trangThai);
         return caLamViecRepository.save(ca);
     }
+    public CaLamViec getById(Integer id) {
+    return caLamViecRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy ca làm việc với ID: " + id));
+}
+// Cập nhật thông tin ca làm việc
+public CaLamViec update(Integer id, CaLamViecRequest request) {
+    CaLamViec ca = caLamViecRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy ca làm việc với ID: " + id));
+
+    ca.setTenCa(request.getTenCa());
+    ca.setThoiGianBatDau(request.getThoiGianBatDau());
+    ca.setThoiGianKetThuc(request.getThoiGianKetThuc());
+    ca.setGhiChu(request.getGhiChu());
+    ca.setTrangThai(request.getTrangThai());
+
+    return caLamViecRepository.save(ca);
+}
 }

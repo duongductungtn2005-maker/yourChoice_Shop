@@ -1,7 +1,9 @@
 package org.example.yourchoiceshop.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.example.yourchoiceshop.dto.request.KhachHangRequest;
 import org.example.yourchoiceshop.entity.DiaChiKhachHang;
@@ -23,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,7 +35,11 @@ public class KhachHangServiceImpl implements KhachHangService {
 
     private final KhachHangRepository khachHangRepository;
     private final EmailService emailService;
+
     private static final String UPLOAD_DIR = "uploads/images/khach-hang/";
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
+    private static final int PASSWORD_LENGTH = 6;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Override
     public Page<KhachHang> findAll(String keyword, Boolean gender, Integer status, Pageable pageable) {
@@ -46,57 +53,71 @@ public class KhachHangServiceImpl implements KhachHangService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng ID: " + id));
     }
 
-    // --- 3. TẠO MỚI (UPDATE LOGIC) ---
+    // =========================
+    // CREATE
+    // =========================
     @Override
     public KhachHang create(KhachHangRequest request) {
-        KhachHang kh = new KhachHang();
-
-        // Map thông tin
-        if (request.getMaKhachHang() == null || request.getMaKhachHang().trim().isEmpty()) {
-            kh.setMaKhachHang("KH" + System.currentTimeMillis());
-        } else {
-            kh.setMaKhachHang(request.getMaKhachHang());
+        if (request == null) {
+            throw new RuntimeException("Dữ liệu khách hàng không hợp lệ");
         }
 
-        kh.setTenKhachHang(request.getTenKhachHang());
-        kh.setSoDienThoai(request.getSoDienThoai());
-        kh.setEmail(request.getEmail());
+        KhachHang kh = new KhachHang();
+
+        String maKh = request.getMaKhachHang() != null ? request.getMaKhachHang().trim() : "";
+        String tenKh = request.getTenKhachHang() != null ? request.getTenKhachHang().trim() : "";
+        String sdt = request.getSoDienThoai() != null ? request.getSoDienThoai().trim() : "";
+        String email = request.getEmail() != null ? request.getEmail().trim() : "";
+        String finalUsername = request.getUsername() != null ? request.getUsername().trim() : "";
+
+        if (tenKh.isEmpty()) throw new RuntimeException("Họ và tên không được để trống");
+        if (finalUsername.isEmpty()) throw new RuntimeException("Tên tài khoản không được để trống");
+
+        // Mã KH
+        kh.setMaKhachHang(maKh.isEmpty() ? ("KH" + System.currentTimeMillis()) : maKh);
+
+        // ✅ CHỈ CHẶN TRÙNG USERNAME
+        if (khachHangRepository.existsByTenTaiKhoanIgnoreCase(finalUsername)) {
+            throw new RuntimeException("Tên tài khoản đã tồn tại");
+        }
+
+        // ✅ (GIỮ) CHẶN TRÙNG SĐT - nếu muốn cho trùng SĐT thì xoá block này
+        if (!sdt.isEmpty() && khachHangRepository.existsBySoDienThoai(sdt)) {
+            throw new RuntimeException("Số điện thoại đã tồn tại");
+        }
+
+        // ✅ EMAIL ĐƯỢC TRÙNG -> KHÔNG CHECK existsByEmail
+        kh.setTenKhachHang(tenKh);
+        kh.setSoDienThoai(sdt.isEmpty() ? null : sdt);
+        kh.setEmail(email.isEmpty() ? null : email);
         kh.setGioiTinh(request.getGioiTinh());
         kh.setNgaySinh(request.getNgaySinh());
         kh.setTrangThai(1);
 
-        // Xử lý Username & Password
-        String finalUsername = (request.getUsername() != null && !request.getUsername().isEmpty())
-                ? request.getUsername() : request.getEmail();
-
-        String rawPassword = (request.getPassword() != null && !request.getPassword().isEmpty())
-                ? request.getPassword() : "123456";
-
+        // Username & Password
+        String rawPassword = generateRandomPassword();
         kh.setTenTaiKhoan(finalUsername);
         kh.setMatKhau(rawPassword);
 
-        // Xử lý ảnh
-        String avatar = saveFile(request.getAvatarFile());
-        kh.setAvatar(avatar);
+        // Avatar
+        kh.setAvatar(saveFile(request.getAvatarFile()));
 
-        // Xử lý địa chỉ (QUAN TRỌNG: Gán cha cho con)
+        // Địa chỉ (gán cha cho con)
         if (request.getListDiaChi() != null && !request.getListDiaChi().isEmpty()) {
             List<DiaChiKhachHang> diaChiList = request.getListDiaChi();
             for (DiaChiKhachHang dc : diaChiList) {
-                dc.setKhachHang(kh); // Gán cha
-                if(dc.getTrangThai() == null) dc.setTrangThai(1);
+                dc.setKhachHang(kh);
+                if (dc.getTrangThai() == null) dc.setTrangThai(1);
             }
             kh.setListDiaChi(diaChiList);
         }
 
-        // Lưu DB
         KhachHang savedKh = khachHangRepository.save(kh);
 
-        // Gửi Mail
-        if (savedKh.getEmail() != null && !savedKh.getEmail().isEmpty()) {
+        // Gửi mail (nếu có email)
+        if (savedKh.getEmail() != null && !savedKh.getEmail().trim().isEmpty()) {
             new Thread(() -> {
                 try {
-                    // Gọi hàm dành riêng cho khách hàng trong EmailService
                     emailService.sendCustomerWelcome(
                             savedKh.getEmail(),
                             savedKh.getTenTaiKhoan(),
@@ -112,40 +133,60 @@ public class KhachHangServiceImpl implements KhachHangService {
         return savedKh;
     }
 
-    // --- 4. CẬP NHẬT (UPDATE LOGIC) ---
+    // =========================
+    // UPDATE
+    // =========================
     @Override
     public KhachHang update(Integer id, KhachHangRequest request) {
+        if (request == null) {
+            throw new RuntimeException("Dữ liệu khách hàng không hợp lệ");
+        }
+
         KhachHang kh = findById(id);
 
-        // Update thông tin cơ bản
-        kh.setTenKhachHang(request.getTenKhachHang());
-        kh.setSoDienThoai(request.getSoDienThoai());
-        kh.setEmail(request.getEmail());
+        String tenKh = request.getTenKhachHang() != null ? request.getTenKhachHang().trim() : "";
+        String sdt = request.getSoDienThoai() != null ? request.getSoDienThoai().trim() : "";
+        String email = request.getEmail() != null ? request.getEmail().trim() : "";
+        String username = request.getUsername() != null ? request.getUsername().trim() : "";
+
+        if (tenKh.isEmpty()) throw new RuntimeException("Họ và tên không được để trống");
+        if (username.isEmpty()) throw new RuntimeException("Tên tài khoản không được để trống");
+
+        // ✅ CHỈ CHẶN TRÙNG USERNAME (ngoại trừ chính nó)
+        if (khachHangRepository.existsByTenTaiKhoanIgnoreCaseAndIdNot(username, id)) {
+            throw new RuntimeException("Tên tài khoản đã tồn tại");
+        }
+
+        // ✅ (GIỮ) CHẶN TRÙNG SĐT (ngoại trừ chính nó)
+        if (!sdt.isEmpty() && khachHangRepository.existsBySoDienThoaiAndIdNot(sdt, id)) {
+            throw new RuntimeException("Số điện thoại đã tồn tại");
+        }
+
+        kh.setTenKhachHang(tenKh);
+        kh.setSoDienThoai(sdt.isEmpty() ? null : sdt);
+        kh.setEmail(email.isEmpty() ? null : email);
         kh.setGioiTinh(request.getGioiTinh());
         kh.setNgaySinh(request.getNgaySinh());
         if (request.getTrangThai() != null) kh.setTrangThai(request.getTrangThai());
+        kh.setTenTaiKhoan(username);
 
+        // Avatar update
         if (request.getAvatarFile() != null && !request.getAvatarFile().isEmpty()) {
             kh.setAvatar(saveFile(request.getAvatarFile()));
         }
 
-        // --- XỬ LÝ ĐỊA CHỈ ---
+        // Địa chỉ: thay thế hoàn toàn list
         if (request.getListDiaChi() != null) {
             List<DiaChiKhachHang> newAddresses = request.getListDiaChi();
 
-            // 1. Chuẩn hóa dữ liệu: Gán cha & Đảm bảo chỉ có 1 cái mặc định
-            // (Frontend gửi lên có thể có 1 cái true, nhưng để chắc chắn ta xử lý lại)
             for (DiaChiKhachHang dc : newAddresses) {
-                dc.setKhachHang(kh); // Quan trọng: Gán cha
-                if(dc.getTrangThai() == null) dc.setTrangThai(1);
+                dc.setKhachHang(kh);
+                if (dc.getTrangThai() == null) dc.setTrangThai(1);
             }
 
-            // 2. Cập nhật danh sách (Thay thế hoàn toàn)
             if (kh.getListDiaChi() == null) {
                 kh.setListDiaChi(new ArrayList<>());
             }
-
-            // Xóa sạch list cũ và thêm list mới (Hibernate tự lo việc delete/insert nhờ orphanRemoval)
             kh.getListDiaChi().clear();
             kh.getListDiaChi().addAll(newAddresses);
         }
@@ -153,6 +194,9 @@ public class KhachHangServiceImpl implements KhachHangService {
         return khachHangRepository.save(kh);
     }
 
+    // =========================
+    // DELETE / STATUS
+    // =========================
     @Override
     public void delete(Integer id) {
         KhachHang kh = findById(id);
@@ -167,6 +211,45 @@ public class KhachHangServiceImpl implements KhachHangService {
         khachHangRepository.save(kh);
     }
 
+    // =========================
+    // USERNAME / PHONE CHECK
+    // =========================
+    @Override
+    public boolean existsByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) return false;
+        return khachHangRepository.existsByTenTaiKhoanIgnoreCase(username.trim());
+    }
+
+    @Override
+    public boolean existsByUsername(String username, Integer excludeId) {
+        if (username == null || username.trim().isEmpty()) return false;
+        if (excludeId == null) return existsByUsername(username);
+        return khachHangRepository.existsByTenTaiKhoanIgnoreCaseAndIdNot(username.trim(), excludeId);
+    }
+
+    @Override
+    public boolean existsBySoDienThoai(String soDienThoai, Integer excludeId) {
+        if (soDienThoai == null || soDienThoai.trim().isEmpty()) return false;
+        if (excludeId == null) return khachHangRepository.existsBySoDienThoai(soDienThoai.trim());
+        return khachHangRepository.existsBySoDienThoaiAndIdNot(soDienThoai.trim(), excludeId);
+    }
+
+    // =========================
+    // AUTH
+    // =========================
+    @Override
+    public boolean authenticateCustomer(String username, String password) {
+        String usernameValue = username != null ? username.trim() : "";
+        String passwordValue = password != null ? password.trim() : "";
+        if (usernameValue.isEmpty() || passwordValue.isEmpty()) return false;
+
+        // NOTE: đang check plain-text theo DB hiện tại
+        return khachHangRepository.existsByTenTaiKhoanIgnoreCaseAndMatKhau(usernameValue, passwordValue);
+    }
+
+    // =========================
+    // EXPORT EXCEL
+    // =========================
     @Override
     public ByteArrayInputStream exportToExcel(String keyword, Boolean gender, Integer status) throws IOException {
         Specification<KhachHang> spec = createSpecification(keyword, gender, status);
@@ -177,28 +260,49 @@ public class KhachHangServiceImpl implements KhachHangService {
             Row headerRow = sheet.createRow(0);
             String[] columns = {"ID", "Mã KH", "Họ Tên", "Email", "SĐT", "Giới tính", "Ngày sinh", "Trạng thái"};
 
-            // ... (Phần style excel giữ nguyên) ...
+            for (int i = 0; i < columns.length; i++) {
+                headerRow.createCell(i).setCellValue(columns[i]);
+            }
 
             int rowIdx = 1;
             for (KhachHang kh : list) {
                 Row row = sheet.createRow(rowIdx++);
-                row.createCell(0).setCellValue(kh.getId());
-                row.createCell(1).setCellValue(kh.getMaKhachHang());
-                row.createCell(2).setCellValue(kh.getTenKhachHang());
-                row.createCell(3).setCellValue(kh.getEmail());
-                row.createCell(4).setCellValue(kh.getSoDienThoai());
-                // ...
+                row.createCell(0).setCellValue(kh.getId() != null ? kh.getId() : 0);
+                row.createCell(1).setCellValue(kh.getMaKhachHang() != null ? kh.getMaKhachHang() : "");
+                row.createCell(2).setCellValue(kh.getTenKhachHang() != null ? kh.getTenKhachHang() : "");
+                row.createCell(3).setCellValue(kh.getEmail() != null ? kh.getEmail() : "");
+                row.createCell(4).setCellValue(kh.getSoDienThoai() != null ? kh.getSoDienThoai() : "");
+                row.createCell(5).setCellValue(kh.getGioiTinh() != null && kh.getGioiTinh() ? "Nam" : "Nữ");
+                row.createCell(6).setCellValue(kh.getNgaySinh() != null ? kh.getNgaySinh().toString() : "");
+                row.createCell(7).setCellValue(kh.getTrangThai() != null && kh.getTrangThai() == 1 ? "Hoạt động" : "Không hoạt động");
             }
+
             workbook.write(out);
             return new ByteArrayInputStream(out.toByteArray());
         }
     }
 
-    // --- Helpers ---
+    // =========================
+    // FIND LIST
+    // =========================
+    @Override
+    public List<KhachHang> findAllList(String keyword, Boolean gender, Integer status) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            keyword = "%" + keyword.trim().toLowerCase() + "%";
+        } else {
+            keyword = null;
+        }
+        return khachHangRepository.searchKhachHang(keyword, gender, status, Pageable.unpaged()).getContent();
+    }
+
+    // =========================
+    // HELPERS
+    // =========================
     private Specification<KhachHang> createSpecification(String keyword, Boolean gender, Integer status) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            if (keyword != null && !keyword.isEmpty()) {
+
+            if (keyword != null && !keyword.trim().isEmpty()) {
                 String likeKey = "%" + keyword.trim() + "%";
                 predicates.add(cb.or(
                         cb.like(root.get("tenKhachHang"), likeKey),
@@ -209,6 +313,7 @@ public class KhachHangServiceImpl implements KhachHangService {
             }
             if (gender != null) predicates.add(cb.equal(root.get("gioiTinh"), gender));
             if (status != null) predicates.add(cb.equal(root.get("trangThai"), status));
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
@@ -216,9 +321,12 @@ public class KhachHangServiceImpl implements KhachHangService {
     private String saveFile(MultipartFile file) {
         if (file == null || file.isEmpty()) return null;
         try {
-            String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
+            String fileName = System.currentTimeMillis() + "_" + original;
+
             Path path = Paths.get(UPLOAD_DIR);
             if (!Files.exists(path)) Files.createDirectories(path);
+
             Files.copy(file.getInputStream(), path.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
             return fileName;
         } catch (IOException e) {
@@ -226,8 +334,12 @@ public class KhachHangServiceImpl implements KhachHangService {
         }
     }
 
-    @Override
-    public List<KhachHang> findAllList(String keyword, Boolean gender, Integer status) {
-        return khachHangRepository.findAll(createSpecification(keyword, gender, status));
+    private String generateRandomPassword() {
+        StringBuilder password = new StringBuilder(PASSWORD_LENGTH);
+        for (int i = 0; i < PASSWORD_LENGTH; i++) {
+            int idx = SECURE_RANDOM.nextInt(PASSWORD_CHARS.length());
+            password.append(PASSWORD_CHARS.charAt(idx));
+        }
+        return password.toString();
     }
 }

@@ -1,5 +1,7 @@
 package org.example.yourchoiceshop.repository;
 
+import java.util.Optional;
+
 import org.example.yourchoiceshop.entity.CaLamViec;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,4 +26,6 @@ public interface CaLamViecRepository extends JpaRepository<CaLamViec, Integer> {
             @Param("endTimeStr") String endTimeStr,
             Pageable pageable
     );
+    Optional<CaLamViec> findFirstByTenCa(String tenCa);
+    boolean existsByTenCa(String tenCa);
 }
