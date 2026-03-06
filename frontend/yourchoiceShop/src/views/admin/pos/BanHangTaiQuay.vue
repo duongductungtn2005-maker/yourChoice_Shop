@@ -31,13 +31,8 @@
 
     <!-- ===== TAB BAR ===== -->
     <div v-if="orderTabs.length" class="order-tabs">
-      <div
-        v-for="tab in orderTabs"
-        :key="tab.id"
-        class="order-tab"
-        :class="{ active: tab.id === activeTabId, disabled: showModal }"
-        @click="!showModal && (activeTabId = tab.id)"
-      >
+      <div v-for="tab in orderTabs" :key="tab.id" class="order-tab"
+        :class="{ active: tab.id === activeTabId, disabled: showModal }" @click="!showModal && (activeTabId = tab.id)">
         <div class="tab-pill">
           <span class="tab-code">{{ tab.maHoaDon || 'Đơn mới' }}</span>
           <span class="tab-meta" v-if="tab.cart?.length">• {{ tab.cart.length }} SP</span>
@@ -54,24 +49,9 @@
           <div class="hero-left">
             <div class="hero-icon">
               <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M7 7h10l1 11H6L7 7Z"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linejoin="round"
-                />
-                <path
-                  d="M9 7a3 3 0 0 1 6 0"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                />
-                <path
-                  d="M8 21h8"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                />
+                <path d="M7 7h10l1 11H6L7 7Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                <path d="M9 7a3 3 0 0 1 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                <path d="M8 21h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
               </svg>
             </div>
 
@@ -149,16 +129,6 @@
 
     <!-- ===== POS MAIN (CHỈ HIỆN KHI CÓ TAB) ===== -->
     <div v-if="currentOrder" class="pos-main-container">
-      <!-- ORDER TYPE TABS -->
-      <div class="order-type-tabs">
-        <div class="tab-item" :class="{ active: orderType === 'TAI_QUAY' }" @click="orderType = 'TAI_QUAY'">
-          Tại quầy
-        </div>
-
-        <div class="tab-item" :class="{ active: orderType === 'ONLINE' }" @click="orderType = 'ONLINE'">
-          Online
-        </div>
-      </div>
 
       <!-- ===== LEFT: CART ===== -->
       <div class="pos-cart">
@@ -258,6 +228,18 @@
       <div class="pos-info">
         <!-- DISCOUNT -->
         <div class="card">
+
+          <!-- ORDER TYPE TABS -->
+          <div class="order-type-toggle">
+            <span :class="{ active: orderType === 'TAI_QUAY' }"></span>
+
+            <label class="switch">
+              <input type="checkbox" v-model="isOnline" @change="toggleOrderType" />
+              <span class="slider"></span>
+            </label>
+
+            <span :class="{ active: orderType === 'ONLINE' }">Online</span>
+          </div>
           <div class="card-header">
             <div class="card-title">
               <h3>Giảm giá</h3>
@@ -339,13 +321,7 @@
 
             <div class="row" v-if="orderType === 'ONLINE'">
               <span>Phí vận chuyển</span>
-              <input
-                type="number"
-                min="0"
-                v-model.number="shippingFee"
-                class="price-col ship-input"
-                placeholder="0"
-              />
+              <input type="number" min="0" v-model.number="shippingFee" class="price-col ship-input" placeholder="0" />
             </div>
 
             <div class="row total-row">
@@ -454,7 +430,9 @@
             </thead>
             <tbody>
               <tr v-for="c in filteredCustomers" :key="c.id">
-                <td class="name-cell"><div class="name-main">{{ c.name }}</div></td>
+                <td class="name-cell">
+                  <div class="name-main">{{ c.name }}</div>
+                </td>
                 <td class="mono">{{ c.phone }}</td>
                 <td>{{ c.email }}</td>
                 <td>
@@ -498,7 +476,9 @@
               <tr v-for="d in filteredDiscounts" :key="d.id">
                 <td><input type="checkbox" v-model="d.checked" /></td>
                 <td class="mono">{{ d.code }}</td>
-                <td class="name-cell"><div class="name-main">{{ d.name }}</div></td>
+                <td class="name-cell">
+                  <div class="name-main">{{ d.name }}</div>
+                </td>
                 <td class="p-price">
                   {{ d.type === 'percent' ? d.value + '%' : formatMoney(d.value) }}
                 </td>
@@ -586,7 +566,9 @@
             <tbody>
               <tr v-for="s in filteredStaffs" :key="s.id">
                 <td class="mono">{{ s.code }}</td>
-                <td class="name-cell"><div class="name-main">{{ s.name }}</div></td>
+                <td class="name-cell">
+                  <div class="name-main">{{ s.name }}</div>
+                </td>
                 <td>
                   <button class="btn-select" @click="selectStaff(s)">Chọn</button>
                 </td>
@@ -1189,10 +1171,13 @@ const note = computed({
   set: v => currentOrder.value && (currentOrder.value.note = v)
 })
 
-const orderType = computed({
-  get: () => currentOrder.value?.orderType || 'TAI_QUAY',
-  set: v => currentOrder.value && (currentOrder.value.orderType = v)
-})
+const orderType = ref('TAI_QUAY')
+
+const isOnline = ref(false)
+
+const toggleOrderType = () => {
+  orderType.value = isOnline.value ? 'ONLINE' : 'TAI_QUAY'
+}
 </script>
 
 <style scoped>
@@ -1206,7 +1191,8 @@ const orderType = computed({
 }
 
 /* nếu layout cha có overflow hidden, cái này giúp body vẫn scroll */
-:global(html), :global(body) {
+:global(html),
+:global(body) {
   height: 100%;
   overflow: auto;
 }
@@ -1228,11 +1214,13 @@ const orderType = computed({
 }
 
 /* giữ vị trí */
-.pos-main-container > .order-type-tabs { grid-column: 1 / -1; }
+.pos-main-container>.order-type-tabs {
+  grid-column: 1 / -1;
+}
 
 /* ✅ 2 cột cuộn độc lập */
-.pos-main-container > .pos-cart,
-.pos-main-container > .pos-info {
+.pos-main-container>.pos-cart,
+.pos-main-container>.pos-info {
   grid-row: 2;
   min-height: 0;
   overflow-y: auto;
@@ -1241,7 +1229,7 @@ const orderType = computed({
 }
 
 /* Sticky cho tabs loại đơn trong khung cuộn */
-.order-type-tabs{
+.order-type-tabs {
   position: sticky;
   top: 0;
   z-index: 5;
@@ -1254,21 +1242,31 @@ const orderType = computed({
     height: auto;
   }
 
-  .pos-main-container > .pos-cart,
-  .pos-main-container > .pos-info {
+  .pos-main-container>.pos-cart,
+  .pos-main-container>.pos-info {
     overflow: visible;
   }
 
-  .pos-main-container > .pos-info { grid-column: 1; }
+  .pos-main-container>.pos-info {
+    grid-column: 1;
+  }
 }
 
 /* ===========================
    PHẦN CSS UI (giữ nguyên của bạn)
    =========================== */
 
-.muted { color: #64748b; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-.mt { margin-top: 12px; }
+.muted {
+  color: #64748b;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.mt {
+  margin-top: 12px;
+}
 
 /* ===== TOP BAR ===== */
 .pos-topbar {
@@ -1289,6 +1287,7 @@ const orderType = computed({
   align-items: center;
   gap: 12px;
 }
+
 .pos-badge {
   width: 46px;
   height: 46px;
@@ -1300,21 +1299,25 @@ const orderType = computed({
   background: linear-gradient(180deg, #eff6ff, #ffffff);
   border: 1px solid #dbeafe;
 }
+
 .pos-title h2 {
   margin: 0;
   font-size: 18px;
   line-height: 1.2;
 }
+
 .pos-sub {
   margin: 2px 0 0;
   font-size: 13px;
   color: #64748b;
 }
+
 .topbar-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .tab-counter {
   display: flex;
   align-items: center;
@@ -1325,6 +1328,7 @@ const orderType = computed({
   background: #fff;
   font-size: 13px;
 }
+
 .dot {
   width: 9px;
   height: 9px;
@@ -1332,6 +1336,7 @@ const orderType = computed({
   background: #cbd5e1;
   box-shadow: 0 0 0 4px rgba(203, 213, 225, 0.25);
 }
+
 .dot.on {
   background: #22c55e;
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.20);
@@ -1353,10 +1358,27 @@ const orderType = computed({
   align-items: center;
   gap: 10px;
 }
-.btn-primary:hover { transform: translateY(-1px); filter: brightness(1.02); }
-.btn-primary:active { transform: translateY(0px); box-shadow: 0 8px 14px rgba(37, 99, 235, 0.18); }
-.btn-primary.big { padding: 12px 16px; font-size: 14px; border-radius: 14px; }
-.btn-icon { font-size: 18px; line-height: 1; }
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+.btn-primary:active {
+  transform: translateY(0px);
+  box-shadow: 0 8px 14px rgba(37, 99, 235, 0.18);
+}
+
+.btn-primary.big {
+  padding: 12px 16px;
+  font-size: 14px;
+  border-radius: 14px;
+}
+
+.btn-icon {
+  font-size: 18px;
+  line-height: 1;
+}
 
 .btn-outline {
   background: #fff;
@@ -1369,7 +1391,11 @@ const orderType = computed({
   cursor: pointer;
   transition: background .12s ease, transform .12s ease;
 }
-.btn-outline:hover { background: #eff6ff; transform: translateY(-1px); }
+
+.btn-outline:hover {
+  background: #eff6ff;
+  transform: translateY(-1px);
+}
 
 /* ===== ORDER TABS ===== */
 .order-tabs {
@@ -1401,7 +1427,7 @@ const orderType = computed({
 }
 
 .order-tab.active {
-  background: linear-gradient(180deg, rgba(37,99,235,0.98), rgba(29,78,216,0.98));
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.98), rgba(29, 78, 216, 0.98));
   border-color: rgba(37, 99, 235, 0.55);
   color: #fff;
 }
@@ -1411,9 +1437,21 @@ const orderType = computed({
   pointer-events: none;
 }
 
-.tab-pill { display: inline-flex; align-items: center; gap: 8px; }
-.tab-code { font-size: 13px; font-weight: 800; }
-.tab-meta { font-size: 12px; opacity: 0.9; }
+.tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-code {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tab-meta {
+  font-size: 12px;
+  opacity: 0.9;
+}
 
 .close-tab {
   width: 26px;
@@ -1428,18 +1466,22 @@ const orderType = computed({
   display: grid;
   place-items: center;
 }
+
 .order-tab.active .close-tab {
-  border-color: rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
 
 /* ===== EMPTY STATE ===== */
-.empty-shell { padding-top: 14px; }
+.empty-shell {
+  padding-top: 14px;
+}
+
 .empty-card {
   border-radius: 18px;
   border: 1px solid rgba(226, 232, 240, 0.9);
-  background: rgba(255,255,255,0.86);
+  background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(10px);
   box-shadow: 0 14px 34px rgba(2, 6, 23, 0.07);
   overflow: hidden;
@@ -1457,6 +1499,7 @@ const orderType = computed({
   margin: 10px 0 6px;
   font-size: 20px;
 }
+
 .hero-left p {
   margin: 0;
   color: #475569;
@@ -1489,59 +1532,93 @@ const orderType = computed({
   color: #64748b;
 }
 
-.hero-right { display: flex; justify-content: flex-end; }
+.hero-right {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .mock {
   width: min(360px, 100%);
   border-radius: 16px;
   border: 1px solid rgba(226, 232, 240, 0.95);
   background: linear-gradient(180deg, #ffffff, #f8fafc);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   overflow: hidden;
 }
+
 .mock-top {
   display: flex;
   gap: 6px;
   padding: 10px 12px;
   border-bottom: 1px solid #e2e8f0;
 }
+
 .mock-dot {
   width: 10px;
   height: 10px;
   border-radius: 999px;
   background: #e2e8f0;
 }
+
 .mock-body {
   padding: 12px;
 }
+
 .mock-row {
   height: 10px;
   border-radius: 999px;
   background: #e2e8f0;
   margin-bottom: 10px;
 }
-.w-80 { width: 80%; }
-.w-70 { width: 70%; }
-.w-60 { width: 60%; }
-.w-50 { width: 50%; }
+
+.w-80 {
+  width: 80%;
+}
+
+.w-70 {
+  width: 70%;
+}
+
+.w-60 {
+  width: 60%;
+}
+
+.w-50 {
+  width: 50%;
+}
+
 .mock-divider {
   height: 1px;
   background: #e2e8f0;
   margin: 14px 0;
 }
+
 .mock-kpi {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 14px;
 }
+
 .kpi {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 10px;
   background: #fff;
 }
-.kpi-label { font-size: 12px; color: #64748b; }
-.kpi-val { font-size: 14px; font-weight: 800; color: #dc2626; margin-top: 2px; }
+
+.kpi-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.kpi-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: #dc2626;
+  margin-top: 2px;
+}
+
 .mock-btn {
   height: 42px;
   border-radius: 12px;
@@ -1557,6 +1634,7 @@ const orderType = computed({
   border-top: 1px solid rgba(226, 232, 240, 0.95);
   background: rgba(248, 250, 252, 0.7);
 }
+
 .step {
   display: flex;
   gap: 10px;
@@ -1565,6 +1643,7 @@ const orderType = computed({
   border: 1px solid rgba(226, 232, 240, 0.9);
   background: rgba(255, 255, 255, 0.8);
 }
+
 .step-no {
   width: 30px;
   height: 30px;
@@ -1576,14 +1655,32 @@ const orderType = computed({
   background: #eff6ff;
   border: 1px solid #dbeafe;
 }
-.step-text { font-size: 13px; }
-.step-text b { display: block; margin-bottom: 2px; }
-.step-text .muted { font-size: 12px; }
+
+.step-text {
+  font-size: 13px;
+}
+
+.step-text b {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.step-text .muted {
+  font-size: 12px;
+}
 
 @media (max-width: 980px) {
-  .empty-hero { grid-template-columns: 1fr; }
-  .hero-right { justify-content: flex-start; }
-  .empty-steps { grid-template-columns: 1fr; }
+  .empty-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-right {
+    justify-content: flex-start;
+  }
+
+  .empty-steps {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ===== ORDER TYPE TABS ===== */
@@ -1593,7 +1690,7 @@ const orderType = computed({
   padding: 10px 10px;
   border-radius: 16px;
   border: 1px solid rgba(226, 232, 240, 0.95);
-  background: rgba(255,255,255,0.85);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
   box-shadow: 0 10px 24px rgba(2, 6, 23, 0.05);
 }
@@ -1609,6 +1706,7 @@ const orderType = computed({
   font-size: 13px;
   transition: all .12s ease;
 }
+
 .tab-item.active {
   background: linear-gradient(180deg, #2563eb, #1d4ed8);
   border-color: rgba(37, 99, 235, 0.55);
@@ -1619,11 +1717,12 @@ const orderType = computed({
 .card {
   border-radius: 16px;
   border: 1px solid rgba(226, 232, 240, 0.95);
-  background: rgba(255,255,255,0.88);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(10px);
   box-shadow: 0 12px 26px rgba(2, 6, 23, 0.06);
   overflow: hidden;
 }
+
 .card-header {
   padding: 14px 14px;
   border-bottom: 1px solid rgba(226, 232, 240, 0.9);
@@ -1632,16 +1731,19 @@ const orderType = computed({
   align-items: center;
   gap: 10px;
 }
+
 .card-title h3 {
   margin: 0;
   font-size: 15px;
   font-weight: 900;
 }
+
 .card-title .muted {
   display: block;
   margin-top: 2px;
   font-size: 12px;
 }
+
 .card-body {
   padding: 14px;
 }
@@ -1664,7 +1766,9 @@ const orderType = computed({
   grid-template-columns: 1fr;
   gap: 10px;
 }
-input, textarea {
+
+input,
+textarea {
   width: 100%;
   box-sizing: border-box;
   padding: 11px 12px;
@@ -1675,24 +1779,35 @@ input, textarea {
   outline: none;
   transition: border-color .12s ease, box-shadow .12s ease;
 }
-textarea { min-height: 92px; resize: vertical; }
-input:focus, textarea:focus {
+
+textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+input:focus,
+textarea:focus {
   border-color: #93c5fd;
   box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.25);
 }
+
 input:disabled {
   background: #f8fafc;
   color: #64748b;
 }
 
 /* ===== TABLE ===== */
-.table-wrap { overflow-x: auto; }
+.table-wrap {
+  overflow-x: auto;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
   background: transparent;
 }
+
 .table thead th {
   font-size: 12px;
   text-transform: none;
@@ -1702,23 +1817,45 @@ input:disabled {
   border-bottom: 1px solid rgba(226, 232, 240, 0.95);
   padding: 10px 8px;
 }
+
 .table td {
   padding: 12px 8px;
   border-bottom: 1px solid rgba(226, 232, 240, 0.85);
   font-size: 13px;
   vertical-align: middle;
 }
+
 .table tbody tr:hover td {
   background: rgba(239, 246, 255, 0.35);
 }
 
-.name-cell { text-align: left; }
-.name-main { font-weight: 800; color: #0f172a; }
-.name-sub { font-size: 12px; }
+.name-cell {
+  text-align: left;
+}
 
-.p-price { color: #dc2626; font-weight: 900; }
-.price-col { text-align: right; font-weight: 900; color: #dc2626; }
-.price-col.total { font-size: 18px; }
+.name-main {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.name-sub {
+  font-size: 12px;
+}
+
+.p-price {
+  color: #dc2626;
+  font-weight: 900;
+}
+
+.price-col {
+  text-align: right;
+  font-weight: 900;
+  color: #dc2626;
+}
+
+.price-col.total {
+  font-size: 18px;
+}
 
 /* ===== ITEM CONTROL ===== */
 .item-control {
@@ -1730,6 +1867,7 @@ input:disabled {
   background: rgba(248, 250, 252, 0.9);
   border: 1px solid rgba(226, 232, 240, 0.95);
 }
+
 .item-control button {
   width: 28px;
   height: 28px;
@@ -1739,8 +1877,17 @@ input:disabled {
   cursor: pointer;
   font-weight: 900;
 }
-.item-control button:disabled { opacity: 0.5; cursor: not-allowed; }
-.item-control span { min-width: 20px; text-align: center; font-weight: 900; }
+
+.item-control button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.item-control span {
+  min-width: 20px;
+  text-align: center;
+  font-weight: 900;
+}
 
 /* ===== EMPTY CART ===== */
 .empty-cart {
@@ -1753,6 +1900,7 @@ input:disabled {
   border: 1px dashed rgba(148, 163, 184, 0.55);
   background: rgba(248, 250, 252, 0.65);
 }
+
 .empty-icon {
   width: 44px;
   height: 44px;
@@ -1763,7 +1911,11 @@ input:disabled {
   border: 1px solid rgba(226, 232, 240, 0.95);
   font-size: 20px;
 }
-.empty-text b { font-size: 14px; }
+
+.empty-text b {
+  font-size: 14px;
+}
+
 .empty-small {
   font-size: 13px;
   color: #64748b;
@@ -1772,7 +1924,10 @@ input:disabled {
 }
 
 /* ===== PAYMENT CARD ===== */
-.payment-card { margin-top: auto; }
+.payment-card {
+  margin-top: auto;
+}
+
 .pay-body .row {
   display: grid;
   grid-template-columns: 1fr 160px;
@@ -1782,19 +1937,25 @@ input:disabled {
   border-bottom: 1px solid rgba(226, 232, 240, 0.75);
   font-size: 13px;
 }
-.pay-body .row:last-of-type { border-bottom: none; }
+
+.pay-body .row:last-of-type {
+  border-bottom: none;
+}
+
 .total-row {
   border-bottom: none !important;
   padding-top: 14px !important;
   margin-top: 6px;
   border-top: 2px dashed rgba(226, 232, 240, 0.95);
 }
+
 .ship-input {
   width: 100%;
   text-align: right;
   font-weight: 900;
   color: #dc2626;
 }
+
 .btn-pay {
   width: 100%;
   padding: 12px 14px;
@@ -1809,8 +1970,16 @@ input:disabled {
   box-shadow: 0 12px 22px rgba(22, 163, 74, 0.22);
   transition: transform .12s ease, filter .12s ease;
 }
-.btn-pay:hover { transform: translateY(-1px); filter: brightness(1.02); }
-.pay-note { margin-top: 10px; font-size: 12px; }
+
+.btn-pay:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+.pay-note {
+  margin-top: 10px;
+  font-size: 12px;
+}
 
 /* ===== REMOVE BUTTON ===== */
 .btn-remove {
@@ -1827,6 +1996,7 @@ input:disabled {
   place-items: center;
   transition: all .12s ease;
 }
+
 .btn-remove:hover {
   background: #dc2626;
   color: #fff;
@@ -1846,7 +2016,7 @@ input:disabled {
 
 .modal-content,
 .payment-modal {
-  background: rgba(255,255,255,0.92);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 18px;
@@ -1859,8 +2029,16 @@ input:disabled {
   padding: 16px;
   width: 560px;
 }
-.modal-content.large { width: 900px; max-width: 95vw; }
-.modal-content.discount-modal { width: 980px; max-width: 95vw; }
+
+.modal-content.large {
+  width: 900px;
+  max-width: 95vw;
+}
+
+.modal-content.discount-modal {
+  width: 980px;
+  max-width: 95vw;
+}
 
 .modal-header-flex {
   display: flex;
@@ -1868,6 +2046,7 @@ input:disabled {
   align-items: center;
   margin-bottom: 10px;
 }
+
 .modal-header-flex h3 {
   margin: 0;
   font-size: 16px;
@@ -1901,7 +2080,7 @@ input:disabled {
   overflow-y: auto;
   border-radius: 14px;
   border: 1px solid rgba(226, 232, 240, 0.9);
-  background: rgba(255,255,255,0.7);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .pagination {
@@ -1912,6 +2091,7 @@ input:disabled {
   margin-top: 12px;
   font-size: 13px;
 }
+
 .pagination button {
   padding: 8px 12px;
   border-radius: 12px;
@@ -1920,7 +2100,11 @@ input:disabled {
   cursor: pointer;
   font-weight: 800;
 }
-.pagination button:disabled { opacity: .5; cursor: not-allowed; }
+
+.pagination button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
 
 .modal-actions {
   display: flex;
@@ -1936,11 +2120,13 @@ input:disabled {
   gap: 10px;
   margin-bottom: 12px;
 }
+
 .price-range span {
   font-size: 13px;
   font-weight: 900;
   color: #334155;
 }
+
 .price-range input {
   width: 160px;
   padding: 9px 10px;
@@ -1949,9 +2135,20 @@ input:disabled {
 }
 
 /* ===== MODAL TABLE ===== */
-.modal-table { table-layout: fixed; }
-.small-table { table-layout: fixed; font-size: 12px; }
-.small-table th, .small-table td { padding: 8px 6px; font-size: 12px; }
+.modal-table {
+  table-layout: fixed;
+}
+
+.small-table {
+  table-layout: fixed;
+  font-size: 12px;
+}
+
+.small-table th,
+.small-table td {
+  padding: 8px 6px;
+  font-size: 12px;
+}
 
 /* select button */
 .btn-select {
@@ -1971,17 +2168,103 @@ input:disabled {
   padding: 16px;
   animation: pop .18s ease;
 }
+
 @keyframes pop {
-  from { transform: translateY(6px) scale(.98); opacity: 0; }
-  to { transform: translateY(0) scale(1); opacity: 1; }
+  from {
+    transform: translateY(6px) scale(.98);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
+
 .payment-tabs {
   display: flex;
   gap: 10px;
   margin-bottom: 12px;
 }
-.payment-tabs .tab-item { flex: 1; text-align: center; }
-.qr-section { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.qr-code img { width: 220px; height: 220px; object-fit: contain; }
-.payment-footer { margin-top: 14px; }
+
+.payment-tabs .tab-item {
+  flex: 1;
+  text-align: center;
+}
+
+.qr-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.qr-code img {
+  width: 220px;
+  height: 220px;
+  object-fit: contain;
+}
+
+.payment-footer {
+  margin-top: 14px;
+}
+
+.order-type-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.order-type-toggle span {
+  color: #9ca3af;
+}
+
+.order-type-toggle span.active {
+  color: #2563eb;
+}
+
+/* SWITCH */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #d1d5db;
+  border-radius: 20px;
+  transition: 0.3s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+.switch input:checked+.slider {
+  background: #2563eb;
+}
+
+.switch input:checked+.slider:before {
+  transform: translateX(24px);
+}
 </style>
