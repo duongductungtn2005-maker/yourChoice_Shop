@@ -4,6 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -211,4 +212,35 @@ public class EmailService {
 
         sendEmail(toEmail, subject, htmlContent, senderName);
     }
+
+    @Async
+    public void sendHtmlEmailWithAttachment(String to, String subject, String htmlBody, byte[] excelData, String fileName, String senderName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8"); // true = multipart (có đính kèm)
+
+            try {
+                helper.setFrom(fromEmail, senderName);
+            } catch (UnsupportedEncodingException e) {
+                helper.setFrom(fromEmail);
+            }
+
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true);
+
+            // Đính kèm file Excel
+            if (excelData != null && excelData.length > 0) {
+                helper.addAttachment(fileName, new ByteArrayResource(excelData));
+            }
+
+            mailSender.send(message);
+            System.out.println("Đã gửi mail + Excel thành công đến: " + to);
+
+        } catch (MessagingException e) {
+            System.err.println("Lỗi gửi mail đính kèm: " + e.getMessage());
+        }
+    }
+
+    
 }

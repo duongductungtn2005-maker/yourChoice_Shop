@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Email_Recipients")
+@Table(name = "danh_ba_email") // FIX ĐÂY: Đổi tên bảng thành tên mới tinh để không bao giờ bị đụng độ nữa
 @Getter
 @Setter
 @NoArgsConstructor
