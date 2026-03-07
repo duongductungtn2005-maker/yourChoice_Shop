@@ -207,23 +207,6 @@
             </div>
           </div>
         </div>
-
-        <!-- STAFF -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <h3>Nhân viên</h3>
-              <span class="muted">Người tạo đơn</span>
-            </div>
-            <button class="btn-outline" @click="openStaffModal">Chọn</button>
-          </div>
-
-          <div class="card-body form-grid">
-            <input :value="staff.code" placeholder="Mã nhân viên" disabled />
-            <input :value="staff.name" placeholder="Tên nhân viên" disabled />
-          </div>
-        </div>
-
         <!-- PAYMENT -->
         <div class="card payment-card">
           <div class="card-header">
@@ -525,6 +508,12 @@ const priceRange = ref([0, 1000000])
 /* ================= ROUTER ================= */
 const router = useRouter()
 
+// Computed để chọn route name dựa trên role
+const orderListRouteName = computed(() => {
+  const role = getRole()
+  return role === 'STAFF' ? 'staff-order-list' : 'admin-order-list'
+})
+
 /* ================= MODAL KHÁCH HÀNG ================= */
 const showCustomerModal = ref(false)
 const customerKeyword = ref('')
@@ -767,6 +756,11 @@ const handleCreateOrder = async () => {
     return
   }
 
+  if (!staff.value.id) {
+    alert('Vui lòng chọn nhân viên!')
+    return
+  }
+
   if (!confirm('Xác nhận tạo hóa đơn?')) return
 
   try {
@@ -810,7 +804,7 @@ const handleCreateOrder = async () => {
       clearOrderTabs()
     }
 
-    router.push({ name: 'admin-order-list' })
+    router.push({ name: orderListRouteName.value })
   } catch (err) {
     console.error(err)
     alert('Lỗi khi tạo hóa đơn!')
@@ -931,6 +925,11 @@ const handleCreateOrderOnline = async () => {
     return
   }
 
+  if (!staff.value.id) {
+    alert('Vui lòng chọn nhân viên!')
+    return
+  }
+
   const payload = {
     tenKhachHang: customer.value.name,
     soDienThoai: customer.value.phone,
@@ -967,7 +966,7 @@ const handleCreateOrderOnline = async () => {
     clearOrderTabs()
   }
 
-  router.push({ name: 'admin-order-list' })
+  router.push({ name: orderListRouteName.value })
 }
 
 const MAX_TABS = 5
@@ -1028,12 +1027,11 @@ const createNewTab = () => {
     return
   }
 
-  // Lấy thông tin nhân viên hiện tại nếu là STAFF
+  // Lấy thông tin nhân viên hiện tại (admin hoặc staff đều là nhân viên)
   const currentUser = getCurrentUser()
-  const currentRole = getRole()
   let staffInfo = { id: null, code: '', name: '' }
   
-  if (currentRole === 'STAFF' && currentUser) {
+  if (currentUser) {
     staffInfo = {
       id: currentUser.id,
       code: currentUser.maNhanVien || '',

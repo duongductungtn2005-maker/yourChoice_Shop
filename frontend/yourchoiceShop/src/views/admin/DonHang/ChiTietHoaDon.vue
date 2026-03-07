@@ -15,7 +15,7 @@
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-outline" @click="$router.push('/admin/orders')">
+        <button class="btn btn-outline" @click="$router.push({ name: orderListRouteName })">
           <font-awesome-icon :icon="['fas', 'arrow-left']" /> Quay lại danh sách
         </button>
       </div>
@@ -498,6 +498,7 @@
 
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { getRole } from '@/services/auth';
 import Swal from 'sweetalert2';
 // Đảm bảo bạn đã cài axios và setup file request
 import request from '@/services/request';
@@ -546,6 +547,12 @@ const editForm = ref({
   sdt: '',
   diaChi: ''
 });
+
+// Computed để chọn route name dựa trên role
+const orderListRouteName = computed(() => {
+  const role = getRole()
+  return role === 'STAFF' ? 'staff-order-list' : 'admin-order-list'
+})
 
 // --- CONSTANTS ---
 const steps = [
@@ -803,7 +810,7 @@ const confirmUpdateStatus = async () => {
 // --- LIFECYCLE ---
 onMounted(() => {
   if (orderId) fetchOrderDetail();
-  else router.push('/admin/orders');
+  else router.push({ name: orderListRouteName.value });
 });
 </script>
 

@@ -118,7 +118,7 @@
 
             <td class="action-col">
               <div class="action-wrapper">
-                <router-link :to="{ name: 'admin-order-detail', params: { id: order.maHoaDon } }" class="icon-btn"
+                <router-link :to="{ name: orderDetailRouteName, params: { id: order.maHoaDon } }" class="icon-btn"
                   title="Xem chi tiết">
                   <i class="far fa-eye"></i>
                 </router-link>
@@ -168,6 +168,7 @@
 import { ref, shallowRef, onMounted, nextTick, computed } from 'vue' // Bổ sung shallowRef
 import { useRouter } from 'vue-router'
 import { fetchOrders, exportOrders } from '@/api/HoaDonApi'
+import { getRole } from '@/services/auth'
 import { Html5QrcodeScanner } from "html5-qrcode"
 import Swal from 'sweetalert2'
 
@@ -184,6 +185,12 @@ const totalPages = ref(1)
 const filter = ref({ keyword: '', fromDate: '', toDate: '', orderType: '', activeTab: 'ALL' })
 const showScanModal = ref(false)
 let html5QrcodeScanner = null
+
+// Computed để chọn route name dựa trên role
+const orderDetailRouteName = computed(() => {
+  const role = getRole()
+  return role === 'STAFF' ? 'staff-order-detail' : 'admin-order-detail'
+})
 
 // 2. TỐI ƯU FORMATTER: Khởi tạo 1 lần duy nhất bên ngoài để tái sử dụng
 const moneyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
@@ -234,7 +241,7 @@ const onScanFailure = (error) => { }
 const onScanSuccess = (decodedText, decodedResult) => {
   closeScanModal();
   if (decodedText) {
-    router.push({ name: 'admin-order-detail', params: { id: decodedText } });
+    router.push({ name: orderDetailRouteName.value, params: { id: decodedText } });
   }
 }
 

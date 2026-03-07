@@ -149,7 +149,7 @@ const router = createRouter({
 
         /* Orders (theo File 1) */
         { path: "orders", name: "staff-order-list", component: () => import("../views/admin/DonHang/QuanLyHoaDon.vue") },
-        { path: "orders/:id", name: "staff-order-detail", component: () => import("../views/admin/DonHang/ChiTietHoadon.vue") },
+        { path: "orders/:id", name: "staff-order-detail", component: () => import("../views/admin/DonHang/ChiTietHoaDon.vue") },
 
         /* Customers */
         { path: "customers", name: "staff-customer-list", component: () => import("../views/admin/customer/CustomerList.vue") },
