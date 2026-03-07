@@ -149,7 +149,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 
 const router = useRouter();
-const role = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
+const role = (sessionStorage.getItem('userRole') || 'ADMIN').toUpperCase();
 const customerListRouteName = role === 'STAFF' ? 'staff-customer-list' : 'admin-customer-list';
 const loading = ref(false);
 const fileInput = ref(null);

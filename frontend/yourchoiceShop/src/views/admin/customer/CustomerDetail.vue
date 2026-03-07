@@ -147,7 +147,7 @@ import axios from 'axios';
 const route = useRoute();
 const router = useRouter();
 const id = route.params.id; // ID Khách hàng
-const role = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
+const role = (sessionStorage.getItem('userRole') || 'ADMIN').toUpperCase();
 const customerListRouteName = role === 'STAFF' ? 'staff-customer-list' : 'admin-customer-list';
 
 // --- STATE KHÁCH HÀNG ---

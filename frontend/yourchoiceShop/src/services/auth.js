@@ -1,9 +1,9 @@
 /**
  * Module quản lý phiên đăng nhập (auth session).
  *
- * - Lưu token + role + thời gian đăng nhập vào localStorage
+ * - Lưu token + role + thời gian đăng nhập vào sessionStorage (mỗi tab độc lập)
  * - Tự động kiểm tra hết hạn (mặc định 8 giờ)
- * - Đồng bộ trạng thái giữa các tab qua StorageEvent
+ * - Mỗi tab có phiên đăng nhập riêng biệt, không ảnh hưởng lẫn nhau
  * - Cung cấp helper isAuthenticated / getRole / login / logout
  */
 
@@ -21,27 +21,27 @@ const SESSION_TTL = 8 * 60 * 60 * 1000
 
 /** Lưu thông tin đăng nhập */
 export function login({ token = 'demo-token', role, user = null } = {}) {
-  localStorage.setItem(TOKEN_KEY, token)
-  localStorage.setItem(ROLE_KEY, role)
-  localStorage.setItem(LOGIN_TIME_KEY, String(Date.now()))
-  if (user) localStorage.setItem(USER_KEY, JSON.stringify(user))
+  sessionStorage.setItem(TOKEN_KEY, token)
+  sessionStorage.setItem(ROLE_KEY, role)
+  sessionStorage.setItem(LOGIN_TIME_KEY, String(Date.now()))
+  if (user) sessionStorage.setItem(USER_KEY, JSON.stringify(user))
 }
 
 /** Xoá toàn bộ thông tin đăng nhập (đồng bộ cả token, role, user, loginTime) */
 export function logout() {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(ROLE_KEY)
-  localStorage.removeItem(USER_KEY)
-  localStorage.removeItem(LOGIN_TIME_KEY)
+  sessionStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(ROLE_KEY)
+  sessionStorage.removeItem(USER_KEY)
+  sessionStorage.removeItem(LOGIN_TIME_KEY)
 }
 
 /** Kiểm tra phiên còn hiệu lực không */
 export function isAuthenticated() {
-  const token = localStorage.getItem(TOKEN_KEY)
-  const role = localStorage.getItem(ROLE_KEY)
+  const token = sessionStorage.getItem(TOKEN_KEY)
+  const role = sessionStorage.getItem(ROLE_KEY)
   if (!token || !role) return false
 
-  const loginTime = Number(localStorage.getItem(LOGIN_TIME_KEY) || 0)
+  const loginTime = Number(sessionStorage.getItem(LOGIN_TIME_KEY) || 0)
   if (!loginTime) return false
 
   // Hết hạn → xoá luôn
@@ -56,26 +56,26 @@ export function isAuthenticated() {
 /** Lấy role đã chuẩn hoá */
 export function getRole() {
   if (!isAuthenticated()) return null
-  return localStorage.getItem(ROLE_KEY)
+  return sessionStorage.getItem(ROLE_KEY)
 }
 
 /** Lấy token */
 export function getToken() {
   if (!isAuthenticated()) return null
-  return localStorage.getItem(TOKEN_KEY)
+  return sessionStorage.getItem(TOKEN_KEY)
 }
 
 /** "Gia hạn" phiên — gọi mỗi khi có tương tác API thành công */
 export function touchSession() {
   if (isAuthenticated()) {
-    localStorage.setItem(LOGIN_TIME_KEY, String(Date.now()))
+    sessionStorage.setItem(LOGIN_TIME_KEY, String(Date.now()))
   }
 }
 
 /** Lấy thông tin user hiện tại */
 export function getCurrentUser() {
   if (!isAuthenticated()) return null
-  const userStr = localStorage.getItem(USER_KEY)
+  const userStr = sessionStorage.getItem(USER_KEY)
   if (!userStr) return null
   try {
     return JSON.parse(userStr)
@@ -116,7 +116,7 @@ export function initCrossTabSync(router) {
 
     // Tab khác đã login → nếu đang ở /login thì redirect
     if (e.key === TOKEN_KEY && e.newValue && router.currentRoute.value.path === '/login') {
-      const role = localStorage.getItem(ROLE_KEY)
+      const role = sessionStorage.getItem(ROLE_KEY)
       if (role) {
         const normalized = normalizeRoleValue(role)
         if (normalized === 'CUSTOMER') router.push('/')

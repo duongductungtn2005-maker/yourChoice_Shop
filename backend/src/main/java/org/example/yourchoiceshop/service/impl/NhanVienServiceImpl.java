@@ -107,14 +107,9 @@ public class NhanVienServiceImpl implements NhanVienService {
             nv.setAnhDaiDien(saveFile(req.getAvatarFile()));
         }
 
-        // Tạo mật khẩu: ADMIN dùng "123456", STAFF dùng random
-        String matKhau;
+        // Luôn tạo mật khẩu ngẫu nhiên cho cả ADMIN và STAFF.
+        String matKhau = generateRandomPassword();
         boolean isAdmin = "ADMIN".equalsIgnoreCase(req.getChucVu());
-        if (isAdmin) {
-            matKhau = "123456";
-        } else {
-            matKhau = generateRandomPassword();
-        }
         nv.setMatKhau(matKhau);
         nv.setTrangThai(1);
 

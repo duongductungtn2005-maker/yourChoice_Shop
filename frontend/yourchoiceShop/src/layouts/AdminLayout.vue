@@ -218,10 +218,10 @@ const normalizeRole = (value) => {
 };
 
 const userRole = computed(() => {
-  const directRole = localStorage.getItem('userRole');
+  const directRole = sessionStorage.getItem('userRole');
   if (directRole) return normalizeRole(directRole);
 
-  const rawUser = localStorage.getItem('user');
+  const rawUser = sessionStorage.getItem('user');
   if (!rawUser) return 'ADMIN';
 
   try {
@@ -246,6 +246,9 @@ const currentUserName = computed(() => {
 });
 
 const userRoleLabel = computed(() => {
+  if (isAdmin.value && currentUserName.value) {
+    return `Admin: ${currentUserName.value}`;
+  }
   if (isAdmin.value) return 'Admin';
   if (isStaff.value && currentUserName.value) {
     return `Nhân viên: ${currentUserName.value}`;

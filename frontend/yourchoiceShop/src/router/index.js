@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router"
-import { isAuthenticated, getRole, initCrossTabSync } from "@/services/auth"
+import { isAuthenticated, getRole } from "@/services/auth"
+// import { initCrossTabSync } from "@/services/auth" // Đã vô hiệu hóa cross-tab sync
 
 /* ================= STATIC IMPORT ================= */
 import CoAoIndex from "../views/admin/attribute/CoAoIndex.vue"
@@ -15,10 +16,10 @@ import ThongKeView from "@/views/admin/dashboard/ThongKeView.vue"
 
 /* ================= ROLE HELPER ================= */
 const getUserRole = () => {
-  const directRole = localStorage.getItem("userRole")
+  const directRole = sessionStorage.getItem("userRole")
   if (directRole) return String(directRole).toUpperCase()
 
-  const rawUser = localStorage.getItem("user")
+  const rawUser = sessionStorage.getItem("user")
   if (!rawUser) return null
 
   try {
@@ -161,8 +162,8 @@ const router = createRouter({
 
 /* ================= NAVIGATION GUARD ================= */
 router.beforeEach((to, from, next) => {
-  // Ưu tiên service auth, fallback qua localStorage
-  const authenticated = isAuthenticated ? isAuthenticated() : !!localStorage.getItem("token")
+  // Ưa tiên service auth, fallback qua sessionStorage
+  const authenticated = isAuthenticated ? isAuthenticated() : !!sessionStorage.getItem("token")
   const roleFromService = authenticated && getRole ? getRole() : null
   const role = normalizeRole(roleFromService || getUserRole())
 
@@ -200,8 +201,9 @@ router.beforeEach((to, from, next) => {
 })
 
 /* ================= CROSS-TAB SYNC ================= */
-if (initCrossTabSync) {
-  initCrossTabSync(router)
-}
+// VÔ HIỆU HÓA đồng bộ tab - mỗi tab hoạt động độc lập
+// if (initCrossTabSync) {
+//   initCrossTabSync(router)
+// }
 
 export default router

@@ -111,14 +111,14 @@ const toggleUserDropdown = () => {
 };
 
 const loadAuthState = () => {
-  userRole.value = String(localStorage.getItem('userRole') || '').toUpperCase();
-  hasToken.value = !!localStorage.getItem('token');
+  userRole.value = String(sessionStorage.getItem('userRole') || '').toUpperCase();
+  hasToken.value = !!sessionStorage.getItem('token');
 };
 
 const handleLogout = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  localStorage.removeItem('userRole');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('userRole');
   isUserDropdownOpen.value = false;
   loadAuthState();
   toastSuccess('Đăng xuất thành công!');
