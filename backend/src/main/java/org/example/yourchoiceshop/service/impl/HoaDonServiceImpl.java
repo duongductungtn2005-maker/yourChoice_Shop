@@ -5,13 +5,16 @@ import org.apache.poi.ss.usermodel.*;
 import org.example.yourchoiceshop.dto.request.CreateOrderRequest;
 import org.example.yourchoiceshop.dto.response.HoaDonDetailResponse;
 import org.example.yourchoiceshop.dto.response.HoaDonResponse;
+import org.example.yourchoiceshop.dto.response.LichSuHoaDonResponse;
 import org.example.yourchoiceshop.entity.ChiTietSanPham;
 import org.example.yourchoiceshop.entity.HoaDon;
 import org.example.yourchoiceshop.entity.HoaDonChiTiet;
+import org.example.yourchoiceshop.entity.LichSuHoaDon;
 import org.example.yourchoiceshop.entity.LichSuThanhToan;
 import org.example.yourchoiceshop.repository.ChiTietSanPhamRepository;
 import org.example.yourchoiceshop.repository.HoaDonChiTietRepository;
 import org.example.yourchoiceshop.repository.HoaDonRepository;
+import org.example.yourchoiceshop.repository.LichSuHoaDonRepository;
 import org.example.yourchoiceshop.repository.LichSuThanhToanRepository;
 import org.example.yourchoiceshop.repository.NhanVienRepository;
 import org.example.yourchoiceshop.service.HoaDonService; // <--- Import Interface này
@@ -42,6 +45,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
     private final ChiTietSanPhamRepository chiTietSanPhamRepo;
     private final NhanVienRepository nhanVienRepo; // Thêm Repository này để lấy tên nhân viên
     private final LichSuThanhToanRepository lichSuThanhToanRepo; // Thêm Repository này để lấy lịch sử thanh toán
+    private final LichSuHoaDonRepository lichSuHoaDonRepo;
 
     @Override // <--- Thêm Override cho chắc chắn
     public Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, LocalDateTime from,
@@ -142,6 +146,14 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         }
         res.setLichSuThanhToan(payments);
 
+        List<LichSuHoaDonResponse> histories = new ArrayList<>();
+        if (hd.getLichSuHoaDons() != null) {
+            histories = hd.getLichSuHoaDons().stream()
+                    .map(LichSuHoaDonResponse::fromEntity)
+                    .collect(Collectors.toList());
+        }
+        res.setLichSuHoaDon(histories);
+
         return res;
     }
 
@@ -167,11 +179,37 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         HoaDon hd = hoaDonRepo.findByMaHoaDon(maHoaDon)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn: " + maHoaDon));
 
-        // 2. Cập nhật trạng thái mới
+        // 2. Lưu trạng thái cũ để tạo lịch sử
+        Integer oldStatus = hd.getTrangThai();
+        
+        // 3. Cập nhật trạng thái mới
         hd.setTrangThai(newStatus);
 
-        // 3. Lưu vào Database
+        // 4. Lưu hóa đơn vào Database
         hoaDonRepo.save(hd);
+        
+        // 5. Tạo lịch sử thay đổi trạng thái
+        LichSuHoaDon history = new LichSuHoaDon();
+        history.setHoaDon(hd);
+        history.setHanhDong("Cập nhật trạng thái từ " + getStatusLabel(oldStatus) + " sang " + getStatusLabel(newStatus));
+        history.setThoiGian(LocalDateTime.now());
+        history.setTrangThai(newStatus);
+        history.setGhiChu("Thay đổi tự động từ hệ thống");
+        
+        lichSuHoaDonRepo.save(history);
+    }
+    
+    private String getStatusLabel(Integer status) {
+        if (status == null) return "Không xác định";
+        return switch(status) {
+            case 0 -> "Đã hủy";
+            case 1 -> "Chờ xác nhận";
+            case 2 -> "Chờ giao hàng";
+            case 3 -> "Đang vận chuyển";
+            case 4 -> "Chờ thanh toán";
+            case 5 -> "Hoàn thành";
+            default -> "Không xác định";
+        };
     }
 
     @Override
@@ -296,6 +334,19 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         ls.setTrangThai(1);
 
         lichSuThanhToanRepo.save(ls);
+        
+        // 5. ✅ TẠO LỊCH SỬ HÓA ĐƠN (Ghi nhận tạo đơn hàng)
+        LichSuHoaDon history = new LichSuHoaDon();
+        history.setHoaDon(hd);
+        history.setHanhDong("Tạo đơn hàng mới");
+        history.setThoiGian(LocalDateTime.now());
+        history.setTrangThai(hd.getTrangThai());
+        history.setGhiChu("Đơn hàng được tạo tại quầy");
+        if (req.getIdNhanVien() != null) {
+            history.setNhanVien(hd.getNhanVien());
+        }
+        
+        lichSuHoaDonRepo.save(history);
     }
 
     @Override
@@ -421,6 +472,19 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
                         .add(phiVanChuyen));
 
         hoaDonRepo.save(hd);
+        
+        // ✅ TẠO LỊCH SỬ HÓA ĐƠN (Ghi nhận tạo đơn hàng online)
+        LichSuHoaDon history = new LichSuHoaDon();
+        history.setHoaDon(hd);
+        history.setHanhDong("Tạo đơn hàng mới");
+        history.setThoiGian(LocalDateTime.now());
+        history.setTrangThai(hd.getTrangThai());
+        history.setGhiChu("Đơn hàng được tạo trực tuyến");
+        if (req.getIdNhanVien() != null) {
+            history.setNhanVien(hd.getNhanVien());
+        }
+        
+        lichSuHoaDonRepo.save(history);
     }
 
     private String convertStatusToText(Integer status) {

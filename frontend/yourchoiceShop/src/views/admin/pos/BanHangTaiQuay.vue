@@ -47,81 +47,7 @@
       <div class="empty-card">
         <div class="empty-hero">
           <div class="hero-left">
-            <div class="hero-icon">
-              <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
-                <path d="M7 7h10l1 11H6L7 7Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-                <path d="M9 7a3 3 0 0 1 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-                <path d="M8 21h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-              </svg>
-            </div>
-
             <h3>Chưa có đơn hàng nào</h3>
-            <p>
-              Tạo đơn mới để bắt đầu thêm sản phẩm, chọn khách hàng, áp dụng phiếu giảm giá và thanh toán.
-            </p>
-
-            <div class="empty-actions">
-              <button class="btn-primary big" @click="createNewTab">
-                <span class="btn-icon">＋</span>
-                <span>Tạo đơn hàng đầu tiên</span>
-              </button>
-              <div class="hint">
-                Mẹo: Bạn có thể mở đồng thời tối đa <b>{{ MAX_TABS }}</b> đơn để xử lý nhanh.
-              </div>
-            </div>
-          </div>
-
-          <div class="hero-right">
-            <div class="mock">
-              <div class="mock-top">
-                <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
-              </div>
-              <div class="mock-body">
-                <div class="mock-row w-80"></div>
-                <div class="mock-row w-60"></div>
-                <div class="mock-row w-70"></div>
-                <div class="mock-row w-50"></div>
-
-                <div class="mock-divider"></div>
-
-                <div class="mock-kpi">
-                  <div class="kpi">
-                    <div class="kpi-label">Tổng tiền</div>
-                    <div class="kpi-val">0₫</div>
-                  </div>
-                  <div class="kpi">
-                    <div class="kpi-label">Giảm giá</div>
-                    <div class="kpi-val">0₫</div>
-                  </div>
-                </div>
-
-                <div class="mock-btn"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="empty-steps">
-          <div class="step">
-            <div class="step-no">1</div>
-            <div class="step-text">
-              <b>Tạo đơn</b>
-              <div class="muted">Nhấn “Tạo đơn hàng” để mở tab mới</div>
-            </div>
-          </div>
-          <div class="step">
-            <div class="step-no">2</div>
-            <div class="step-text">
-              <b>Thêm sản phẩm</b>
-              <div class="muted">Tìm & chọn sản phẩm, điều chỉnh số lượng</div>
-            </div>
-          </div>
-          <div class="step">
-            <div class="step-no">3</div>
-            <div class="step-text">
-              <b>Thanh toán</b>
-              <div class="muted">Chọn hình thức thanh toán và hoàn tất</div>
-            </div>
           </div>
         </div>
       </div>
@@ -129,66 +55,65 @@
 
     <!-- ===== POS MAIN (CHỈ HIỆN KHI CÓ TAB) ===== -->
     <div v-if="currentOrder" class="pos-main-container">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <h3>Sản phẩm trong hóa đơn</h3>
+            <span class="chip" v-if="cart.length">{{ cart.length }} sản phẩm</span>
+          </div>
+          <button class="btn-primary" @click="openProductModal">+ Thêm sản phẩm</button>
+        </div>
 
-      <!-- ===== LEFT: CART ===== -->
-      <div class="pos-cart">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <h3>Sản phẩm trong hóa đơn</h3>
-              <span class="chip" v-if="cart.length">{{ cart.length }} sản phẩm</span>
+        <div class="card-body">
+          <div v-if="cart.length === 0" class="empty-cart">
+            <div class="empty-icon">🛒</div>
+            <div class="empty-text">
+              <b>Giỏ hàng đang trống</b>
+              <div class="muted">Nhấn “Thêm sản phẩm” để bắt đầu</div>
             </div>
-            <button class="btn-primary" @click="openProductModal">+ Thêm sản phẩm</button>
           </div>
 
-          <div class="card-body">
-            <div v-if="cart.length === 0" class="empty-cart">
-              <div class="empty-icon">🛒</div>
-              <div class="empty-text">
-                <b>Giỏ hàng đang trống</b>
-                <div class="muted">Nhấn “Thêm sản phẩm” để bắt đầu</div>
-              </div>
-            </div>
-
-            <div v-else class="table-wrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Mã</th>
-                    <th>Tên</th>
-                    <th>Giá</th>
-                    <th>SL</th>
-                    <th>Thành tiền</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, i) in cart" :key="item.id">
-                    <td class="mono">{{ item.code }}</td>
-                    <td class="name-cell">
-                      <div class="name-main">{{ item.name }}</div>
-                      <div class="name-sub muted" v-if="item.brand || item.material">
-                        {{ item.brand || '—' }} • {{ item.material || '—' }}
-                      </div>
-                    </td>
-                    <td class="p-price">{{ formatMoney(item.price) }}</td>
-                    <td>
-                      <div class="item-control">
-                        <button @click="item.qty--" :disabled="item.qty === 1" title="Giảm">−</button>
-                        <span>{{ item.qty }}</span>
-                        <button @click="item.qty++" title="Tăng">＋</button>
-                      </div>
-                    </td>
-                    <td class="p-price">{{ formatMoney(item.price * item.qty) }}</td>
-                    <td>
-                      <button class="btn-remove" title="Xoá" @click="cart.splice(i, 1)">×</button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <div v-else class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Mã</th>
+                  <th>Tên</th>
+                  <th>Giá</th>
+                  <th>SL</th>
+                  <th>Thành tiền</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, i) in cart" :key="item.id">
+                  <td class="mono">{{ item.code }}</td>
+                  <td class="name-cell">
+                    <div class="name-main">{{ item.name }}</div>
+                    <div class="name-sub muted" v-if="item.brand || item.material">
+                      {{ item.brand || '—' }} • {{ item.material || '—' }}
+                    </div>
+                  </td>
+                  <td class="p-price">{{ formatMoney(item.price) }}</td>
+                  <td>
+                    <div class="item-control">
+                      <button @click="item.qty--" :disabled="item.qty === 1" title="Giảm">−</button>
+                      <span>{{ item.qty }}</span>
+                      <button @click="item.qty++" title="Tăng">＋</button>
+                    </div>
+                  </td>
+                  <td class="p-price">{{ formatMoney(item.price * item.qty) }}</td>
+                  <td>
+                    <button class="btn-remove" title="Xoá" @click="cart.splice(i, 1)">×</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
+      </div>
+      <!-- ===== LEFT: CART ===== -->
+      <div class="pos-cart">
 
         <!-- ===== CUSTOMER ===== -->
         <div class="card mt">
@@ -1200,17 +1125,16 @@ const toggleOrderType = () => {
 /* ✅ tạo “khung” cho POS: 2 cột cuộn riêng */
 .pos-main-container {
   display: grid;
-  grid-template-columns: 1fr 420px;
-  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
   gap: 12px;
   margin-top: 12px;
 
   /* cho phép item co giãn trong grid */
   min-height: 0;
 
-  /* chiều cao làm việc: trừ topbar + tabs + padding.
-     Nếu bạn thấy thiếu/ dư, chỉnh 220-280 là hợp lý */
-  height: calc(100vh - 240px);
+  /* chiều cao làm việc: auto để hiển thị hết nội dung */
+  height: auto;
 }
 
 /* giữ vị trí */
@@ -1218,14 +1142,25 @@ const toggleOrderType = () => {
   grid-column: 1 / -1;
 }
 
-/* ✅ 2 cột cuộn độc lập */
-.pos-main-container>.pos-cart,
-.pos-main-container>.pos-info {
-  grid-row: 2;
-  min-height: 0;
-  overflow-y: auto;
+/* ✅ Sản phẩm FULL WIDTH hàng 1 */
+.pos-main-container > .card:first-child {
+  grid-column: 1 / -1;
+  grid-row: 1;
   overflow-x: hidden;
-  padding-bottom: 6px;
+}
+
+/* Khách hàng - bên trái hàng 2 */
+.pos-main-container>.pos-cart {
+  grid-column: 1;
+  grid-row: 2;
+  overflow-x: hidden;
+}
+
+/* Info - bên phải hàng 2 */
+.pos-main-container>.pos-info {
+  grid-column: 2;
+  grid-row: 2;
+  overflow-x: hidden;
 }
 
 /* Sticky cho tabs loại đơn trong khung cuộn */
@@ -1239,16 +1174,29 @@ const toggleOrderType = () => {
 @media (max-width: 1100px) {
   .pos-main-container {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
     height: auto;
   }
 
-  .pos-main-container>.pos-cart,
-  .pos-main-container>.pos-info {
+  /* Sản phẩm full width hàng 1 */
+  .pos-main-container > .card:first-child {
+    grid-column: 1;
+    grid-row: 1;
     overflow: visible;
   }
 
+  /* Khách hàng full width hàng 2 */
+  .pos-main-container>.pos-cart {
+    grid-column: 1;
+    grid-row: 2;
+    overflow: visible;
+  }
+
+  /* Info full width hàng 3 */
   .pos-main-container>.pos-info {
     grid-column: 1;
+    grid-row: 3;
+    overflow: visible;
   }
 }
 

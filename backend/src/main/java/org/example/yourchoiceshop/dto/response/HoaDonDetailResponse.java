@@ -28,6 +28,7 @@ public class HoaDonDetailResponse {
 
     private ThongTinNhanHang thongTinNhanHang;
     private List<LichSuThanhToanResponse> lichSuThanhToan;
+    private List<LichSuHoaDonResponse> lichSuHoaDon;
     private List<SanPhamHoaDonResponse> sanPhamHoaDon;
 
     @Data

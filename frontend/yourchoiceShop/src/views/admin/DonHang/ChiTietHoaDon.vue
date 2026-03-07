@@ -33,6 +33,9 @@
         <div class="card status-card">
           <div class="card-header-icon">
             <i class="fas fa-truck-fast"></i> <span>Trạng thái đơn hàng</span>
+            <button class="btn-history-icon" @click="showStatusHistoryModal = true" title="Xem lịch sử trạng thái">
+              <i class="fas fa-history"></i>
+            </button>
           </div>
           <div class="timeline-wrapper">
             <div class="steps-container">
@@ -368,6 +371,61 @@
       </div>
     </div>
   </div>
+    <div v-if="showStatusHistoryModal" class="modal-backdrop" @click.self="showStatusHistoryModal = false">
+      <div class="modal-container status-history-modal">
+        <div class="modal-header">
+          <h3 class="modal-title">Lịch sử trạng thái đơn hàng</h3>
+          <button class="close-btn" @click="showStatusHistoryModal = false">×</button>
+        </div>
+        
+        <div class="order-meta-info">
+          <span><strong>Mã đơn:</strong> {{ order.maHoaDon }}</span>
+          <span><strong>Ngày tạo:</strong> {{ formatDate(order.ngayTao) }}</span>
+        </div>
+
+        <div class="status-history-container">
+          <div v-if="!order.lichSuHoaDon || order.lichSuHoaDon.length === 0" class="empty-history">
+            <i class="fas fa-info-circle"></i>
+            <p>Chưa có lịch sử trạng thái</p>
+          </div>
+          <div v-else class="history-list-timeline">
+            <div v-for="(hist, idx) in order.lichSuHoaDon" :key="idx" class="status-history-item">
+              <div class="history-timeline-icon">
+                <i class="fas fa-clock"></i>
+              </div>
+              <div class="history-content">
+                <div class="history-main-action">
+                  {{ hist.hanhDong }}
+                </div>
+                <div class="history-time-info">
+                  <i class="fas fa-calendar-alt"></i> {{ formatDateWithTime(hist.thoiGian) }}
+                </div>
+                <div class="history-details">
+                  <div v-if="hist.tenNhanVien" class="detail-row">
+                    <span class="detail-icon"><i class="fas fa-user"></i></span>
+                    <span class="detail-text">{{ hist.tenNhanVien }}</span>
+                  </div>
+                  <div v-if="hist.trangThai !== undefined && hist.trangThai !== null" class="detail-row">
+                    <span class="detail-icon"><i class="fas fa-exchange-alt"></i></span>
+                    <span class="status-badge" :class="getStatusBadgeClass(hist.trangThai)">
+                      {{ getStatusLabel(hist.trangThai) }}
+                    </span>
+                  </div>
+                </div>
+                <div v-if="hist.ghiChu" class="history-note">
+                  <i class="fas fa-comment"></i> {{ hist.ghiChu }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline" @click="showStatusHistoryModal = false">Đóng</button>
+        </div>
+      </div>
+    </div>
+
   <div v-if="order" id="invoice-print" class="print-only">
     <div class="invoice-header">
       <div class="brand-section">
@@ -454,6 +512,7 @@ const order = ref(null);
 const showPaymentModal = ref(false);
 const paymentMethod = ref('TRANSFER'); // 'TRANSFER' hoặc 'CASH'
 const customerCash = ref(0);
+const showStatusHistoryModal = ref(false);
 const confirmPayment = async () => {
   try {
     const paymentData = {
@@ -511,6 +570,38 @@ const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency',
 const formatDate = (val) => {
   if (!val) return '';
   return new Date(val).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
+const formatDateWithTime = (val) => {
+  if (!val) return '';
+  const date = new Date(val);
+  const time = date.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const dateStr = date.toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return `${time} - ${dateStr}`;
+};
+
+const getStatusLabel = (status) => {
+  const map = {
+    0: 'Đã hủy',
+    1: 'Chờ xác nhận',
+    2: 'Chờ giao hàng',
+    3: 'Đang vận chuyển',
+    4: 'Chờ thanh toán',
+    5: 'Hoàn thành'
+  };
+  return map[status] || 'Không xác định';
+};
+
+const getStatusBadgeClass = (status) => {
+  const map = {
+    0: 'badge-cancel',
+    1: 'badge-pending',
+    2: 'badge-wait',
+    3: 'badge-shipping',
+    4: 'badge-payment',
+    5: 'badge-success'
+  };
+  return map[status] || 'badge-unknown';
 };
 
 const getCurrentStepIndex = (status) => {
@@ -1192,7 +1283,13 @@ onMounted(() => {
   border-radius: 12px;
   width: 400px;
   max-width: 95%;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+
+.modal-container.status-history-modal {
+  padding: 0;
+  width: 520px;
+  max-height: 85vh;
 }
 
 .modal-title {
@@ -1521,6 +1618,14 @@ onMounted(() => {
   font-size: 13px;
 }
 
+.order-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
 .order-meta .label {
   color: #64748b;
   font-size: 12px;
@@ -1529,5 +1634,339 @@ onMounted(() => {
 .order-meta .value {
   font-weight: 600;
   color: #1e293b;
+}
+
+/* Status History Button */
+.card-header-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.btn-history-icon {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-left: auto;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-history-icon:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+/* Status History Modal */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  padding: 16px 20px;
+  margin-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  border-bottom: none;
+}
+
+.modal-header .modal-title {
+  margin: 0;
+  font-size: 18px;
+  color: white;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-header .modal-title::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 20px;
+  background: #0ea5e9;
+  border-radius: 2px;
+}
+
+.modal-header .close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  font-size: 28px;
+  color: white;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+  border-radius: 6px;
+}
+
+.modal-header .close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.order-meta-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  background: #eff6ff;
+  padding: 12px 20px;
+  margin-bottom: 0;
+  font-size: 13px;
+  border-bottom: 1px solid #bfdbfe;
+}
+
+.order-meta-info span {
+  color: #1e40af;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.order-meta-info strong {
+  color: #0c4a6e;
+  font-weight: 600;
+}
+
+.status-history-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  background: white;
+}
+
+.empty-history {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.empty-history i {
+  font-size: 48px;
+  margin-bottom: 12px;
+  color: #cbd5e1;
+}
+
+.empty-history p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.history-list-timeline {
+  position: relative;
+  padding-left: 30px;
+}
+
+.history-list-timeline::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #3b82f6, #93c5fd);
+}
+
+.status-history-item {
+  position: relative;
+  margin-bottom: 24px;
+  padding-bottom: 0;
+}
+
+.status-history-item:last-child {
+  margin-bottom: 0;
+}
+
+.history-timeline-icon {
+  position: absolute;
+  left: -27px;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  border: 3px solid #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #3b82f6;
+  z-index: 1;
+  box-shadow: 0 0 0 4px #f0f9ff;
+}
+
+.history-content {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 14px 16px;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+  transition: all 0.3s ease;
+}
+
+.history-content:hover {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  border-left-color: #1d4ed8;
+  transform: translateX(4px);
+}
+
+.history-main-action {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 14px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.history-time-info {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-time-info i {
+  color: #0ea5e9;
+  font-size: 13px;
+}
+
+.history-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.detail-icon {
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+  font-size: 14px;
+}
+
+.detail-text {
+  color: #475569;
+  font-weight: 500;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 12px;
+  min-width: 120px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-badge.badge-cancel {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #991b1b;
+}
+
+.status-badge.badge-pending {
+  background: linear-gradient(135deg, #fef9c3 0%, #fef3c7 100%);
+  color: #854d0e;
+}
+
+.status-badge.badge-wait {
+  background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+  color: #9a3412;
+}
+
+.status-badge.badge-shipping {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%);
+  color: #075985;
+}
+
+.status-badge.badge-payment {
+  background: linear-gradient(135deg, #fae8ff 0%, #f5d4ff 100%);
+  color: #86198f;
+}
+
+.status-badge.badge-success {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #166534;
+}
+
+.history-note {
+  font-size: 12px;
+  color: #7c3aed;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #f3e8ff;
+  border-radius: 6px;
+  border-left: 3px solid #7c3aed;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.history-note i {
+  margin-top: 2px;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Scrollbar styling */
+.status-history-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.status-history-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.status-history-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.status-history-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 </style>
