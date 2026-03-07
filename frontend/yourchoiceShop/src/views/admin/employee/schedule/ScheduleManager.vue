@@ -25,13 +25,13 @@
           </button>
         </div>
 
-        <button class="btn btn-export" @click="downloadTemplate" style="background-color: #3b82f6; color: white; margin-right: 8px;">
-          <i class="fas fa-download"></i> Tải Template
-        </button>
+        <button class="btn btn-export" @click="downloadTemplate">
+  <i class="fas fa-download"></i> Tải Template
+</button>
 
-        <button class="btn btn-import" @click="triggerFileUpload" style="background-color: #10b981; color: white; margin-right: 8px;">
-          <i class="fas fa-file-excel"></i> Nhập Excel
-        </button>
+<button class="btn btn-import" @click="triggerFileUpload">
+  <i class="fas fa-file-excel"></i> Nhập Excel
+</button>
         <input 
           type="file" 
           ref="fileInput" 
@@ -606,6 +606,71 @@ onMounted(() => {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   overflow: hidden;
+}
+/* Base button chung cho khu action */
+.action-section .btn {
+  border: none;
+  border-radius: 10px;
+  padding: 11px 18px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+/* Tải template - xanh dương sáng, đồng bộ hơn */
+.btn-export {
+  background: linear-gradient(135deg, #4f8cff 0%, #2563eb 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.22);
+}
+
+.btn-export:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.3);
+  filter: brightness(1.02);
+}
+
+/* Nhập excel - xanh lá emerald dịu hơn */
+.btn-import {
+  background: linear-gradient(135deg, #22c55e 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.22);
+}
+
+.btn-import:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(5, 150, 105, 0.3);
+  filter: brightness(1.02);
+}
+
+/* Nút làm mới giữ đồng bộ kích thước */
+.btn-refresh {
+  border: none;
+  border-radius: 10px;
+  padding: 11px 18px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+  transition: all 0.22s ease;
+}
+
+.btn-refresh:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3);
 }
 .toggle-btn {
   padding: 8px 16px;

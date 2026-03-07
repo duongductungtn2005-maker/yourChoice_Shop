@@ -987,10 +987,12 @@ const handleSendNow = async () => {
     endTimeStr = formatExactTime(now); 
   }
 
+  // ĐÃ THÊM FLAG attachExcel ĐỂ BACKEND BIẾT MÀ ĐÍNH KÈM FILE
   const payload = {
     emails: selectedEmailAddresses.value,
     startTime: startTimeStr,
-    endTime: endTimeStr
+    endTime: endTimeStr,
+    attachExcel: true 
   };
 
   isSendingEmail.value = true;
@@ -1180,7 +1182,9 @@ onMounted(() => {
 /* ========================================= */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .modal-content { background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
-.large-modal { width: 750px; max-width: 95%; max-height: 90vh; }
+
+/* FIX Ở ĐÂY: Mở rộng modal từ 750px lên 850px để không dính chữ */
+.large-modal { width: 850px; max-width: 95%; max-height: 90vh; }
 
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #eee; }
 .modal-title { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
@@ -1195,7 +1199,7 @@ onMounted(() => {
 
 /* Fix cứng kích thước tab body */
 .tab-body { 
-  height: 580px; 
+  height: 650px; 
   padding: 24px; 
   overflow-y: auto; 
   display: flex; 

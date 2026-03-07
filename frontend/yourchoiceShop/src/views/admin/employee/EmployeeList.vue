@@ -51,7 +51,6 @@
           <tr>
             <th class="text-center" width="5%">STT</th>
             <th width="8%" class="text-center">Ảnh</th>
-            <th width="10%">Mã NV</th>
             <th width="15%">Tên tài khoản</th>
             <th width="15%">Họ tên</th>
             <th width="10%">SĐT</th>
@@ -64,10 +63,10 @@
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="10" class="text-center empty-state">Đang tải dữ liệu...</td>
+            <td colspan="9" class="text-center empty-state">Đang tải dữ liệu...</td>
           </tr>
           <tr v-else-if="employees.length === 0">
-            <td colspan="10" class="text-center empty-state">Không tìm thấy nhân viên nào.</td>
+            <td colspan="9" class="text-center empty-state">Không tìm thấy nhân viên nào.</td>
           </tr>
 
           <tr v-else v-for="(emp, index) in employees" :key="emp.id">
@@ -83,7 +82,6 @@
               </div>
             </td>
 
-            <td class="code-text">{{ emp.maNhanVien }}</td>
             <td class="name-text">{{ emp.tenTaiKhoan }}</td>
             <td class="name-text">{{ emp.tenNhanVien }}</td>
             <td>{{ emp.soDienThoai }}</td>
