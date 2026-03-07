@@ -146,16 +146,6 @@ public class NhanVienController {
         excelExporter.export(response);
     }
 
-    // Check trùng tài khoản (phục vụ validate create/update)
-    @GetMapping("/xac-thuc/tai-khoan")
-    public ResponseEntity<Boolean> checkTenTaiKhoan(
-            @RequestParam String tenTaiKhoan,
-            @RequestParam(required = false) Integer id
-    ) {
-        boolean isExist = nhanVienService.checkTrungTaiKhoan(tenTaiKhoan, id);
-        return ResponseEntity.ok(isExist);
-    }
-
     // ✅ Check trùng SĐT (File 1 có, File 2 thiếu)
     @GetMapping("/xac-thuc/sdt")
     public ResponseEntity<Boolean> checkSoDienThoai(
@@ -172,7 +162,13 @@ public class NhanVienController {
             @RequestParam String username,
             @RequestParam String password
     ) {
-        boolean authenticated = nhanVienService.authenticateEmployee(username, password);
-        return ResponseEntity.ok(Map.of("authenticated", authenticated));
+        NhanVien employee = nhanVienService.getEmployeeByCredentials(username, password);
+        if (employee != null) {
+            return ResponseEntity.ok(Map.of(
+                "authenticated", true,
+                "employee", employee
+            ));
+        }
+        return ResponseEntity.ok(Map.of("authenticated", false));
     }
 }

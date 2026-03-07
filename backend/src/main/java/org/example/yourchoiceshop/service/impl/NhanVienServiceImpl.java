@@ -260,6 +260,16 @@ public class NhanVienServiceImpl implements NhanVienService {
         return nhanVienRepo.existsByTenTaiKhoanAndMatKhau(usernameValue, passwordValue);
     }
 
+    @Override
+    public NhanVien getEmployeeByCredentials(String username, String password) {
+        String usernameValue = username != null ? username.trim() : "";
+        String passwordValue = password != null ? password.trim() : "";
+        if (usernameValue.isEmpty() || passwordValue.isEmpty()) {
+            return null;
+        }
+        return nhanVienRepo.findByTenTaiKhoanAndMatKhau(usernameValue, passwordValue).orElse(null);
+    }
+
     private String generateRandomPassword() {
         StringBuilder password = new StringBuilder(PASSWORD_LENGTH);
         for (int i = 0; i < PASSWORD_LENGTH; i++) {

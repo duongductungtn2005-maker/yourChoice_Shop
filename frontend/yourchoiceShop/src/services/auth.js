@@ -72,6 +72,25 @@ export function touchSession() {
   }
 }
 
+/** Lấy thông tin user hiện tại */
+export function getCurrentUser() {
+  if (!isAuthenticated()) return null
+  const userStr = localStorage.getItem(USER_KEY)
+  if (!userStr) return null
+  try {
+    return JSON.parse(userStr)
+  } catch {
+    return null
+  }
+}
+
+/** Lấy tên nhân viên/khách hàng hiện tại */
+export function getCurrentUserName() {
+  const user = getCurrentUser()
+  if (!user) return null
+  return user.tenNhanVien || user.tenKhachHang || user.username || null
+}
+
 /* ============================
    CROSS-TAB SYNC
 ============================ */

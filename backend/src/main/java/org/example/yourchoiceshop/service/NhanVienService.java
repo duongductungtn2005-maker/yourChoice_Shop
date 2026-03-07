@@ -18,4 +18,5 @@ public interface NhanVienService {
     List<NhanVien> findAllList(String keyword, Boolean gender, Integer status);
     boolean checkTrungSoDienThoai(String soDienThoai, Integer id);
     boolean authenticateEmployee(String username, String password);
+    NhanVien getEmployeeByCredentials(String username, String password);
 }

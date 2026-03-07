@@ -240,15 +240,18 @@ const authenticateCustomer = async (usernameValue, passwordValue) => {
 const authenticateEmployee = async (usernameValue, passwordValue) => {
   const finalUsername = String(usernameValue || '').trim();
   const finalPassword = String(passwordValue || '').trim();
-  if (!finalUsername || !finalPassword) return false;
+  if (!finalUsername || !finalPassword) return null;
 
   try {
     const response = await request.get('/nhan-vien/authenticate', {
       params: { username: finalUsername, password: finalPassword }
     });
-    return response?.data?.authenticated === true;
+    if (response?.data?.authenticated === true) {
+      return response?.data?.employee || null;
+    }
+    return null;
   } catch {
-    return false;
+    return null;
   }
 };
 
@@ -275,10 +278,13 @@ const handleLogin = async () => {
   }
 
   // 2. Thử đăng nhập Nhân viên (từ database)
-  const isEmployee = await authenticateEmployee(username.value, password.value);
-  if (isEmployee) {
-    authLogin({ role: 'STAFF' });
-    toastSuccess('Đăng nhập thành công!');
+  const employeeData = await authenticateEmployee(username.value, password.value);
+  if (employeeData) {
+    authLogin({ 
+      role: 'STAFF', 
+      user: employeeData 
+    });
+    toastSuccess(`Đăng nhập thành công! Xin chào ${employeeData.tenNhanVien}`);
     router.push('/staff/pos');
     return;
   }

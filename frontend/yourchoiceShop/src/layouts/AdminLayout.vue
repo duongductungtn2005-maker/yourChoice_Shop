@@ -203,7 +203,7 @@
 import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toastSuccess } from '@/utils/toast'; // Nếu chưa có util này, bạn có thể xóa dòng import + dòng toastSuccess(...)
-import { logout as authLogout, getRole } from '@/services/auth';
+import { logout as authLogout, getRole, getCurrentUser, getCurrentUserName } from '@/services/auth';
 
 const route = useRoute();
 const router = useRouter();
@@ -237,7 +237,21 @@ const userRole = computed(() => {
 const isAdmin = computed(() => userRole.value === 'ADMIN');
 const isStaff = computed(() => userRole.value === 'STAFF');
 const basePath = computed(() => (isAdmin.value ? '/admin' : '/staff'));
-const userRoleLabel = computed(() => (isAdmin.value ? 'Admin' : 'Nhân viên'));
+
+const currentUser = computed(() => getCurrentUser());
+const currentUserName = computed(() => {
+  const user = currentUser.value;
+  if (!user) return null;
+  return user.tenNhanVien || user.tenKhachHang || user.username || null;
+});
+
+const userRoleLabel = computed(() => {
+  if (isAdmin.value) return 'Admin';
+  if (isStaff.value && currentUserName.value) {
+    return `Nhân viên: ${currentUserName.value}`;
+  }
+  return 'Nhân viên';
+});
 
 /* =========================
    USER DROPDOWN

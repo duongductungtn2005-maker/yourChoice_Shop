@@ -516,6 +516,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { createOrder } from '@/api/HoaDonApi'
+import { getCurrentUser, getRole } from '@/services/auth'
 
 /* ================= FILTER SẢN PHẨM ================= */
 const productKeyword = ref('')
@@ -1027,13 +1028,26 @@ const createNewTab = () => {
     return
   }
 
+  // Lấy thông tin nhân viên hiện tại nếu là STAFF
+  const currentUser = getCurrentUser()
+  const currentRole = getRole()
+  let staffInfo = { id: null, code: '', name: '' }
+  
+  if (currentRole === 'STAFF' && currentUser) {
+    staffInfo = {
+      id: currentUser.id,
+      code: currentUser.maNhanVien || '',
+      name: currentUser.tenNhanVien || ''
+    }
+  }
+
   const newTab = {
     id: Date.now(),
     maHoaDon: null,
     orderType: 'TAI_QUAY',
     cart: [],
     customer: { name: '', phone: '', email: '', address: '' },
-    staff: { id: null, code: '', name: '' },
+    staff: staffInfo,
     discounts: [],
     shippingFee: 0,
     note: ''

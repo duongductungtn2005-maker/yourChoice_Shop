@@ -31,6 +31,7 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
         boolean existsByTenTaiKhoan(String tenTaiKhoan);
         boolean existsByTenTaiKhoanAndIdNot(String tenTaiKhoan, Integer id);
         boolean existsByTenTaiKhoanAndMatKhau(String tenTaiKhoan, String matKhau);
+        Optional<NhanVien> findByTenTaiKhoanAndMatKhau(String tenTaiKhoan, String matKhau);
 
         // Check trùng Số điện thoại
         boolean existsBySoDienThoai(String soDienThoai);
