@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.security.SecureRandom;
+import java.text.Normalizer;
 
 import org.example.yourchoiceshop.dto.request.EmployeeRequest;
 import org.example.yourchoiceshop.entity.NhanVien;
@@ -77,9 +78,8 @@ public class NhanVienServiceImpl implements NhanVienService {
     public NhanVien create(EmployeeRequest req) {
         NhanVien nv = new NhanVien();
 
-        // Kiểm tra trùng tên tài khoản
-        if (nhanVienRepo.existsByTenTaiKhoan(req.getTenTaiKhoan())) {
-            throw new RuntimeException("Tên tài khoản đã tồn tại");
+        if (req.getTenNhanVien() == null || req.getTenNhanVien().trim().isEmpty()) {
+            throw new RuntimeException("Tên nhân viên không được để trống");
         }
         // Kiểm tra trùng số điện thoại
         if (req.getSoDienThoai() != null && !req.getSoDienThoai().trim().isEmpty()
@@ -89,7 +89,7 @@ public class NhanVienServiceImpl implements NhanVienService {
 
         int randomNum = (int) (Math.floor(Math.random() * 90000) + 10000);
         nv.setMaNhanVien("NV" + randomNum);
-        nv.setTenTaiKhoan(req.getTenTaiKhoan());
+        nv.setTenTaiKhoan(generateUniqueUsername(req.getTenNhanVien()));
         nv.setTenNhanVien(req.getTenNhanVien());
         nv.setEmail(req.getEmail());
         nv.setSoDienThoai(req.getSoDienThoai());
@@ -147,9 +147,8 @@ public class NhanVienServiceImpl implements NhanVienService {
     public NhanVien update(Integer id, EmployeeRequest req) {
         NhanVien nv = findById(id);
 
-        // Kiểm tra trùng tên tài khoản (loại trừ chính mình)
-        if (nhanVienRepo.existsByTenTaiKhoanAndIdNot(req.getTenTaiKhoan(), id)) {
-            throw new RuntimeException("Tên tài khoản đã tồn tại");
+        if (req.getTenNhanVien() == null || req.getTenNhanVien().trim().isEmpty()) {
+            throw new RuntimeException("Tên nhân viên không được để trống");
         }
         // Kiểm tra trùng số điện thoại (loại trừ chính mình)
         if (req.getSoDienThoai() != null && !req.getSoDienThoai().trim().isEmpty()
@@ -157,7 +156,7 @@ public class NhanVienServiceImpl implements NhanVienService {
             throw new RuntimeException("Số điện thoại đã tồn tại");
         }
 
-        nv.setTenTaiKhoan(req.getTenTaiKhoan());
+        nv.setTenTaiKhoan(generateUniqueUsernameForUpdate(req.getTenNhanVien(), id));
         nv.setTenNhanVien(req.getTenNhanVien());
         nv.setEmail(req.getEmail());
         nv.setSoDienThoai(req.getSoDienThoai());
@@ -243,14 +242,6 @@ public class NhanVienServiceImpl implements NhanVienService {
         return nhanVienRepo.searchNhanVien(keyword, status, null, Pageable.unpaged()).getContent();
     }
     @Override
-public boolean checkTrungTaiKhoan(String tenTaiKhoan, Integer id) {
-    if (id == null) {
-        return nhanVienRepo.existsByTenTaiKhoan(tenTaiKhoan);
-    }
-    return nhanVienRepo.existsByTenTaiKhoanAndIdNot(tenTaiKhoan, id);
-}
-
-    @Override
     public boolean checkTrungSoDienThoai(String soDienThoai, Integer id) {
         if (soDienThoai == null || soDienThoai.trim().isEmpty()) return false;
         if (id == null) {
@@ -276,5 +267,44 @@ public boolean checkTrungTaiKhoan(String tenTaiKhoan, Integer id) {
             password.append(PASSWORD_CHARS.charAt(idx));
         }
         return password.toString();
+    }
+
+    private String generateUniqueUsername(String tenNhanVien) {
+        String base = slugifyName(tenNhanVien);
+        String candidate = base;
+        int suffix = 1;
+
+        while (nhanVienRepo.existsByTenTaiKhoan(candidate)) {
+            candidate = base + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    private String generateUniqueUsernameForUpdate(String tenNhanVien, Integer currentId) {
+        String base = slugifyName(tenNhanVien);
+        String candidate = base;
+        int suffix = 1;
+
+        while (nhanVienRepo.existsByTenTaiKhoanAndIdNot(candidate, currentId)) {
+            candidate = base + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    private String slugifyName(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return "nhanvien";
+        }
+
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .toLowerCase();
+
+        String slug = normalized.replaceAll("[^a-z0-9]+", "");
+        return slug.isEmpty() ? "nhanvien" : slug;
     }
 }

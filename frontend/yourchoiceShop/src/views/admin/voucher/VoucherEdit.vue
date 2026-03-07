@@ -4,9 +4,11 @@
        <div class="header-title">
           <h3 style="color: #1e293b">Phiếu giảm giá / Chỉnh sửa phiếu giảm giá</h3>
        </div>
-       <button type="button" @click="$router.go(-1)" class="btn btn-back">
-          <i class="fas fa-arrow-left"></i> Quay lại
-       </button>
+       <div style="display: flex; gap: 10px;">
+           <button type="button" @click="$router.go(-1)" class="btn btn-back">
+              <i class="fas fa-arrow-left"></i> Quay lại
+           </button>
+       </div>
     </div>
 
     <div class="main-content">
@@ -153,6 +155,11 @@
           
           <div class="filter-container">
             <button class="btn-filter-action btn-blue" @click="fetchCustomers">Làm mới</button>
+            
+            <button class="btn-filter-action btn-outline-mail" @click="confirmSendMailDirect">
+              <i class="far fa-envelope"></i> Gửi Mail
+            </button>
+
             <input 
               v-model="custFilter.ten" 
               @keyup.enter="searchCustomers"
@@ -248,7 +255,6 @@ const router = useRouter();
 const route = useRoute();
 const voucherId = route.params.id; 
 
-// --- CẤU HÌNH TOAST ---
 const Toast = Swal.mixin({
   toast: true,
   position: 'top-end',
@@ -261,7 +267,6 @@ const Toast = Swal.mixin({
   }
 });
 
-// --- STATE VOUCHER ---
 const isUnlimited = ref(false); 
 
 const form = ref({
@@ -280,7 +285,6 @@ const form = ref({
   moTa: ''
 });
 
-// --- STATE KHÁCH HÀNG ---
 const customers = ref([]);
 const selectedCustomerIds = ref([]);
 const loadingCust = ref(false);
@@ -295,7 +299,6 @@ const custFilter = reactive({
     trangThai: ''
 });
 
-// --- HELPER FORMAT ---
 const formatCurrency = (value) => {
     if (!value && value !== 0) return '0 đ';
     return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
@@ -327,13 +330,11 @@ const validateSoLuong = () => {
     }
 };
 
-// --- HÀM TÌM KIẾM MỚI (Reset page về 0) ---
 const searchCustomers = () => {
     custPage.value = 0;
     fetchCustomers();
 };
 
-// --- API FETCH DỮ LIỆU ---
 const fetchVoucherDetail = async () => {
     try {
         const res = await request.get(`/phieu-giam-gia/${voucherId}`);
@@ -371,16 +372,15 @@ const fetchVoucherDetail = async () => {
 const fetchCustomers = async () => {
     loadingCust.value = true;
     try {
-        // Gộp tên hoặc SĐT vào keyword
         const searchKeyword = custFilter.ten.trim() !== '' ? custFilter.ten : custFilter.sdt.trim();
 
         const res = await request.get('/khach-hang/thong-ke', {
             params: {
                 page: custPage.value,
                 size: custPageSize.value,
-                keyword: searchKeyword, // Dành cho Backend nhận keyword
-                ten: custFilter.ten,    // Dành cho Backend nhận param riêng lẻ
-                sdt: custFilter.sdt,    // Dành cho Backend nhận param riêng lẻ
+                keyword: searchKeyword, 
+                ten: custFilter.ten,    
+                sdt: custFilter.sdt,    
                 trangThai: custFilter.trangThai === '' ? null : custFilter.trangThai
             }
         });
@@ -447,7 +447,7 @@ watch(() => form.value.kieu, (newVal) => {
     }
 });
 
-// --- SUBMIT UPDATE ---
+// HÀM LƯU THAY ĐỔI (CHỈ LƯU VÀO DB, KHÔNG HỎI GỬI MAIL NỮA)
 const submitForm = async () => {
   try {
     if (!form.value.tenPhieuGiamGia || form.value.tenPhieuGiamGia.trim() === '') {
@@ -486,25 +486,7 @@ const submitForm = async () => {
     if (payload.kieu === 'CaNhan') {
         payload.customerIds = selectedCustomerIds.value;
         payload.soLuong = selectedCustomerIds.value.length;
-    }
-
-    if (payload.kieu === 'CaNhan') {
-        const confirmResult = await Swal.fire({
-            title: 'Xác nhận cập nhật',
-            text: 'Bạn có muốn thông báo mail cho khách hàng được chọn không?',
-            icon: 'question',
-            showDenyButton: true,
-            showCancelButton: true,
-            confirmButtonText: 'Có gửi',
-            denyButtonText: 'Không gửi',
-            cancelButtonText: 'Hủy bỏ',
-            confirmButtonColor: '#2563eb',
-            denyButtonColor: '#f59e0b',
-            reverseButtons: false
-        });
-
-        if (confirmResult.isDismissed) return;
-        payload.sendEmail = confirmResult.isConfirmed; 
+        payload.sendEmail = false; // Mặc định không gửi mail qua luồng lưu này
     }
 
     await request.put(`/phieu-giam-gia/${voucherId}`, payload);
@@ -517,6 +499,48 @@ const submitForm = async () => {
   }
 };
 
+// HÀM GỬI MAIL TRỰC TIẾP (HIỆN POPUP CÓ/HỦY)
+const confirmSendMailDirect = async () => {
+    if (selectedCustomerIds.value.length === 0) {
+        return Toast.fire({ icon: 'warning', title: 'Vui lòng chọn ít nhất 1 khách hàng để gửi mail' });
+    }
+
+    const result = await Swal.fire({
+        title: 'Xác nhận gửi mail',
+        text: 'Bạn có muốn gửi gmail cho các khách hàng đã chọn không?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Có',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#f59e0b',
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const res = await request.get(`/phieu-giam-gia/${voucherId}/customers`).catch(() => ({data: []}));
+        const savedCustomers = res.data || [];
+
+        const emailMap = {};
+        savedCustomers.forEach(c => emailMap[c.id] = c.email);
+        customers.value.forEach(c => emailMap[c.id] = c.email);
+
+        const emailsToSend = selectedCustomerIds.value
+            .map(id => emailMap[id])
+            .filter(email => email);
+
+        if (emailsToSend.length === 0) {
+            return Toast.fire({ icon: 'warning', title: 'Vui lòng Lưu thay đổi (để cập nhật ID mới) trước khi gửi mail nhé!' });
+        }
+
+        await request.post(`/phieu-giam-gia/${voucherId}/send-mail`, { emails: emailsToSend });
+        Toast.fire({ icon: 'success', title: 'Đã gửi mail thành công!' }); 
+    } catch(e) { 
+        Toast.fire({ icon: 'error', title: 'Có lỗi khi gửi mail' }); 
+    }
+};
+
 onMounted(() => {
     fetchVoucherDetail();
     fetchCustomers();
@@ -526,20 +550,21 @@ onMounted(() => {
 <style scoped>
 .page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #ebecee; min-height: 100vh; }
 
-/* HEADER */
 .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .header-title h3 { font-weight: 700; color: #2b4360; font-size: 24px; margin: 0; }
 .btn-back { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);  color: #ffffff; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.2s; border: none;}
 .btn-back:hover { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #ffffff; }
 
-/* === MAIN CONTENT === */
+/* CSS cho nút Gửi mail - Dùng chung màu trắng xám */
+.btn-outline-mail { background: #fff; border: 1px solid #cbd5e1; color: #475569; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+.btn-outline-mail:hover { background: #f8fafc; border-color: #3b82f6; color: #3b82f6; }
+
 .main-content {
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
-/* === CARD STYLES === */
 .card { 
     background: #fff; 
     padding: 24px; 
@@ -555,7 +580,6 @@ onMounted(() => {
 .mb-2 { margin-bottom: 0.5rem; }
 .mb-0 { margin-bottom: 0 !important; }
 
-/* FORM ELEMENTS */
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #334155; font-size: 13px; }
 .required { color: #ef4444; }
@@ -578,7 +602,6 @@ onMounted(() => {
 .radio-item { display: flex; align-items: center; cursor: pointer; font-size: 14px; }
 .radio-item input { margin-right: 8px; accent-color: #0f172a; width: 16px; height: 16px; }
 
-/* === TOGGLE SWITCH CSS === */
 .label-row {
     display: flex;
     justify-content: space-between;
@@ -636,7 +659,6 @@ input:checked + .slider:before {
   transform: translateX(16px);
 }
 
-/* Nút Submit */
 .btn-submit { 
     width: 100%; 
     background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); 
@@ -653,11 +675,9 @@ input:checked + .slider:before {
 }
 .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.4); }
 
-/* === RIGHT PANEL (CUSTOMER LIST) CẬP NHẬT === */
 .panel-header { margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
 .selected-text { color: #64748b; font-size: 14px; }
 
-/* Filter Container */
 .filter-container {
     display: flex;
     gap: 10px;
@@ -695,7 +715,6 @@ input:checked + .slider:before {
     padding: 8px;
 }
 
-/* Table Area */
 .customer-list { 
     max-height: 500px; 
     overflow-x: auto; 
@@ -736,7 +755,6 @@ input:checked + .slider:before {
 .cust-info { font-size: 13px; color: #475569; }
 .text-primary { color: #2563eb; }
 
-/* Footer Right Panel */
 .panel-footer { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
 .mini-pagination { display: flex; align-items: center; gap: 10px; }
 .mini-btn { width: 28px; height: 28px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; cursor: pointer; }

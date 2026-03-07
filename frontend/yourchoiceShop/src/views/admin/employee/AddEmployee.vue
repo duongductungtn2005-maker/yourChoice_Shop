@@ -43,10 +43,6 @@
               
               <div class="form-row">
                  <div class="form-group third">
-                    <label class="required">Số CCCD</label>
-                    <input type="number" v-model="employee.cccd" class="form-control">
-                 </div>
-                 <div class="form-group third">
                     <label class="required">Ngày sinh</label>
                     <input type="date" v-model="employee.ngaySinh" class="form-control">
                  </div>
@@ -60,8 +56,8 @@
               </div>
               <div class="form-row">
                 <div class="form-group third">
-                    <label class="required">Tên tài khoản</label>
-                    <input type="text" v-model="employee.tenTaiKhoan" class="form-control">
+                    <label>Tên tài khoản (tự sinh theo tên)</label>
+                                        <input type="text" :value="generatedUsername" class="form-control" readonly>
                 </div>
                  <div class="form-group third">
                    <label class="required">Quyền hạn</label>
@@ -136,6 +132,7 @@ import Swal from 'sweetalert2'; // Import thư viện
 const router = useRouter();
 const route = useRoute(); 
 const isEditMode = computed(() => !!route.params.id);
+const generatedUsername = computed(() => buildUsernameFromName(employee.tenNhanVien));
 
 // --- STATE ---
 const employee = reactive({ 
@@ -173,6 +170,14 @@ const normalizeName = (str) => {
     // Bỏ các từ hành chính thông dụng
     clean = clean.replace(/(tỉnh|thành phố|tp\.?|quận|huyện|thị xã|tx\.?|xã|phường|thị trấn|tt\.?)\s*/g, '');
     return removeAccents(clean).trim();
+};
+
+const buildUsernameFromName = (name) => {
+    if (!name || !name.trim()) return "";
+    return removeAccents(name)
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '');
 };
 
 // Hàm tìm Code trong danh sách
@@ -360,42 +365,13 @@ const validateForm = async () => {
         return false;
     }
 
-    // 5. Kiểm tra Tên tài khoản
-    if (!employee.tenTaiKhoan || !employee.tenTaiKhoan.trim()) {
-        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập tên tài khoản' });
-        return false;
-    } else if (/\s/.test(employee.tenTaiKhoan)) {
-        Toast.fire({ icon: 'warning', title: 'Tên tài khoản không được chứa khoảng trắng' });
-        return false;
-    } else {
-        // Gọi API xuống Spring Boot để hỏi xem tài khoản trùng không
-        try {
-            const idParam = isEditMode.value ? `&id=${route.params.id}` : '';
-            
-            // Cập nhật lại đường dẫn mới ở đây 👇
-            const res = await request.get(`/nhan-vien/xac-thuc/tai-khoan?tenTaiKhoan=${employee.tenTaiKhoan}${idParam}`);
-            
-            if (res.data === true) {
-                Toast.fire({ icon: 'warning', title: 'Tên tài khoản này đã có người sử dụng!' });
-                return false;
-            }
-        } catch (error) {
-            console.error("Lỗi khi check trùng tài khoản:", error);
-            Toast.fire({ icon: 'error', title: 'Lỗi kết nối khi kiểm tra tài khoản!' });
-            return false; // BẮT BUỘC PHẢI CÓ DÒNG NÀY ĐỂ CHẶN LƯU
-        }
-    }
-
-    // 6. Kiểm tra CCCD - 12 chữ số
-    if (!employee.cccd || !employee.cccd.toString().trim()) {
-        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập số CCCD' });
-        return false;
-    } else if (!/^\d{12}$/.test(employee.cccd.toString().trim())) {
-        Toast.fire({ icon: 'warning', title: 'CCCD phải đúng 12 chữ số' });
+    // 5. Tên tài khoản tự sinh từ họ tên
+    if (!generatedUsername.value) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập họ tên để tạo tài khoản tự động' });
         return false;
     }
 
-    // 7. Kiểm tra Quyền hạn (Chức vụ)
+    // 6. Kiểm tra Quyền hạn (Chức vụ)
     if (!employee.chucVu) {
         Toast.fire({ icon: 'warning', title: 'Vui lòng chọn quyền hạn' });
         return false;
@@ -477,7 +453,6 @@ const handleSubmit = async () => {
 
     try {
         const fd = new FormData();
-        fd.append("tenTaiKhoan", employee.tenTaiKhoan);
         fd.append("tenNhanVien", employee.tenNhanVien); 
         fd.append("cccd", employee.cccd);
         fd.append("email", employee.email); 

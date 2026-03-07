@@ -120,6 +120,7 @@ const router = createRouter({
         /* Voucher */
         { path: "vouchers", name: "admin-voucher-list", component: () => import("../views/admin/voucher/VoucherIndex.vue") },
         { path: "vouchers/create", name: "admin-voucher-create", component: () => import("../views/admin/voucher/VoucherCreate.vue") },
+        { path: "vouchers/edit/:id", name: "admin-voucher-edit", component: () => import("../views/admin/voucher/VoucherEdit.vue") },
 
         /* POS */
         { path: "pos", name: "admin-pos", component: () => import("../views/admin/pos/BanHangTaiQuay.vue"), meta: { layout: "full" } },
@@ -127,6 +128,8 @@ const router = createRouter({
         /* Sales */
         { path: "sales", name: "admin-sale-list", component: () => import("../views/admin/promotion/SaleIndex.vue") },
         { path: "sales/create", name: "admin-sale-create", component: () => import("../views/admin/promotion/SaleCreate.vue") },
+        // ĐÂY LÀ PHẦN TAO TÍCH HỢP THÊM VÀO THEO Ý MÀY:
+        { path: "sale/edit/:id", name: "admin-sale-edit", component: () => import("@/views/admin/promotion/EditDotGiamGia.vue") },
 
         /* Thống kê riêng */
         { path: "thong-ke", name: "admin-thong-ke", component: ThongKeView },
