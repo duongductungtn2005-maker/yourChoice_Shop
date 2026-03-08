@@ -22,6 +22,7 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
                             SELECT h FROM HoaDon h
                             WHERE
                                 (:keyword IS NULL OR h.maHoaDon LIKE %:keyword% OR h.tenNguoiNhan LIKE %:keyword%)
+                                AND h.trangThai <> 9
                                 AND (:status IS NULL OR h.trangThai = :status)
                                 AND (:type IS NULL OR h.loaiHoaDon = :type)
                                 AND (:fromDate IS NULL OR h.ngayTao >= :fromDate)

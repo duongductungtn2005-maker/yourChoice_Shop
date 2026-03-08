@@ -108,7 +108,7 @@
               </span>
             </td>
 
-            <td>{{ order.sdtKhachHang || '-' }}</td>
+            <td>{{ getPhoneDisplay(order) }}</td>
 
             <td>
               <span class="badge-status" :class="getStatusClass(order.trangThai)">
@@ -210,6 +210,12 @@ const dateFormatter = new Intl.DateTimeFormat('vi-VN', {
 });
 
 const formatMoney = (val) => val ? moneyFormatter.format(val) : '0 đ';
+
+const getPhoneDisplay = (order) => {
+  if (order?.sdtKhachHang) return order.sdtKhachHang;
+  if ((order?.tenKhachHang || '').trim() === 'Khách lẻ') return 'Khách lẻ';
+  return '-';
+}
 
 const quickFilterLabel = computed(() => {
   const selected = QUICK_FILTER_OPTIONS.find(option => option.value === quickFilterValue.value)

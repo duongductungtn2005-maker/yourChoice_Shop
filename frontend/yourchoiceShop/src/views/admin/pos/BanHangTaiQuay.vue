@@ -76,8 +76,11 @@
             <table class="table">
               <thead>
                 <tr>
-                  <th>Mã</th>
+                  <th>Mã SP</th>
                   <th>Tên</th>
+                  <th>Thương hiệu</th>
+                  <th>Màu sắc</th>
+                  <th>Kích thước</th>
                   <th>Giá</th>
                   <th>SL</th>
                   <th>Thành tiền</th>
@@ -86,27 +89,25 @@
               </thead>
               <tbody>
                 <tr v-for="(item, i) in cart" :key="item.id">
-                  <td class="mono">{{ item.code }}</td>
+                  <td class="mono">{{ item.productCode || item.code }}</td>
                   <td class="name-cell">
                     <div class="name-main">{{ item.name }}</div>
-                    <div class="name-sub muted" v-if="item.brand || item.material">
-                      {{ item.brand || '—' }} • {{ item.material || '—' }}
+                    <div class="name-sub muted" v-if="item.material || item.coAo || item.tayAo || item.xuatXu">
+                      {{ item.material || '—' }} • {{ item.coAo || '—' }} • {{ item.tayAo || '—' }} • {{ item.xuatXu ||
+                        '—' }}
                     </div>
                   </td>
+                  <td>{{ item.brand || '-' }}</td>
+                  <td>{{ item.color || '-' }}</td>
+                  <td>{{ item.size || '-' }}</td>
                   <td class="p-price">{{ formatMoney(item.price) }}</td>
                   <td>
                     <div>
                       <div class="item-control">
                         <button @click="decreaseCartQty(item)" :disabled="item.qty <= 1" title="Giảm">−</button>
-                        <input
-                          class="qty-input"
-                          :class="{ 'qty-input-error': !!item.qtyWarning }"
-                          type="number"
-                          min="1"
-                          :max="item.qty + item.tonKho"
-                          :value="item.qty"
-                          @change="updateCartQty(item, $event.target.value)"
-                        />
+                        <input class="qty-input" :class="{ 'qty-input-error': !!item.qtyWarning }" type="number" min="1"
+                          :max="item.qty + item.tonKho" :value="item.qty"
+                          @change="updateCartQty(item, $event.target.value)" />
                         <button @click="increaseCartQty(item)" :disabled="item.tonKho <= 0" title="Tăng">＋</button>
                       </div>
                       <div v-if="item.qtyWarning" class="qty-warning">{{ item.qtyWarning }}</div>
@@ -127,18 +128,31 @@
 
         <!-- ===== CUSTOMER ===== -->
         <div class="card mt">
+          <div class="order-type-toggle">
+            <span :class="{ active: orderType === 'TAI_QUAY' }"></span>
+
+            <label class="switch">
+              <input type="checkbox" v-model="isDelivery" />
+              <span class="slider"></span>
+            </label>
+
+            <span :class="{ active: orderType === 'GIAO_HANG' }">Giao hàng</span>
+          </div>
           <div class="card-header">
             <div class="card-title">
               <h3>Khách hàng</h3>
               <span class="muted">Thông tin người mua</span>
             </div>
-            <button class="btn-outline" @click="openCustomerModal">Chọn</button>
+            <div class="customer-actions">
+              <button class="btn-outline" @click="openCustomerModal">Chọn tài khoản</button>
+              <button class="btn-outline" @click="setGuestCustomer">Khách lẻ</button>
+            </div>
           </div>
 
           <div class="card-body form-grid">
-            <input v-model="customer.name" placeholder="Tên khách hàng" />
-            <input v-model="customer.phone" placeholder="SĐT" />
-            <input v-model="customer.email" placeholder="Email khách hàng" />
+            <input v-model="customer.name" :readonly="orderType === 'TAI_QUAY'" placeholder="Tên khách hàng" />
+            <input v-model="customer.phone" :readonly="orderType === 'TAI_QUAY'" placeholder="SĐT" />
+            <input v-model="customer.email" :readonly="orderType === 'TAI_QUAY'" placeholder="Email khách hàng" />
           </div>
         </div>
 
@@ -146,13 +160,13 @@
           <div class="card-header">
             <div class="card-title">
               <h3>Thông tin người nhận</h3>
-              <span class="muted">Dùng cho đơn giao hàng</span>
+              <span class="muted">Thông tin khách hàng nhận hàng</span>
             </div>
           </div>
 
           <div class="card-body form-grid">
-            <input v-model="customer.name" placeholder="Tên người nhận" />
-            <input v-model="customer.phone" placeholder="SĐT người nhận" />
+            <input v-model="recipient.name" placeholder="Tên khách hàng" />
+            <input v-model="recipient.phone" placeholder="SĐT khách hàng" />
 
             <!-- Địa chỉ giao hàng -->
             <div class="address-group">
@@ -200,16 +214,6 @@
         <div class="card">
 
           <!-- ORDER TYPE TABS -->
-          <div class="order-type-toggle">
-            <span :class="{ active: orderType === 'TAI_QUAY' }"></span>
-
-            <label class="switch">
-              <input type="checkbox" v-model="isDelivery" />
-              <span class="slider"></span>
-            </label>
-
-            <span :class="{ active: orderType === 'GIAO_HANG' }">Giao hàng</span>
-          </div>
           <div class="card-header">
             <div class="card-title">
               <h3>Giảm giá</h3>
@@ -259,10 +263,9 @@
             Mua thêm <b>{{ formatMoney(voucherSuggestion.additionalNeeded) }}</b> để áp dụng phiếu
             <b>{{ voucherSuggestion.voucher.name }}</b>
             <span class="suggestion-detail">
-              (giảm {{ voucherSuggestion.voucher.type === 'percent'
+              (Giảm {{ voucherSuggestion.voucher.type === 'percent'
                 ? voucherSuggestion.voucher.value + '%'
-                : formatMoney(voucherSuggestion.voucher.value) }},
-              tiết kiệm thêm <b class="highlight-save">{{ formatMoney(voucherSuggestion.benefit) }}</b>)
+                : formatMoney(voucherSuggestion.voucher.value) }})
             </span>
           </div>
         </div>
@@ -306,7 +309,7 @@
             </button>
 
             <div class="pay-note muted">
-              Lưu ý: Vui lòng chọn nhân viên & nhập thông tin khách trước khi thanh toán.
+              Lưu ý: Tại quầy có thể chọn khách lẻ, giao hàng cần thông tin người nhận đầy đủ.
             </div>
           </div>
         </div>
@@ -321,54 +324,107 @@
           <button class="close-btn" @click="showModal = false">×</button>
         </div>
 
-        <input v-model="productKeyword" class="search-input" placeholder="Tìm theo tên hoặc mã" />
-        <div class="price-range">
-          <span>Giá</span>
-          <input type="number" v-model.number="priceRange[0]" placeholder="Từ" />
-          <span>–</span>
-          <input type="number" v-model.number="priceRange[1]" placeholder="Đến" />
+        <div class="product-filter-grid">
+          <div class="filter-item">
+            <label>Mã SP Cha:</label>
+            <input v-model="productFilter.productCode" class="search-input" placeholder="Nhập mã sản phẩm" />
+          </div>
+          <div class="filter-item">
+            <label>Cổ áo:</label>
+            <select v-model="productFilter.coAo" class="address-select">
+              <option value="">Tất cả</option>
+              <option v-for="o in productFilterOptions.coAo" :key="o" :value="o">{{ o }}</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>Tay áo:</label>
+            <select v-model="productFilter.tayAo" class="address-select">
+              <option value="">Tất cả</option>
+              <option v-for="o in productFilterOptions.tayAo" :key="o" :value="o">{{ o }}</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>Xuất xứ:</label>
+            <select v-model="productFilter.xuatXu" class="address-select">
+              <option value="">Tất cả</option>
+              <option v-for="o in productFilterOptions.xuatXu" :key="o" :value="o">{{ o }}</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>Kích thước:</label>
+            <select v-model="productFilter.size" class="address-select">
+              <option value="">Tất cả</option>
+              <option v-for="o in productFilterOptions.size" :key="o" :value="o">{{ o }}</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>Thương hiệu:</label>
+            <select v-model="productFilter.brand" class="address-select">
+              <option value="">Tất cả</option>
+              <option v-for="o in productFilterOptions.brand" :key="o" :value="o">{{ o }}</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>Màu sắc:</label>
+            <select v-model="productFilter.color" class="address-select">
+              <option value="">Tất cả</option>
+              <option v-for="o in productFilterOptions.color" :key="o" :value="o">{{ o }}</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>Chất liệu:</label>
+            <select v-model="productFilter.material" class="address-select">
+              <option value="">Tất cả</option>
+              <option v-for="o in productFilterOptions.material" :key="o" :value="o">{{ o }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="price-range slider-wrap">
+          <input v-model="productKeyword" class="search-input" placeholder="Nhập mã SKU biến thể để tìm..." />
+          <span>{{ formatMoney(0) }}</span>
+          <input type="range" min="0" :max="maxPriceFilter" step="1000" v-model.number="priceRange[1]"
+            class="price-slider" />
+          <span>{{ formatMoney(priceRange[1]) }}</span>
         </div>
 
         <div class="modal-table-wrapper">
           <table class="table modal-table">
             <thead>
               <tr>
-                <th>Mã</th>
+                <th>Mã sản phẩm</th>
                 <th>Tên</th>
-                <th>Giá</th>
+                <th>Thương hiệu</th>
+                <th>Chất liệu</th>
                 <th>Tồn kho</th>
+                <th>Giá</th>
                 <th>SL</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="p in filteredProducts" :key="p.id">
-                <td class="mono">{{ p.code }}</td>
+                <td class="mono">{{ p.productCode || p.code }}</td>
                 <td class="name-cell">
                   <div class="name-main">{{ p.name }}</div>
-                  <div class="muted">{{ p.brand }} • {{ p.material }}</div>
+                  <div class="muted">{{ p.color || '-' }} • {{ p.size || '-' }}</div>
                 </td>
-                <td class="p-price">{{ formatMoney(p.price) }}</td>
+                <td>{{ p.brand || '-' }}</td>
+                <td>{{ p.material || '-' }}</td>
                 <td>{{ p.tonKho }}</td>
+                <td class="p-price">{{ formatMoney(p.price) }}</td>
                 <td>
                   <div>
                     <div class="item-control">
                       <button @click="decreaseProductQty(p)" :disabled="p.qty <= 1">−</button>
-                      <input
-                        class="qty-input"
-                        :class="{ 'qty-input-error': !!p.qtyWarning }"
-                        type="number"
-                        min="1"
-                        :max="p.tonKho"
-                        :value="p.qty"
-                        @input="updateProductQty(p, $event.target.value)"
-                      />
+                      <input class="qty-input" :class="{ 'qty-input-error': !!p.qtyWarning }" type="number" min="1"
+                        :max="p.tonKho" :value="p.qty" @input="updateProductQty(p, $event.target.value)" />
                       <button @click="increaseProductQty(p)" :disabled="p.qty >= p.tonKho">＋</button>
                     </div>
                     <div v-if="p.qtyWarning" class="qty-warning">{{ p.qtyWarning }}</div>
                   </div>
                 </td>
-                <td><input type="checkbox" v-model="p.checked" /></td>
+                <td><input class="product-check" type="checkbox" v-model="p.checked" /></td>
               </tr>
             </tbody>
           </table>
@@ -546,7 +602,8 @@
           </div>
 
           <p class="compare-benefit">
-            Tiết kiệm thêm <b>{{ formatMoney((newBetterVoucher?.calculatedDiscount || 0) - (newBetterVoucher?.currentDiscount || 0)) }}</b>
+            Tiết kiệm thêm <b>{{ formatMoney((newBetterVoucher?.calculatedDiscount || 0) -
+              (newBetterVoucher?.currentDiscount || 0)) }}</b>
           </p>
         </div>
 
@@ -562,12 +619,22 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { createOrder } from '@/api/HoaDonApi'
+import { createOrder, createPosDraftOrder, deletePosDraftOrder } from '@/api/HoaDonApi'
 import { getCurrentUser, getRole } from '@/services/auth'
 
 /* ================= FILTER SẢN PHẨM ================= */
 const productKeyword = ref('')
 const priceRange = ref([0, 1000000])
+const productFilter = ref({
+  productCode: '',
+  coAo: '',
+  tayAo: '',
+  xuatXu: '',
+  size: '',
+  brand: '',
+  color: '',
+  material: ''
+})
 
 /* ================= ROUTER ================= */
 const router = useRouter()
@@ -631,6 +698,15 @@ const selectCustomer = (c) => {
   showCustomerModal.value = false
 }
 
+const setGuestCustomer = () => {
+  customer.value = {
+    name: 'Khách lẻ',
+    phone: '',
+    email: '',
+    address: ''
+  }
+}
+
 /* ================= MODAL SẢN PHẨM ================= */
 const showModal = ref(false)
 
@@ -650,13 +726,20 @@ const loadProducts = async () => {
 
   products.value = res.data.content.map(p => {
     const inCart = cart.value.find(i => i.id === p.id)
+    const parentProduct = p.sanPham || {}
 
     return {
       id: p.id,
       code: p.maCtsp,
-      name: p.sanPham.tenSanPham,
-      brand: p.thuongHieu?.tenThuongHieu || '—',
-      material: p.chatLieu?.tenChatLieu || '—',
+      productCode: parentProduct.maSanPham || '',
+      name: parentProduct.tenSanPham || '',
+      brand: p.thuongHieu?.tenThuongHieu || parentProduct.thuongHieu?.tenThuongHieu || '—',
+      material: p.chatLieu?.tenChatLieu || parentProduct.chatLieu?.tenChatLieu || '—',
+      color: p.mauSac?.tenMauSac || '—',
+      size: p.kichThuoc?.tenKichThuoc || '—',
+      coAo: p.coAo?.tenCoAo || parentProduct.coAo?.tenCoAo || '—',
+      tayAo: p.tayAo?.tenTayAo || parentProduct.tayAo?.tenTayAo || '—',
+      xuatXu: p.xuatXu?.tenXuatXu || parentProduct.xuatXu?.tenXuatXu || '—',
       price: p.giaBan,
       tonKho: p.soLuong,
       qty: 1,
@@ -668,7 +751,20 @@ const loadProducts = async () => {
   totalProductPages.value = res.data.totalPages
 }
 const openProductModal = async () => {
+  productKeyword.value = ''
+  productFilter.value = {
+    productCode: '',
+    coAo: '',
+    tayAo: '',
+    xuatXu: '',
+    size: '',
+    brand: '',
+    color: '',
+    material: ''
+  }
   await loadProducts()
+  const maxPrice = Math.max(...products.value.map(p => Number(p.price || 0)), 0)
+  priceRange.value = [0, maxPrice]
   showModal.value = true
 }
 
@@ -731,10 +827,13 @@ const getQtyWarning = (value, maxQty) => {
 
 const updateCartQty = async (item, value) => {
   const currentQty = Number(item.qty) || 1
-  const nextQty = Math.max(Number.parseInt(value, 10) || 1, 1)
+  const maxQty = currentQty + Number(item.tonKho || 0)
+  const warning = getQtyWarning(value, maxQty)
+  const nextQty = normalizeQty(value, maxQty)
+
+  item.qtyWarning = warning
 
   if (nextQty === currentQty) {
-    item.qtyWarning = ''
     item.qty = nextQty
     return
   }
@@ -758,7 +857,9 @@ const updateCartQty = async (item, value) => {
     item.tonKho = Number(item.tonKho || 0) + delta
   }
 
-  item.qtyWarning = ''
+  if (!warning) {
+    item.qtyWarning = ''
+  }
   item.qty = nextQty
 }
 
@@ -844,9 +945,15 @@ const confirmAddProduct = async () => {
       cart.value.push({
         id: p.id,
         code: p.code,
+        productCode: p.productCode,
         name: p.name,
         brand: p.brand,
         material: p.material,
+        color: p.color,
+        size: p.size,
+        coAo: p.coAo,
+        tayAo: p.tayAo,
+        xuatXu: p.xuatXu,
         price: p.price,
         qty: normalizedQty,
         tonKho: Math.max(0, Number(p.tonKho || 0) - normalizedQty),
@@ -885,15 +992,55 @@ const filteredProducts = computed(() =>
 
     const matchKeyword =
       p.name.toLowerCase().includes(keyword) ||
-      (p.code && p.code.toLowerCase().includes(keyword))
+      (p.code && p.code.toLowerCase().includes(keyword)) ||
+      (p.productCode && p.productCode.toLowerCase().includes(keyword))
+
+    const f = productFilter.value
+    const matchProductCode = !f.productCode || (p.productCode || '').toLowerCase().includes(f.productCode.toLowerCase())
+    const matchCoAo = !f.coAo || p.coAo === f.coAo
+    const matchTayAo = !f.tayAo || p.tayAo === f.tayAo
+    const matchXuatXu = !f.xuatXu || p.xuatXu === f.xuatXu
+    const matchSize = !f.size || p.size === f.size
+    const matchBrand = !f.brand || p.brand === f.brand
+    const matchColor = !f.color || p.color === f.color
+    const matchMaterial = !f.material || p.material === f.material
 
     const matchPrice =
       p.price >= priceRange.value[0] &&
       p.price <= priceRange.value[1]
 
-    return matchKeyword && matchPrice
+    return (
+      matchKeyword &&
+      matchPrice &&
+      matchProductCode &&
+      matchCoAo &&
+      matchTayAo &&
+      matchXuatXu &&
+      matchSize &&
+      matchBrand &&
+      matchColor &&
+      matchMaterial
+    )
   })
 )
+
+const makeFilterOptions = (key) => {
+  return [...new Set(products.value.map(p => p[key]).filter(v => v && v !== '—'))]
+}
+
+const productFilterOptions = computed(() => ({
+  coAo: makeFilterOptions('coAo'),
+  tayAo: makeFilterOptions('tayAo'),
+  xuatXu: makeFilterOptions('xuatXu'),
+  size: makeFilterOptions('size'),
+  brand: makeFilterOptions('brand'),
+  color: makeFilterOptions('color'),
+  material: makeFilterOptions('material')
+}))
+
+const maxPriceFilter = computed(() => {
+  return Math.max(...products.value.map(p => Number(p.price || 0)), 0)
+})
 
 /* ================= GIẢM GIÁ ================= */
 const showDiscountModal = ref(false)
@@ -932,9 +1079,29 @@ const loadDiscounts = async () => {
   totalDiscountPages.value = res.data.totalPages
 }
 
+const parseVoucherDate = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const isVoucherInDateRange = (voucher) => {
+  const now = new Date()
+  const start = parseVoucherDate(voucher.startDate)
+  const end = parseVoucherDate(voucher.endDate)
+
+  if (start && now < start) return false
+  if (end && now > end) return false
+  return true
+}
+
+const isVoucherActiveNow = (voucher) => {
+  return Number(voucher.trangThai) === 1 && isVoucherInDateRange(voucher)
+}
+
 const filteredDiscounts = computed(() =>
   discountList.value.filter(d =>
-    d.trangThai === 1 &&
+    isVoucherActiveNow(d) &&
     [d.code, d.name]
       .join(' ')
       .toLowerCase()
@@ -1003,7 +1170,11 @@ const loadAllActiveVouchers = async () => {
 const syncAppliedDiscountWithActiveVouchers = () => {
   if (!Array.isArray(discounts.value) || discounts.value.length === 0) return
 
-  const activeMap = new Map(allActiveVouchers.value.map(v => [v.id, v]))
+  const activeMap = new Map(
+    allActiveVouchers.value
+      .filter(isVoucherActiveNow)
+      .map(v => [v.id, v])
+  )
   const removedCodes = []
 
   const nextDiscounts = discounts.value
@@ -1050,40 +1221,53 @@ const calculateVoucherDiscount = (voucher, cartTotal) => {
   }
 }
 
+const pickRandomItem = (items) => {
+  if (!Array.isArray(items) || items.length === 0) return null
+  const index = Math.floor(Math.random() * items.length)
+  return items[index]
+}
+
+const toAppliedVoucher = (voucher) => ({
+  id: voucher.id,
+  code: voucher.code,
+  name: voucher.name,
+  type: voucher.type,
+  value: voucher.value,
+  maxDiscount: voucher.maxDiscount,
+  minOrder: voucher.minOrder,
+  startDate: voucher.startDate,
+  endDate: voucher.endDate
+})
+
 const autoSelectBestVoucher = () => {
   const cartTotal = totalProductPrice.value
-  if (cartTotal <= 0 || allActiveVouchers.value.length === 0) {
+  const activeVouchers = allActiveVouchers.value.filter(isVoucherActiveNow)
+
+  if (cartTotal <= 0 || activeVouchers.length === 0) {
     if (discounts.value.length > 0) {
       discounts.value = []
     }
     return
   }
 
-  let bestVoucher = null
-  let bestDiscount = 0
+  const eligibleVouchers = activeVouchers
+    .map(v => ({
+      voucher: v,
+      discountAmount: calculateVoucherDiscount(v, cartTotal)
+    }))
+    .filter(item => item.discountAmount > 0)
 
-  for (const v of allActiveVouchers.value) {
-    const disc = calculateVoucherDiscount(v, cartTotal)
-    if (disc > bestDiscount) {
-      bestDiscount = disc
-      bestVoucher = v
-    }
-  }
+  const bestDiscount = Math.max(...eligibleVouchers.map(item => item.discountAmount), 0)
+  const bestCandidates = eligibleVouchers
+    .filter(item => item.discountAmount === bestDiscount)
+    .map(item => item.voucher)
+
+  const bestVoucher = pickRandomItem(bestCandidates)
 
   if (bestVoucher) {
     const currentId = discounts.value.length === 1 ? discounts.value[0].id : null
     if (currentId !== bestVoucher.id) {
-      discounts.value = [{
-        id: bestVoucher.id,
-        code: bestVoucher.code,
-        name: bestVoucher.name,
-        type: bestVoucher.type,
-        value: bestVoucher.value,
-        maxDiscount: bestVoucher.maxDiscount,
-        minOrder: bestVoucher.minOrder,
-        startDate: bestVoucher.startDate,
-        endDate: bestVoucher.endDate
-      }]
+      discounts.value = [toAppliedVoucher(bestVoucher)]
     }
   } else {
     discounts.value = []
@@ -1127,7 +1311,8 @@ const syncCartPriceWithServer = async () => {
 // Gợi ý mua thêm để áp dụng phiếu tốt hơn
 const voucherSuggestion = computed(() => {
   const cartTotal = totalProductPrice.value
-  if (cartTotal <= 0 || allActiveVouchers.value.length === 0) return null
+  const activeVouchers = allActiveVouchers.value.filter(isVoucherActiveNow)
+  if (cartTotal <= 0 || activeVouchers.length === 0) return null
 
   // Tính giảm giá hiện tại
   let currentBestDiscount = 0
@@ -1135,31 +1320,30 @@ const voucherSuggestion = computed(() => {
     currentBestDiscount += calculateVoucherDiscount(d, cartTotal)
   })
 
-  let bestSuggestion = null
-
-  for (const v of allActiveVouchers.value) {
-    if (v.soLuong <= 0) continue
-    if (cartTotal >= v.minOrder) continue
-
-    const additionalNeeded = v.minOrder - cartTotal
-    const potentialDiscount = calculateVoucherDiscount(v, v.minOrder)
-
-    if (potentialDiscount > currentBestDiscount) {
-      const benefit = potentialDiscount - currentBestDiscount
-
-      if (!bestSuggestion || benefit > bestSuggestion.benefit ||
-          (benefit === bestSuggestion.benefit && additionalNeeded < bestSuggestion.additionalNeeded)) {
-        bestSuggestion = {
-          voucher: v,
-          additionalNeeded,
-          potentialDiscount,
-          benefit
-        }
+  // Đề xuất theo bậc tăng dần: chọn mốc đơn tối thiểu gần nhất đang cao hơn giỏ hiện tại.
+  const betterVouchers = activeVouchers
+    .filter(v => v.soLuong > 0 && Number(v.minOrder || 0) > cartTotal)
+    .map(v => {
+      const nextTotal = Number(v.minOrder || 0)
+      const potentialDiscount = calculateVoucherDiscount(v, nextTotal)
+      return {
+        voucher: v,
+        additionalNeeded: nextTotal - cartTotal,
+        potentialDiscount,
+        benefit: potentialDiscount - currentBestDiscount,
+        minOrder: nextTotal
       }
-    }
-  }
+    })
+    .filter(item => item.benefit > 0)
 
-  return bestSuggestion
+  if (betterVouchers.length === 0) return null
+
+  const nextMinOrder = Math.min(...betterVouchers.map(item => item.minOrder))
+  const nextTier = betterVouchers.filter(item => item.minOrder === nextMinOrder)
+  const bestTierDiscount = Math.max(...nextTier.map(item => item.potentialDiscount), 0)
+  const bestTierCandidates = nextTier.filter(item => item.potentialDiscount === bestTierDiscount)
+
+  return pickRandomItem(bestTierCandidates)
 })
 
 // Polling để phát hiện phiếu giảm giá mới từ admin
@@ -1261,13 +1445,13 @@ const handleCreateOrder = async () => {
     return
   }
 
-  if (!customer.value.name || !customer.value.phone) {
-    alert('Vui lòng nhập tên và số điện thoại!')
+  if (!staff.value.id) {
+    alert('Vui lòng chọn nhân viên!')
     return
   }
 
-  if (!staff.value.id) {
-    alert('Vui lòng chọn nhân viên!')
+  if (!currentOrder.value?.maHoaDon) {
+    alert('Không tìm thấy mã hóa đơn nháp. Vui lòng tạo lại đơn hàng.')
     return
   }
 
@@ -1279,11 +1463,17 @@ const handleCreateOrder = async () => {
   if (!confirm('Xác nhận tạo hóa đơn?')) return
 
   try {
+    const isGuest = !customer.value.name || customer.value.name.trim() === '' || customer.value.name === 'Khách lẻ'
+    const customerName = isGuest ? 'Khách lẻ' : customer.value.name
+    const customerPhone = isGuest ? null : (customer.value.phone || null)
+    const customerEmail = isGuest ? null : (customer.value.email || null)
+
     const payload = {
-      tenKhachHang: customer.value.name,
-      soDienThoai: customer.value.phone,
+      maHoaDon: currentOrder.value.maHoaDon,
+      tenKhachHang: customerName,
+      soDienThoai: customerPhone,
       diaChi: customer.value.address,
-      email: customer.value.email,
+      email: customerEmail,
       idNhanVien: staff.value.id,
       tienGiamGia: totalDiscount.value,
 
@@ -1346,10 +1536,7 @@ const openPaymentModal = () => {
     alert('Giỏ hàng đang trống!')
     return
   }
-  if (!customer.value.name || !customer.value.phone) {
-    alert('Vui lòng nhập tên và số điện thoại!')
-    return
-  }
+
   showPaymentModal.value = true
 }
 
@@ -1444,8 +1631,34 @@ const handleCreateOrderDelivery = async () => {
     return
   }
 
-  if (!customer.value.name || !customer.value.phone) {
-    alert('Vui lòng nhập đầy đủ thông tin người nhận')
+  const customerName = (customer.value?.name || '').trim()
+  const customerPhone = (customer.value?.phone || '').trim()
+  const customerEmail = (customer.value?.email || '').trim()
+  const recipientName = (recipient.value?.name || '').trim()
+  const recipientPhone = (recipient.value?.phone || '').trim()
+
+  if (!customerName) {
+    alert('Vui lòng nhập tên khách hàng')
+    return
+  }
+
+  if (!customerPhone) {
+    alert('Vui lòng nhập SĐT khách hàng')
+    return
+  }
+
+  if (!customerEmail) {
+    alert('Vui lòng nhập email khách hàng')
+    return
+  }
+
+  if (!recipientName) {
+    alert('Vui lòng nhập tên người nhận')
+    return
+  }
+
+  if (!recipientPhone) {
+    alert('Vui lòng nhập SĐT người nhận')
     return
   }
 
@@ -1477,8 +1690,8 @@ const handleCreateOrderDelivery = async () => {
   )
 
   const payload = {
-    tenKhachHang: customer.value.name,
-    soDienThoai: customer.value.phone,
+    tenKhachHang: recipientName,
+    soDienThoai: recipientPhone,
 
     diaChiChiTiet: '',
 
@@ -1486,7 +1699,7 @@ const handleCreateOrderDelivery = async () => {
     districtName: district?.districtName || '',
     wardName: ward?.wardName || '',
 
-    email: customer.value.email,
+    email: customerEmail,
     ghiChu: note.value,
     idNhanVien: staff.value.id,
 
@@ -1509,6 +1722,14 @@ const handleCreateOrderDelivery = async () => {
     }))
   }
   await createOrderDelivery(payload)
+
+  if (currentOrder.value?.maHoaDon) {
+    try {
+      await deletePosDraftOrder(currentOrder.value.maHoaDon)
+    } catch (error) {
+      console.error(error)
+    }
+  }
 
   alert('Tạo đơn giao hàng thành công – chờ xác nhận')
 
@@ -1550,6 +1771,7 @@ const getTabItemCount = (tab) => {
 }
 
 const getTabLabel = (tab) => {
+  if (tab?.maHoaDon) return tab.maHoaDon
   if (tab?.tabName) return tab.tabName
   if (Number.isFinite(tab?.orderNumber)) return `Đơn ${tab.orderNumber}`
   return 'Đơn mới'
@@ -1609,6 +1831,17 @@ const loadOrderTabs = async () => {
       if (!tab.tabName) {
         tab.tabName = `Đơn ${tab.orderNumber}`
       }
+      if (!tab.customer || typeof tab.customer !== 'object') {
+        tab.customer = { name: '', phone: '', email: '', address: '' }
+      } else {
+        tab.customer.name = tab.customer.name || ''
+        tab.customer.phone = tab.customer.phone || ''
+        tab.customer.email = tab.customer.email || ''
+        tab.customer.address = tab.customer.address || ''
+      }
+      if (!tab.recipient) {
+        tab.recipient = { name: '', phone: '' }
+      }
       maxOrderNumber = Math.max(maxOrderNumber, tab.orderNumber)
     })
 
@@ -1652,7 +1885,6 @@ const runDailyResetIfNeeded = async () => {
   activeTabId.value = null
   nextOrderNumber.value = 1
   clearOrderTabs()
-  createNewTab()
   currentDateKey.value = today
 
   alert('Đã sang ngày mới, hệ thống đã xóa toàn bộ hóa đơn chờ và hoàn tồn kho.')
@@ -1661,10 +1893,6 @@ const runDailyResetIfNeeded = async () => {
 onMounted(async () => {
   await loadOrderTabs()
   currentDateKey.value = getLocalDateKey()
-
-  if (orderTabs.value.length === 0) {
-    createNewTab()
-  }
 
   dailyResetTimer = window.setInterval(() => {
     void runDailyResetIfNeeded()
@@ -1712,7 +1940,7 @@ watch(productPage, loadProducts)
 watch(customerPage, loadCustomers)
 watch(discountPage, loadDiscounts)
 
-const createNewTab = () => {
+const createNewTab = async () => {
   if (orderTabs.value.length >= MAX_TABS) {
     alert('Chỉ được tối đa 5 đơn hàng')
     return
@@ -1730,14 +1958,25 @@ const createNewTab = () => {
     }
   }
 
+  let maHoaDon = null
+  try {
+    const res = await createPosDraftOrder({ idNhanVien: staffInfo.id || null })
+    maHoaDon = res?.data?.maHoaDon || null
+  } catch (error) {
+    console.error(error)
+    alert('Không thể tạo hóa đơn nháp. Vui lòng thử lại!')
+    return
+  }
+
   const newTab = {
     id: Date.now(),
     orderNumber: nextOrderNumber.value,
-    tabName: `Đơn ${nextOrderNumber.value}`,
-    maHoaDon: null,
+    tabName: maHoaDon || `Đơn ${nextOrderNumber.value}`,
+    maHoaDon,
     orderType: 'TAI_QUAY',
     cart: [],
     customer: { name: '', phone: '', email: '', address: '' },
+    recipient: { name: '', phone: '' },
     staff: staffInfo,
     discounts: [],
     shippingFee: 0,
@@ -1780,6 +2019,16 @@ const closeTab = async (id) => {
     }
   }
 
+  if (tab.maHoaDon) {
+    try {
+      await deletePosDraftOrder(tab.maHoaDon)
+    } catch (error) {
+      console.error(error)
+      alert('Không thể xóa hóa đơn nháp trong hệ thống. Vui lòng thử lại!')
+      return
+    }
+  }
+
   orderTabs.value.splice(index, 1)
 
   if (activeTabId.value === id) {
@@ -1799,8 +2048,23 @@ const cart = computed({
 })
 
 const customer = computed({
-  get: () => currentOrder.value?.customer || {},
+  get: () => {
+    if (!currentOrder.value) {
+      return { name: '', phone: '', email: '', address: '' }
+    }
+
+    if (!currentOrder.value.customer || typeof currentOrder.value.customer !== 'object') {
+      currentOrder.value.customer = { name: '', phone: '', email: '', address: '' }
+    }
+
+    return currentOrder.value.customer
+  },
   set: v => currentOrder.value && (currentOrder.value.customer = v)
+})
+
+const recipient = computed({
+  get: () => currentOrder.value?.recipient || {},
+  set: v => currentOrder.value && (currentOrder.value.recipient = v)
 })
 
 const staff = computed({
@@ -1837,8 +2101,36 @@ const isDelivery = computed({
   get: () => orderType.value === 'GIAO_HANG',
   set: v => {
     orderType.value = v ? 'GIAO_HANG' : 'TAI_QUAY'
+    if (!v) {
+      shippingFee.value = 0
+    }
   }
 })
+
+watch(orderType, (value) => {
+  if (value === 'TAI_QUAY') {
+    shippingFee.value = 0
+  }
+})
+
+const syncRecipientFromCustomer = () => {
+  if (!currentOrder.value || orderType.value !== 'GIAO_HANG') {
+    return
+  }
+
+  recipient.value = {
+    ...(recipient.value || {}),
+    name: customer.value?.name || '',
+    phone: customer.value?.phone || ''
+  }
+}
+
+watch(
+  () => [customer.value?.name, customer.value?.phone, orderType.value],
+  () => {
+    syncRecipientFromCustomer()
+  }
+)
 
 // Tự động chọn phiếu giảm giá tốt nhất khi tổng giỏ hàng thay đổi
 watch(totalProductPrice, async () => {
@@ -2657,6 +2949,11 @@ input:disabled {
   overflow-x: auto;
 }
 
+.customer-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -2774,6 +3071,21 @@ input:disabled {
   font-size: 11px;
   line-height: 1.3;
   color: #dc2626;
+}
+
+.product-check {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+  vertical-align: middle;
+  cursor: pointer;
+  accent-color: #1d4ed8;
+}
+
+.product-check:focus {
+  box-shadow: none;
 }
 
 /* ===== EMPTY CART ===== */
@@ -2962,6 +3274,37 @@ input:disabled {
   outline: none;
 }
 
+.product-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.filter-item label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.slider-wrap {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.slider-wrap .search-input {
+  margin-bottom: 0;
+}
+
+.price-slider {
+  width: 100%;
+  accent-color: #0f172a;
+}
+
 .modal-table-wrapper {
   max-height: 55vh;
   overflow-y: auto;
@@ -3019,6 +3362,23 @@ input:disabled {
   padding: 9px 10px;
   border-radius: 14px;
   border: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.slider-wrap input.price-slider {
+  width: 100%;
+  padding: 0;
+  border: none;
+}
+
+@media (max-width: 1200px) {
+  .product-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .slider-wrap {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 }
 
 /* ===== MODAL TABLE ===== */

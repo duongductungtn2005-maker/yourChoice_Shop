@@ -48,7 +48,10 @@ public class HoaDonDetailResponse {
 
     @Data
     public static class SanPhamHoaDonResponse {
+        private String maSanPham;
         private String tenSanPham;
+        private String thuongHieu;
+        private String chatLieu;
         private String size;
         private String mauSac;
         private Integer soLuong;

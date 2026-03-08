@@ -7,6 +7,8 @@ import java.util.List;
 @Data
 public class CreateOrderRequest {
 
+    private String maHoaDon;
+
     private String tenKhachHang;
     private String soDienThoai;
     private String diaChiChiTiet;

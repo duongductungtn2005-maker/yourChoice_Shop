@@ -44,6 +44,8 @@ import java.io.ByteArrayOutputStream;
 @Transactional
 public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implements HoaDonService
 
+    private static final int POS_DRAFT_STATUS = 9;
+
     private final HoaDonRepository hoaDonRepo;
     private final HoaDonChiTietRepository hoaDonChiTietRepo;
     private final ChiTietSanPhamRepository chiTietSanPhamRepo;
@@ -134,9 +136,28 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         if (hd.getHoaDonChiTiets() != null) {
             products = hd.getHoaDonChiTiets().stream().map(ct -> {
                 HoaDonDetailResponse.SanPhamHoaDonResponse p = new HoaDonDetailResponse.SanPhamHoaDonResponse();
+                p.setMaSanPham(ct.getChiTietSanPham().getSanPham().getMaSanPham());
                 p.setTenSanPham(ct.getChiTietSanPham().getSanPham().getTenSanPham());
-                p.setSize(ct.getChiTietSanPham().getKichThuoc().getTenKichThuoc());
-                p.setMauSac(ct.getChiTietSanPham().getMauSac().getTenMauSac());
+                p.setThuongHieu(
+                    ct.getChiTietSanPham().getThuongHieu() != null
+                        ? ct.getChiTietSanPham().getThuongHieu().getTenThuongHieu()
+                        : (ct.getChiTietSanPham().getSanPham().getThuongHieu() != null
+                            ? ct.getChiTietSanPham().getSanPham().getThuongHieu().getTenThuongHieu()
+                            : null));
+                p.setChatLieu(
+                    ct.getChiTietSanPham().getChatLieu() != null
+                        ? ct.getChiTietSanPham().getChatLieu().getTenChatLieu()
+                        : (ct.getChiTietSanPham().getSanPham().getChatLieu() != null
+                            ? ct.getChiTietSanPham().getSanPham().getChatLieu().getTenChatLieu()
+                            : null));
+                p.setSize(
+                    ct.getChiTietSanPham().getKichThuoc() != null
+                        ? ct.getChiTietSanPham().getKichThuoc().getTenKichThuoc()
+                        : null);
+                p.setMauSac(
+                    ct.getChiTietSanPham().getMauSac() != null
+                        ? ct.getChiTietSanPham().getMauSac().getTenMauSac()
+                        : null);
                 p.setSoLuong(ct.getSoLuong());
                 p.setDonGia(ct.getDonGia());
                 p.setThanhTien(ct.getThanhTien());
@@ -193,14 +214,20 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
         // 2. Lưu trạng thái cũ để tạo lịch sử
         Integer oldStatus = hd.getTrangThai();
+
+        // 3. Nếu chuyển sang trạng thái hủy thì hoàn kho lại sản phẩm trong hóa đơn.
+        // Chỉ hoàn kho 1 lần khi trạng thái cũ khác 0 để tránh cộng kho trùng.
+        if (Integer.valueOf(0).equals(newStatus) && !Integer.valueOf(0).equals(oldStatus)) {
+            restoreStockForCanceledOrder(hd);
+        }
         
-        // 3. Cập nhật trạng thái mới
+        // 4. Cập nhật trạng thái mới
         hd.setTrangThai(newStatus);
 
-        // 4. Lưu hóa đơn vào Database
+        // 5. Lưu hóa đơn vào Database
         hoaDonRepo.save(hd);
         
-        // 5. Tạo lịch sử thay đổi trạng thái
+        // 6. Tạo lịch sử thay đổi trạng thái
         LichSuHoaDon history = new LichSuHoaDon();
         history.setHoaDon(hd);
         history.setHanhDong("Cập nhật trạng thái từ " + getStatusLabel(oldStatus) + " sang " + getStatusLabel(newStatus));
@@ -209,6 +236,25 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         history.setGhiChu("Thay đổi tự động từ hệ thống");
         
         lichSuHoaDonRepo.save(history);
+    }
+
+    private void restoreStockForCanceledOrder(HoaDon hd) {
+        if (hd.getHoaDonChiTiets() == null || hd.getHoaDonChiTiets().isEmpty()) {
+            return;
+        }
+
+        for (HoaDonChiTiet item : hd.getHoaDonChiTiets()) {
+            if (item == null || item.getChiTietSanPham() == null || item.getChiTietSanPham().getId() == null) {
+                continue;
+            }
+
+            Integer soLuong = item.getSoLuong();
+            if (soLuong == null || soLuong <= 0) {
+                continue;
+            }
+
+            chiTietSanPhamRepo.releaseStock(item.getChiTietSanPham().getId(), soLuong);
+        }
     }
     
     private String getStatusLabel(Integer status) {
@@ -278,14 +324,71 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
     @Override
     @Transactional
-    public void createOrderAtCounter(CreateOrderRequest req) {
-
-        // 1. Tạo hóa đơn
+    public String createDraftOrderAtCounter(Integer idNhanVien) {
         HoaDon hd = new HoaDon();
         hd.setMaHoaDon("HD" + System.currentTimeMillis());
         hd.setNgayTao(LocalDateTime.now());
-        hd.setTrangThai(5);
         hd.setLoaiHoaDon("TAI_QUAY");
+        hd.setTrangThai(POS_DRAFT_STATUS);
+
+        hd.setTongTien(BigDecimal.ZERO);
+        hd.setTienGiamGia(BigDecimal.ZERO);
+        hd.setPhiVanChuyen(BigDecimal.ZERO);
+        hd.setTongTienSauGiam(BigDecimal.ZERO);
+
+        if (idNhanVien != null) {
+            hd.setNhanVien(
+                    nhanVienRepo.findById(idNhanVien)
+                            .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên")));
+        }
+
+        hoaDonRepo.save(hd);
+        return hd.getMaHoaDon();
+    }
+
+    @Override
+    @Transactional
+    public void deleteDraftOrderAtCounter(String maHoaDon) {
+        HoaDon hd = hoaDonRepo.findByMaHoaDon(maHoaDon)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn: " + maHoaDon));
+
+        if (!"TAI_QUAY".equalsIgnoreCase(hd.getLoaiHoaDon()) || hd.getTrangThai() == null || hd.getTrangThai() != POS_DRAFT_STATUS) {
+            throw new RuntimeException("Chỉ có thể xóa hóa đơn nháp tại quầy");
+        }
+
+        hoaDonRepo.delete(hd);
+    }
+
+    @Override
+    @Transactional
+    public void createOrderAtCounter(CreateOrderRequest req) {
+
+        if (req.getItems() == null || req.getItems().isEmpty()) {
+            throw new RuntimeException("Giỏ hàng đang trống");
+        }
+
+        // 1. Lấy hóa đơn nháp (nếu có), nếu không thì tạo mới để tương thích ngược.
+        HoaDon hd;
+        if (req.getMaHoaDon() != null && !req.getMaHoaDon().isBlank()) {
+            hd = hoaDonRepo.findByMaHoaDon(req.getMaHoaDon())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn: " + req.getMaHoaDon()));
+
+            if (!"TAI_QUAY".equalsIgnoreCase(hd.getLoaiHoaDon()) || hd.getTrangThai() == null || hd.getTrangThai() != POS_DRAFT_STATUS) {
+                throw new RuntimeException("Hóa đơn không còn ở trạng thái nháp để thanh toán");
+            }
+        } else {
+            hd = new HoaDon();
+            hd.setMaHoaDon("HD" + System.currentTimeMillis());
+            hd.setNgayTao(LocalDateTime.now());
+            hd.setLoaiHoaDon("TAI_QUAY");
+        }
+
+        hd.setTrangThai(5);
+        hd.setNgayThanhToan(LocalDateTime.now());
+        hd.setHinhThucThanhToan(
+                req.getHinhThucThanhToan() != null
+                        ? req.getHinhThucThanhToan()
+                        : "TIEN_MAT");
 
         hd.setTenNguoiNhan(
                 req.getTenKhachHang() != null ? req.getTenKhachHang() : "Khách lẻ");
@@ -315,16 +418,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             ChiTietSanPham sp = chiTietSanPhamRepo
                     .findById(item.getIdChiTietSanPham())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
-
-            // ✅ Check tồn kho
-            if (sp.getSoLuong() < item.getSoLuong()) {
-                throw new RuntimeException(
-                        "Sản phẩm " + sp.getSanPham().getTenSanPham() + " không đủ tồn kho");
-            }
-
-            // ✅ Trừ tồn kho
-            sp.setSoLuong(sp.getSoLuong() - item.getSoLuong());
-            chiTietSanPhamRepo.save(sp);
 
             HoaDonChiTiet ct = new HoaDonChiTiet();
             ct.setHoaDon(hd);
@@ -359,10 +452,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         LichSuThanhToan ls = new LichSuThanhToan();
         ls.setHoaDon(hd);
         ls.setSoTien(hd.getTongTienSauGiam());
-        ls.setHinhThucThanhToan(
-                req.getHinhThucThanhToan() != null
-                        ? req.getHinhThucThanhToan()
-                        : "TIEN_MAT");
+        ls.setHinhThucThanhToan(hd.getHinhThucThanhToan());
         ls.setNgayThanhToan(LocalDateTime.now());
         ls.setTrangThai(1);
 
@@ -371,10 +461,10 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         // 5. ✅ TẠO LỊCH SỬ HÓA ĐƠN (Ghi nhận tạo đơn hàng)
         LichSuHoaDon history = new LichSuHoaDon();
         history.setHoaDon(hd);
-        history.setHanhDong("Tạo đơn hàng mới");
+        history.setHanhDong("Thanh toán đơn hàng");
         history.setThoiGian(LocalDateTime.now());
         history.setTrangThai(hd.getTrangThai());
-        history.setGhiChu("Đơn hàng được tạo tại quầy");
+        history.setGhiChu("Đơn hàng được thanh toán tại quầy");
         if (req.getIdNhanVien() != null) {
             history.setNhanVien(hd.getNhanVien());
         }
@@ -471,14 +561,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         for (CreateOrderRequest.CartItem item : req.getItems()) {
             ChiTietSanPham sp = chiTietSanPhamRepo.findById(item.getIdChiTietSanPham())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
-
-            if (sp.getSoLuong() < item.getSoLuong()) {
-                throw new RuntimeException("Không đủ tồn kho");
-            }
-
-            // Trừ tồn kho ngay khi sản phẩm được đưa vào đơn giao hàng.
-            sp.setSoLuong(sp.getSoLuong() - item.getSoLuong());
-            chiTietSanPhamRepo.save(sp);
 
             HoaDonChiTiet ct = new HoaDonChiTiet();
             ct.setHoaDon(hd);

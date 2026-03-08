@@ -18,6 +18,8 @@ public interface HoaDonService {
     HoaDonDetailResponse getOrderDetail(String maHoaDon);
     void updateStatus(String maHoaDon, Integer newStatus);
     void updateOrderInfo(String maHoaDon, HoaDonRequest request);
+    String createDraftOrderAtCounter(Integer idNhanVien);
+    void deleteDraftOrderAtCounter(String maHoaDon);
     void createOrderAtCounter(CreateOrderRequest req);
     byte[] exportExcel(String keyword, Integer status, String type, LocalDateTime from, LocalDateTime to);
     void createOrderDelivery(CreateOrderRequest req);

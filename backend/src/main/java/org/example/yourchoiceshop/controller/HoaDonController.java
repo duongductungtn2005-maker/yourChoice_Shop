@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/hoa-don")
@@ -82,6 +83,19 @@ public class HoaDonController {
     public ResponseEntity<?> createOrder(@RequestBody CreateOrderRequest req) {
         hoaDonService.createOrderAtCounter(req);
         return ResponseEntity.ok("Tạo hóa đơn thành công");
+    }
+
+    @PostMapping("/pos/draft")
+    public ResponseEntity<?> createPosDraft(@RequestBody(required = false) CreateOrderRequest req) {
+        Integer idNhanVien = req != null ? req.getIdNhanVien() : null;
+        String maHoaDon = hoaDonService.createDraftOrderAtCounter(idNhanVien);
+        return ResponseEntity.ok(Map.of("maHoaDon", maHoaDon));
+    }
+
+    @DeleteMapping("/pos/draft/{maHoaDon}")
+    public ResponseEntity<?> deletePosDraft(@PathVariable String maHoaDon) {
+        hoaDonService.deleteDraftOrderAtCounter(maHoaDon);
+        return ResponseEntity.ok("Xóa hóa đơn nháp thành công");
     }
 
     @GetMapping("/export")
