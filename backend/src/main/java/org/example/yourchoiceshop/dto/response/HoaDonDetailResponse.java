@@ -1,25 +1,32 @@
 package org.example.yourchoiceshop.dto.response;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
+@Getter
+@Setter
 public class HoaDonDetailResponse {
     private String maHoaDon;
     private String tenKhachHang;
+    private String emailKhachHang; 
     private String loaiHoaDon;
     private Integer trangThai;
     private LocalDateTime ngayTao;
 
     private BigDecimal tongTien;
-    private BigDecimal giamGia;
+    private BigDecimal tienGiam;
     private BigDecimal phiVanChuyen;
     private BigDecimal tongTienSauGiam;
 
     private ThongTinNhanHang thongTinNhanHang;
     private List<LichSuThanhToanResponse> lichSuThanhToan;
+    private List<LichSuHoaDonResponse> lichSuHoaDon;
     private List<SanPhamHoaDonResponse> sanPhamHoaDon;
 
     @Data

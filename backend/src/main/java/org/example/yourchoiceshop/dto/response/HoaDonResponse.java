@@ -6,11 +6,15 @@ import java.time.LocalDateTime;
 
 @Data
 public class HoaDonResponse {
-    private String maHoaDon;        
-    private Integer tongSanPham;    
-    private BigDecimal tongTienSauGiam; 
-    private String tenKhachHang;    
-    private LocalDateTime ngayTao;  
-    private String loaiHoaDon;      
-    private Integer trangThai;      
+    private Integer id;
+    private String maHoaDon;
+    private Integer tongSanPham;
+    private BigDecimal tongTienSauGiam;
+    private String tenKhachHang;
+    private String maNhanVien;
+    private String tenNhanVien;
+    private LocalDateTime ngayTao;
+    private String loaiHoaDon;
+    private Integer trangThai;
+    private String emailKhachHang;
 }

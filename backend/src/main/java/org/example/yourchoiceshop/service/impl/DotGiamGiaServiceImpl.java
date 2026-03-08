@@ -127,27 +127,40 @@ public class DotGiamGiaServiceImpl {
 
     // --- HÀM QUAN TRỌNG ĐÃ ĐƯỢC SỬA ---
     private void saveProductDetails(DotGiamGia dot, List<Integer> productIds) {
-        if (productIds != null && !productIds.isEmpty()) {
-            List<ChiTietDotGiamGia> listCT = new ArrayList<>();
-            List<ChiTietSanPham> listSp = ctspRepo.findAllById(productIds);
+    if (productIds != null && !productIds.isEmpty()) {
+        List<ChiTietDotGiamGia> listCT = new ArrayList<>();
+        List<ChiTietSanPham> listSp = ctspRepo.findAllById(productIds);
 
-            for (ChiTietSanPham ctsp : listSp) {
-                // 1. CẬP NHẬT TRỰC TIẾP VÀO SẢN PHẨM (Để hiển thị giá giảm ngay)
-                ctsp.setDotGiamGia(dot);
-
-                // 2. Lưu vào bảng trung gian (Để lưu lịch sử/tracking)
-                ChiTietDotGiamGia ctdgg = new ChiTietDotGiamGia();
-                ctdgg.setDotGiamGia(dot);
-                ctdgg.setChiTietSanPham(ctsp);
-                ctdgg.setTrangThai(1);
-                listCT.add(ctdgg);
-            }
-
-            // Lưu cập nhật cho cả 2 bảng
-            ctspRepo.saveAll(listSp); // <-- Quan trọng: Lưu cập nhật id_dot_giam_gia vào bảng SP
-            ctDotRepo.saveAll(listCT);
+        // 1. Lưu vào bảng trung gian trước (để hệ thống biết SP này nằm trong đợt nào)
+        for (ChiTietSanPham ctsp : listSp) {
+            ChiTietDotGiamGia ctdgg = new ChiTietDotGiamGia();
+            ctdgg.setDotGiamGia(dot);
+            ctdgg.setChiTietSanPham(ctsp);
+            ctdgg.setTrangThai(1);
+            listCT.add(ctdgg);
         }
+        ctDotRepo.saveAll(listCT);
+
+        // 2. Cập nhật lại "đợt giảm giá tốt nhất" cho TỪNG sản phẩm
+        for (ChiTietSanPham ctsp : listSp) {
+            updateBestDiscountForProduct(ctsp);
+        }
+        ctspRepo.saveAll(listSp);
     }
+}
+
+// Hàm dùng chung để tính toán lại % tốt nhất
+public void updateBestDiscountForProduct(ChiTietSanPham ctsp) {
+    List<DotGiamGia> activeDiscounts = ctDotRepo.findBestActiveDiscountForProduct(ctsp.getId());
+    
+    if (!activeDiscounts.isEmpty()) {
+        // Lấy thằng đứng đầu tiên (do đã ORDER BY DESC ở câu Query)
+        ctsp.setDotGiamGia(activeDiscounts.get(0));
+    } else {
+        // Nếu không có đợt nào thỏa mãn thời gian/trạng thái thì clear
+        ctsp.setDotGiamGia(null);
+    }
+}
 
     private void mapReqToEntity(DotGiamGiaRequest req, DotGiamGia entity) {
         entity.setTenDotGiamGia(req.getTenDotGiamGia());

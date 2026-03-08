@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="header-section">
       <h1 class="page-title">Quản lý sản phẩm / Danh sách sản phẩm</h1>
-      <div class="total-count">Tổng số sản phẩm: <b>{{ items.length }}</b></div>
+<div class="total-count"><h5>Tổng số sản phẩm: <b>{{ items.length }}</b></h5></div>
     </div>
 
     <div class="card control-panel">
@@ -158,7 +158,7 @@
             <option :value="10">10</option>
             <option :value="20">20</option>
           </select>
-          bản ghi
+          sản phẩm / trang 
         </div>
         <div class="page-controls">
           <button class="page-btn" :disabled="page === 1" @click="changePage(page - 1)">‹</button>
@@ -317,10 +317,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; color: #333; }
+.page-container { 
+    padding: 20px; 
+    font-family: 'Segoe UI', sans-serif; 
+    /* ĐỔI THÀNH MÀU XÁM TRUNG TÍNH (Không ám xanh) */
+    background-color: #ebecee;
+    min-height: 100vh; 
+    color: #333; 
+    font-size: 14px; 
+}
 .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.page-title { margin: 0; font-size: 20px; font-weight: 700; color: #1e293b; }
-.total-count { font-size: 13px; color: #64748b; }
+.page-title { margin: 0; font-size: 24px; font-weight: 700; color: #1e293b; }
+.total-count { font-size: 13px; color: black; }
 
 .card { background: white; border-radius: 12px; border: 1px solid #bfdbfe; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 24px; margin-bottom: 20px; }
 
@@ -370,8 +378,8 @@ onMounted(() => {
 .table-container { padding: 0; overflow: hidden; }
 .custom-table { width: 100%; border-collapse: collapse; }
 .custom-table th { 
-    background: #E9F1FB; /* Xanh nhạt cũ */
-    color: #1E3A8A; /* Chữ xanh đậm cũ */
+    background: #f5f5f5; 
+    color: #000000;
     padding: 14px; 
     font-weight: 700; 
     text-transform: uppercase; 

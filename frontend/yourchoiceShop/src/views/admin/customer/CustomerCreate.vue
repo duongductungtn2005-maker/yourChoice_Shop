@@ -26,13 +26,13 @@
                 <label class="required">Họ và tên</label>
                 <input type="text" v-model="form.tenKhachHang" class="form-control" placeholder="Nhập họ tên...">
               </div>
+                <div class="form-group">
+                  <label class="required">Tên tài khoản</label>
+                  <input type="text" v-model="form.username" class="form-control" placeholder="Nhập tên tài khoản...">
+                </div>
               <div class="form-group">
                  <label class="required">Email</label>
                  <input type="email" v-model="form.email" class="form-control" placeholder="example@gmail.com">
-              </div>
-              <div class="form-group">
-                 <label class="required">Số điện thoại</label>
-                 <input type="text" v-model="form.soDienThoai" class="form-control" placeholder="Nhập SĐT...">
               </div>
             </div>
 
@@ -45,22 +45,8 @@
                   <input type="text" v-model="form.maKhachHang" class="form-control" placeholder="Tự sinh nếu trống">
                 </div>
                 <div class="form-group half">
-                  <label class="required">Giới tính</label>
-                  <div class="radio-group">
-                    <label class="radio-item"><input type="radio" :value="true" v-model="form.gioiTinh"> Nam</label>
-                    <label class="radio-item"><input type="radio" :value="false" v-model="form.gioiTinh"> Nữ</label>
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group half">
-                  <label class="required">Tên tài khoản</label>
-                  <input type="text" v-model="form.username" class="form-control" placeholder="Nhập tên tài khoản...">
-                </div>
-                <div class="form-group half">
-                  <label class="required">Mật khẩu</label>
-                  <input type="password" v-model="form.password" class="form-control" placeholder="Nhập mật khẩu...">
+                   <label class="required">Số điện thoại</label>
+                   <input type="text" v-model="form.soDienThoai" class="form-control" placeholder="Nhập SĐT...">
                 </div>
               </div>
 
@@ -70,11 +56,11 @@
                   <input type="date" v-model="form.ngaySinh" class="form-control">
                 </div>
                 <div class="form-group half">
-                   <label>Trạng thái</label>
-                   <select v-model="form.trangThai" class="form-control">
-                      <option :value="1">Hoạt động</option>
-                      <option :value="0">Ngừng hoạt động</option>
-                   </select>
+                  <label class="required">Giới tính</label>
+                  <div class="radio-group">
+                    <label class="radio-item"><input type="radio" :value="true" v-model="form.gioiTinh"> Nam</label>
+                    <label class="radio-item"><input type="radio" :value="false" v-model="form.gioiTinh"> Nữ</label>
+                  </div>
                 </div>
               </div>
 
@@ -105,17 +91,6 @@
                        <div class="form-group half">
                           <label>Số nhà / Đường</label>
                           <input type="text" v-model="addr.diaChiNhanHang" class="form-control" placeholder="VD: 12A Nguyễn Trãi..." @input="updatePreviewAddress(idx)">
-                       </div>
-                    </div>
-
-                    <div class="form-row">
-                       <div class="form-group half">
-                          <label>Tên người nhận</label>
-                          <input type="text" v-model="addr.tenNguoiNhan" class="form-control" placeholder="Họ tên người nhận">
-                       </div>
-                       <div class="form-group half">
-                          <label>SĐT người nhận</label>
-                          <input type="text" v-model="addr.sdtNguoiNhan" class="form-control" placeholder="SĐT liên hệ">
                        </div>
                     </div>
 
@@ -171,20 +146,23 @@ import request from '@/services/request';
 import { useRouter } from 'vue-router';
 import { toastSuccess, toastError, Toast } from '@/utils/toast';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 const router = useRouter();
+const role = (sessionStorage.getItem('userRole') || 'ADMIN').toUpperCase();
+const customerListRouteName = role === 'STAFF' ? 'staff-customer-list' : 'admin-customer-list';
 const loading = ref(false);
 const fileInput = ref(null);
 const previewImage = ref(null);
 const avatarFile = ref(null);
 
 const form = reactive({
-  maKhachHang: '', tenKhachHang: '', username: '', password: '', email: '', soDienThoai: '',
-  gioiTinh: true, ngaySinh: '', trangThai: 1,
+  maKhachHang: '', tenKhachHang: '', username: '', email: '', soDienThoai: '',
+  gioiTinh: true, ngaySinh: '',
   addresses: [
     { 
       tinhId: '', huyenId: '', xaId: '', diaChiNhanHang: '', 
-      tenDiaChi: '', tenNguoiNhan: '', sdtNguoiNhan: '',
+      tenDiaChi: '',
       diaChiMacDinh: true, previewText: '' 
     }
   ]
@@ -208,7 +186,7 @@ const handleFileUpload = (event) => {
 const addNewAddress = () => {
   form.addresses.push({ 
       tinhId: '', huyenId: '', xaId: '', diaChiNhanHang: '', 
-      tenDiaChi: '', tenNguoiNhan: '', sdtNguoiNhan: '',
+      tenDiaChi: '',
       diaChiMacDinh: false, previewText: ''
   });
   districtsList.value.push([]);
@@ -280,20 +258,85 @@ const onDistrictChange = async (index) => {
 // --- SUBMIT (MAPPING QUAN TRỌNG) ---
 const submitForm = async () => {
   if (!form.tenKhachHang.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên khách hàng' });
+  if (!form.username || !form.username.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên tài khoản' });
   if (!form.soDienThoai) return Toast.fire({ icon: 'warning', title: 'Thiếu số điện thoại' });
+  // Kiểm tra SĐT - đúng 10 chữ số
+  if (form.soDienThoai.replace(/[^0-9]/g, '').length !== 10) {
+    return Toast.fire({ icon: 'warning', title: 'Số điện thoại phải đúng 10 chữ số' });
+  }
+  // Kiểm tra Ngày sinh - không tương lai và tuổi >= 18
+  if (form.ngaySinh) {
+    const birthDate = new Date(form.ngaySinh);
+    const today = new Date();
+    if (birthDate > today) {
+      return Toast.fire({ icon: 'warning', title: 'Ngày sinh không thể là ngày tương lai' });
+    }
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age < 18) {
+      return Toast.fire({ icon: 'warning', title: 'Khách hàng phải từ đủ 18 tuổi trở lên' });
+    }
+  }
+
+  // Kiểm tra trùng tên tài khoản
+  try {
+    const resUsername = await request.get(`/khach-hang/exists-username?username=${form.username.trim()}`);
+    if (resUsername.data.exists) {
+      return Toast.fire({ icon: 'warning', title: 'Tên tài khoản đã tồn tại!' });
+    }
+  } catch (e) {
+    console.error('Lỗi check trùng tài khoản:', e);
+    return Toast.fire({ icon: 'error', title: 'Lỗi kết nối khi kiểm tra tài khoản!' });
+  }
+
+  // Kiểm tra trùng số điện thoại
+  try {
+    const resSDT = await request.get(`/khach-hang/exists-sdt?soDienThoai=${form.soDienThoai.trim()}`);
+    if (resSDT.data.exists) {
+      return Toast.fire({ icon: 'warning', title: 'Số điện thoại đã tồn tại!' });
+    }
+  } catch (e) {
+    console.error('Lỗi check trùng SĐT:', e);
+    return Toast.fire({ icon: 'error', title: 'Lỗi kết nối khi kiểm tra số điện thoại!' });
+  }
+
+  // Dialog xác nhận gửi email
+  const result = await Swal.fire({
+    title: 'Xác nhận thêm khách hàng',
+    text: 'Bạn có muốn gửi mail cho khách hàng này không?',
+    icon: 'question',
+    showCloseButton: true,
+    showCancelButton: false,
+    showDenyButton: true,
+    confirmButtonText: '<i class="fas fa-paper-plane"></i> Gửi Email',
+    confirmButtonColor: '#3085d6',
+    denyButtonText: '<i class="fas fa-user-plus"></i> KHÔNG Gửi Email',
+    denyButtonColor: '#f39c12',
+    allowOutsideClick: false
+  });
+
+  // Nếu người dùng nhấn X thì dừng lại không tạo khách hàng
+  if (result.isDismissed) return;
+
+  // Xác định có gửi email hay không
+  const sendEmail = result.isConfirmed;
 
   loading.value = true;
   try {
     const formData = new FormData();
     formData.append('tenKhachHang', form.tenKhachHang);
-    formData.append('username', form.username || form.email); 
+    formData.append('username', form.username.trim()); 
     formData.append('password', form.password || '123456');
     formData.append('email', form.email);
     formData.append('soDienThoai', form.soDienThoai);
     formData.append('gioiTinh', form.gioiTinh);
     if (form.ngaySinh) formData.append('ngaySinh', form.ngaySinh);
-    formData.append('trangThai', form.trangThai);
+    formData.append('trangThai', 1);
     if (form.maKhachHang) formData.append('maKhachHang', form.maKhachHang);
+    formData.append('sendEmail', sendEmail ? 'true' : 'false');
 
     if (form.addresses && form.addresses.length > 0) {
       const mappedAddresses = form.addresses.map((addr, index) => {
@@ -319,10 +362,13 @@ const submitForm = async () => {
 
     await request.post('/khach-hang', formData);
     toastSuccess('Thêm khách hàng thành công!');
-    router.push({ name: 'admin-customer-list' });
+    router.push({ name: customerListRouteName });
   } catch (error) {
     console.error(error);
-    toastError(error.response?.data?.message || 'Có lỗi xảy ra');
+    const backendMessage = typeof error.response?.data === 'string'
+      ? error.response.data
+      : error.response?.data?.message;
+    toastError(backendMessage || 'Có lỗi xảy ra');
   } finally {
     loading.value = false;
   }
@@ -331,7 +377,7 @@ const submitForm = async () => {
 
 <style scoped>
 .page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
-.create-customer-page { font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; min-height: 100vh; padding: 20px; }
+.create-customer-page { font-family: 'Segoe UI', sans-serif; background: #ebecee; min-height: 100vh; padding: 20px; }
 .header-section { margin-bottom: 20px; }
 
 /* === UPDATE CSS: Card Styling (Viền xanh) === */

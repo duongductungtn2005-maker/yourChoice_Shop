@@ -24,8 +24,23 @@
             <i class="fas fa-search search-icon"></i>
           </div>
           
-          <div class="icon-item user-icon">
+          <div class="icon-item user-icon" @click="toggleUserDropdown" :class="{ 'dropdown-open': isUserDropdownOpen }">
             <i class="far fa-user"></i>
+            
+            <!-- User Dropdown -->
+            <div v-if="isUserDropdownOpen" class="user-dropdown">
+              <template v-if="isCustomerLoggedIn">
+                <div class="dropdown-btn customer-label">
+                  <i class="fas fa-user-check"></i> Đã đăng nhập
+                </div>
+                <button class="dropdown-btn" @click="handleLogout">
+                  <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </button>
+              </template>
+              <router-link v-else to="/login" class="dropdown-btn login-btn" @click="isUserDropdownOpen = false">
+                <i class="fas fa-sign-in-alt"></i> Đăng nhập
+              </router-link>
+            </div>
           </div>
           
           <div class="icon-item cart-icon">
@@ -76,12 +91,38 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { toastSuccess } from '@/utils/toast';
 
+const router = useRouter();
 const isScrolled = ref(false);
+const isUserDropdownOpen = ref(false);
+const userRole = ref('');
+const hasToken = ref(false);
+const isCustomerLoggedIn = computed(() => hasToken.value && userRole.value === 'CUSTOMER');
 
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 50;
+};
+
+const toggleUserDropdown = () => {
+  isUserDropdownOpen.value = !isUserDropdownOpen.value;
+};
+
+const loadAuthState = () => {
+  userRole.value = String(sessionStorage.getItem('userRole') || '').toUpperCase();
+  hasToken.value = !!sessionStorage.getItem('token');
+};
+
+const handleLogout = () => {
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('userRole');
+  isUserDropdownOpen.value = false;
+  loadAuthState();
+  toastSuccess('Đăng xuất thành công!');
+  router.push('/');
 };
 
 // Xử lý ảnh lỗi logo
@@ -89,7 +130,10 @@ const handleImageError = (e) => {
     e.target.style.display = 'none'; 
 };
 
-onMounted(() => window.addEventListener('scroll', handleScroll));
+onMounted(() => {
+  loadAuthState();
+  window.addEventListener('scroll', handleScroll);
+});
 onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 </script>
 
@@ -152,6 +196,54 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 
 .icon-item { font-size: 20px; cursor: pointer; position: relative; transition: 0.2s; color: #334155; }
 .icon-item:hover { color: #1e3a8a; }
+
+.user-icon { position: relative; }
+
+/* USER DROPDOWN */
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: -20px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  min-width: 140px;
+  margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  color: #334155;
+  text-decoration: none;
+  transition: 0.2s;
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.dropdown-btn:hover {
+  background-color: #f1f5f9;
+  color: #1e3a8a;
+}
+
+.customer-label {
+  cursor: default;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.login-btn {
+  color: #1e3a8a;
+  font-weight: 500;
+}
 
 .cart-badge {
   position: absolute; top: -6px; right: -8px;

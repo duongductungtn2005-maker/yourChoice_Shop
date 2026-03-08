@@ -2,11 +2,8 @@
   <div class="create-product-page">
    
     <div class="header-section">
-      <h1 class="page-title">
-        <span class="text-gray cursor-pointer" @click="$router.push('/admin/products')">Quản lý sản phẩm</span>
-        <span class="separator">/</span>
-        <span class="text-bold">Tạo sản phẩm</span>
-      </h1>
+      <h1 class="page-title">Quản lý sản phẩm / Danh sách sản phẩm</h1>
+      
     </div>
 
     <div class="content-container">
@@ -505,7 +502,7 @@ onMounted(() => fetchAttributes());
     font-family: 'Segoe UI', sans-serif; 
     color: #334155; 
     padding-bottom: 100px; /* Chừa chỗ cho thanh action cố định */ 
-    background-color: #f8fafc; 
+    background-color: #ebecee; 
     min-height: 100vh; 
     padding: 20px; 
 }
@@ -517,7 +514,8 @@ onMounted(() => fetchAttributes());
     margin-bottom: 20px; 
 }
 
-.header-section .page-title { margin: 0; font-size: 24px; } 
+.header-section 
+.page-title { margin: 0; font-size: 24px; font-weight: 700; color: #1e293b; }
 .text-gray { color: #64748b; }
 .text-bold { font-weight: 700; color: #0f172a; } 
 .separator { margin: 0 8px; color: #cbd5e1; }
@@ -774,7 +772,7 @@ onMounted(() => fetchAttributes());
     left: calc(260px + 24px); 
     right: 24px;
     bottom: 0;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(253, 253, 253, 0.95);
     backdrop-filter: blur(10px);
     padding: 12px 24px;
     border-top: 1px solid #e2e8f0;

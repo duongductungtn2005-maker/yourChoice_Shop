@@ -53,17 +53,21 @@ public class HoaDon extends BaseStatusEntity {
     @Column(name = "ghi_chu", columnDefinition = "NVARCHAR(MAX)")
     private String ghiChu;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY) // Đã thêm LAZY
     @JoinColumn(name = "id_khach_hang")
     private KhachHang khachHang;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY) // Đã thêm LAZY
     @JoinColumn(name = "id_nhan_vien")
     private NhanVien nhanVien;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY) // Đã thêm LAZY
     @JoinColumn(name = "id_phieu_giam_gia")
     private PhieuGiamGia phieuGiamGia;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_giao_ca")
+    private GiaoCa giaoCa;
 
     // --- Cập nhật quan hệ (Thêm List con) ---
 
@@ -72,4 +76,7 @@ public class HoaDon extends BaseStatusEntity {
 
     @OneToMany(mappedBy = "hoaDon", fetch = FetchType.LAZY)
     private List<LichSuThanhToan> lichSuThanhToans;
+
+    @OneToMany(mappedBy = "hoaDon", fetch = FetchType.LAZY)
+    private List<LichSuHoaDon> lichSuHoaDons;
 }

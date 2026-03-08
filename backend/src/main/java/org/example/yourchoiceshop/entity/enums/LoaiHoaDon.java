@@ -1,6 +1,7 @@
 package org.example.yourchoiceshop.entity.enums;
 
 public enum LoaiHoaDon {
-    ONLINE,
-    TAI_QUAY
+    TRUC_TUYEN,
+    TAI_QUAY,
+    GIAO_HANG
 }

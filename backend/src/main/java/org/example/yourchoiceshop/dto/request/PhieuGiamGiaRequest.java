@@ -4,6 +4,9 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.List; // Thêm import List
+
+import jakarta.persistence.Column;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -22,5 +25,6 @@ public class PhieuGiamGiaRequest {
     private LocalDateTime ngayKetThuc;
     private Integer trangThai;
     private String kieu;
+    private String moTa;
     private List<Integer> customerIds; // Danh sách ID khách hàng
 }

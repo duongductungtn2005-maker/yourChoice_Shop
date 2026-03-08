@@ -1,6 +1,9 @@
 <template>
   <div class="page-container">
-    <h1 class="page-title">Quản lý sản phẩm / Màu sắc</h1>
+    <div class="header-section">
+      <h1 class="page-title">Quản lý sản phẩm / Màu sắc</h1>
+<div class="total-count"><h5>Tổng số sản phẩm: <b>{{ items.length }}</b></h5></div>
+    </div>
 
     <div class="control-panel">
       <div class="controls-row">
@@ -304,9 +307,10 @@ onMounted(() => { fetchData(); });
 
 <style scoped>
 /* === CSS CHUẨN ĐỒNG BỘ === */
-.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; color: #333; font-size: 14px; }
-.page-title { color: #2b4360; font-weight: 700; font-size: 24px; margin-bottom: 20px; }
-
+.page-container { padding: 20px; font-family: 'Segoe UI', sans-serif; background: #ebecee; min-height: 100vh; color: #333; font-size: 14px; }
+.header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.page-title { margin: 0; font-size: 24px; font-weight: 700; color: #1e293b; }
+.total-count { font-size: 13px; color: black; }
 /* CARD STYLING */
 .control-panel, .table-container { 
     background: white; border-radius: 16px; border: 1px solid #bfdbfe !important; 
@@ -359,7 +363,7 @@ onMounted(() => { fetchData(); });
 /* TABLE STYLES */
 .custom-table { width: 100%; border-collapse: collapse; }
 .custom-table th {
-    background: #eff6ff !important; color: #1e40af; padding: 16px; text-align: center;
+    background: #f5f5f5 !important; color: #000000; padding: 16px; text-align: center;
      font-weight: 700; text-transform: uppercase; border-bottom: none !important;
 }
 .custom-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; text-align: center; vertical-align: middle; }
