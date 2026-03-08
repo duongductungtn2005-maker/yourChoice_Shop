@@ -68,6 +68,11 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
                             ? hd.getTenNguoiNhan()
                             : (hd.getKhachHang() != null ? hd.getKhachHang().getTenKhachHang() : "Khách lẻ"));
 
+            res.setSdtKhachHang(
+                    hd.getSdtNguoiNhan() != null
+                            ? hd.getSdtNguoiNhan()
+                            : (hd.getKhachHang() != null ? hd.getKhachHang().getSoDienThoai() : null));
+
             // ✅ CHỖ QUYẾT ĐỊNH
             res.setTenNhanVien(
                     hd.getNhanVien() != null
