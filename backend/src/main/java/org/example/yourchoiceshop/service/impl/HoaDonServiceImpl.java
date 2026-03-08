@@ -227,7 +227,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         hd.setTenNguoiNhan(
                 req.getTenKhachHang() != null ? req.getTenKhachHang() : "Khách lẻ");
         hd.setSdtNguoiNhan(req.getSoDienThoai());
-        hd.setDiaChiNguoiNhan(req.getDiaChi());
+        hd.setDiaChiNguoiNhan(buildFullAddress(req));
         hd.setEmailKhachHang(req.getEmail());
         hd.setGhiChu(req.getGhiChu());
 
@@ -417,7 +417,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         hd.setTenNguoiNhan(
                 req.getTenKhachHang() != null ? req.getTenKhachHang() : "Khách lẻ");
         hd.setSdtNguoiNhan(req.getSoDienThoai());
-        hd.setDiaChiNguoiNhan(req.getDiaChi());
+        hd.setDiaChiNguoiNhan(buildFullAddress(req));
         hd.setEmailKhachHang(req.getEmail());
         hd.setGhiChu(req.getGhiChu());
 
@@ -496,4 +496,34 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         return "Khác";
     }
 
+    private String buildFullAddress(CreateOrderRequest req) {
+
+    String detail = req.getDiaChiChiTiet();
+    String ward = req.getWardName();
+    String district = req.getDistrictName();
+    String province = req.getProvinceName();
+
+    StringBuilder sb = new StringBuilder();
+
+    if (detail != null && !detail.isBlank()) {
+        sb.append(detail);
+    }
+
+    if (ward != null && !ward.isBlank()) {
+        if (sb.length() > 0) sb.append(", ");
+        sb.append(ward);
+    }
+
+    if (district != null && !district.isBlank()) {
+        if (sb.length() > 0) sb.append(", ");
+        sb.append(district);
+    }
+
+    if (province != null && !province.isBlank()) {
+        if (sb.length() > 0) sb.append(", ");
+        sb.append(province);
+    }
+
+    return sb.toString();
+}
 }

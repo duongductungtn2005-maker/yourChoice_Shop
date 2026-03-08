@@ -9,7 +9,10 @@ public class CreateOrderRequest {
 
     private String tenKhachHang;
     private String soDienThoai;
-    private String diaChi;
+    private String diaChiChiTiet;
+    private String wardName;
+    private String districtName;
+    private String provinceName;
     private String email;
 
     private String ghiChu;
@@ -20,7 +23,7 @@ public class CreateOrderRequest {
     private BigDecimal tienGiamGia;
     private BigDecimal phiVanChuyen;
     private BigDecimal tongTienSauGiam;
-    private String hinhThucThanhToan; 
+    private String hinhThucThanhToan;
 
     private List<PhieuGiamGiaRequest> phieuGiamGia;
 
@@ -32,4 +35,5 @@ public class CreateOrderRequest {
         private Integer soLuong;
         private Double donGia;
     }
+
 }

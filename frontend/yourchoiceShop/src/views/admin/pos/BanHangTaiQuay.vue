@@ -143,7 +143,42 @@
           <div class="card-body form-grid">
             <input v-model="customer.name" placeholder="Tên người nhận" />
             <input v-model="customer.phone" placeholder="SĐT người nhận" />
-            <input v-model="customer.address" placeholder="Địa chỉ nhận hàng" />
+
+            <!-- Địa chỉ giao hàng -->
+            <div class="address-group">
+              <div class="address-field">
+                <label class="address-label">Tỉnh/Thành</label>
+                <select v-model="selectedProvince" @change="onProvinceChange" class="address-select">
+                  <option value="">-- Chọn Tỉnh/Thành --</option>
+                  <option v-for="item in provinces" :key="item.provinceId" :value="item.provinceId">
+                    {{ item.provinceName }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="address-field">
+                <label class="address-label">Quận/Huyện</label>
+                <select v-model="selectedDistrict" @change="onDistrictChange" class="address-select"
+                  :disabled="!selectedProvince">
+                  <option value="">-- Chọn Quận/Huyện --</option>
+                  <option v-for="item in districts" :key="item.districtId" :value="item.districtId">
+                    {{ item.districtName }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="address-field">
+                <label class="address-label">Phường/Xã</label>
+                <select v-model="selectedWard" @change="onWardChange" class="address-select"
+                  :disabled="!selectedDistrict">
+                  <option value="">-- Chọn Phường/Xã --</option>
+                  <option v-for="item in wards" :key="item.wardCode" :value="item.wardCode">
+                    {{ item.wardName }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
             <textarea v-model="note" placeholder="Ghi chú"></textarea>
           </div>
         </div>
@@ -159,7 +194,7 @@
             <span :class="{ active: orderType === 'TAI_QUAY' }"></span>
 
             <label class="switch">
-              <input type="checkbox" v-model="isDelivery" @change="toggleOrderType" />
+              <input type="checkbox" v-model="isDelivery" />
               <span class="slider"></span>
             </label>
 
@@ -910,6 +945,7 @@ const selectStaff = (s) => {
 }
 
 import { createOrderDelivery } from '@/api/HoaDonApi'
+import { ghnApi } from '@/api/ghnApi'
 
 const handleSubmitOrder = async () => {
   if (orderType.value === 'TAI_QUAY') {
@@ -920,8 +956,13 @@ const handleSubmitOrder = async () => {
 }
 
 const handleCreateOrderDelivery = async () => {
-  if (!customer.value.name || !customer.value.phone || !customer.value.address) {
+  if (!customer.value.name || !customer.value.phone) {
     alert('Vui lòng nhập đầy đủ thông tin người nhận')
+    return
+  }
+
+  if (!selectedProvince.value || !selectedDistrict.value || !selectedWard.value) {
+    alert('Vui lòng chọn đầy đủ địa chỉ giao hàng')
     return
   }
 
@@ -930,13 +971,32 @@ const handleCreateOrderDelivery = async () => {
     return
   }
 
+  const province = provinces.value.find(
+    p => p.provinceId == selectedProvince.value
+  )
+
+  const district = districts.value.find(
+    d => d.districtId == selectedDistrict.value
+  )
+
+  const ward = wards.value.find(
+    w => w.wardCode == selectedWard.value
+  )
+
   const payload = {
     tenKhachHang: customer.value.name,
     soDienThoai: customer.value.phone,
-    diaChi: customer.value.address,
+
+    diaChiChiTiet: '',
+
+    provinceName: province?.provinceName || '',
+    districtName: district?.districtName || '',
+    wardName: ward?.wardName || '',
+
     email: customer.value.email,
     ghiChu: note.value,
     idNhanVien: staff.value.id,
+
     tienGiamGia: totalDiscount.value,
     phiVanChuyen: shippingFee.value,
 
@@ -1011,6 +1071,7 @@ const clearOrderTabs = () => {
 
 onMounted(() => {
   loadOrderTabs()
+  fetchProvinces() // Load danh sách tỉnh/thành
 })
 
 watch(orderTabs, saveOrderTabs, { deep: true })
@@ -1030,7 +1091,7 @@ const createNewTab = () => {
   // Lấy thông tin nhân viên hiện tại (admin hoặc staff đều là nhân viên)
   const currentUser = getCurrentUser()
   let staffInfo = { id: null, code: '', name: '' }
-  
+
   if (currentUser) {
     staffInfo = {
       id: currentUser.id,
@@ -1108,12 +1169,122 @@ const note = computed({
   set: v => currentOrder.value && (currentOrder.value.note = v)
 })
 
-const orderType = ref('TAI_QUAY')
 
-const isDelivery = ref(false)
+const orderType = computed({
+  get: () => currentOrder.value?.orderType || 'TAI_QUAY',
+  set: v => {
+    if (currentOrder.value) {
+      currentOrder.value.orderType = v
+    }
+  }
+})
+
+const isDelivery = computed({
+  get: () => orderType.value === 'GIAO_HANG',
+  set: v => {
+    orderType.value = v ? 'GIAO_HANG' : 'TAI_QUAY'
+  }
+})
 
 const toggleOrderType = () => {
-  orderType.value = isDelivery.value ? 'GIAO_HANG' : 'TAI_QUAY'
+  orderType.value =
+    orderType.value === 'TAI_QUAY'
+      ? 'GIAO_HANG'
+      : 'TAI_QUAY'
+}
+
+// GHN Address variables
+const provinces = ref([])
+const districts = ref([])
+const wards = ref([])
+const selectedProvince = ref('')
+const selectedDistrict = ref('')
+const selectedWard = ref('')
+
+// GHN Functions
+const fetchProvinces = async () => {
+  try {
+    const res = await ghnApi.getProvinces()
+
+    console.log("PROVINCES =", res.data)
+
+    provinces.value = res.data
+  } catch (error) {
+    console.error("Lỗi tải tỉnh:", error)
+  }
+}
+
+const onProvinceChange = async () => {
+  selectedDistrict.value = ''
+  selectedWard.value = ''
+  districts.value = []
+  wards.value = []
+  shippingFee.value = 0
+
+  if (selectedProvince.value) {
+    try {
+      const res = await ghnApi.getDistricts(selectedProvince.value)
+      districts.value = res.data
+    } catch (error) {
+      console.error('Lỗi tải danh sách quận/huyện:', error)
+    }
+  }
+}
+
+const onDistrictChange = async () => {
+  selectedWard.value = ''
+  wards.value = []
+  shippingFee.value = 0
+
+  if (selectedDistrict.value) {
+    try {
+      const res = await ghnApi.getWards(selectedDistrict.value)
+      wards.value = res.data
+    } catch (error) {
+      console.error('Lỗi tải danh sách phường/xã:', error)
+    }
+  }
+}
+
+const onWardChange = async () => {
+  if (selectedProvince.value && selectedDistrict.value && selectedWard.value) {
+    await calculateShippingFee()
+  } else {
+    shippingFee.value = 0
+  }
+}
+
+const calculateShippingFee = async () => {
+  try {
+    const requestData = {
+      fromDistrictId: 1442, // ID quận của shop (có thể lấy từ API)
+      fromWardCode: '21012', // Ward code của shop
+      toDistrictId: parseInt(selectedDistrict.value),
+      toWardCode: selectedWard.value,
+      weight: 1000, // Trọng lượng mặc định (gram)
+      length: 30, // Kích thước mặc định (cm)
+      width: 20,
+      height: 10
+    }
+
+    const res = await ghnApi.calculateShippingFee(requestData)
+    shippingFee.value = res.data.total || 0
+  } catch (error) {
+    console.error('Lỗi tính phí vận chuyển:', error)
+    shippingFee.value = 0
+  }
+}
+
+const getFullAddress = () => {
+  const province = provinces.value.find(p => p.ProvinceID == selectedProvince.value)
+  const district = districts.value.find(d => d.DistrictID == selectedDistrict.value)
+  const ward = wards.value.find(w => w.WardCode == selectedWard.value)
+
+  const provinceName = province ? province.ProvinceName : ''
+  const districtName = district ? district.DistrictName : ''
+  const wardName = ward ? ward.WardName : ''
+
+  return `${wardName}, ${districtName}, ${provinceName}`.trim()
 }
 </script>
 
@@ -1155,7 +1326,7 @@ const toggleOrderType = () => {
 }
 
 /* ✅ Sản phẩm FULL WIDTH hàng 1 */
-.pos-main-container > .card:first-child {
+.pos-main-container>.card:first-child {
   grid-column: 1 / -1;
   grid-row: 1;
   overflow-x: hidden;
@@ -1191,7 +1362,7 @@ const toggleOrderType = () => {
   }
 
   /* Sản phẩm full width hàng 1 */
-  .pos-main-container > .card:first-child {
+  .pos-main-container>.card:first-child {
     grid-column: 1;
     grid-row: 1;
     overflow: visible;
@@ -1680,7 +1851,7 @@ const toggleOrderType = () => {
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(10px);
   box-shadow: 0 12px 26px rgba(2, 6, 23, 0.06);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .card-header {
@@ -1720,11 +1891,72 @@ const toggleOrderType = () => {
   color: #334155;
 }
 
-/* ===== FORMS ===== */
-.form-grid {
+/* ===== ADDRESS GROUP ===== */
+.address-group {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
+}
+
+.address-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.address-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.address-select {
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 13px;
+  outline: none;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.address-select:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.25);
+}
+
+.address-select:disabled {
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .address-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* FIX SELECT DROPDOWN BUG */
+.address-select {
+  position: relative;
+  z-index: 10;
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  -moz-appearance: auto !important;
+}
+
+.address-select option {
+  display: block;
+  white-space: normal;
+}
+
+/* QUAN TRỌNG */
+.card,
+.pos-info,
+.pos-cart,
+.pos-main-container {
+  overflow: visible !important;
 }
 
 input,

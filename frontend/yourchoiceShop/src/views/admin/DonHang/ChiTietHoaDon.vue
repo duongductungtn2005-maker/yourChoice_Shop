@@ -1,6 +1,7 @@
 ** Bạn là 1 Senior Frontend Dev .
-** Giao diện phần  Trạng thái đơn hàng đang bị xấu như hình.
-** Bạn hãy sửa các icon trạng thái, đang ở trang thái nào thì chỉ hiện trạng thái hiện tại và các trạng thái trước đó. Khi cập nhật trạng thái tiếp theo mới tiếp tục hiện trạng thái đó.
+** Giao diện phần Trạng thái đơn hàng đang bị xấu như hình.
+** Bạn hãy sửa các icon trạng thái, đang ở trang thái nào thì chỉ hiện trạng thái hiện tại và các trạng thái trước đó.
+Khi cập nhật trạng thái tiếp theo mới tiếp tục hiện trạng thái đó.
 
 ** Đây là code:
 <template>
@@ -66,12 +67,12 @@
               <div class="info-line">
                 <span class="label">Email:</span>
                 <span class="value">
-  {{ 
-    order.emailKhachHang 
-    || order.khachHang?.email 
-    || 'Không có' 
-  }}
-</span>
+                  {{
+                    order.emailKhachHang
+                    || order.khachHang?.email
+                    || 'Không có'
+                  }}
+                </span>
               </div>
             </div>
           </div>
@@ -91,11 +92,26 @@
               </div>
               <div class="info-line">
                 <span class="label">Địa chỉ:</span>
-                <span class="value truncate-2">{{ order.thongTinNhanHang?.diaChi || 'Tại quầy' }}</span>
+                <span class="value truncate-2">
+                  {{
+                    order.diaChiNhan
+                    || order.diaChi
+                    || order.shippingAddress
+                  || 'Tại quầy'
+                  }}
+                </span>
               </div>
+
               <div class="info-line">
                 <span class="label">Ghi chú:</span>
-                <span class="value text-gray f-italic">{{ order.ghiChu || 'Không có' }}</span>
+                <span class="value text-gray f-italic">
+                  {{
+                    order.ghiChu
+                    || order.note
+                    || order.thongTinNhanHang?.ghiChu
+                  || 'Không có'
+                  }}
+                </span>
               </div>
             </div>
           </div>
@@ -213,61 +229,54 @@
       <div class="modal-container">
         <h3 class="modal-title">Cập nhật trạng thái đơn hàng</h3>
         <div class="order-meta">
-  <div>
-    <span class="label">Mã đơn hàng: </span>
-    <br/>
-    <span class="value">{{ order.maHoaDon }}</span>
-  </div>
-  <div>
-    <span class="label">Ngày tạo:</span>
-    <br/>
-    <span class="value">{{ formatDate(order.ngayTao) }}</span>
-  </div>
-</div>
+          <div>
+            <span class="label">Mã đơn hàng: </span>
+            <br />
+            <span class="value">{{ order.maHoaDon }}</span>
+          </div>
+          <div>
+            <span class="label">Ngày tạo:</span>
+            <br />
+            <span class="value">{{ formatDate(order.ngayTao) }}</span>
+          </div>
+        </div>
         <div class="form-group">
           <label>Trạng thái đơn hàng</label>
-          <select
-  v-model="selectedStatus"
-  class="select-status"
-  :disabled="order.trangThai === 5 || order.trangThai === 0 || order.trangThai === 4"
->
+          <select v-model="selectedStatus" class="select-status"
+            :disabled="order.trangThai === 5 || order.trangThai === 0 || order.trangThai === 4">
             <option v-for="st in availableStatuses" :key="st.value" :value="Number(st.value)">
               {{ st.label }}
             </option>
           </select>
         </div>
-<!-- ===== THÔNG TIN NHẬN HÀNG ===== -->
-<div class="form-group">
-  <label>Tên người nhận</label>
-  <input v-model="editForm.tenKhachHang" />
-</div>
+        <!-- ===== THÔNG TIN NHẬN HÀNG ===== -->
+        <div class="form-group">
+          <label>Tên người nhận</label>
+          <input v-model="editForm.tenKhachHang" />
+        </div>
 
-<div class="form-group">
-  <label>SĐT người nhận</label>
-  <input v-model="editForm.sdt" />
-</div>
+        <div class="form-group">
+          <label>SĐT người nhận</label>
+          <input v-model="editForm.sdt" />
+        </div>
 
-<div class="form-group">
-  <label>Địa chỉ nhận hàng</label>
-  <input v-model="editForm.diaChi" />
-</div>
-<div class="modal-actions">
-  <button class="btn btn-outline" @click="closeEditStatusModal">
-    Hủy
-  </button>
+        <div class="form-group">
+          <label>Địa chỉ nhận hàng</label>
+          <input v-model="editForm.diaChi" />
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" @click="closeEditStatusModal">
+            Hủy
+          </button>
 
-  <button
-    v-if="order.trangThai !== 5 && order.trangThai !== 0"
-    class="btn btn-danger"
-    @click="cancelOrder"
-  >
-    Hủy đơn hàng
-  </button>
+          <button v-if="order.trangThai !== 5 && order.trangThai !== 0" class="btn btn-danger" @click="cancelOrder">
+            Hủy đơn hàng
+          </button>
 
-  <button class="btn btn-primary" @click="confirmUpdateStatus">
-    Cập nhật
-  </button>
-</div>
+          <button class="btn btn-primary" @click="confirmUpdateStatus">
+            Cập nhật
+          </button>
+        </div>
       </div>
     </div>
 
@@ -371,60 +380,60 @@
       </div>
     </div>
   </div>
-    <div v-if="showStatusHistoryModal" class="modal-backdrop" @click.self="showStatusHistoryModal = false">
-      <div class="modal-container status-history-modal">
-        <div class="modal-header">
-          <h3 class="modal-title">Lịch sử trạng thái đơn hàng</h3>
-          <button class="close-btn" @click="showStatusHistoryModal = false">×</button>
-        </div>
-        
-        <div class="order-meta-info">
-          <span><strong>Mã đơn:</strong> {{ order.maHoaDon }}</span>
-          <span><strong>Ngày tạo:</strong> {{ formatDate(order.ngayTao) }}</span>
-        </div>
+  <div v-if="showStatusHistoryModal" class="modal-backdrop" @click.self="showStatusHistoryModal = false">
+    <div class="modal-container status-history-modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Lịch sử trạng thái đơn hàng</h3>
+        <button class="close-btn" @click="showStatusHistoryModal = false">×</button>
+      </div>
 
-        <div class="status-history-container">
-          <div v-if="!order.lichSuHoaDon || order.lichSuHoaDon.length === 0" class="empty-history">
-            <i class="fas fa-info-circle"></i>
-            <p>Chưa có lịch sử trạng thái</p>
-          </div>
-          <div v-else class="history-list-timeline">
-            <div v-for="(hist, idx) in order.lichSuHoaDon" :key="idx" class="status-history-item">
-              <div class="history-timeline-icon">
-                <i class="fas fa-clock"></i>
+      <div class="order-meta-info">
+        <span><strong>Mã đơn:</strong> {{ order.maHoaDon }}</span>
+        <span><strong>Ngày tạo:</strong> {{ formatDate(order.ngayTao) }}</span>
+      </div>
+
+      <div class="status-history-container">
+        <div v-if="!order.lichSuHoaDon || order.lichSuHoaDon.length === 0" class="empty-history">
+          <i class="fas fa-info-circle"></i>
+          <p>Chưa có lịch sử trạng thái</p>
+        </div>
+        <div v-else class="history-list-timeline">
+          <div v-for="(hist, idx) in order.lichSuHoaDon" :key="idx" class="status-history-item">
+            <div class="history-timeline-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="history-content">
+              <div class="history-main-action">
+                {{ hist.hanhDong }}
               </div>
-              <div class="history-content">
-                <div class="history-main-action">
-                  {{ hist.hanhDong }}
+              <div class="history-time-info">
+                <i class="fas fa-calendar-alt"></i> {{ formatDateWithTime(hist.thoiGian) }}
+              </div>
+              <div class="history-details">
+                <div v-if="hist.tenNhanVien" class="detail-row">
+                  <span class="detail-icon"><i class="fas fa-user"></i></span>
+                  <span class="detail-text">{{ hist.tenNhanVien }}</span>
                 </div>
-                <div class="history-time-info">
-                  <i class="fas fa-calendar-alt"></i> {{ formatDateWithTime(hist.thoiGian) }}
+                <div v-if="hist.trangThai !== undefined && hist.trangThai !== null" class="detail-row">
+                  <span class="detail-icon"><i class="fas fa-exchange-alt"></i></span>
+                  <span class="status-badge" :class="getStatusBadgeClass(hist.trangThai)">
+                    {{ getStatusLabel(hist.trangThai) }}
+                  </span>
                 </div>
-                <div class="history-details">
-                  <div v-if="hist.tenNhanVien" class="detail-row">
-                    <span class="detail-icon"><i class="fas fa-user"></i></span>
-                    <span class="detail-text">{{ hist.tenNhanVien }}</span>
-                  </div>
-                  <div v-if="hist.trangThai !== undefined && hist.trangThai !== null" class="detail-row">
-                    <span class="detail-icon"><i class="fas fa-exchange-alt"></i></span>
-                    <span class="status-badge" :class="getStatusBadgeClass(hist.trangThai)">
-                      {{ getStatusLabel(hist.trangThai) }}
-                    </span>
-                  </div>
-                </div>
-                <div v-if="hist.ghiChu" class="history-note">
-                  <i class="fas fa-comment"></i> {{ hist.ghiChu }}
-                </div>
+              </div>
+              <div v-if="hist.ghiChu" class="history-note">
+                <i class="fas fa-comment"></i> {{ hist.ghiChu }}
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="modal-footer">
-          <button class="btn btn-outline" @click="showStatusHistoryModal = false">Đóng</button>
-        </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" @click="showStatusHistoryModal = false">Đóng</button>
       </div>
     </div>
+  </div>
 
   <div v-if="order" id="invoice-print" class="print-only">
     <div class="invoice-header">
@@ -656,7 +665,7 @@ const fetchOrderDetail = async () => {
     editForm.value = {
       tenKhachHang: order.value.thongTinNhanHang?.tenNguoiNhan || '',
       sdt: order.value.thongTinNhanHang?.sdt || '',
-      diaChi: order.value.thongTinNhanHang?.diaChi || ''
+      diaChi: order.value.thongTinNhanHang?.diaChiNguoiNhan || ''
     };
 
   } catch (error) {
@@ -1625,6 +1634,7 @@ onMounted(() => {
 .text-center {
   text-align: center;
 }
+
 .order-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
