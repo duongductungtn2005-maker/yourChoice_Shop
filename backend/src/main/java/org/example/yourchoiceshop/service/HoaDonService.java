@@ -20,5 +20,5 @@ public interface HoaDonService {
     void updateOrderInfo(String maHoaDon, HoaDonRequest request);
     void createOrderAtCounter(CreateOrderRequest req);
     byte[] exportExcel(String keyword, Integer status, String type, LocalDateTime from, LocalDateTime to);
-    void createOrderOnline(CreateOrderRequest req);
+    void createOrderDelivery(CreateOrderRequest req);
 }

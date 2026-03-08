@@ -105,8 +105,8 @@
             <td class="time-col">{{ formatDate(order.ngayTao) }}</td>
 
             <td>
-              <span class="badge-type-lg" :class="order.loaiHoaDon === 'Trực tuyến' ? 'bg-purple' : 'bg-blue'">
-                {{ order.loaiHoaDon === 'Trực tuyến' ? 'Online' : 'Tại quầy' }}
+              <span class="badge-type-lg" :class="getOrderTypeClass(order.loaiHoaDon)">
+                {{ getOrderTypeText(order.loaiHoaDon) }}
               </span>
             </td>
 
@@ -346,8 +346,16 @@ const STATUS_CONFIG = {
   5: { text: 'Hoàn thành', class: 'st-green' }
 }
 
+const ORDER_TYPE_CONFIG = {
+  'Trực tuyến': { text: 'Online', class: 'bg-purple' },
+  'Tại quầy': { text: 'Tại quầy', class: 'bg-blue' },
+  'Giao hàng': { text: 'Giao hàng', class: 'bg-green' }
+}
+
 const getStatusText = (s) => STATUS_CONFIG[Number(s)]?.text || 'Không xác định'
 const getStatusClass = (s) => STATUS_CONFIG[Number(s)]?.class || 'st-gray'
+const getOrderTypeText = (type) => ORDER_TYPE_CONFIG[type]?.text || 'Không xác định'
+const getOrderTypeClass = (type) => ORDER_TYPE_CONFIG[type]?.class || 'bg-gray'
 
 onMounted(() => { fetchData(); })
 </script>
@@ -672,24 +680,37 @@ onMounted(() => { fetchData(); })
   border-color: #e5e7eb;
 }
 
+/* Badge loại hóa đơn - phong cách giống trạng thái */
 .badge-type-lg {
-  font-size: 12px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-weight: 600;
   display: inline-block;
+  min-width: 110px;
+  padding: 8px 0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-align: center;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  box-shadow: none;
+  letter-spacing: 0.2px;
+  transition: background 0.2s, color 0.2s;
 }
 
-.bg-purple {
-  background: #e8ffeb;
-  color: #22ce30;
-  border: 1px solid #b4fec0;
+.badge-type-lg.bg-purple {
+  background: #ede9fe;
+  color: #6d28d9;
 }
 
-.bg-blue {
-  background: #e0f2fe;
-  color: #0369a1;
-  border: 1px solid #bae6fd;
+.badge-type-lg.bg-blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.badge-type-lg.bg-green {
+  background: #d1fae5;
+  color: #059669;
 }
 
 /* ACTIONS */

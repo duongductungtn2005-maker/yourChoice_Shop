@@ -634,11 +634,14 @@ const statusInfo = (status) => {
 
 // --- SỬA HÀM NÀY ---
 const orderTypeInfo = (type) => {
-  // DB trả về: 'TRUC_TUYEN' hoặc 'TAI_QUAY'
-  if (type === 'TRUC_TUYEN') {
+  // DB trả về: 'Trực tuyến', 'Tại quầy', 'Giao hàng'
+  if (type === 'Trực tuyến') {
     return { text: 'Trực tuyến', class: 'badge-online' };
   }
-  // Mặc định hoặc 'TAI_QUAY'
+  if (type === 'Giao hàng') {
+    return { text: 'Giao hàng', class: 'badge-delivery' };
+  }
+  // Mặc định hoặc 'Tại quầy'
   return { text: 'Tại quầy', class: 'badge-offline' };
 };
 
@@ -1234,6 +1237,11 @@ onMounted(() => {
 .badge-online {
   background: #dbeafe;
   color: #1e40af;
+}
+
+.badge-delivery {
+  background: #dcfce7;
+  color: #166534;
 }
 
 .badge-offline {

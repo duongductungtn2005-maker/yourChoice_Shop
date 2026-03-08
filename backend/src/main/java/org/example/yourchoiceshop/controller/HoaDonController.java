@@ -117,11 +117,11 @@ public class HoaDonController {
         return ResponseEntity.ok("Thanh toán thành công");
     }
 
-    @PostMapping("/online")
-    public ResponseEntity<?> createOrderOnline(
+    @PostMapping("/delivery")
+    public ResponseEntity<?> createOrderDelivery(
             @RequestBody CreateOrderRequest req) {
 
-        hoaDonService.createOrderOnline(req);
+        hoaDonService.createOrderDelivery(req);
         return ResponseEntity.ok().build();
     }
 

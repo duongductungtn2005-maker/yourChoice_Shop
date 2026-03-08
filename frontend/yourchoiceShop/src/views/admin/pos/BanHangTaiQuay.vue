@@ -132,11 +132,11 @@
           </div>
         </div>
 
-        <div v-if="orderType === 'ONLINE'" class="card mt">
+        <div v-if="orderType === 'GIAO_HANG'" class="card mt">
           <div class="card-header">
             <div class="card-title">
               <h3>Thông tin người nhận</h3>
-              <span class="muted">Dùng cho đơn online</span>
+              <span class="muted">Dùng cho đơn giao hàng</span>
             </div>
           </div>
 
@@ -159,11 +159,11 @@
             <span :class="{ active: orderType === 'TAI_QUAY' }"></span>
 
             <label class="switch">
-              <input type="checkbox" v-model="isOnline" @change="toggleOrderType" />
+              <input type="checkbox" v-model="isDelivery" @change="toggleOrderType" />
               <span class="slider"></span>
             </label>
 
-            <span :class="{ active: orderType === 'ONLINE' }">Online</span>
+            <span :class="{ active: orderType === 'GIAO_HANG' }">Giao hàng</span>
           </div>
           <div class="card-header">
             <div class="card-title">
@@ -227,7 +227,7 @@
               <span class="price-col">-{{ formatMoney(totalDiscount) }}</span>
             </div>
 
-            <div class="row" v-if="orderType === 'ONLINE'">
+            <div class="row" v-if="orderType === 'GIAO_HANG'">
               <span>Phí vận chuyển</span>
               <input type="number" min="0" v-model.number="shippingFee" class="price-col ship-input" placeholder="0" />
             </div>
@@ -241,7 +241,7 @@
               THANH TOÁN
             </button>
 
-            <button v-else class="btn-pay" @click="handleCreateOrderOnline">
+            <button v-else class="btn-pay" @click="handleCreateOrderDelivery">
               TẠO HÓA ĐƠN
             </button>
 
@@ -446,7 +446,7 @@
 
         <div class="payment-footer">
           <button class="btn-pay" @click="confirmCreateOrder">
-            {{ orderType === 'TAI_QUAY' ? 'THANH TOÁN' : 'TẠO ĐƠN ONLINE' }}
+            {{ orderType === 'TAI_QUAY' ? 'THANH TOÁN' : 'TẠO ĐƠN GIAO HÀNG' }}
           </button>
         </div>
       </div>
@@ -909,17 +909,17 @@ const selectStaff = (s) => {
   showStaffModal.value = false
 }
 
-import { createOrderOnline } from '@/api/HoaDonApi'
+import { createOrderDelivery } from '@/api/HoaDonApi'
 
 const handleSubmitOrder = async () => {
   if (orderType.value === 'TAI_QUAY') {
     openPaymentModal()
   } else {
-    await handleCreateOrderOnline()
+    await handleCreateOrderDelivery()
   }
 }
 
-const handleCreateOrderOnline = async () => {
+const handleCreateOrderDelivery = async () => {
   if (!customer.value.name || !customer.value.phone || !customer.value.address) {
     alert('Vui lòng nhập đầy đủ thông tin người nhận')
     return
@@ -952,9 +952,9 @@ const handleCreateOrderOnline = async () => {
       donGia: i.price
     }))
   }
-  await createOrderOnline(payload)
+  await createOrderDelivery(payload)
 
-  alert('Tạo đơn online thành công – chờ xác nhận')
+  alert('Tạo đơn giao hàng thành công – chờ xác nhận')
 
   const tabIndex = orderTabs.value.findIndex(t => t.id === activeTabId.value)
   if (tabIndex !== -1) {
@@ -1110,10 +1110,10 @@ const note = computed({
 
 const orderType = ref('TAI_QUAY')
 
-const isOnline = ref(false)
+const isDelivery = ref(false)
 
 const toggleOrderType = () => {
-  orderType.value = isOnline.value ? 'ONLINE' : 'TAI_QUAY'
+  orderType.value = isDelivery.value ? 'GIAO_HANG' : 'TAI_QUAY'
 }
 </script>
 

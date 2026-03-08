@@ -158,11 +158,12 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
     }
 
     private String convertTypeToDisplay(String dbType) {
-        if ("TRUC_TUYEN".equalsIgnoreCase(dbType))
-            return "Trực tuyến";
-        if ("TAI_QUAY".equalsIgnoreCase(dbType))
-            return "Tại quầy";
-        return dbType; // Nếu không khớp thì trả về nguyên gốc
+        if (dbType == null) return "Không xác định";
+        String type = dbType.trim().toUpperCase();
+        if (type.equals("TRUC_TUYEN")) return "Trực tuyến";
+        if (type.equals("TAI_QUAY")) return "Tại quầy";
+        if (type.equals("GIAO_HANG")) return "Giao hàng";
+        return "Không xác định";
     }
 
     private String convertPaymentMethod(String dbMethod) {
@@ -405,13 +406,13 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
     @Override
     @Transactional
-    public void createOrderOnline(CreateOrderRequest req) {
+    public void createOrderDelivery(CreateOrderRequest req) {
 
         HoaDon hd = new HoaDon();
         hd.setMaHoaDon("HD" + System.currentTimeMillis());
         hd.setNgayTao(LocalDateTime.now());
         hd.setTrangThai(1);
-        hd.setLoaiHoaDon("TRUC_TUYEN");
+        hd.setLoaiHoaDon("GIAO_HANG");
 
         hd.setTenNguoiNhan(
                 req.getTenKhachHang() != null ? req.getTenKhachHang() : "Khách lẻ");
