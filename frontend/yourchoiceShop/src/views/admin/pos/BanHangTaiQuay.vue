@@ -403,6 +403,9 @@
               </tr>
             </thead>
             <tbody>
+              <tr v-if="filteredProducts.length === 0">
+                <td colspan="8" class="empty-state">Không có sản phẩm đang kinh doanh phù hợp bộ lọc.</td>
+              </tr>
               <tr v-for="p in filteredProducts" :key="p.id">
                 <td class="mono">{{ p.productCode || p.code }}</td>
                 <td class="name-cell">
@@ -724,7 +727,13 @@ const loadProducts = async () => {
     trangThai: 1
   })
 
-  products.value = res.data.content.map(p => {
+  products.value = res.data.content
+    .filter(p => {
+      const detailStatus = Number(p?.trangThai)
+      const parentStatus = Number(p?.sanPham?.trangThai)
+      return detailStatus === 1 && parentStatus === 1
+    })
+    .map(p => {
     const inCart = cart.value.find(i => i.id === p.id)
     const parentProduct = p.sanPham || {}
 
@@ -3723,6 +3732,7 @@ input:disabled {
 /* Căn cột rõ ràng để modal khách hàng không bị lệch nút/chữ */
 .customer-table {
   table-layout: fixed;
+  width: 100%;
 }
 
 .customer-modal {
@@ -3730,14 +3740,14 @@ input:disabled {
   max-width: 95vw;
 }
 
-.customer-table th,
-.customer-table td {
+.customer-table thead th,
+.customer-table tbody td {
   text-align: left;
 }
 
 .customer-table th:nth-child(1),
 .customer-table td:nth-child(1) {
-  width: 29%;
+  width: 30%;
 }
 
 .customer-table th:nth-child(2),
@@ -3747,13 +3757,30 @@ input:disabled {
 
 .customer-table th:nth-child(3),
 .customer-table td:nth-child(3) {
-  width: 35%;
+  width: 34%;
 }
 
 .customer-table th:nth-child(4),
 .customer-table td:nth-child(4) {
   width: 18%;
   text-align: center;
+}
+
+/* Override rule chung .modal-table *:first-child để cột tên KH không bị bó còn 120px */
+.customer-table.modal-table td:first-child,
+.customer-table.modal-table th:first-child {
+  width: 30%;
+}
+
+.customer-table .name-cell {
+  min-width: 0;
+}
+
+.customer-table .name-main {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .customer-table .email-cell {

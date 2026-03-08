@@ -62,71 +62,85 @@
         </div>
       </div>
 
-      <table class="custom-table">
-        <thead>
-          <tr>
-            <th width="5%">STT</th>
-            <th width="10%">Mã HĐ</th>
-            <th width="15%">Nhân viên</th>
-            <th width="14%">Khách hàng</th>
-            <th width="12%">Ngày tạo</th>
-            <th width="12%">Tổng tiền</th>
-            <th width="10%">Loại</th>
-            <th width="12%">SĐT KH</th>
-            <th width="15%">Trạng thái</th>
-            <th width="8%">Chi tiết</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="loading">
-            <td colspan="11" class="empty-state">Đang tải dữ liệu...</td>
-          </tr>
-          <tr v-else-if="orders.length === 0">
-            <td colspan="11" class="empty-state">Không tìm thấy đơn hàng nào.</td>
-          </tr>
+      <div class="table-scroll">
+        <table class="custom-table">
+          <colgroup>
+            <col style="width: 5%;" />
+            <col style="width: 14%;" />
+            <col style="width: 14%;" />
+            <col style="width: 14%;" />
+            <col style="width: 12%;" />
+            <col style="width: 11%;" />
+            <col style="width: 10%;" />
+            <col style="width: 9%;" />
+            <col style="width: 8%;" />
+            <col style="width: 3%;" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Mã HĐ</th>
+              <th>Nhân viên</th>
+              <th>Khách hàng</th>
+              <th>Ngày tạo</th>
+              <th>Tổng tiền</th>
+              <th>Loại</th>
+              <th>SĐT KH</th>
+              <th>Trạng thái</th>
+              <th>Chi tiết</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="loading">
+              <td colspan="10" class="empty-state">Đang tải dữ liệu...</td>
+            </tr>
+            <tr v-else-if="orders.length === 0">
+              <td colspan="10" class="empty-state">Không tìm thấy đơn hàng nào.</td>
+            </tr>
 
-          <tr v-else v-for="(order, index) in orders" :key="order.maHoaDon">
-            <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-            <td class="code-text">{{ order.maHoaDon }}</td>
-            <td>
-              <div class="employee-info">
-                {{ order.tenNhanVien || null }}
-              </div>
-            </td>
+            <tr v-else v-for="(order, index) in orders" :key="order.maHoaDon">
+              <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
+              <td class="code-text">{{ order.maHoaDon }}</td>
+              <td>
+                <div class="employee-info">
+                  {{ order.tenNhanVien || null }}
+                </div>
+              </td>
 
-            <td>
-              <div class="customer-info">
-                {{ order.tenKhachHang || 'Khách lẻ' }}
-              </div>
-            </td>
-            <td class="time-col">{{ formatDate(order.ngayTao) }}</td>
-            <td class="text-price">{{ formatMoney(order.tongTienSauGiam) }}</td>
+              <td>
+                <div class="customer-info">
+                  {{ order.tenKhachHang || 'Khách lẻ' }}
+                </div>
+              </td>
+              <td class="time-col">{{ formatDate(order.ngayTao) }}</td>
+              <td class="text-price">{{ formatMoney(order.tongTienSauGiam) }}</td>
 
-            <td>
-              <span class="badge-type-lg" :class="getOrderTypeClass(order.loaiHoaDon)">
-                {{ getOrderTypeText(order.loaiHoaDon) }}
-              </span>
-            </td>
+              <td>
+                <span class="badge-type-lg" :class="getOrderTypeClass(order.loaiHoaDon)">
+                  {{ getOrderTypeText(order.loaiHoaDon) }}
+                </span>
+              </td>
 
-            <td>{{ getPhoneDisplay(order) }}</td>
+              <td>{{ getPhoneDisplay(order) }}</td>
 
-            <td>
-              <span class="badge-status" :class="getStatusClass(order.trangThai)">
-                {{ getStatusText(order.trangThai) }}
-              </span>
-            </td>
+              <td>
+                <span class="badge-status" :class="getStatusClass(order.trangThai)">
+                  {{ getStatusText(order.trangThai) }}
+                </span>
+              </td>
 
-            <td class="action-col">
-              <div class="action-wrapper">
-                <router-link :to="{ name: orderDetailRouteName, params: { id: order.maHoaDon } }" class="icon-btn"
-                  title="Xem chi tiết">
-                  <i class="far fa-eye"></i>
-                </router-link>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <td class="action-col">
+                <div class="action-wrapper">
+                  <router-link :to="{ name: orderDetailRouteName, params: { id: order.maHoaDon } }" class="icon-btn"
+                    title="Xem chi tiết">
+                    <i class="far fa-eye"></i>
+                  </router-link>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <div class="pagination-footer">
         <div class="page-info">
@@ -711,8 +725,14 @@ onBeforeUnmount(() => {
 /* === TABLE === */
 .custom-table {
   width: 100%;
+  min-width: 1120px;
   border-collapse: collapse;
   table-layout: fixed;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
 }
 
 .custom-table th {
@@ -980,11 +1000,14 @@ onBeforeUnmount(() => {
 }
 
 .customer-info,
-.employee-info,
-.time-col {
+.employee-info {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.time-col {
+  white-space: nowrap;
 }
 
 @media (max-width: 1200px) {

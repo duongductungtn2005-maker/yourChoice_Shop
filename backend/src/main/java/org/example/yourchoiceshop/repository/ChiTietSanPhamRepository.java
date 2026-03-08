@@ -25,6 +25,7 @@ public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, 
             "(:keyword IS NULL OR :keyword = '' OR c.sanPham.tenSanPham LIKE %:keyword% OR c.maCtsp LIKE %:keyword%) " +
             "AND (:idMauSac IS NULL OR c.mauSac.id = :idMauSac) " +
             "AND (:idKichThuoc IS NULL OR c.kichThuoc.id = :idKichThuoc) " +
+            "AND c.sanPham.trangThai = 1 " +
             "AND (:trangThai IS NULL OR c.trangThai = :trangThai)")
     Page<ChiTietSanPham> searchByCriteria(
             @Param("keyword") String keyword,
