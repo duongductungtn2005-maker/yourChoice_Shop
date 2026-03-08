@@ -423,18 +423,26 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+
 /* === GLOBAL === */
 .page-container {
+  --brand-navy: #223f67;
+  --brand-navy-strong: #1b3252;
+  --brand-cream: #ece3d2;
+  --brand-bg: #edf1f6;
+  --brand-line: #d5ddea;
+  --brand-text: #1f2a3b;
+  --brand-sub: #607089;
   padding: 20px;
-  font-family: 'Segoe UI', sans-serif;
-  background: #ebecee;
+  font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top right, #f7f9fc 0%, var(--brand-bg) 65%);
   min-height: 100vh;
-  color: #333;
+  color: var(--brand-text);
   font-size: 14px;
 }
 
 .page-title {
-  color: #2b4360;
+  color: var(--brand-navy);
   font-weight: 700;
   font-size: 24px;
   margin-bottom: 20px;
@@ -445,7 +453,7 @@ onBeforeUnmount(() => {
 .table-container {
   background: white;
   border-radius: 16px;
-  border: 1px solid #bfdbfe !important;
+  border: 1px solid var(--brand-line) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   margin-bottom: 20px;
   padding: 24px;
@@ -472,8 +480,8 @@ onBeforeUnmount(() => {
 .icon-title {
   width: 40px;
   height: 40px;
-  background: #ffe4e6;
-  color: #e11d48;
+  background: #f6efe2;
+  color: var(--brand-navy);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -520,7 +528,7 @@ onBeforeUnmount(() => {
 }
 
 .tab-btn.active-gradient {
-  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+  background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-strong) 100%);
   color: #fff;
   border-color: transparent;
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
@@ -567,12 +575,12 @@ onBeforeUnmount(() => {
   outline: none;
   height: 40px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--brand-text);
 }
 
 .search-box input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #8ea4c6;
+  box-shadow: 0 0 0 3px rgba(34, 63, 103, 0.12);
 }
 
 .date-group {
@@ -680,13 +688,17 @@ onBeforeUnmount(() => {
 }
 
 .btn-navy {
-  background-color: #0f172a;
-  color: #fff;
-  box-shadow: 0 4px 6px rgba(15, 23, 42, 0.2);
+  background-color: #223f67;
+  background-color: var(--brand-navy);
+  color: #fff !important;
+  box-shadow: 0 4px 8px rgba(34, 63, 103, 0.24);
+  min-width: 122px;
+  justify-content: center;
 }
 
 .btn-navy:hover {
-  background-color: #1e293b;
+  background-color: #1b3252;
+  background-color: var(--brand-navy-strong);
   transform: translateY(-1px);
 }
 
@@ -694,11 +706,12 @@ onBeforeUnmount(() => {
 .custom-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .custom-table th {
-  background: #f5f5f5 !important;
-  color: #000000;
+  background: #f6f8fc !important;
+  color: #334155;
   padding: 16px;
   text-align: center;
   font-weight: 700;
@@ -708,9 +721,22 @@ onBeforeUnmount(() => {
 
 .custom-table td {
   padding: 14px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #e7edf6;
   vertical-align: middle;
   text-align: center !important;
+}
+
+.custom-table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Cột LOẠI luôn hiển thị đủ badge, không hiện dấu ... */
+.custom-table td:nth-child(7) {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .text-code {
@@ -721,8 +747,16 @@ onBeforeUnmount(() => {
 }
 
 .text-price {
-  color: #ef4444;
+  color: #c53131;
   font-weight: 700;
+}
+
+.code-text,
+.text-code {
+  color: var(--brand-navy);
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
 }
 
 /* === BADGES === */
@@ -781,33 +815,37 @@ onBeforeUnmount(() => {
 .badge-type-lg {
   display: inline-block;
   min-width: 110px;
-  padding: 8px 0;
-  border-radius: 12px;
-  font-size: 15px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   text-align: center;
+  white-space: nowrap;
   background: #f3f4f6;
   color: #374151;
-  border: none;
+  border: 1px solid transparent;
   box-shadow: none;
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
   transition: background 0.2s, color 0.2s;
 }
 
 .badge-type-lg.bg-purple {
-  background: #ede9fe;
-  color: #6d28d9;
+  background: #f3e8ff;
+  color: #7e22ce;
+  border-color: #d8b4fe;
 }
 
 .badge-type-lg.bg-blue {
   background: #dbeafe;
-  color: #2563eb;
+  color: var(--brand-navy);
+  border-color: #bfdbfe;
 }
 
 .badge-type-lg.bg-green {
-  background: #d1fae5;
-  color: #059669;
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
 }
 
 /* ACTIONS */
@@ -833,9 +871,9 @@ onBeforeUnmount(() => {
 }
 
 .icon-btn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-  border-color: #cbd5e1;
+  background: #eff4fb;
+  color: var(--brand-navy);
+  border-color: #c6d2e4;
 }
 
 /* PAGINATION */
@@ -865,9 +903,9 @@ onBeforeUnmount(() => {
 }
 
 .page-controls button.active {
-  background: #0f172a;
+  background: var(--brand-navy);
   color: #fff;
-  border-color: #0f172a;
+  border-color: var(--brand-navy);
 }
 
 /* MODAL SCANNER */
@@ -931,7 +969,21 @@ onBeforeUnmount(() => {
 
 .employee-info {
   font-weight: 600;
-  color: #0f172a;
+  color: var(--brand-text);
   font-size: 13px;
+}
+
+.customer-info,
+.employee-info,
+.time-col {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1200px) {
+  .table-container {
+    overflow-x: auto;
+  }
 }
 </style>

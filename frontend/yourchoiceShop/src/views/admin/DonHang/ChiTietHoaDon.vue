@@ -1,9 +1,3 @@
-** Bạn là 1 Senior Frontend Dev .
-** Giao diện phần Trạng thái đơn hàng đang bị xấu như hình.
-** Bạn hãy sửa các icon trạng thái, đang ở trang thái nào thì chỉ hiện trạng thái hiện tại và các trạng thái trước đó.
-Khi cập nhật trạng thái tiếp theo mới tiếp tục hiện trạng thái đó.
-
-** Đây là code:
 <template>
   <div class="page-container">
     <div class="header-section">
@@ -93,24 +87,14 @@ Khi cập nhật trạng thái tiếp theo mới tiếp tục hiện trạng th�
               <div class="info-line">
                 <span class="label">Địa chỉ:</span>
                 <span class="value truncate-2">
-                  {{
-                    order.diaChiNhan
-                    || order.diaChi
-                    || order.shippingAddress
-                  || 'Tại quầy'
-                  }}
+                  {{ getDeliveryAddress() || 'Tại quầy' }}
                 </span>
               </div>
 
               <div class="info-line">
                 <span class="label">Ghi chú:</span>
                 <span class="value text-gray f-italic">
-                  {{
-                    order.ghiChu
-                    || order.note
-                    || order.thongTinNhanHang?.ghiChu
-                  || 'Không có'
-                  }}
+                  {{ getOrderNote() || 'Không có' }}
                 </span>
               </div>
             </div>
@@ -452,7 +436,7 @@ Khi cập nhật trạng thái tiếp theo mới tiếp tục hiện trạng th�
     <div class="invoice-info">
       <p><b>Khách hàng:</b> {{ order.tenKhachHang || 'Khách lẻ' }}</p>
       <p><b>SĐT:</b> {{ order.sdtKhachHang || 'N/A' }}</p>
-      <p><b>Địa chỉ:</b> {{ order.diaChi || 'Tại quầy' }}</p>
+      <p><b>Địa chỉ:</b> {{ getDeliveryAddress() || 'Tại quầy' }}</p>
     </div>
 
     <table class="invoice-table">
@@ -596,6 +580,28 @@ const formatDateWithTime = (val) => {
   return `${time} - ${dateStr}`;
 };
 
+const getDeliveryAddress = () => {
+  if (!order.value) return '';
+  return (
+    order.value.thongTinNhanHang?.diaChi
+    || order.value.diaChiNguoiNhan
+    || order.value.diaChiNhan
+    || order.value.diaChi
+    || order.value.shippingAddress
+    || ''
+  );
+};
+
+const getOrderNote = () => {
+  if (!order.value) return '';
+  return (
+    order.value.ghiChu
+    || order.value.note
+    || order.value.thongTinNhanHang?.ghiChu
+    || ''
+  );
+};
+
 const getStatusLabel = (status) => {
   const map = {
     0: 'Đã hủy',
@@ -665,7 +671,7 @@ const fetchOrderDetail = async () => {
     editForm.value = {
       tenKhachHang: order.value.thongTinNhanHang?.tenNguoiNhan || '',
       sdt: order.value.thongTinNhanHang?.sdt || '',
-      diaChi: order.value.thongTinNhanHang?.diaChiNguoiNhan || ''
+      diaChi: order.value.thongTinNhanHang?.diaChi || order.value.diaChiNguoiNhan || ''
     };
 
   } catch (error) {
@@ -999,6 +1005,7 @@ onMounted(() => {
 .truncate-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1993,5 +2000,109 @@ onMounted(() => {
 
 .status-history-container::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* ===== BRAND OVERRIDE THEME ===== */
+.page-container {
+  --brand-navy: #223f67;
+  --brand-navy-strong: #1b3252;
+  --brand-cream: #ece3d2;
+  --brand-bg: #edf1f6;
+  --brand-line: #d5ddea;
+  --brand-text: #1f2a3b;
+  --brand-sub: #607089;
+  --brand-danger: #c53131;
+  background: radial-gradient(circle at top right, #f7f9fc 0%, var(--brand-bg) 65%);
+  font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
+  color: var(--brand-text);
+}
+
+.page-title,
+.text-primary {
+  color: var(--brand-navy);
+}
+
+.card {
+  border-color: var(--brand-line);
+}
+
+.card-header-icon {
+  background: #f6f8fc;
+  border-bottom-color: var(--brand-line);
+}
+
+.steps-container::before {
+  background: #dbe4f0;
+}
+
+.step-icon {
+  border-color: #c9d5e8;
+  color: var(--brand-sub);
+}
+
+.step-item.active .step-icon {
+  background: var(--brand-navy);
+  border-color: var(--brand-navy);
+  box-shadow: 0 0 0 3px rgba(34, 63, 103, 0.18);
+}
+
+.step-label {
+  color: var(--brand-text);
+}
+
+.info-line {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: start;
+  gap: 8px;
+}
+
+.info-line .label {
+  color: var(--brand-sub);
+}
+
+.info-line .value {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.custom-table th {
+  background: #f6f8fc !important;
+  color: #334155;
+  border-bottom-color: var(--brand-line);
+}
+
+.custom-table td {
+  border-bottom-color: #e7edf6;
+}
+
+.total-price {
+  color: var(--brand-danger);
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--brand-navy), var(--brand-navy-strong));
+}
+
+.btn-blue-block {
+  background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-strong) 100%);
+}
+
+.history-main-action {
+  background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-strong) 100%);
+}
+
+.detail-icon {
+  color: var(--brand-navy);
+}
+
+.history-item .dot {
+  background: var(--brand-navy);
+}
+
+@media (max-width: 1200px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

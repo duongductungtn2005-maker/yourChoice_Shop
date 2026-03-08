@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @Setter
 @Data
 public class PhieuGiamGiaRequest {
+    private Integer id;
     private String maPhieuGiamGia;
     private String tenPhieuGiamGia;
     private String loaiPhieu; // "PhanTram" hoặc "TienMat"

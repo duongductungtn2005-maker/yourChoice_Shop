@@ -4,6 +4,7 @@ import org.example.yourchoiceshop.entity.ChiTietSanPham;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -32,4 +33,12 @@ public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, 
             @Param("trangThai") Integer trangThai,
             Pageable pageable
     );
+
+        @Modifying(clearAutomatically = true, flushAutomatically = true)
+        @Query("UPDATE ChiTietSanPham c SET c.soLuong = c.soLuong - :quantity WHERE c.id = :id AND c.soLuong >= :quantity")
+        int reserveStock(@Param("id") Integer id, @Param("quantity") Integer quantity);
+
+        @Modifying(clearAutomatically = true, flushAutomatically = true)
+        @Query("UPDATE ChiTietSanPham c SET c.soLuong = c.soLuong + :quantity WHERE c.id = :id")
+        int releaseStock(@Param("id") Integer id, @Param("quantity") Integer quantity);
 }

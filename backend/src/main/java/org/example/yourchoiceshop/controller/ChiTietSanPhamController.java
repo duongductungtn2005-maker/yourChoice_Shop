@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -111,6 +112,38 @@ public class ChiTietSanPhamController {
         }
     }
 
+    @PostMapping("/{id}/reserve")
+    @Transactional
+    public ResponseEntity<?> reserveStock(@PathVariable Integer id, @RequestBody StockAdjustmentRequest request) {
+        Integer soLuong = request.getSoLuong();
+        if (soLuong == null || soLuong <= 0) {
+            return ResponseEntity.badRequest().body("Số lượng phải lớn hơn 0");
+        }
+
+        int updated = repository.reserveStock(id, soLuong);
+        if (updated == 0) {
+            return ResponseEntity.badRequest().body("Không đủ tồn kho hoặc sản phẩm không tồn tại");
+        }
+
+        return ResponseEntity.ok("Giữ kho thành công");
+    }
+
+    @PostMapping("/{id}/release")
+    @Transactional
+    public ResponseEntity<?> releaseStock(@PathVariable Integer id, @RequestBody StockAdjustmentRequest request) {
+        Integer soLuong = request.getSoLuong();
+        if (soLuong == null || soLuong <= 0) {
+            return ResponseEntity.badRequest().body("Số lượng phải lớn hơn 0");
+        }
+
+        int updated = repository.releaseStock(id, soLuong);
+        if (updated == 0) {
+            return ResponseEntity.badRequest().body("Sản phẩm không tồn tại");
+        }
+
+        return ResponseEntity.ok("Hoàn kho thành công");
+    }
+
     // --- DTO: Class phụ để hứng dữ liệu JSON từ Frontend ---
     @Getter
     @Setter
@@ -127,5 +160,11 @@ public class ChiTietSanPhamController {
         private Integer idCoAo;
         private Integer idTayAo;
         private Integer idXuatXu;
+    }
+
+    @Getter
+    @Setter
+    public static class StockAdjustmentRequest {
+        private Integer soLuong;
     }
 }

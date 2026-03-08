@@ -34,8 +34,8 @@
       <div v-for="tab in orderTabs" :key="tab.id" class="order-tab"
         :class="{ active: tab.id === activeTabId, disabled: showModal }" @click="!showModal && (activeTabId = tab.id)">
         <div class="tab-pill">
-          <span class="tab-code">{{ tab.maHoaDon || 'Đơn mới' }}</span>
-          <span class="tab-meta" v-if="tab.cart?.length">• {{ tab.cart.length }} SP</span>
+          <span class="tab-code">{{ getTabLabel(tab) }}</span>
+          <span class="tab-meta" v-if="getTabItemCount(tab) > 0">• {{ getTabItemCount(tab) }} SP</span>
         </div>
 
         <button class="close-tab" title="Đóng tab" @click.stop="closeTab(tab.id)">×</button>
@@ -59,7 +59,6 @@
         <div class="card-header">
           <div class="card-title">
             <h3>Sản phẩm trong hóa đơn</h3>
-            <span class="chip" v-if="cart.length">{{ cart.length }} sản phẩm</span>
           </div>
           <button class="btn-primary" @click="openProductModal">+ Thêm sản phẩm</button>
         </div>
@@ -96,15 +95,26 @@
                   </td>
                   <td class="p-price">{{ formatMoney(item.price) }}</td>
                   <td>
-                    <div class="item-control">
-                      <button @click="item.qty--" :disabled="item.qty === 1" title="Giảm">−</button>
-                      <span>{{ item.qty }}</span>
-                      <button @click="item.qty++" title="Tăng">＋</button>
+                    <div>
+                      <div class="item-control">
+                        <button @click="decreaseCartQty(item)" :disabled="item.qty <= 1" title="Giảm">−</button>
+                        <input
+                          class="qty-input"
+                          :class="{ 'qty-input-error': !!item.qtyWarning }"
+                          type="number"
+                          min="1"
+                          :max="item.qty + item.tonKho"
+                          :value="item.qty"
+                          @change="updateCartQty(item, $event.target.value)"
+                        />
+                        <button @click="increaseCartQty(item)" :disabled="item.tonKho <= 0" title="Tăng">＋</button>
+                      </div>
+                      <div v-if="item.qtyWarning" class="qty-warning">{{ item.qtyWarning }}</div>
                     </div>
                   </td>
                   <td class="p-price">{{ formatMoney(item.price * item.qty) }}</td>
                   <td>
-                    <button class="btn-remove" title="Xoá" @click="cart.splice(i, 1)">×</button>
+                    <button class="btn-remove" title="Xoá" @click="removeCartItem(i, item)">×</button>
                   </td>
                 </tr>
               </tbody>
@@ -205,7 +215,6 @@
               <h3>Giảm giá</h3>
               <span class="muted">Phiếu áp dụng</span>
             </div>
-            <button class="btn-primary" @click="openDiscountModal">+ Thêm</button>
           </div>
 
           <div class="card-body">
@@ -242,6 +251,22 @@
             </div>
           </div>
         </div>
+
+        <!-- GỢI Ý MUA THÊM ĐỂ ÁP DỤNG PHIẾU TỐT HƠN -->
+        <div v-if="voucherSuggestion && cart.length > 0" class="voucher-suggestion">
+          <div class="suggestion-icon">💡</div>
+          <div class="suggestion-text">
+            Mua thêm <b>{{ formatMoney(voucherSuggestion.additionalNeeded) }}</b> để áp dụng phiếu
+            <b>{{ voucherSuggestion.voucher.name }}</b>
+            <span class="suggestion-detail">
+              (giảm {{ voucherSuggestion.voucher.type === 'percent'
+                ? voucherSuggestion.voucher.value + '%'
+                : formatMoney(voucherSuggestion.voucher.value) }},
+              tiết kiệm thêm <b class="highlight-save">{{ formatMoney(voucherSuggestion.benefit) }}</b>)
+            </span>
+          </div>
+        </div>
+
         <!-- PAYMENT -->
         <div class="card payment-card">
           <div class="card-header">
@@ -326,10 +351,21 @@
                 <td class="p-price">{{ formatMoney(p.price) }}</td>
                 <td>{{ p.tonKho }}</td>
                 <td>
-                  <div class="item-control">
-                    <button @click="p.qty--" :disabled="p.qty === 1">−</button>
-                    <span>{{ p.qty }}</span>
-                    <button @click="p.qty++" :disabled="p.qty >= p.tonKho">＋</button>
+                  <div>
+                    <div class="item-control">
+                      <button @click="decreaseProductQty(p)" :disabled="p.qty <= 1">−</button>
+                      <input
+                        class="qty-input"
+                        :class="{ 'qty-input-error': !!p.qtyWarning }"
+                        type="number"
+                        min="1"
+                        :max="p.tonKho"
+                        :value="p.qty"
+                        @input="updateProductQty(p, $event.target.value)"
+                      />
+                      <button @click="increaseProductQty(p)" :disabled="p.qty >= p.tonKho">＋</button>
+                    </div>
+                    <div v-if="p.qtyWarning" class="qty-warning">{{ p.qtyWarning }}</div>
                   </div>
                 </td>
                 <td><input type="checkbox" v-model="p.checked" /></td>
@@ -353,7 +389,7 @@
 
     <!-- ===== MODAL KHÁCH HÀNG ===== -->
     <div v-if="showCustomerModal" class="modal-overlay">
-      <div class="modal-content">
+      <div class="modal-content customer-modal">
         <div class="modal-header-flex">
           <h3>Chọn khách hàng</h3>
           <button class="close-btn" @click="showCustomerModal = false">×</button>
@@ -362,7 +398,13 @@
         <input v-model="customerKeyword" class="search-input" placeholder="Tìm tên / SĐT / email" />
 
         <div class="modal-table-wrapper">
-          <table class="table modal-table">
+          <table class="table modal-table customer-table">
+            <colgroup>
+              <col class="col-name" />
+              <col class="col-phone" />
+              <col class="col-email" />
+              <col class="col-action" />
+            </colgroup>
             <thead>
               <tr>
                 <th>Tên KH</th>
@@ -376,9 +418,9 @@
                 <td class="name-cell">
                   <div class="name-main">{{ c.name }}</div>
                 </td>
-                <td class="mono">{{ c.phone }}</td>
-                <td>{{ c.email }}</td>
-                <td>
+                <td class="phone-cell">{{ c.phone }}</td>
+                <td class="email-cell">{{ c.email }}</td>
+                <td class="action-cell">
                   <button class="btn-select" @click="selectCustomer(c)">Chọn</button>
                 </td>
               </tr>
@@ -394,55 +436,6 @@
       </div>
     </div>
 
-    <!-- ===== MODAL GIẢM GIÁ ===== -->
-    <div v-if="showDiscountModal" class="modal-overlay">
-      <div class="modal-content discount-modal">
-        <div class="modal-header-flex">
-          <h3>Phiếu giảm giá</h3>
-          <button class="close-btn" @click="showDiscountModal = false">×</button>
-        </div>
-
-        <input v-model="discountKeyword" class="search-input" placeholder="Tìm mã / tên phiếu" />
-
-        <div class="modal-table-wrapper">
-          <table class="table modal-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>Mã</th>
-                <th>Tên</th>
-                <th>Giá trị</th>
-                <th>Thời hạn</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="d in filteredDiscounts" :key="d.id">
-                <td><input type="checkbox" v-model="d.checked" /></td>
-                <td class="mono">{{ d.code }}</td>
-                <td class="name-cell">
-                  <div class="name-main">{{ d.name }}</div>
-                </td>
-                <td class="p-price">
-                  {{ d.type === 'percent' ? d.value + '%' : formatMoney(d.value) }}
-                </td>
-                <td class="muted">{{ d.startDate }} → {{ d.endDate }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pagination">
-          <button @click="discountPage--" :disabled="discountPage === 0">‹ Trước</button>
-          <span>Trang {{ discountPage + 1 }} / {{ totalDiscountPages }}</span>
-          <button @click="discountPage++" :disabled="discountPage + 1 >= totalDiscountPages">Sau ›</button>
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn-outline" @click="showDiscountModal = false">Hủy</button>
-          <button class="btn-primary" @click="confirmAddDiscount">Áp dụng</button>
-        </div>
-      </div>
-    </div>
 
     <!-- ===== MODAL THANH TOÁN ===== -->
     <div v-if="showPaymentModal" class="modal-overlay">
@@ -527,11 +520,47 @@
         </div>
       </div>
     </div>
+
+    <!-- ===== MODAL THÔNG BÁO PHIẾU GIẢM GIÁ MỚI TỐT HƠN ===== -->
+    <div v-if="showNewVoucherModal" class="modal-overlay">
+      <div class="modal-content voucher-notify-modal">
+        <div class="modal-header-flex">
+          <h3>🎉 Phiếu giảm giá mới!</h3>
+          <button class="close-btn" @click="keepOldVoucher">×</button>
+        </div>
+
+        <div class="voucher-notify-body">
+          <p>Có phiếu giảm giá mới <b>{{ newBetterVoucher?.name }}</b> với giá trị tốt hơn phiếu đang áp dụng!</p>
+
+          <div class="voucher-compare">
+            <div class="voucher-old">
+              <div class="compare-label">Phiếu hiện tại</div>
+              <div class="compare-value">-{{ formatMoney(newBetterVoucher?.currentDiscount || 0) }}</div>
+            </div>
+            <div class="compare-arrow">→</div>
+            <div class="voucher-new">
+              <div class="compare-label">Phiếu mới</div>
+              <div class="compare-value highlight">-{{ formatMoney(newBetterVoucher?.calculatedDiscount || 0) }}</div>
+              <div class="compare-name">{{ newBetterVoucher?.name }}</div>
+            </div>
+          </div>
+
+          <p class="compare-benefit">
+            Tiết kiệm thêm <b>{{ formatMoney((newBetterVoucher?.calculatedDiscount || 0) - (newBetterVoucher?.currentDiscount || 0)) }}</b>
+          </p>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-outline" @click="keepOldVoucher">Giữ phiếu cũ</button>
+          <button class="btn-primary" @click="applyNewVoucher">Áp dụng phiếu mới</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { createOrder } from '@/api/HoaDonApi'
 import { getCurrentUser, getRole } from '@/services/auth'
@@ -564,6 +593,7 @@ const filteredCustomers = computed(() =>
       .includes(customerKeyword.value.toLowerCase())
   )
 )
+
 const loadCustomers = async () => {
   const res = await getKhachHang({
     page: customerPage.value,
@@ -604,7 +634,7 @@ const selectCustomer = (c) => {
 /* ================= MODAL SẢN PHẨM ================= */
 const showModal = ref(false)
 
-import { getChiTietSanPham } from '@/api/ChiTietSanPhamApi'
+import { getChiTietSanPham, reserveStock, releaseStock } from '@/api/ChiTietSanPhamApi'
 
 const products = ref([])
 const productPage = ref(0)
@@ -630,7 +660,8 @@ const loadProducts = async () => {
       price: p.giaBan,
       tonKho: p.soLuong,
       qty: 1,
-      checked: false
+      checked: false,
+      qtyWarning: ''
     }
   })
 
@@ -641,15 +672,175 @@ const openProductModal = async () => {
   showModal.value = true
 }
 
-const confirmAddProduct = () => {
-  products.value.forEach(p => {
-    if (!p.checked) return
+const getErrorMessage = (error, fallbackMessage) => {
+  return error?.response?.data || fallbackMessage
+}
+
+const reserveProductStock = async (id, soLuong, showError = true) => {
+  if (!Number.isFinite(soLuong) || soLuong <= 0) {
+    return false
+  }
+
+  try {
+    await reserveStock(id, soLuong)
+    return true
+  } catch (error) {
+    if (showError) {
+      alert(getErrorMessage(error, 'Không thể giữ kho. Vui lòng thử lại.'))
+    }
+    return false
+  }
+}
+
+const releaseProductStock = async (id, soLuong, showError = true) => {
+  if (!Number.isFinite(soLuong) || soLuong <= 0) {
+    return false
+  }
+
+  try {
+    await releaseStock(id, soLuong)
+    return true
+  } catch (error) {
+    if (showError) {
+      alert(getErrorMessage(error, 'Không thể hoàn kho. Vui lòng thử lại.'))
+    }
+    return false
+  }
+}
+
+const normalizeQty = (value, maxQty) => {
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 1
+  }
+
+  const max = Number.isFinite(maxQty) && maxQty > 0 ? maxQty : 1
+  return Math.min(parsed, max)
+}
+
+const getQtyWarning = (value, maxQty) => {
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 'Số lượng phải lớn hơn 0'
+  }
+  if (parsed > maxQty) {
+    return `Vượt tồn kho (tối đa ${maxQty})`
+  }
+  return ''
+}
+
+const updateCartQty = async (item, value) => {
+  const currentQty = Number(item.qty) || 1
+  const nextQty = Math.max(Number.parseInt(value, 10) || 1, 1)
+
+  if (nextQty === currentQty) {
+    item.qtyWarning = ''
+    item.qty = nextQty
+    return
+  }
+
+  if (nextQty > currentQty) {
+    const delta = nextQty - currentQty
+    const reserved = await reserveProductStock(item.id, delta)
+    if (!reserved) {
+      item.qtyWarning = 'Không đủ tồn kho'
+      item.qty = currentQty
+      return
+    }
+    item.tonKho = Math.max(0, Number(item.tonKho || 0) - delta)
+  } else {
+    const delta = currentQty - nextQty
+    const released = await releaseProductStock(item.id, delta)
+    if (!released) {
+      item.qty = currentQty
+      return
+    }
+    item.tonKho = Number(item.tonKho || 0) + delta
+  }
+
+  item.qtyWarning = ''
+  item.qty = nextQty
+}
+
+const increaseCartQty = async (item) => {
+  if (Number(item.tonKho) <= 0) {
+    item.qtyWarning = 'Không đủ tồn kho'
+    return
+  }
+
+  const reserved = await reserveProductStock(item.id, 1)
+  if (!reserved) {
+    item.qtyWarning = 'Không đủ tồn kho'
+    return
+  }
+
+  item.qtyWarning = ''
+  item.qty = Number(item.qty || 0) + 1
+  item.tonKho = Math.max(0, Number(item.tonKho || 0) - 1)
+}
+
+const decreaseCartQty = async (item) => {
+  if (Number(item.qty) <= 1) return
+
+  const released = await releaseProductStock(item.id, 1)
+  if (!released) {
+    return
+  }
+
+  item.qtyWarning = ''
+  item.qty = Number(item.qty || 1) - 1
+  item.tonKho = Number(item.tonKho || 0) + 1
+}
+
+const updateProductQty = (product, value) => {
+  product.qtyWarning = getQtyWarning(value, product.tonKho)
+  product.qty = normalizeQty(value, product.tonKho)
+}
+
+const increaseProductQty = (product) => {
+  product.qtyWarning = product.qty >= product.tonKho ? `Vượt tồn kho (tối đa ${product.tonKho})` : ''
+  product.qty = normalizeQty(product.qty + 1, product.tonKho)
+}
+
+const decreaseProductQty = (product) => {
+  product.qtyWarning = ''
+  product.qty = normalizeQty(product.qty - 1, product.tonKho)
+}
+
+const hasInvalidCartQty = () => {
+  return cart.value.some(item => {
+    const qty = Number(item.qty)
+    return !Number.isFinite(qty) || qty < 1
+  })
+}
+
+const confirmAddProduct = async () => {
+  for (const p of products.value) {
+    if (!p.checked) continue
+
+    const normalizedQty = normalizeQty(p.qty, p.tonKho)
+    if (p.tonKho <= 0) {
+      p.checked = false
+      p.qty = 1
+      return
+    }
+
+    const reserved = await reserveProductStock(p.id, normalizedQty)
+    if (!reserved) {
+      p.checked = false
+      p.qty = 1
+      continue
+    }
 
     const exist = cart.value.find(i => i.id === p.id)
 
     if (exist) {
-      exist.qty = Math.min(exist.qty + p.qty, p.tonKho)
+      // Sản phẩm đã có trong hoá đơn: giữ nguyên giá cũ, chỉ cập nhật số lượng
+      exist.qty = Number(exist.qty || 0) + normalizedQty
+      exist.tonKho = Math.max(0, Number(exist.tonKho || 0) - normalizedQty)
+      exist.qtyWarning = ''
     } else {
+      // Sản phẩm mới: áp dụng giá hiện tại từ hệ thống
       cart.value.push({
         id: p.id,
         code: p.code,
@@ -657,16 +848,35 @@ const confirmAddProduct = () => {
         brand: p.brand,
         material: p.material,
         price: p.price,
-        qty: p.qty,
-        tonKho: p.tonKho
+        qty: normalizedQty,
+        tonKho: Math.max(0, Number(p.tonKho || 0) - normalizedQty),
+        qtyWarning: ''
       })
     }
 
+    p.tonKho = Math.max(0, Number(p.tonKho || 0) - normalizedQty)
+
     p.checked = false
     p.qty = 1
-  })
+  }
 
+  await loadProducts()
   showModal.value = false
+}
+
+const removeCartItem = async (index, item) => {
+  const qtyToRelease = Number(item.qty || 0)
+  if (qtyToRelease <= 0) {
+    cart.value.splice(index, 1)
+    return
+  }
+
+  const released = await releaseProductStock(item.id, qtyToRelease)
+  if (!released) {
+    return
+  }
+
+  cart.value.splice(index, 1)
 }
 
 const filteredProducts = computed(() =>
@@ -710,6 +920,9 @@ const loadDiscounts = async () => {
     name: d.tenPhieuGiamGia,
     type: d.loaiPhieu === 'PhanTram' ? 'percent' : 'money',
     value: d.giaTriGiam,
+    maxDiscount: d.giaTriGiamToiDa || 0,
+    minOrder: d.donHangToiThieu || 0,
+    soLuong: d.soLuong || 0,
     startDate: d.ngayBatDau,
     endDate: d.ngayKetThuc,
     trangThai: d.trangThai,
@@ -743,6 +956,8 @@ const confirmAddDiscount = () => {
         name: d.name,
         type: d.type,
         value: d.value,
+        maxDiscount: d.maxDiscount,
+        minOrder: d.minOrder,
         startDate: d.startDate,
         endDate: d.endDate
       })
@@ -753,6 +968,259 @@ const confirmAddDiscount = () => {
   showDiscountModal.value = false
 }
 
+/* ================= TỰ ĐỘNG CHỌN PHIẾU GIẢM GIÁ TỐT NHẤT ================= */
+const allActiveVouchers = ref([])
+const showNewVoucherModal = ref(false)
+const newBetterVoucher = ref(null)
+let voucherPollTimer = null
+let pricePollTimer = null
+
+const loadAllActiveVouchers = async () => {
+  try {
+    const res = await getPhieuGiamGia({
+      page: 0,
+      size: 1000,
+      trangThai: 1
+    })
+    allActiveVouchers.value = res.data.content.map(d => ({
+      id: d.id,
+      code: d.maPhieuGiamGia,
+      name: d.tenPhieuGiamGia,
+      type: d.loaiPhieu === 'PhanTram' ? 'percent' : 'money',
+      value: d.giaTriGiam,
+      maxDiscount: d.giaTriGiamToiDa || 0,
+      minOrder: d.donHangToiThieu || 0,
+      soLuong: d.soLuong || 0,
+      startDate: d.ngayBatDau,
+      endDate: d.ngayKetThuc,
+      trangThai: d.trangThai
+    }))
+  } catch (e) {
+    console.error('Lỗi tải phiếu giảm giá:', e)
+  }
+}
+
+const syncAppliedDiscountWithActiveVouchers = () => {
+  if (!Array.isArray(discounts.value) || discounts.value.length === 0) return
+
+  const activeMap = new Map(allActiveVouchers.value.map(v => [v.id, v]))
+  const removedCodes = []
+
+  const nextDiscounts = discounts.value
+    .map(d => {
+      const latest = activeMap.get(d.id)
+      if (!latest) {
+        removedCodes.push(d.code || d.name || `ID ${d.id}`)
+        return null
+      }
+
+      return {
+        id: latest.id,
+        code: latest.code,
+        name: latest.name,
+        type: latest.type,
+        value: latest.value,
+        maxDiscount: latest.maxDiscount,
+        minOrder: latest.minOrder,
+        startDate: latest.startDate,
+        endDate: latest.endDate
+      }
+    })
+    .filter(Boolean)
+
+  if (removedCodes.length > 0) {
+    alert(`Phiếu giảm giá ${removedCodes.join(', ')} đã ngừng hoạt động và đã được gỡ khỏi đơn.`)
+  }
+
+  discounts.value = nextDiscounts
+}
+
+const calculateVoucherDiscount = (voucher, cartTotal) => {
+  if (cartTotal < voucher.minOrder) return 0
+  if (voucher.soLuong <= 0) return 0
+
+  if (voucher.type === 'percent') {
+    let disc = cartTotal * voucher.value / 100
+    if (voucher.maxDiscount > 0) {
+      disc = Math.min(disc, voucher.maxDiscount)
+    }
+    return Math.min(disc, cartTotal)
+  } else {
+    return Math.min(voucher.value, cartTotal)
+  }
+}
+
+const autoSelectBestVoucher = () => {
+  const cartTotal = totalProductPrice.value
+  if (cartTotal <= 0 || allActiveVouchers.value.length === 0) {
+    if (discounts.value.length > 0) {
+      discounts.value = []
+    }
+    return
+  }
+
+  let bestVoucher = null
+  let bestDiscount = 0
+
+  for (const v of allActiveVouchers.value) {
+    const disc = calculateVoucherDiscount(v, cartTotal)
+    if (disc > bestDiscount) {
+      bestDiscount = disc
+      bestVoucher = v
+    }
+  }
+
+  if (bestVoucher) {
+    const currentId = discounts.value.length === 1 ? discounts.value[0].id : null
+    if (currentId !== bestVoucher.id) {
+      discounts.value = [{
+        id: bestVoucher.id,
+        code: bestVoucher.code,
+        name: bestVoucher.name,
+        type: bestVoucher.type,
+        value: bestVoucher.value,
+        maxDiscount: bestVoucher.maxDiscount,
+        minOrder: bestVoucher.minOrder,
+        startDate: bestVoucher.startDate,
+        endDate: bestVoucher.endDate
+      }]
+    }
+  } else {
+    discounts.value = []
+  }
+}
+
+const syncCartPriceWithServer = async () => {
+  if (!Array.isArray(cart.value) || cart.value.length === 0) return
+
+  try {
+    const res = await getChiTietSanPham({
+      page: 0,
+      size: 1000
+    })
+
+    const latestPriceMap = new Map(
+      (res?.data?.content || []).map(p => [p.id, Number(p.giaBan || 0)])
+    )
+
+    const changedItems = []
+
+    cart.value.forEach(item => {
+      const latestPrice = latestPriceMap.get(item.id)
+      if (!Number.isFinite(latestPrice)) return
+
+      const oldPrice = Number(item.price || 0)
+      if (oldPrice !== latestPrice) {
+        item.price = latestPrice
+        changedItems.push(`${item.name} (${formatMoney(oldPrice)} -> ${formatMoney(latestPrice)})`)
+      }
+    })
+
+    if (changedItems.length > 0) {
+      alert(`Giá sản phẩm đã thay đổi:\n- ${changedItems.join('\n- ')}\nHệ thống đã cập nhật lại tiền trong đơn.`)
+    }
+  } catch (e) {
+    console.error('Không thể đồng bộ giá sản phẩm mới nhất:', e)
+  }
+}
+
+// Gợi ý mua thêm để áp dụng phiếu tốt hơn
+const voucherSuggestion = computed(() => {
+  const cartTotal = totalProductPrice.value
+  if (cartTotal <= 0 || allActiveVouchers.value.length === 0) return null
+
+  // Tính giảm giá hiện tại
+  let currentBestDiscount = 0
+  discounts.value.forEach(d => {
+    currentBestDiscount += calculateVoucherDiscount(d, cartTotal)
+  })
+
+  let bestSuggestion = null
+
+  for (const v of allActiveVouchers.value) {
+    if (v.soLuong <= 0) continue
+    if (cartTotal >= v.minOrder) continue
+
+    const additionalNeeded = v.minOrder - cartTotal
+    const potentialDiscount = calculateVoucherDiscount(v, v.minOrder)
+
+    if (potentialDiscount > currentBestDiscount) {
+      const benefit = potentialDiscount - currentBestDiscount
+
+      if (!bestSuggestion || benefit > bestSuggestion.benefit ||
+          (benefit === bestSuggestion.benefit && additionalNeeded < bestSuggestion.additionalNeeded)) {
+        bestSuggestion = {
+          voucher: v,
+          additionalNeeded,
+          potentialDiscount,
+          benefit
+        }
+      }
+    }
+  }
+
+  return bestSuggestion
+})
+
+// Polling để phát hiện phiếu giảm giá mới từ admin
+const checkForBetterVouchers = async () => {
+  if (cart.value.length === 0) return
+
+  const prevIds = new Set(allActiveVouchers.value.map(v => v.id))
+  await loadAllActiveVouchers()
+  syncAppliedDiscountWithActiveVouchers()
+
+  const newVouchers = allActiveVouchers.value.filter(v => !prevIds.has(v.id))
+  if (newVouchers.length === 0) return
+
+  // Nếu chưa áp dụng phiếu nào, tự động chọn
+  if (discounts.value.length === 0) {
+    autoSelectBestVoucher()
+    return
+  }
+
+  // Kiểm tra phiếu mới có tốt hơn không
+  const cartTotal = totalProductPrice.value
+  const currentDisc = totalDiscount.value
+
+  for (const v of newVouchers) {
+    const newDiscAmount = calculateVoucherDiscount(v, cartTotal)
+    if (newDiscAmount > currentDisc) {
+      newBetterVoucher.value = {
+        ...v,
+        calculatedDiscount: newDiscAmount,
+        currentDiscount: currentDisc
+      }
+      showNewVoucherModal.value = true
+      break
+    }
+  }
+}
+
+const applyNewVoucher = () => {
+  if (newBetterVoucher.value) {
+    const v = newBetterVoucher.value
+    discounts.value = [{
+      id: v.id,
+      code: v.code,
+      name: v.name,
+      type: v.type,
+      value: v.value,
+      maxDiscount: v.maxDiscount,
+      minOrder: v.minOrder,
+      startDate: v.startDate,
+      endDate: v.endDate
+    }]
+  }
+  showNewVoucherModal.value = false
+  newBetterVoucher.value = null
+}
+
+const keepOldVoucher = () => {
+  showNewVoucherModal.value = false
+  newBetterVoucher.value = null
+}
+
 /* ================= TÍNH TIỀN ================= */
 const totalProductPrice = computed(() =>
   cart.value.reduce((s, i) => s + i.price * i.qty, 0)
@@ -760,16 +1228,23 @@ const totalProductPrice = computed(() =>
 
 const totalDiscount = computed(() => {
   let discount = 0
+  const cartTotal = totalProductPrice.value
 
   discounts.value.forEach(d => {
+    if (d.minOrder && cartTotal < d.minOrder) return
+
     if (d.type === 'percent') {
-      discount += totalProductPrice.value * d.value / 100
+      let dDiscount = cartTotal * d.value / 100
+      if (d.maxDiscount && d.maxDiscount > 0) {
+        dDiscount = Math.min(dDiscount, d.maxDiscount)
+      }
+      discount += dDiscount
     } else {
       discount += d.value
     }
   })
 
-  return Math.min(discount, totalProductPrice.value)
+  return Math.min(discount, cartTotal)
 })
 
 const totalPrice = computed(() =>
@@ -796,6 +1271,11 @@ const handleCreateOrder = async () => {
     return
   }
 
+  if (hasInvalidCartQty()) {
+    alert('Số lượng sản phẩm không hợp lệ (âm hoặc vượt tồn kho). Vui lòng kiểm tra lại!')
+    return
+  }
+
   if (!confirm('Xác nhận tạo hóa đơn?')) return
 
   try {
@@ -808,8 +1288,11 @@ const handleCreateOrder = async () => {
       tienGiamGia: totalDiscount.value,
 
       phieuGiamGia: discounts.value.map(d => ({
+        id: d.id,
         loaiPhieu: d.type === 'percent' ? 'PhanTram' : 'TienMat',
         giaTriGiam: d.value,
+        giaTriGiamToiDa: d.maxDiscount || 0,
+        donHangToiThieu: d.minOrder || 0,
         trangThai: 1
       })),
 
@@ -956,6 +1439,11 @@ const handleSubmitOrder = async () => {
 }
 
 const handleCreateOrderDelivery = async () => {
+  if (!cart.value.length) {
+    alert('Giỏ hàng đang trống!')
+    return
+  }
+
   if (!customer.value.name || !customer.value.phone) {
     alert('Vui lòng nhập đầy đủ thông tin người nhận')
     return
@@ -968,6 +1456,11 @@ const handleCreateOrderDelivery = async () => {
 
   if (!staff.value.id) {
     alert('Vui lòng chọn nhân viên!')
+    return
+  }
+
+  if (hasInvalidCartQty()) {
+    alert('Số lượng sản phẩm không hợp lệ (âm hoặc vượt tồn kho). Vui lòng kiểm tra lại!')
     return
   }
 
@@ -1001,8 +1494,11 @@ const handleCreateOrderDelivery = async () => {
     phiVanChuyen: shippingFee.value,
 
     phieuGiamGia: discounts.value.map(d => ({
+      id: d.id,
       loaiPhieu: d.type === 'percent' ? 'PhanTram' : 'TienMat',
       giaTriGiam: d.value,
+      giaTriGiamToiDa: d.maxDiscount || 0,
+      donHangToiThieu: d.minOrder || 0,
       trangThai: 1
     })),
 
@@ -1033,28 +1529,103 @@ const MAX_TABS = 5
 
 const orderTabs = ref([])
 const activeTabId = ref(null)
+const nextOrderNumber = ref(1)
 
 /* ================= LOCALSTORAGE PERSISTENCE ================= */
 const STORAGE_KEY = 'pos_order_tabs'
+const currentDateKey = ref('')
+let dailyResetTimer = null
+
+const getLocalDateKey = () => {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const getTabItemCount = (tab) => {
+  if (!tab?.cart?.length) return 0
+  return tab.cart.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
+}
+
+const getTabLabel = (tab) => {
+  if (tab?.tabName) return tab.tabName
+  if (Number.isFinite(tab?.orderNumber)) return `Đơn ${tab.orderNumber}`
+  return 'Đơn mới'
+}
 
 const saveOrderTabs = () => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       orderTabs: orderTabs.value,
-      activeTabId: activeTabId.value
+      activeTabId: activeTabId.value,
+      nextOrderNumber: nextOrderNumber.value,
+      savedDate: getLocalDateKey()
     }))
   } catch (err) {
     console.error('Lỗi khi lưu dữ liệu:', err)
   }
 }
 
-const loadOrderTabs = () => {
+const resetExpiredPendingOrders = async (tabs) => {
+  for (const tab of tabs || []) {
+    if (!Array.isArray(tab.cart) || tab.cart.length === 0) continue
+
+    for (const item of tab.cart) {
+      const qtyToRelease = Number(item.qty || 0)
+      if (qtyToRelease <= 0) continue
+      await releaseProductStock(item.id, qtyToRelease, false)
+    }
+  }
+}
+
+const loadOrderTabs = async () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      const data = JSON.parse(stored)
-      orderTabs.value = data.orderTabs || []
-      activeTabId.value = data.activeTabId || null
+    if (!stored) return
+
+    const data = JSON.parse(stored)
+    const savedDate = data?.savedDate
+    const today = getLocalDateKey()
+
+    if (savedDate && savedDate !== today) {
+      await resetExpiredPendingOrders(data.orderTabs || [])
+      clearOrderTabs()
+      orderTabs.value = []
+      activeTabId.value = null
+      nextOrderNumber.value = 1
+      return
+    }
+
+    orderTabs.value = Array.isArray(data?.orderTabs) ? data.orderTabs : []
+    activeTabId.value = data?.activeTabId || null
+
+    let maxOrderNumber = 0
+    orderTabs.value.forEach((tab, index) => {
+      if (!Number.isFinite(tab.orderNumber) || tab.orderNumber <= 0) {
+        tab.orderNumber = index + 1
+      }
+      if (!tab.tabName) {
+        tab.tabName = `Đơn ${tab.orderNumber}`
+      }
+      maxOrderNumber = Math.max(maxOrderNumber, tab.orderNumber)
+    })
+
+    const savedNextOrderNumber = Number(data?.nextOrderNumber)
+    if (Number.isFinite(savedNextOrderNumber) && savedNextOrderNumber > maxOrderNumber) {
+      nextOrderNumber.value = savedNextOrderNumber
+    } else {
+      nextOrderNumber.value = maxOrderNumber + 1
+    }
+
+    if (orderTabs.value.length > 0) {
+      const hasActiveTab = orderTabs.value.some(tab => tab.id === activeTabId.value)
+      if (!hasActiveTab) {
+        activeTabId.value = orderTabs.value[orderTabs.value.length - 1].id
+      }
+    } else {
+      activeTabId.value = null
     }
   } catch (err) {
     console.error('Lỗi khi tải dữ liệu:', err)
@@ -1069,9 +1640,68 @@ const clearOrderTabs = () => {
   }
 }
 
-onMounted(() => {
-  loadOrderTabs()
+const runDailyResetIfNeeded = async () => {
+  const today = getLocalDateKey()
+  if (today === currentDateKey.value) return
+
+  if (orderTabs.value.length > 0) {
+    await resetExpiredPendingOrders(orderTabs.value)
+  }
+
+  orderTabs.value = []
+  activeTabId.value = null
+  nextOrderNumber.value = 1
+  clearOrderTabs()
+  createNewTab()
+  currentDateKey.value = today
+
+  alert('Đã sang ngày mới, hệ thống đã xóa toàn bộ hóa đơn chờ và hoàn tồn kho.')
+}
+
+onMounted(async () => {
+  await loadOrderTabs()
+  currentDateKey.value = getLocalDateKey()
+
+  if (orderTabs.value.length === 0) {
+    createNewTab()
+  }
+
+  dailyResetTimer = window.setInterval(() => {
+    void runDailyResetIfNeeded()
+  }, 60000)
+
   fetchProvinces() // Load danh sách tỉnh/thành
+
+  // Tải phiếu giảm giá và tự động chọn tốt nhất
+  await loadAllActiveVouchers()
+  syncAppliedDiscountWithActiveVouchers()
+  autoSelectBestVoucher()
+  await syncCartPriceWithServer()
+
+  // Polling phiếu giảm giá mới mỗi 30 giây
+  voucherPollTimer = window.setInterval(() => {
+    void checkForBetterVouchers()
+  }, 30000)
+
+  // Polling giá sản phẩm mỗi 20 giây để cập nhật khi giá bị chỉnh sửa
+  pricePollTimer = window.setInterval(() => {
+    void syncCartPriceWithServer()
+  }, 20000)
+})
+
+onUnmounted(() => {
+  if (dailyResetTimer) {
+    window.clearInterval(dailyResetTimer)
+    dailyResetTimer = null
+  }
+  if (voucherPollTimer) {
+    window.clearInterval(voucherPollTimer)
+    voucherPollTimer = null
+  }
+  if (pricePollTimer) {
+    window.clearInterval(pricePollTimer)
+    pricePollTimer = null
+  }
 })
 
 watch(orderTabs, saveOrderTabs, { deep: true })
@@ -1102,6 +1732,8 @@ const createNewTab = () => {
 
   const newTab = {
     id: Date.now(),
+    orderNumber: nextOrderNumber.value,
+    tabName: `Đơn ${nextOrderNumber.value}`,
     maHoaDon: null,
     orderType: 'TAI_QUAY',
     cart: [],
@@ -1112,18 +1744,40 @@ const createNewTab = () => {
     note: ''
   }
 
+  nextOrderNumber.value += 1
   orderTabs.value.push(newTab)
   activeTabId.value = newTab.id
 }
 
-const closeTab = (id) => {
+const releaseTabStock = async (tab) => {
+  for (const item of tab.cart) {
+    const qtyToRelease = Number(item.qty || 0)
+    if (qtyToRelease <= 0) continue
+
+    const released = await releaseProductStock(item.id, qtyToRelease)
+    if (!released) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const closeTab = async (id) => {
   const index = orderTabs.value.findIndex(t => t.id === id)
   if (index === -1) return
 
   const tab = orderTabs.value[index]
 
-  if (tab.cart.length > 0) {
-    if (!confirm('Đơn hàng này chưa thanh toán, vẫn đóng?')) return
+  if (getTabItemCount(tab) > 0) {
+    const accepted = confirm('Đơn hàng này đã chứa sản phẩm. Bạn có đồng ý xóa không?')
+    if (!accepted) return
+
+    const released = await releaseTabStock(tab)
+    if (!released) {
+      alert('Không thể hoàn kho cho tab này. Vui lòng thử lại!')
+      return
+    }
   }
 
   orderTabs.value.splice(index, 1)
@@ -1184,6 +1838,15 @@ const isDelivery = computed({
   set: v => {
     orderType.value = v ? 'GIAO_HANG' : 'TAI_QUAY'
   }
+})
+
+// Tự động chọn phiếu giảm giá tốt nhất khi tổng giỏ hàng thay đổi
+watch(totalProductPrice, async () => {
+  if (allActiveVouchers.value.length === 0) {
+    await loadAllActiveVouchers()
+    syncAppliedDiscountWithActiveVouchers()
+  }
+  autoSelectBestVoucher()
 })
 
 const toggleOrderType = () => {
@@ -1393,6 +2056,7 @@ const getFullAddress = () => {
 
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  white-space: nowrap;
 }
 
 .mt {
@@ -2008,6 +2672,7 @@ input:disabled {
   background: rgba(248, 250, 252, 0.9);
   border-bottom: 1px solid rgba(226, 232, 240, 0.95);
   padding: 10px 8px;
+  text-align: center;
 }
 
 .table td {
@@ -2015,6 +2680,7 @@ input:disabled {
   border-bottom: 1px solid rgba(226, 232, 240, 0.85);
   font-size: 13px;
   vertical-align: middle;
+  text-align: center;
 }
 
 .table tbody tr:hover td {
@@ -2023,6 +2689,7 @@ input:disabled {
 
 .name-cell {
   text-align: left;
+  min-width: 180px;
 }
 
 .name-main {
@@ -2079,6 +2746,34 @@ input:disabled {
   min-width: 20px;
   text-align: center;
   font-weight: 900;
+}
+
+.qty-input {
+  width: 58px;
+  height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 700;
+  color: #0f172a;
+  background: #fff;
+}
+
+.qty-input-error {
+  border-color: #ef4444;
+}
+
+.qty-input:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.25);
+}
+
+.qty-warning {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: #dc2626;
 }
 
 /* ===== EMPTY CART ===== */
@@ -2331,6 +3026,24 @@ input:disabled {
   table-layout: fixed;
 }
 
+.modal-table th,
+.modal-table td {
+  vertical-align: middle;
+}
+
+.modal-table td:first-child,
+.modal-table th:first-child {
+  width: 120px;
+}
+
+.modal-content.large .modal-table .mono {
+  display: inline-block;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
 .small-table {
   table-layout: fixed;
   font-size: 12px;
@@ -2458,5 +3171,246 @@ input:disabled {
 
 .switch input:checked+.slider:before {
   transform: translateX(24px);
+}
+
+/* ===== VOUCHER SUGGESTION BANNER ===== */
+.voucher-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  border-radius: 14px;
+  border: 1px solid #fde68a;
+  background: linear-gradient(180deg, #fffbeb, #fef3c7);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
+}
+
+.suggestion-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.suggestion-text {
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.6;
+}
+
+.suggestion-detail {
+  color: #b45309;
+}
+
+.highlight-save {
+  color: #dc2626;
+  font-weight: 900;
+}
+
+/* ===== NEW VOUCHER NOTIFY MODAL ===== */
+.voucher-notify-modal {
+  width: 480px;
+  max-width: 95vw;
+  animation: pop .18s ease;
+}
+
+.voucher-notify-body {
+  padding: 8px 0 16px;
+}
+
+.voucher-notify-body p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.6;
+}
+
+.voucher-compare {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 14px;
+}
+
+.voucher-old,
+.voucher-new {
+  flex: 1;
+  text-align: center;
+}
+
+.compare-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.compare-value {
+  font-size: 20px;
+  font-weight: 900;
+  color: #475569;
+}
+
+.compare-value.highlight {
+  color: #16a34a;
+}
+
+.compare-name {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.compare-arrow {
+  font-size: 22px;
+  color: #94a3b8;
+  font-weight: 900;
+}
+
+.compare-benefit {
+  text-align: center;
+  font-size: 14px;
+  color: #16a34a;
+}
+
+/* Voucher chưa đủ điều kiện áp dụng */
+.voucher-not-applicable {
+  opacity: 0.55;
+  background: #fef2f2;
+}
+
+.voucher-not-applicable td {
+  color: #94a3b8 !important;
+}
+
+/* ===== BRAND THEME (LOGO) ===== */
+.pos-page {
+  --brand-navy: #223f67;
+  --brand-navy-strong: #1b3252;
+  --brand-cream: #ece3d2;
+  --brand-bg: #edf1f6;
+  --brand-line: #d5ddea;
+  --brand-text: #1f2a3b;
+  --brand-sub: #607089;
+  --brand-danger: #c53131;
+  --brand-success: #168a55;
+  padding: 6px;
+  background: radial-gradient(circle at top right, #f7f9fc 0%, var(--brand-bg) 60%);
+  color: var(--brand-text);
+  font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
+}
+
+.pos-sub,
+.muted,
+.pay-note,
+.name-sub {
+  color: var(--brand-sub);
+}
+
+.pos-badge {
+  color: var(--brand-navy);
+  background: linear-gradient(180deg, #f8f5ed, #ffffff);
+  border-color: #e5dece;
+}
+
+.btn-primary,
+.btn-select {
+  background: linear-gradient(180deg, var(--brand-navy), var(--brand-navy-strong));
+  box-shadow: 0 10px 18px rgba(34, 63, 103, 0.24);
+}
+
+.btn-outline {
+  border-color: #c6d2e4;
+  color: var(--brand-navy);
+}
+
+.btn-outline:hover {
+  background: #f4f8ff;
+}
+
+.order-tab.active {
+  background: linear-gradient(180deg, var(--brand-navy), var(--brand-navy-strong));
+  border-color: rgba(34, 63, 103, 0.45);
+}
+
+.p-price,
+.price-col,
+.price-col.total,
+.highlight-save {
+  color: var(--brand-danger);
+}
+
+.btn-pay {
+  background: linear-gradient(180deg, #1f9659, var(--brand-success));
+}
+
+.card,
+.pos-topbar,
+.tab-counter,
+.order-tab {
+  border-color: var(--brand-line);
+}
+
+.modal-content,
+.payment-modal {
+  border-color: var(--brand-line);
+}
+
+/* Căn cột rõ ràng để modal khách hàng không bị lệch nút/chữ */
+.customer-table {
+  table-layout: fixed;
+}
+
+.customer-modal {
+  width: 680px;
+  max-width: 95vw;
+}
+
+.customer-table th,
+.customer-table td {
+  text-align: left;
+}
+
+.customer-table th:nth-child(1),
+.customer-table td:nth-child(1) {
+  width: 29%;
+}
+
+.customer-table th:nth-child(2),
+.customer-table td:nth-child(2) {
+  width: 18%;
+}
+
+.customer-table th:nth-child(3),
+.customer-table td:nth-child(3) {
+  width: 35%;
+}
+
+.customer-table th:nth-child(4),
+.customer-table td:nth-child(4) {
+  width: 18%;
+  text-align: center;
+}
+
+.customer-table .email-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-table .action-cell {
+  text-align: center;
+}
+
+.customer-table .phone-cell {
+  white-space: nowrap;
+}
+
+.customer-table .btn-select {
+  min-width: 72px;
 }
 </style>

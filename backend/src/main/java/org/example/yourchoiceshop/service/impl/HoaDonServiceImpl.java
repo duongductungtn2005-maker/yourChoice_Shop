@@ -11,12 +11,14 @@ import org.example.yourchoiceshop.entity.HoaDon;
 import org.example.yourchoiceshop.entity.HoaDonChiTiet;
 import org.example.yourchoiceshop.entity.LichSuHoaDon;
 import org.example.yourchoiceshop.entity.LichSuThanhToan;
+import org.example.yourchoiceshop.entity.PhieuGiamGia;
 import org.example.yourchoiceshop.repository.ChiTietSanPhamRepository;
 import org.example.yourchoiceshop.repository.HoaDonChiTietRepository;
 import org.example.yourchoiceshop.repository.HoaDonRepository;
 import org.example.yourchoiceshop.repository.LichSuHoaDonRepository;
 import org.example.yourchoiceshop.repository.LichSuThanhToanRepository;
 import org.example.yourchoiceshop.repository.NhanVienRepository;
+import org.example.yourchoiceshop.repository.PhieuGiamGiaRepository;
 import org.example.yourchoiceshop.service.HoaDonService; // <--- Import Interface này
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,7 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.example.yourchoiceshop.dto.request.HoaDonRequest; // <--- Import DTO mớiimport org.apache.poi.ss.usermodel.*;
 import org.example.yourchoiceshop.dto.request.PhieuGiamGiaRequest;
@@ -46,6 +50,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
     private final NhanVienRepository nhanVienRepo; // Thêm Repository này để lấy tên nhân viên
     private final LichSuThanhToanRepository lichSuThanhToanRepo; // Thêm Repository này để lấy lịch sử thanh toán
     private final LichSuHoaDonRepository lichSuHoaDonRepo;
+    private final PhieuGiamGiaRepository phieuGiamGiaRepo;
 
     @Override // <--- Thêm Override cho chắc chắn
     public Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, LocalDateTime from,
@@ -108,6 +113,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         res.setMaHoaDon(hd.getMaHoaDon());
         res.setTenKhachHang(hd.getKhachHang() != null ? hd.getKhachHang().getTenKhachHang() : "Khách lẻ");
         res.setEmailKhachHang(hd.getEmailKhachHang()); // ✅ DÒNG QUYẾT ĐỊNH
+        res.setGhiChu(hd.getGhiChu());
         res.setLoaiHoaDon(convertTypeToDisplay(hd.getLoaiHoaDon()));
         res.setTrangThai(hd.getTrangThai());
         res.setNgayTao(hd.getNgayTao());
@@ -218,6 +224,58 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         };
     }
 
+    private BigDecimal calculateAndConsumeVoucherDiscount(List<PhieuGiamGiaRequest> vouchers, BigDecimal orderTotal) {
+        if (vouchers == null || vouchers.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal totalDiscount = BigDecimal.ZERO;
+        Set<Integer> consumedVoucherIds = new HashSet<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (PhieuGiamGiaRequest reqVoucher : vouchers) {
+            if (reqVoucher.getId() == null || consumedVoucherIds.contains(reqVoucher.getId())) {
+                continue;
+            }
+
+            PhieuGiamGia voucher = phieuGiamGiaRepo.findById(reqVoucher.getId()).orElse(null);
+            if (voucher == null) continue;
+            if (voucher.getTrangThai() == null || voucher.getTrangThai() != 1) continue;
+            if (voucher.getSoLuong() == null || voucher.getSoLuong() <= 0) continue;
+
+            if (voucher.getNgayBatDau() != null && now.isBefore(voucher.getNgayBatDau())) continue;
+            if (voucher.getNgayKetThuc() != null && now.isAfter(voucher.getNgayKetThuc())) continue;
+            if (voucher.getDonHangToiThieu() != null && orderTotal.compareTo(voucher.getDonHangToiThieu()) < 0) continue;
+
+            BigDecimal discount = BigDecimal.ZERO;
+
+            if ("PhanTram".equalsIgnoreCase(voucher.getLoaiPhieu())) {
+                BigDecimal percent = voucher.getGiaTriGiam().divide(BigDecimal.valueOf(100));
+                discount = orderTotal.multiply(percent);
+
+                if (voucher.getGiaTriGiamToiDa() != null
+                        && voucher.getGiaTriGiamToiDa().compareTo(BigDecimal.ZERO) > 0
+                        && discount.compareTo(voucher.getGiaTriGiamToiDa()) > 0) {
+                    discount = voucher.getGiaTriGiamToiDa();
+                }
+            } else if ("TienMat".equalsIgnoreCase(voucher.getLoaiPhieu())) {
+                discount = voucher.getGiaTriGiam();
+            }
+
+            totalDiscount = totalDiscount.add(discount);
+
+            voucher.setSoLuong(voucher.getSoLuong() - 1);
+            if (voucher.getSoLuong() <= 0) {
+                voucher.setSoLuong(0);
+                voucher.setTrangThai(0);
+            }
+            phieuGiamGiaRepo.save(voucher);
+            consumedVoucherIds.add(voucher.getId());
+        }
+
+        return totalDiscount;
+    }
+
     @Override
     @Transactional
     public void createOrderAtCounter(CreateOrderRequest req) {
@@ -285,38 +343,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         // 3. Cập nhật tiền
         hd.setTongTien(tongTien);
 
-        BigDecimal tienGiam = BigDecimal.ZERO;
-
-        if (req.getPhieuGiamGia() != null) {
-            for (PhieuGiamGiaRequest p : req.getPhieuGiamGia()) {
-
-                // Check hiệu lực cơ bản (nên có)
-                if (p.getTrangThai() != null && p.getTrangThai() != 1)
-                    continue;
-
-                if ("PhanTram".equalsIgnoreCase(p.getLoaiPhieu())) {
-
-                    // 15.00 => 15%
-                    BigDecimal percent = p.getGiaTriGiam()
-                            .divide(BigDecimal.valueOf(100));
-
-                    BigDecimal giam = tongTien.multiply(percent);
-
-                    // có giới hạn tối đa
-                    if (p.getGiaTriGiamToiDa() != null
-                            && p.getGiaTriGiamToiDa().compareTo(BigDecimal.ZERO) > 0
-                            && giam.compareTo(p.getGiaTriGiamToiDa()) > 0) {
-                        giam = p.getGiaTriGiamToiDa();
-                    }
-
-                    tienGiam = tienGiam.add(giam);
-
-                } else if ("TienMat".equalsIgnoreCase(p.getLoaiPhieu())) {
-
-                    tienGiam = tienGiam.add(p.getGiaTriGiam());
-                }
-            }
-        }
+        BigDecimal tienGiam = calculateAndConsumeVoucherDiscount(req.getPhieuGiamGia(), tongTien);
 
         // không cho âm tiền
         if (tienGiam.compareTo(tongTien) > 0) {
@@ -449,6 +476,10 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
                 throw new RuntimeException("Không đủ tồn kho");
             }
 
+            // Trừ tồn kho ngay khi sản phẩm được đưa vào đơn giao hàng.
+            sp.setSoLuong(sp.getSoLuong() - item.getSoLuong());
+            chiTietSanPhamRepo.save(sp);
+
             HoaDonChiTiet ct = new HoaDonChiTiet();
             ct.setHoaDon(hd);
             ct.setChiTietSanPham(sp);
@@ -470,11 +501,15 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         hd.setPhiVanChuyen(phiVanChuyen);
 
         hd.setTongTien(tongTien);
-        hd.setTienGiamGia(req.getTienGiamGia());
+        BigDecimal tienGiam = calculateAndConsumeVoucherDiscount(req.getPhieuGiamGia(), tongTien);
+        if (tienGiam.compareTo(tongTien) > 0) {
+            tienGiam = tongTien;
+        }
+        hd.setTienGiamGia(tienGiam);
 
         hd.setTongTienSauGiam(
                 tongTien
-                        .subtract(req.getTienGiamGia())
+                .subtract(tienGiam)
                         .add(phiVanChuyen));
 
         hoaDonRepo.save(hd);

@@ -16,6 +16,7 @@ public class HoaDonDetailResponse {
     private String maHoaDon;
     private String tenKhachHang;
     private String emailKhachHang; 
+    private String ghiChu;
     private String loaiHoaDon;
     private Integer trangThai;
     private LocalDateTime ngayTao;
