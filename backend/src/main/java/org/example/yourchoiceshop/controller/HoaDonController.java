@@ -47,7 +47,9 @@ public class HoaDonController {
             typeDb = "TRUC_TUYEN";
         if ("Tại quầy".equals(type))
             typeDb = "TAI_QUAY";
-        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("ngayTao").descending());
+        if ("Giao hàng".equals(type))
+            typeDb = "GIAO_HANG";
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("ngayTao").ascending());
 
         return ResponseEntity.ok(hoaDonService.getOrders(keyword, status, typeDb, from, to, pageable));
     }
@@ -96,6 +98,8 @@ public class HoaDonController {
             typeDb = "TRUC_TUYEN";
         if ("Tại quầy".equals(type))
             typeDb = "TAI_QUAY";
+        if ("Giao hàng".equals(type))
+            typeDb = "GIAO_HANG";
 
         byte[] excelData = hoaDonService.exportExcel(keyword, status, typeDb, from, to);
 
