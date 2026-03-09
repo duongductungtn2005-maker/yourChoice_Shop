@@ -100,7 +100,10 @@
                   <td>{{ item.brand || '-' }}</td>
                   <td>{{ item.color || '-' }}</td>
                   <td>{{ item.size || '-' }}</td>
-                  <td class="p-price">{{ formatMoney(item.price) }}</td>
+                  <td class="p-price">
+                    <div class="price-main">{{ formatMoney(item.price) }}</div>
+                    <div v-if="item.priceChangeMeta" class="price-old">{{ formatMoney(item.priceChangeMeta.oldPrice) }}</div>
+                  </td>
                   <td>
                     <div>
                       <div class="item-control">
@@ -113,7 +116,13 @@
                       <div v-if="item.qtyWarning" class="qty-warning">{{ item.qtyWarning }}</div>
                     </div>
                   </td>
-                  <td class="p-price">{{ formatMoney(item.price * item.qty) }}</td>
+                  <td class="p-price">
+                    <div class="price-main">{{ formatMoney(item.price * item.qty) }}</div>
+                    <div v-if="item.priceChangeMeta" class="price-change-note">
+                      <div class="price-change-title">Giá gốc đã thay đổi</div>
+                      <div class="price-change-flow">{{ formatMoney(item.priceChangeMeta.oldPrice) }} -> {{ formatMoney(item.priceChangeMeta.newPrice) }}</div>
+                    </div>
+                  </td>
                   <td>
                     <button class="btn-remove" title="Xoá" @click="removeCartItem(i, item)">×</button>
                   </td>
@@ -222,6 +231,16 @@
           </div>
 
           <div class="card-body">
+            <div class="voucher-apply-row">
+              <input
+                v-model="voucherCodeInput"
+                class="voucher-code-input"
+                placeholder="Nhập mã phiếu giảm giá"
+                @keyup.enter="applyVoucherByCode"
+              />
+              <button class="btn-apply-code" @click="applyVoucherByCode">Áp dụng</button>
+            </div>
+
             <div v-if="discounts.length === 0" class="empty-small">
               Chưa áp dụng phiếu giảm giá
             </div>
@@ -233,11 +252,10 @@
                     <th>Tên phiếu</th>
                     <th>Giảm</th>
                     <th>Thời hạn</th>
-                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(d, i) in discounts" :key="d.id">
+                  <tr v-for="d in discounts" :key="d.id">
                     <td class="name-cell">
                       <div class="name-main">{{ d.name }}</div>
                       <div class="muted mono" v-if="d.code">{{ d.code }}</div>
@@ -246,12 +264,13 @@
                       -{{ d.type === 'percent' ? d.value + '%' : formatMoney(d.value) }}
                     </td>
                     <td class="muted">{{ d.startDate }} → {{ d.endDate }}</td>
-                    <td>
-                      <button class="btn-remove" title="Gỡ" @click="discounts.splice(i, 1)">×</button>
-                    </td>
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            <div v-if="voucherAppliedNotice" class="voucher-applied-notice">
+              {{ voucherAppliedNotice }}
             </div>
           </div>
         </div>
@@ -326,8 +345,8 @@
 
         <div class="product-filter-grid">
           <div class="filter-item">
-            <label>Mã SP Cha:</label>
-            <input v-model="productFilter.productCode" class="search-input" placeholder="Nhập mã sản phẩm" />
+            <label>Tìm mã / tên:</label>
+            <input v-model="productKeyword" class="search-input" placeholder="Nhập mã SP cha, mã SKU hoặc tên sản phẩm" />
           </div>
           <div class="filter-item">
             <label>Cổ áo:</label>
@@ -381,7 +400,6 @@
         </div>
 
         <div class="price-range slider-wrap">
-          <input v-model="productKeyword" class="search-input" placeholder="Nhập mã SKU biến thể để tìm..." />
           <span>{{ formatMoney(0) }}</span>
           <input type="range" min="0" :max="maxPriceFilter" step="1000" v-model.number="priceRange[1]"
             class="price-slider" />
@@ -630,7 +648,6 @@ import { getCurrentUser, getRole } from '@/services/auth'
 const productKeyword = ref('')
 const priceRange = ref([0, 1000000])
 const productFilter = ref({
-  productCode: '',
   coAo: '',
   tayAo: '',
   xuatXu: '',
@@ -854,7 +871,6 @@ const openProductModal = async () => {
   productPage.value = 0
   productKeyword.value = ''
   productFilter.value = {
-    productCode: '',
     coAo: '',
     tayAo: '',
     xuatXu: '',
@@ -1094,12 +1110,11 @@ const filteredProducts = computed(() =>
     const keyword = productKeyword.value.toLowerCase()
 
     const matchKeyword =
-      p.name.toLowerCase().includes(keyword) ||
+      (p.name || '').toLowerCase().includes(keyword) ||
       (p.code && p.code.toLowerCase().includes(keyword)) ||
       (p.productCode && p.productCode.toLowerCase().includes(keyword))
 
     const f = productFilter.value
-    const matchProductCode = !f.productCode || (p.productCode || '').toLowerCase().includes(f.productCode.toLowerCase())
     const matchCoAo = !f.coAo || p.coAo === f.coAo
     const matchTayAo = !f.tayAo || p.tayAo === f.tayAo
     const matchXuatXu = !f.xuatXu || p.xuatXu === f.xuatXu
@@ -1115,7 +1130,6 @@ const filteredProducts = computed(() =>
     return (
       matchKeyword &&
       matchPrice &&
-      matchProductCode &&
       matchCoAo &&
       matchTayAo &&
       matchXuatXu &&
@@ -1242,8 +1256,26 @@ const confirmAddDiscount = () => {
 const allActiveVouchers = ref([])
 const showNewVoucherModal = ref(false)
 const newBetterVoucher = ref(null)
+const voucherCodeInput = ref('')
 let voucherPollTimer = null
 let pricePollTimer = null
+let lastVoucherCoreSnapshot = ''
+const VOUCHER_POLL_INTERVAL_MS = 3000
+
+const buildVoucherCoreSnapshot = (vouchers) => {
+  if (!Array.isArray(vouchers) || vouchers.length === 0) return ''
+
+  return vouchers
+    .map(v => ({
+      id: Number(v.id || 0),
+      soLuong: Number(v.soLuong || 0),
+      value: Number(v.value || 0),
+      minOrder: Number(v.minOrder || 0)
+    }))
+    .sort((a, b) => a.id - b.id)
+    .map(v => `${v.id}:${v.soLuong}:${v.value}:${v.minOrder}`)
+    .join('|')
+}
 
 const loadAllActiveVouchers = async () => {
   try {
@@ -1252,21 +1284,30 @@ const loadAllActiveVouchers = async () => {
       size: 1000,
       trangThai: 1
     })
-    allActiveVouchers.value = res.data.content.map(d => ({
+    const mappedVouchers = res.data.content.map(d => ({
       id: d.id,
       code: d.maPhieuGiamGia,
       name: d.tenPhieuGiamGia,
       type: d.loaiPhieu === 'PhanTram' ? 'percent' : 'money',
-      value: d.giaTriGiam,
-      maxDiscount: d.giaTriGiamToiDa || 0,
-      minOrder: d.donHangToiThieu || 0,
-      soLuong: d.soLuong || 0,
+      value: Number(d.giaTriGiam || 0),
+      maxDiscount: Number(d.giaTriGiamToiDa || 0),
+      minOrder: Number(d.donHangToiThieu || 0),
+      soLuong: Number(d.soLuong || 0),
       startDate: d.ngayBatDau,
       endDate: d.ngayKetThuc,
       trangThai: d.trangThai
     }))
+
+    const nextSnapshot = buildVoucherCoreSnapshot(mappedVouchers)
+    const hasCoreChanges = nextSnapshot !== lastVoucherCoreSnapshot
+
+    allActiveVouchers.value = mappedVouchers
+    lastVoucherCoreSnapshot = nextSnapshot
+
+    return hasCoreChanges
   } catch (e) {
     console.error('Lỗi tải phiếu giảm giá:', e)
+    return false
   }
 }
 
@@ -1324,6 +1365,15 @@ const calculateVoucherDiscount = (voucher, cartTotal) => {
   }
 }
 
+const getCartTotalByItems = (items) => {
+  if (!Array.isArray(items) || items.length === 0) return 0
+  return items.reduce((sum, item) => {
+    const price = Number(item?.price || 0)
+    const qty = Number(item?.qty || 0)
+    return sum + (Number.isFinite(price * qty) ? price * qty : 0)
+  }, 0)
+}
+
 const pickRandomItem = (items) => {
   if (!Array.isArray(items) || items.length === 0) return null
   const index = Math.floor(Math.random() * items.length)
@@ -1341,6 +1391,57 @@ const toAppliedVoucher = (voucher) => ({
   startDate: voucher.startDate,
   endDate: voucher.endDate
 })
+
+const applyVoucherByCode = async () => {
+  const rawCode = (voucherCodeInput.value || '').trim()
+
+  if (allActiveVouchers.value.length === 0) {
+    await loadAllActiveVouchers()
+  }
+
+  // Không nhập mã: tự động chọn phiếu tốt nhất có thể áp dụng ở thời điểm hiện tại.
+  if (!rawCode) {
+    const cartTotal = totalProductPrice.value
+    const bestVoucher = allActiveVouchers.value
+      .filter(isVoucherActiveNow)
+      .map(v => ({ voucher: v, discountAmount: calculateVoucherDiscount(v, cartTotal) }))
+      .filter(item => item.discountAmount > 0)
+      .sort((a, b) => b.discountAmount - a.discountAmount)[0]?.voucher
+
+    if (!bestVoucher) {
+      alert('Hiện chưa có phiếu giảm giá nào phù hợp với đơn hàng.')
+      return
+    }
+
+    discounts.value = [toAppliedVoucher(bestVoucher)]
+    voucherCodeInput.value = bestVoucher.code || ''
+    return
+  }
+
+  const normalizedCode = rawCode.toLowerCase()
+  const matchedVoucher = allActiveVouchers.value.find(v =>
+    String(v.code || '').toLowerCase() === normalizedCode
+  )
+
+  if (!matchedVoucher || !isVoucherActiveNow(matchedVoucher)) {
+    alert('Mã phiếu không tồn tại hoặc đã hết hiệu lực.')
+    return
+  }
+
+  const discountAmount = calculateVoucherDiscount(matchedVoucher, totalProductPrice.value)
+  if (discountAmount <= 0) {
+    if (totalProductPrice.value < Number(matchedVoucher.minOrder || 0)) {
+      alert(`Đơn hàng chưa đủ điều kiện tối thiểu ${formatMoney(matchedVoucher.minOrder || 0)} để áp dụng mã này.`)
+      return
+    }
+
+    alert('Phiếu giảm giá này hiện không thể áp dụng cho đơn hàng.')
+    return
+  }
+
+  discounts.value = [toAppliedVoucher(matchedVoucher)]
+  voucherCodeInput.value = matchedVoucher.code || rawCode
+}
 
 const autoSelectBestVoucher = () => {
   const cartTotal = totalProductPrice.value
@@ -1377,8 +1478,44 @@ const autoSelectBestVoucher = () => {
   }
 }
 
+const autoSelectBestVoucherForTab = (tab) => {
+  if (!tab || !Array.isArray(tab.cart)) return
+
+  const cartTotal = getCartTotalByItems(tab.cart)
+  const activeVouchers = allActiveVouchers.value.filter(isVoucherActiveNow)
+
+  if (cartTotal <= 0 || activeVouchers.length === 0) {
+    tab.discounts = []
+    return
+  }
+
+  const eligibleVouchers = activeVouchers
+    .map(v => ({
+      voucher: v,
+      discountAmount: calculateVoucherDiscount(v, cartTotal)
+    }))
+    .filter(item => item.discountAmount > 0)
+
+  const bestDiscount = Math.max(...eligibleVouchers.map(item => item.discountAmount), 0)
+  const bestCandidates = eligibleVouchers
+    .filter(item => item.discountAmount === bestDiscount)
+    .map(item => item.voucher)
+
+  const bestVoucher = pickRandomItem(bestCandidates)
+  tab.discounts = bestVoucher ? [toAppliedVoucher(bestVoucher)] : []
+}
+
+const syncAllTabsVouchers = () => {
+  orderTabs.value.forEach(tab => {
+    if (!Array.isArray(tab.discounts)) {
+      tab.discounts = []
+    }
+    autoSelectBestVoucherForTab(tab)
+  })
+}
+
 const syncCartPriceWithServer = async () => {
-  if (!Array.isArray(cart.value) || cart.value.length === 0) return
+  if (!Array.isArray(orderTabs.value) || orderTabs.value.length === 0) return
 
   try {
     const res = await getChiTietSanPham({
@@ -1390,22 +1527,27 @@ const syncCartPriceWithServer = async () => {
       (res?.data?.content || []).map(p => [p.id, Number(p.giaBan || 0)])
     )
 
-    const changedItems = []
+    orderTabs.value.forEach(tab => {
+      if (!Array.isArray(tab.cart)) return
 
-    cart.value.forEach(item => {
-      const latestPrice = latestPriceMap.get(item.id)
-      if (!Number.isFinite(latestPrice)) return
+      tab.cart.forEach(item => {
+        const latestPrice = latestPriceMap.get(item.id)
+        if (!Number.isFinite(latestPrice)) return
 
-      const oldPrice = Number(item.price || 0)
-      if (oldPrice !== latestPrice) {
-        item.price = latestPrice
-        changedItems.push(`${item.name} (${formatMoney(oldPrice)} -> ${formatMoney(latestPrice)})`)
-      }
+        const oldPrice = Number(item.price || 0)
+        if (oldPrice !== latestPrice) {
+          item.priceChangeMeta = {
+            oldPrice,
+            newPrice: latestPrice,
+            changedAt: Date.now()
+          }
+          item.price = latestPrice
+        }
+      })
     })
 
-    if (changedItems.length > 0) {
-      alert(`Giá sản phẩm đã thay đổi:\n- ${changedItems.join('\n- ')}\nHệ thống đã cập nhật lại tiền trong đơn.`)
-    }
+    // Giá thay đổi có thể làm thay đổi mức giảm tốt nhất, đồng bộ lại voucher cho tất cả tab.
+    syncAllTabsVouchers()
   } catch (e) {
     console.error('Không thể đồng bộ giá sản phẩm mới nhất:', e)
   }
@@ -1451,11 +1593,16 @@ const voucherSuggestion = computed(() => {
 
 // Polling để phát hiện phiếu giảm giá mới từ admin
 const checkForBetterVouchers = async () => {
-  if (cart.value.length === 0) return
+  const hasAnyCartItems = orderTabs.value.some(tab => Array.isArray(tab.cart) && tab.cart.length > 0)
+  if (!hasAnyCartItems) return
 
   const prevIds = new Set(allActiveVouchers.value.map(v => v.id))
-  await loadAllActiveVouchers()
-  syncAppliedDiscountWithActiveVouchers()
+  const hasCoreChanges = await loadAllActiveVouchers()
+
+  if (hasCoreChanges) {
+    syncAppliedDiscountWithActiveVouchers()
+    syncAllTabsVouchers()
+  }
 
   const newVouchers = allActiveVouchers.value.filter(v => !prevIds.has(v.id))
   if (newVouchers.length === 0) return
@@ -1532,6 +1679,19 @@ const totalDiscount = computed(() => {
   })
 
   return Math.min(discount, cartTotal)
+})
+
+const voucherAppliedNotice = computed(() => {
+  if (!Array.isArray(discounts.value) || discounts.value.length === 0) return ''
+
+  const primaryVoucher = discounts.value[0]
+  if (!primaryVoucher) return ''
+
+  const discountAmount = calculateVoucherDiscount(primaryVoucher, totalProductPrice.value)
+  if (!Number.isFinite(discountAmount) || discountAmount <= 0) return ''
+
+  const voucherLabel = primaryVoucher.code || primaryVoucher.name || 'voucher'
+  return `Áp dụng phiếu giảm giá thành công ${voucherLabel} - Giảm ${formatMoney(discountAmount)}`
 })
 
 const totalPrice = computed(() =>
@@ -2015,10 +2175,10 @@ onMounted(async () => {
   autoSelectBestVoucher()
   await syncCartPriceWithServer()
 
-  // Polling phiếu giảm giá mới mỗi 30 giây
+  // Polling nhanh để cập nhật gần realtime khi voucher đổi số lượng/% giảm/đơn tối thiểu.
   voucherPollTimer = window.setInterval(() => {
     void checkForBetterVouchers()
-  }, 30000)
+  }, VOUCHER_POLL_INTERVAL_MS)
 
   // Polling giá sản phẩm mỗi 20 giây để cập nhật khi giá bị chỉnh sửa
   pricePollTimer = window.setInterval(() => {
@@ -2247,7 +2407,12 @@ watch(totalProductPrice, async () => {
     await loadAllActiveVouchers()
     syncAppliedDiscountWithActiveVouchers()
   }
-  autoSelectBestVoucher()
+  syncAllTabsVouchers()
+})
+
+watch(activeTabId, () => {
+  void syncCartPriceWithServer()
+  void checkForBetterVouchers()
 })
 
 const toggleOrderType = () => {
@@ -3112,6 +3277,38 @@ input:disabled {
   font-weight: 900;
 }
 
+.price-main {
+  color: #dc2626;
+  font-weight: 900;
+}
+
+.price-old {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-decoration: line-through;
+  font-weight: 700;
+}
+
+.price-change-note {
+  margin-top: 4px;
+  text-align: left;
+}
+
+.price-change-title {
+  font-size: 11px;
+  color: #09003d;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.price-change-flow {
+  font-size: 12px;
+  color: #09003d;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .price-col {
   text-align: right;
   font-weight: 900;
@@ -3229,6 +3426,57 @@ input:disabled {
   color: #64748b;
   text-align: center;
   padding: 12px 0;
+}
+
+.voucher-apply-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.voucher-code-input {
+  width: 100%;
+  height: 38px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #fff;
+}
+
+.voucher-code-input:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.2);
+}
+
+.btn-apply-code {
+  height: 38px;
+  min-width: 82px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #f8fafc;
+  color: #374151;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-apply-code:hover {
+  background: #eef2f7;
+}
+
+.voucher-applied-notice {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* ===== PAYMENT CARD ===== */
