@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router' // Import router của bạn
 
@@ -21,7 +22,7 @@ const app = createApp(App)
 app.component('font-awesome-icon', FontAwesomeIcon) // <--- Lỗi của bạn nằm ở đây (do đặt trước dòng const app)
 
 app.use(router)
-// app.use(createPinia()) // Nếu có dùng Pinia thì uncomment
+app.use(createPinia())
 
 // 5. MOUNT (Cuối cùng)
 app.mount('#app')

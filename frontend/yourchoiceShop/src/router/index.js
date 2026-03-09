@@ -58,6 +58,13 @@ const router = createRouter({
       component: () => import("../views/LoginView.vue"),
     },
 
+    /* ================= REGISTER ================= */
+    {
+      path: "/register",
+      name: "register",
+      component: () => import("../views/client/RegisterView.vue"),
+    },
+
     /* ================= CLIENT ================= */
     {
       path: "/",
@@ -69,6 +76,10 @@ const router = createRouter({
         { path: "coupons", name: "coupons", component: () => import("../views/client/CouponView.vue") },
         { path: "news", name: "news", component: () => import("../views/client/NewsView.vue") },
         { path: "contact", name: "contact", component: () => import("../views/client/ContactView.vue") },
+        { path: "cart", name: "cart", component: () => import("../views/client/CartView.vue") },
+        { path: "checkout", name: "checkout", component: () => import("../views/client/CheckoutView.vue") },
+        { path: "orders", name: "orders", component: () => import("../views/client/OrderHistoryView.vue"), meta: { requiresAuth: true, roles: ["CUSTOMER"] } },
+        { path: "account", name: "account", component: () => import("../views/client/AccountView.vue"), meta: { requiresAuth: true, roles: ["CUSTOMER"] } },
       ],
     },
 

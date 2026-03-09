@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -38,4 +39,10 @@ public class ProductResponse {
     private Integer idCoAo;
     private Integer idTayAo;
     private String moTa;
+
+    // Giá bán min/max từ các biến thể
+    private BigDecimal giaBanMin;
+    private BigDecimal giaBanMax;
+    // Ảnh đại diện sản phẩm (lấy từ biến thể đầu tiên)
+    private String anhChinh;
 }
