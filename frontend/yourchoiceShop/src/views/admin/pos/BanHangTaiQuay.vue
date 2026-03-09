@@ -1432,6 +1432,10 @@ const applyVoucherByCode = async () => {
 }
 
 const autoSelectBestVoucher = () => {
+  if (Array.isArray(discounts.value) && discounts.value.length > 0) {
+    return
+  }
+
   const cartTotal = totalProductPrice.value
   const activeVouchers = allActiveVouchers.value.filter(isVoucherActiveNow)
 
@@ -1468,6 +1472,10 @@ const autoSelectBestVoucher = () => {
 
 const autoSelectBestVoucherForTab = (tab) => {
   if (!tab || !Array.isArray(tab.cart)) return
+
+  if (Array.isArray(tab.discounts) && tab.discounts.length > 0) {
+    return
+  }
 
   const cartTotal = getCartTotalByItems(tab.cart)
   const activeVouchers = allActiveVouchers.value.filter(isVoucherActiveNow)
@@ -1588,11 +1596,24 @@ const checkForBetterVouchers = async () => {
   const hasCoreChanges = await loadAllActiveVouchers()
 
   if (hasCoreChanges) {
+    // Chỉ đồng bộ phiếu đang áp dụng (gỡ phiếu đã hết hiệu lực),
+    // không tự chọn phiếu tốt nhất ở đây để tránh auto-apply trước khi popup xác nhận.
     syncAppliedDiscountWithActiveVouchers()
-    syncAllTabsVouchers()
   }
 
-  const newVouchers = allActiveVouchers.value.filter(v => !prevIds.has(v.id))
+  // Nếu phiếu đang hiển thị popup đã bị xóa/hết hiệu lực thì đóng popup ngay.
+  if (showNewVoucherModal.value && newBetterVoucher.value) {
+    const stillExists = allActiveVouchers.value.find(v => Number(v.id) === Number(newBetterVoucher.value.id))
+    if (!stillExists || !isVoucherActiveNow(stillExists)) {
+      showNewVoucherModal.value = false
+      newBetterVoucher.value = null
+    }
+  }
+
+  const newVouchers = allActiveVouchers.value
+    .filter(v => !prevIds.has(v.id))
+    .filter(isVoucherActiveNow)
+
   if (newVouchers.length === 0) return
 
   // Nếu chưa áp dụng phiếu nào, tự động chọn
@@ -1601,22 +1622,24 @@ const checkForBetterVouchers = async () => {
     return
   }
 
-  // Kiểm tra phiếu mới có tốt hơn không
+  // Chỉ popup khi có phiếu MỚI thêm và tốt hơn phiếu hiện tại.
   const cartTotal = totalProductPrice.value
   const currentDisc = totalDiscount.value
 
-  for (const v of newVouchers) {
-    const newDiscAmount = calculateVoucherDiscount(v, cartTotal)
-    if (newDiscAmount > currentDisc) {
-      newBetterVoucher.value = {
-        ...v,
-        calculatedDiscount: newDiscAmount,
-        currentDiscount: currentDisc
-      }
-      showNewVoucherModal.value = true
-      break
-    }
+  const betterNewVouchers = newVouchers
+    .map(v => ({ voucher: v, discountAmount: calculateVoucherDiscount(v, cartTotal) }))
+    .filter(item => item.discountAmount > currentDisc)
+    .sort((a, b) => b.discountAmount - a.discountAmount)
+
+  if (betterNewVouchers.length === 0) return
+
+  const bestNewVoucher = betterNewVouchers[0]
+  newBetterVoucher.value = {
+    ...bestNewVoucher.voucher,
+    calculatedDiscount: bestNewVoucher.discountAmount,
+    currentDiscount: currentDisc
   }
+  showNewVoucherModal.value = true
 }
 
 const applyNewVoucher = () => {
@@ -3734,8 +3757,8 @@ input:disabled {
   font-weight: 900;
   font-size: 14px;
   color: #fff;
-  background: linear-gradient(180deg, #16a34a, #15803d);
-  box-shadow: 0 12px 22px rgba(22, 163, 74, 0.22);
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
   transition: transform .12s ease, filter .12s ease;
 }
 
@@ -4253,6 +4276,8 @@ input:disabled {
 .pos-page {
   --brand-navy: #223f67;
   --brand-navy-strong: #1b3252;
+  --brand-orange: #223f67;
+  --brand-orange-strong: #1b3252;
   --brand-cream: #ece3d2;
   --brand-bg: #edf1f6;
   --brand-line: #d5ddea;
@@ -4307,7 +4332,16 @@ input:disabled {
 }
 
 .btn-pay {
-  background: linear-gradient(180deg, #1f9659, var(--brand-success));
+  background: linear-gradient(180deg, var(--brand-orange), var(--brand-orange-strong));
+  box-shadow: 0 12px 22px rgba(34, 63, 103, 0.28);
+}
+
+.order-type-toggle span.active {
+  color: var(--brand-orange);
+}
+
+.switch input:checked+.slider {
+  background: linear-gradient(180deg, var(--brand-orange), var(--brand-orange-strong));
 }
 
 .card,
