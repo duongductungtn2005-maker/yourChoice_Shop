@@ -26,12 +26,38 @@
       <div class="col-main">
 
         <div class="card status-card">
-          <div class="card-header-icon">
-            <i class="fas fa-truck-fast"></i> <span>Trạng thái đơn hàng</span>
-            <button class="btn-history-icon" @click="showStatusHistoryModal = true" title="Xem lịch sử trạng thái">
-              <i class="fas fa-history"></i>
-            </button>
-          </div>
+          <div class="card-header-icon status-card-header">
+  <div class="status-card-title">
+    <i class="fas fa-truck-fast"></i>
+    <span>Trạng thái đơn hàng</span>
+  </div>
+
+  <div class="status-card-actions">
+    <button
+      class="btn btn-status-secondary"
+      @click="goPrevStatus"
+      :disabled="!order || getStatusIndex(order.trangThai) <= 0 || order.trangThai === 0"
+      title="Chuyển về trạng thái trước đó"
+    >
+      <i class="fas fa-arrow-left"></i>
+      Quay lại
+    </button>
+
+    <button
+      class="btn btn-status-primary"
+      @click="goNextStatus"
+      :disabled="!order || getStatusIndex(order.trangThai) < 0 || getStatusIndex(order.trangThai) >= statusMap.length - 1 || order.trangThai === 0 || order.trangThai === 4 || order.trangThai === 5"
+      title="Chuyển sang trạng thái tiếp theo"
+    >
+      <i class="fas fa-pen"></i>
+      Cập nhật
+    </button>
+
+    <button class="btn-history-icon" @click="showStatusHistoryModal = true" title="Xem lịch sử trạng thái">
+      <i class="fas fa-history"></i>
+    </button>
+  </div>
+</div>
           <div class="timeline-wrapper">
             <div class="steps-container">
               <div v-for="(step, index) in visibleSteps" :key="index" class="step-item active">
@@ -293,13 +319,22 @@
       </div>
 
       <div class="payment-tabs">
-        <button :class="['tab-item', { active: paymentMethod === 'TRANSFER' }]" @click="paymentMethod = 'TRANSFER'">
-          CHUYỂN KHOẢN
-        </button>
-        <button :class="['tab-item', { active: paymentMethod === 'CASH' }]" @click="paymentMethod = 'CASH'">
-          TIỀN MẶT
-        </button>
-      </div>
+  <button
+    type="button"
+    :class="['tab-item', { active: paymentMethod === 'TRANSFER' }]"
+    @click="paymentMethod = 'TRANSFER'"
+  >
+    CHUYỂN KHOẢN
+  </button>
+
+  <button
+    type="button"
+    :class="['tab-item', { active: paymentMethod === 'CASH' }]"
+    @click="paymentMethod = 'CASH'"
+  >
+    TIỀN MẶT
+  </button>
+</div>
 
       <div v-if="paymentMethod === 'TRANSFER'" class="payment-content qr-section">
         <div class="bank-info">
@@ -351,7 +386,9 @@
           <span>Tiền thiếu</span>
           <span class="text-danger fw-bold">{{ formatMoney(calculateRemaining) }}</span>
         </div>
-        <button class="btn-submit-payment" @click="confirmPayment">Xác nhận thanh toán</button>
+        <button type="button" class="btn-submit-payment" @click="confirmPayment">
+  Xác nhận thanh toán
+</button>
       </div>
     </div>
   </div>
@@ -784,15 +821,23 @@ const printOrder = () => {
 
 const closeEditStatusModal = () => showEditStatusModal.value = false;
 
-const goPrevStatus = () => {
-  if (currentStatusIndex.value > 0) {
-    updateOrderStatus(statusMap[currentStatusIndex.value - 1].value);
+const goPrevStatus = async () => {
+  if (!order.value) return;
+
+  const currentIndex = getStatusIndex(order.value.trangThai);
+  if (currentIndex > 0) {
+    const prevStatus = statusMap[currentIndex - 1].value;
+    await updateOrderStatus(prevStatus);
   }
 };
 
-const goNextStatus = () => {
-  if (currentStatusIndex.value < statusMap.length - 1) {
-    updateOrderStatus(statusMap[currentStatusIndex.value + 1].value);
+const goNextStatus = async () => {
+  if (!order.value) return;
+
+  const currentIndex = getStatusIndex(order.value.trangThai);
+  if (currentIndex >= 0 && currentIndex < statusMap.length - 1) {
+    const nextStatus = statusMap[currentIndex + 1].value;
+    await updateOrderStatus(nextStatus);
   }
 };
 
@@ -1373,8 +1418,13 @@ onMounted(() => {
 .modal-container.status-history-modal {
   padding: 0;
   width: 520px;
-  max-height: 85vh;
+  max-width: min(520px, 92vw);
+  height: min(85vh, 760px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
+
 
 .modal-title {
   margin-top: 0;
@@ -1412,8 +1462,8 @@ onMounted(() => {
 .payment-modal {
   width: 450px !important;
   padding: 20px !important;
+  background: #ffffff;
 }
-
 .modal-header-flex {
   display: flex;
   justify-content: space-between;
@@ -1444,6 +1494,7 @@ onMounted(() => {
   margin-bottom: 15px;
 }
 
+
 .summary-item {
   display: flex;
   justify-content: space-between;
@@ -1452,26 +1503,92 @@ onMounted(() => {
 
 .payment-tabs {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 20px;
 }
-
-.tab-item {
+.payment-tabs .tab-item {
   flex: 1;
-  padding: 8px;
-  border: 1px solid #e2e8f0;
-  background: white;
-  border-radius: 6px;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #1e293b !important;
+  border-radius: 10px;
   cursor: pointer;
-  font-weight: 600;
-  color: #64748b;
-  transition: 0.3s;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  outline: none;
 }
 
-.tab-item.active {
-  background: #10b981;
-  color: white;
-  border-color: #10b981;
+.payment-tabs .tab-item:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+.payment-tabs .tab-item.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.payment-tabs .tab-item.active:hover {
+  background: #1d4ed8 !important;
+  color: #ffffff !important;
+  border-color: #1d4ed8 !important;
+}
+
+.payment-tabs .tab-item:focus,
+.payment-tabs .tab-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.payment-footer .btn-submit-payment,
+.btn-submit-payment {
+  width: 100%;
+  padding: 12px 16px;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #16a34a !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid #15803d !important;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.22);
+}
+
+.payment-footer .btn-submit-payment:hover,
+.btn-submit-payment:hover {
+  background: #15803d !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: #166534 !important;
+  transform: translateY(-1px);
+}
+
+.payment-footer .btn-submit-payment:active,
+.btn-submit-payment:active {
+  transform: translateY(0);
+}
+
+.payment-footer .btn-submit-payment:focus,
+.payment-footer .btn-submit-payment:focus-visible,
+.btn-submit-payment:focus,
+.btn-submit-payment:focus-visible {
+  outline: none;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
 }
 
 .qr-section {
@@ -1534,22 +1651,6 @@ onMounted(() => {
   justify-content: space-between;
   margin-bottom: 15px;
   font-size: 15px;
-}
-
-.btn-submit-payment {
-  width: 100%;
-  padding: 12px;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.btn-submit-payment:hover {
-  background: #1d4ed8;
 }
 
 .action-buttons-col {
@@ -1824,12 +1925,19 @@ onMounted(() => {
 }
 
 .status-history-container {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px 20px;
   background: white;
 }
 
+.status-history-modal .modal-header,
+.status-history-modal .order-meta-info,
+.status-history-modal .modal-footer {
+  flex-shrink: 0;
+}
 .empty-history {
   display: flex;
   flex-direction: column;
@@ -2032,23 +2140,40 @@ onMounted(() => {
 
 /* Scrollbar styling */
 .status-history-container::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .status-history-container::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 3px;
+  background: #eef2f7;
+  border-radius: 999px;
 }
 
 .status-history-container::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: #b8c4d6;
+  border-radius: 999px;
 }
 
 .status-history-container::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #8ea0b8;
+}
+@media (max-height: 800px) {
+  .modal-container.status-history-modal {
+    height: 78vh;
+  }
 }
 
+@media (max-width: 640px) {
+  .modal-container.status-history-modal {
+    width: 94vw;
+    height: 82vh;
+  }
+
+  .order-meta-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
 /* ===== BRAND OVERRIDE THEME ===== */
 .page-container {
   --brand-navy: #223f67;
@@ -2216,8 +2341,9 @@ onMounted(() => {
 .modal-container,
 .modal,
 .payment-modal {
-  border-radius: var(--brand-radius);
-  border: 1px solid var(--brand-line);
+  width: 450px !important;
+  padding: 20px !important;
+  background: #ffffff;
 }
 
 .modal-header {
@@ -2311,10 +2437,85 @@ onMounted(() => {
   background: #f6efe1 !important;
   border-left-color: #b99662 !important;
 }
+.status-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 
+.status-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.status-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.btn-status-primary,
+.btn-status-secondary {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-status-primary {
+  background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-strong) 100%);
+  color: #fff;
+  border: 1px solid var(--brand-navy-strong);
+}
+
+.btn-status-primary:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.btn-status-secondary {
+  background: #fff;
+  color: var(--brand-navy-strong);
+  border: 1px solid #c9d5e8;
+}
+
+.btn-status-secondary:hover {
+  background: #eef4fb;
+  border-color: #aebfd8;
+}
+
+@media (max-width: 768px) {
+  .status-card-header {
+    align-items: flex-start;
+  }
+
+  .status-card-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
 @media (max-width: 1200px) {
   .detail-grid {
     grid-template-columns: 1fr;
   }
+}
+.status-card-actions .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  filter: none !important;
 }
 </style>
