@@ -622,6 +622,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 import { createOrder, createPosDraftOrder, deletePosDraftOrder } from '@/api/HoaDonApi'
 import { getCurrentUser, getRole } from '@/services/auth'
 
@@ -716,9 +717,101 @@ const showModal = ref(false)
 import { getChiTietSanPham, reserveStock, releaseStock } from '@/api/ChiTietSanPhamApi'
 
 const products = ref([])
+const productFilterSource = ref([])
+const productAttributeOptions = ref({
+  coAo: [],
+  tayAo: [],
+  xuatXu: [],
+  size: [],
+  brand: [],
+  color: [],
+  material: []
+})
 const productPage = ref(0)
 const productSize = ref(10)
 const totalProductPages = ref(0)
+
+const ATTRIBUTE_API_MAP = {
+  coAo: { url: 'http://localhost:8080/api/v1/co-ao', nameKey: 'tenCoAo' },
+  tayAo: { url: 'http://localhost:8080/api/v1/tay-ao', nameKey: 'tenTayAo' },
+  xuatXu: { url: 'http://localhost:8080/api/v1/xuat-xu', nameKey: 'tenXuatXu' },
+  size: { url: 'http://localhost:8080/api/v1/kich-thuoc', nameKey: 'tenKichThuoc' },
+  brand: { url: 'http://localhost:8080/api/v1/thuong-hieu', nameKey: 'tenThuongHieu' },
+  color: { url: 'http://localhost:8080/api/v1/mau-sac', nameKey: 'tenMauSac' },
+  material: { url: 'http://localhost:8080/api/v1/chat-lieu', nameKey: 'tenChatLieu' }
+}
+
+const fetchAllAttributeNames = async (apiUrl, nameKey) => {
+  let page = 0
+  const size = 200
+  let totalPages = 1
+  const collectedNames = []
+
+  while (page < totalPages) {
+    const res = await axios.get(apiUrl, {
+      params: { page, size, keyword: '' }
+    })
+
+    const items = Array.isArray(res?.data?.content) ? res.data.content : []
+    const activeItems = items.filter(item => Number(item?.trangThai) === 1)
+    collectedNames.push(
+      ...activeItems
+        .map(item => item?.[nameKey])
+        .filter(Boolean)
+    )
+
+    totalPages = Number(res?.data?.totalPages || 1)
+    page += 1
+  }
+
+  return [...new Set(collectedNames)]
+}
+
+const loadProductAttributeOptions = async () => {
+  const entries = await Promise.all(
+    Object.entries(ATTRIBUTE_API_MAP).map(async ([key, config]) => {
+      try {
+        const names = await fetchAllAttributeNames(config.url, config.nameKey)
+        return [key, names]
+      } catch (error) {
+        console.error(`Không thể tải danh mục bộ lọc ${key}:`, error)
+        return [key, []]
+      }
+    })
+  )
+
+  productAttributeOptions.value = Object.fromEntries(entries)
+}
+
+const isActiveProductDetail = (detail) => {
+  const detailStatus = Number(detail?.trangThai)
+  const parentStatus = Number(detail?.sanPham?.trangThai)
+  return detailStatus === 1 && parentStatus === 1
+}
+
+const mapProductDetail = (p) => {
+  const inCart = cart.value.find(i => i.id === p.id)
+  const parentProduct = p.sanPham || {}
+
+  return {
+    id: p.id,
+    code: p.maCtsp,
+    productCode: parentProduct.maSanPham || '',
+    name: parentProduct.tenSanPham || '',
+    brand: p.thuongHieu?.tenThuongHieu || parentProduct.thuongHieu?.tenThuongHieu || '—',
+    material: p.chatLieu?.tenChatLieu || parentProduct.chatLieu?.tenChatLieu || '—',
+    color: p.mauSac?.tenMauSac || '—',
+    size: p.kichThuoc?.tenKichThuoc || '—',
+    coAo: p.coAo?.tenCoAo || parentProduct.coAo?.tenCoAo || '—',
+    tayAo: p.tayAo?.tenTayAo || parentProduct.tayAo?.tenTayAo || '—',
+    xuatXu: p.xuatXu?.tenXuatXu || parentProduct.xuatXu?.tenXuatXu || '—',
+    price: p.giaBan,
+    tonKho: p.soLuong,
+    qty: inCart ? Number(inCart.qty || 1) : 1,
+    checked: false,
+    qtyWarning: ''
+  }
+}
 
 const loadProducts = async () => {
   const res = await getChiTietSanPham({
@@ -727,39 +820,38 @@ const loadProducts = async () => {
     trangThai: 1
   })
 
-  products.value = res.data.content
-    .filter(p => {
-      const detailStatus = Number(p?.trangThai)
-      const parentStatus = Number(p?.sanPham?.trangThai)
-      return detailStatus === 1 && parentStatus === 1
-    })
-    .map(p => {
-    const inCart = cart.value.find(i => i.id === p.id)
-    const parentProduct = p.sanPham || {}
-
-    return {
-      id: p.id,
-      code: p.maCtsp,
-      productCode: parentProduct.maSanPham || '',
-      name: parentProduct.tenSanPham || '',
-      brand: p.thuongHieu?.tenThuongHieu || parentProduct.thuongHieu?.tenThuongHieu || '—',
-      material: p.chatLieu?.tenChatLieu || parentProduct.chatLieu?.tenChatLieu || '—',
-      color: p.mauSac?.tenMauSac || '—',
-      size: p.kichThuoc?.tenKichThuoc || '—',
-      coAo: p.coAo?.tenCoAo || parentProduct.coAo?.tenCoAo || '—',
-      tayAo: p.tayAo?.tenTayAo || parentProduct.tayAo?.tenTayAo || '—',
-      xuatXu: p.xuatXu?.tenXuatXu || parentProduct.xuatXu?.tenXuatXu || '—',
-      price: p.giaBan,
-      tonKho: p.soLuong,
-      qty: 1,
-      checked: false,
-      qtyWarning: ''
-    }
-  })
+  products.value = (res?.data?.content || [])
+    .filter(isActiveProductDetail)
+    .map(mapProductDetail)
 
   totalProductPages.value = res.data.totalPages
 }
+
+const loadProductFilterSource = async () => {
+  let page = 0
+  const size = 200
+  let totalPages = 1
+  const allItems = []
+
+  while (page < totalPages) {
+    const res = await getChiTietSanPham({
+      page,
+      size,
+      trangThai: 1
+    })
+
+    const pageItems = (res?.data?.content || []).filter(isActiveProductDetail)
+    allItems.push(...pageItems)
+
+    totalPages = Number(res?.data?.totalPages || 1)
+    page += 1
+  }
+
+  productFilterSource.value = allItems.map(mapProductDetail)
+}
+
 const openProductModal = async () => {
+  productPage.value = 0
   productKeyword.value = ''
   productFilter.value = {
     productCode: '',
@@ -771,8 +863,10 @@ const openProductModal = async () => {
     color: '',
     material: ''
   }
-  await loadProducts()
-  const maxPrice = Math.max(...products.value.map(p => Number(p.price || 0)), 0)
+
+  await Promise.all([loadProducts(), loadProductFilterSource(), loadProductAttributeOptions()])
+
+  const maxPrice = Math.max(...productFilterSource.value.map(p => Number(p.price || 0)), 0)
   priceRange.value = [0, maxPrice]
   showModal.value = true
 }
@@ -1034,21 +1128,21 @@ const filteredProducts = computed(() =>
 )
 
 const makeFilterOptions = (key) => {
-  return [...new Set(products.value.map(p => p[key]).filter(v => v && v !== '—'))]
+  return [...new Set(productFilterSource.value.map(p => p[key]).filter(v => v && v !== '—'))]
 }
 
 const productFilterOptions = computed(() => ({
-  coAo: makeFilterOptions('coAo'),
-  tayAo: makeFilterOptions('tayAo'),
-  xuatXu: makeFilterOptions('xuatXu'),
-  size: makeFilterOptions('size'),
-  brand: makeFilterOptions('brand'),
-  color: makeFilterOptions('color'),
-  material: makeFilterOptions('material')
+  coAo: productAttributeOptions.value.coAo.length > 0 ? productAttributeOptions.value.coAo : makeFilterOptions('coAo'),
+  tayAo: productAttributeOptions.value.tayAo.length > 0 ? productAttributeOptions.value.tayAo : makeFilterOptions('tayAo'),
+  xuatXu: productAttributeOptions.value.xuatXu.length > 0 ? productAttributeOptions.value.xuatXu : makeFilterOptions('xuatXu'),
+  size: productAttributeOptions.value.size.length > 0 ? productAttributeOptions.value.size : makeFilterOptions('size'),
+  brand: productAttributeOptions.value.brand.length > 0 ? productAttributeOptions.value.brand : makeFilterOptions('brand'),
+  color: productAttributeOptions.value.color.length > 0 ? productAttributeOptions.value.color : makeFilterOptions('color'),
+  material: productAttributeOptions.value.material.length > 0 ? productAttributeOptions.value.material : makeFilterOptions('material')
 }))
 
 const maxPriceFilter = computed(() => {
-  return Math.max(...products.value.map(p => Number(p.price || 0)), 0)
+  return Math.max(...productFilterSource.value.map(p => Number(p.price || 0)), 0)
 })
 
 /* ================= GIẢM GIÁ ================= */
@@ -1762,7 +1856,13 @@ const activeTabId = ref(null)
 const nextOrderNumber = ref(1)
 
 /* ================= LOCALSTORAGE PERSISTENCE ================= */
-const STORAGE_KEY = 'pos_order_tabs'
+const getStorageKey = () => {
+  const user = getCurrentUser()
+  const id = user?.id || 'unknown'
+  const role = getRole() || 'none'
+  return `pos_order_tabs_${role}_${id}`
+}
+const STORAGE_KEY = getStorageKey()
 const currentDateKey = ref('')
 let dailyResetTimer = null
 
