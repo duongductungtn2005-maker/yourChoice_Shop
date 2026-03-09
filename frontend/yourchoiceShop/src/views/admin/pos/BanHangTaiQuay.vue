@@ -1899,8 +1899,9 @@ const handleCreateOrderDelivery = async () => {
   const detailAddress = (customer.value?.address || '').trim()
   const recipientName = (recipient.value?.name || '').trim()
   const recipientPhone = (recipient.value?.phone || '').trim()
+  const isGuestCustomer = customerName === 'Khách lẻ'
 
-  if (!customerName || !customerPhone || !customerEmail) {
+  if (!customerName || (!isGuestCustomer && (!customerPhone || !customerEmail))) {
     alert('Vui lòng nhập đầy đủ thông tin khách hàng')
     return
   }
@@ -1957,7 +1958,7 @@ const handleCreateOrderDelivery = async () => {
     districtName: district?.districtName || '',
     wardName: ward?.wardName || '',
 
-    email: customerEmail,
+    email: isGuestCustomer ? null : customerEmail,
     ghiChu: note.value,
     idNhanVien: staff.value.id,
 
