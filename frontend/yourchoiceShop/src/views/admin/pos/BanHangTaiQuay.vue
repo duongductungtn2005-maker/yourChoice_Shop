@@ -102,7 +102,8 @@
                   <td>{{ item.size || '-' }}</td>
                   <td class="p-price">
                     <div class="price-main">{{ formatMoney(item.price) }}</div>
-                    <div v-if="item.priceChangeMeta" class="price-old">{{ formatMoney(item.priceChangeMeta.oldPrice) }}</div>
+                    <div v-if="item.priceChangeMeta" class="price-old">{{ formatMoney(item.priceChangeMeta.oldPrice) }}
+                    </div>
                   </td>
                   <td>
                     <div>
@@ -120,7 +121,8 @@
                     <div class="price-main">{{ formatMoney(item.price * item.qty) }}</div>
                     <div v-if="item.priceChangeMeta" class="price-change-note">
                       <div class="price-change-title">Giá gốc đã thay đổi</div>
-                      <div class="price-change-flow">{{ formatMoney(item.priceChangeMeta.oldPrice) }} -> {{ formatMoney(item.priceChangeMeta.newPrice) }}</div>
+                      <div class="price-change-flow">{{ formatMoney(item.priceChangeMeta.oldPrice) }} -> {{
+                        formatMoney(item.priceChangeMeta.newPrice) }}</div>
                     </div>
                   </td>
                   <td>
@@ -153,169 +155,153 @@
               <span class="muted">Thông tin người mua</span>
             </div>
             <div class="customer-actions">
-              <button class="btn-outline" @click="openCustomerModal">Chọn tài khoản</button>
+              <button class="btn-outline" @click="openCustomerModal">Chọn khách hàng</button>
               <button class="btn-outline" @click="setGuestCustomer">Khách lẻ</button>
             </div>
           </div>
 
-          <div class="card-body form-grid">
-            <input v-model="customer.name" :readonly="orderType === 'TAI_QUAY'" placeholder="Tên khách hàng" />
-            <input v-model="customer.phone" :readonly="orderType === 'TAI_QUAY'" placeholder="SĐT" />
-            <input v-model="customer.email" :readonly="orderType === 'TAI_QUAY'" placeholder="Email khách hàng" />
-          </div>
-        </div>
+          <div class="card-body">
+            <template v-if="orderType === 'TAI_QUAY'">
+              <div class="customer-inline-info">
+                <span class="customer-inline-label">Tên khách hàng</span>
+                <span class="customer-inline-value">{{ customer.name || 'Khách lẻ' }}</span>
+              </div>
+              <div class="counter-note muted">Tại quầy: chỉ cần chọn sản phẩm và thanh toán.</div>
+            </template>
 
-        <div v-if="orderType === 'GIAO_HANG'" class="card mt">
-          <div class="card-header">
-            <div class="card-title">
-              <h3>Thông tin người nhận</h3>
-              <span class="muted">Thông tin khách hàng nhận hàng</span>
-            </div>
-          </div>
-
-          <div class="card-body form-grid">
-            <input v-model="recipient.name" placeholder="Tên khách hàng" />
-            <input v-model="recipient.phone" placeholder="SĐT khách hàng" />
-
-            <!-- Địa chỉ giao hàng -->
-            <div class="address-group">
-              <div class="address-field">
-                <label class="address-label">Tỉnh/Thành</label>
-                <select v-model="selectedProvince" @change="onProvinceChange" class="address-select">
-                  <option value="">-- Chọn Tỉnh/Thành --</option>
-                  <option v-for="item in provinces" :key="item.provinceId" :value="item.provinceId">
-                    {{ item.provinceName }}
-                  </option>
-                </select>
+            <template v-else>
+              <div class="customer-inline-info delivery-summary">
+                <span class="customer-inline-label">Tên khách hàng:</span>
+                <span class="customer-inline-value">{{ customer.name || 'Khách lẻ' }}</span>
               </div>
 
-              <div class="address-field">
-                <label class="address-label">Quận/Huyện</label>
-                <select v-model="selectedDistrict" @change="onDistrictChange" class="address-select"
-                  :disabled="!selectedProvince">
-                  <option value="">-- Chọn Quận/Huyện --</option>
-                  <option v-for="item in districts" :key="item.districtId" :value="item.districtId">
-                    {{ item.districtName }}
-                  </option>
-                </select>
+              <div class="delivery-form-grid">
+                <div class="form-field">
+                  <label class="field-label">Số điện thoại <span>*</span></label>
+                  <input v-model="recipient.phone" placeholder="Nhập số điện thoại..." />
+                </div>
+
+                <div class="form-field">
+                  <label class="field-label">Địa chỉ cụ thể <span>*</span></label>
+                  <input v-model="customer.address" placeholder="Số nhà, ngõ, đường..." />
+                </div>
               </div>
 
-              <div class="address-field">
-                <label class="address-label">Phường/Xã</label>
-                <select v-model="selectedWard" @change="onWardChange" class="address-select"
-                  :disabled="!selectedDistrict">
-                  <option value="">-- Chọn Phường/Xã --</option>
-                  <option v-for="item in wards" :key="item.wardCode" :value="item.wardCode">
-                    {{ item.wardName }}
-                  </option>
-                </select>
-              </div>
-            </div>
+              <div class="address-group delivery-address-group">
+                <div class="address-field">
+                  <label class="address-label">Tỉnh/Thành phố <span>*</span></label>
+                  <select v-model="selectedProvince" @change="onProvinceChange" class="address-select">
+                    <option value="">Chọn Tỉnh/Thành phố...</option>
+                    <option v-for="item in provinces" :key="item.provinceId" :value="item.provinceId">
+                      {{ item.provinceName }}
+                    </option>
+                  </select>
+                </div>
 
-            <textarea v-model="note" placeholder="Ghi chú"></textarea>
+                <div class="address-field">
+                  <label class="address-label">Quận/Huyện <span>*</span></label>
+                  <select v-model="selectedDistrict" @change="onDistrictChange" class="address-select"
+                    :disabled="!selectedProvince">
+                    <option value="">Chọn Quận/Huyện...</option>
+                    <option v-for="item in districts" :key="item.districtId" :value="item.districtId">
+                      {{ item.districtName }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="address-field">
+                  <label class="address-label">Xã/Phường <span>*</span></label>
+                  <select v-model="selectedWard" @change="onWardChange" class="address-select"
+                    :disabled="!selectedDistrict">
+                    <option value="">Chọn Xã/Phường...</option>
+                    <option v-for="item in wards" :key="item.wardCode" :value="item.wardCode">
+                      {{ item.wardName }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-field full-width note-field">
+                <label class="field-label">Ghi chú</label>
+                <textarea v-model="note" placeholder="Nhập ghi chú giao hàng..."></textarea>
+              </div>
+            </template>
           </div>
         </div>
       </div>
 
       <!-- ===== RIGHT: INFO BAR ===== -->
       <div class="pos-info">
-        <!-- DISCOUNT -->
-        <div class="card">
-
-          <!-- ORDER TYPE TABS -->
+        <div class="card payment-card merged-payment-card">
           <div class="card-header">
             <div class="card-title">
-              <h3>Giảm giá</h3>
-              <span class="muted">Phiếu áp dụng</span>
+              <h3>Thông tin thanh toán</h3>
             </div>
           </div>
 
-          <div class="card-body">
-            <div class="voucher-apply-row">
-              <input
-                v-model="voucherCodeInput"
-                class="voucher-code-input"
-                placeholder="Nhập mã phiếu giảm giá"
-                @keyup.enter="applyVoucherByCode"
-              />
-              <button class="btn-apply-code" @click="applyVoucherByCode">Áp dụng</button>
-            </div>
+          <div class="card-body pay-body">
+            <div class="voucher-inline-grid">
+              <div class="voucher-inline-field">
+                <label>Mã phiếu giảm giá</label>
+                <div class="voucher-apply-row">
+                  <input v-model="voucherCodeInput" class="voucher-code-input" placeholder="Nhập mã (Enter để áp dụng)"
+                    @keyup.enter="applyVoucherByCode" />
+                  <button class="btn-apply-code" @click="applyVoucherByCode">Áp dụng</button>
+                </div>
+              </div>
 
-            <div v-if="discounts.length === 0" class="empty-small">
-              Chưa áp dụng phiếu giảm giá
-            </div>
-
-            <div v-else class="table-wrap">
-              <table class="table small-table">
-                <thead>
-                  <tr>
-                    <th>Tên phiếu</th>
-                    <th>Giảm</th>
-                    <th>Thời hạn</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="d in discounts" :key="d.id">
-                    <td class="name-cell">
-                      <div class="name-main">{{ d.name }}</div>
-                      <div class="muted mono" v-if="d.code">{{ d.code }}</div>
-                    </td>
-                    <td class="p-price">
-                      -{{ d.type === 'percent' ? d.value + '%' : formatMoney(d.value) }}
-                    </td>
-                    <td class="muted">{{ d.startDate }} → {{ d.endDate }}</td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="voucher-inline-field">
+                <label>Giá trị</label>
+                <input class="voucher-value-input" :value="appliedVoucherValue" readonly />
+              </div>
             </div>
 
             <div v-if="voucherAppliedNotice" class="voucher-applied-notice">
               {{ voucherAppliedNotice }}
             </div>
-          </div>
-        </div>
 
-        <!-- GỢI Ý MUA THÊM ĐỂ ÁP DỤNG PHIẾU TỐT HƠN -->
-        <div v-if="voucherSuggestion && cart.length > 0" class="voucher-suggestion">
-          <div class="suggestion-icon">💡</div>
-          <div class="suggestion-text">
-            Mua thêm <b>{{ formatMoney(voucherSuggestion.additionalNeeded) }}</b> để áp dụng phiếu
-            <b>{{ voucherSuggestion.voucher.name }}</b>
-            <span class="suggestion-detail">
-              (Giảm {{ voucherSuggestion.voucher.type === 'percent'
-                ? voucherSuggestion.voucher.value + '%'
-                : formatMoney(voucherSuggestion.voucher.value) }})
-            </span>
-          </div>
-        </div>
-
-        <!-- PAYMENT -->
-        <div class="card payment-card">
-          <div class="card-header">
-            <div class="card-title">
-              <h3>Thanh toán</h3>
-              <span class="muted">Tổng kết đơn hàng</span>
+            <div v-if="voucherSuggestion && cart.length > 0" class="voucher-suggestion voucher-suggestion-inline">
+              <div class="suggestion-icon">💡</div>
+              <div class="suggestion-text">
+                Mua thêm <b>{{ formatMoney(voucherSuggestion.additionalNeeded) }}</b> để áp dụng phiếu
+                <b>{{ voucherSuggestion.voucher.name }}</b>
+                <span class="suggestion-detail">
+                  (Giảm {{ voucherSuggestion.voucher.type === 'percent'
+                    ? voucherSuggestion.voucher.value + '%'
+                    : formatMoney(voucherSuggestion.voucher.value) }})
+                </span>
+              </div>
             </div>
-          </div>
 
-          <div class="card-body pay-body">
             <div class="row">
-              <span>Tổng sản phẩm</span>
+              <span>Tiền hàng</span>
               <span class="price-col">{{ formatMoney(totalProductPrice) }}</span>
             </div>
 
             <div class="row">
               <span>Giảm giá</span>
-              <span class="price-col">-{{ formatMoney(totalDiscount) }}</span>
+              <span class="price-col">- {{ formatMoney(totalDiscount) }}</span>
             </div>
 
             <div class="row" v-if="orderType === 'GIAO_HANG'">
-              <span>Phí vận chuyển</span>
-              <input type="number" min="0" v-model.number="shippingFee" class="price-col ship-input" placeholder="0" />
+              <span class="shipping-label">
+                Phí vận chuyển
+                <img class="shipping-logo" :src="ghnLogo" alt="GHN Express" />
+              </span>
+              <div class="shipping-control-wrap">
+                <input type="number" min="0" v-model.number="shippingFee" class="price-col ship-input"
+                  placeholder="0" />
+                <button class="ship-refresh-btn" @click="refreshShippingFee" title="Tính lại phí">↻</button>
+                <span class="ship-unit">đ</span>
+              </div>
+            </div>
+
+            <div v-if="orderType === 'GIAO_HANG' && !isDeliveryAddressReady" class="shipping-hint">
+              Chưa đủ địa chỉ để tính phí GHN.
             </div>
 
             <div class="row total-row">
-              <span>Khách cần trả</span>
+              <span>Tổng số tiền</span>
               <span class="price-col total">{{ formatMoney(totalPrice) }}</span>
             </div>
 
@@ -346,7 +332,8 @@
         <div class="product-filter-grid">
           <div class="filter-item">
             <label>Tìm mã / tên:</label>
-            <input v-model="productKeyword" class="search-input" placeholder="Nhập mã SP cha, mã SKU hoặc tên sản phẩm" />
+            <input v-model="productKeyword" class="search-input"
+              placeholder="Nhập mã SP cha, mã SKU hoặc tên sản phẩm" />
           </div>
           <div class="filter-item">
             <label>Cổ áo:</label>
@@ -410,14 +397,14 @@
           <table class="table modal-table">
             <thead>
               <tr>
-                <th>Mã sản phẩm</th>
+                <th class="product-code-head">Mã sản phẩm</th>
                 <th>Tên</th>
                 <th>Thương hiệu</th>
                 <th>Chất liệu</th>
                 <th>Tồn kho</th>
                 <th>Giá</th>
-                <th>SL</th>
-                <th></th>
+                <th class="product-qty-head">SL</th>
+                <th class="product-check-head"></th>
               </tr>
             </thead>
             <tbody>
@@ -425,7 +412,7 @@
                 <td colspan="8" class="empty-state">Không có sản phẩm đang kinh doanh phù hợp bộ lọc.</td>
               </tr>
               <tr v-for="p in filteredProducts" :key="p.id">
-                <td class="mono">{{ p.productCode || p.code }}</td>
+                <td class="product-code-cell"><span class="mono">{{ p.productCode || p.code }}</span></td>
                 <td class="name-cell">
                   <div class="name-main">{{ p.name }}</div>
                   <div class="muted">{{ p.color || '-' }} • {{ p.size || '-' }}</div>
@@ -434,7 +421,7 @@
                 <td>{{ p.material || '-' }}</td>
                 <td>{{ p.tonKho }}</td>
                 <td class="p-price">{{ formatMoney(p.price) }}</td>
-                <td>
+                <td class="product-qty-cell">
                   <div>
                     <div class="item-control">
                       <button @click="decreaseProductQty(p)" :disabled="p.qty <= 1">−</button>
@@ -445,7 +432,7 @@
                     <div v-if="p.qtyWarning" class="qty-warning">{{ p.qtyWarning }}</div>
                   </div>
                 </td>
-                <td><input class="product-check" type="checkbox" v-model="p.checked" /></td>
+                <td class="product-check-cell"><input class="product-check" type="checkbox" v-model="p.checked" /></td>
               </tr>
             </tbody>
           </table>
@@ -643,6 +630,7 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { createOrder, createPosDraftOrder, deletePosDraftOrder } from '@/api/HoaDonApi'
 import { getCurrentUser, getRole } from '@/services/auth'
+import ghnLogo from '@/img/Logo_GHN.webp'
 
 /* ================= FILTER SẢN PHẨM ================= */
 const productKeyword = ref('')
@@ -1694,6 +1682,17 @@ const voucherAppliedNotice = computed(() => {
   return `Áp dụng phiếu giảm giá thành công ${voucherLabel} - Giảm ${formatMoney(discountAmount)}`
 })
 
+const appliedVoucherValue = computed(() => {
+  const primaryVoucher = discounts.value?.[0]
+  if (!primaryVoucher) return '0'
+
+  if (primaryVoucher.type === 'percent') {
+    return `${primaryVoucher.value || 0}%`
+  }
+
+  return formatMoney(primaryVoucher.value || 0)
+})
+
 const totalPrice = computed(() =>
   Math.max(
     totalProductPrice.value - totalDiscount.value + shippingFee.value,
@@ -1897,21 +1896,12 @@ const handleCreateOrderDelivery = async () => {
   const customerName = (customer.value?.name || '').trim()
   const customerPhone = (customer.value?.phone || '').trim()
   const customerEmail = (customer.value?.email || '').trim()
+  const detailAddress = (customer.value?.address || '').trim()
   const recipientName = (recipient.value?.name || '').trim()
   const recipientPhone = (recipient.value?.phone || '').trim()
 
-  if (!customerName) {
-    alert('Vui lòng nhập tên khách hàng')
-    return
-  }
-
-  if (!customerPhone) {
-    alert('Vui lòng nhập SĐT khách hàng')
-    return
-  }
-
-  if (!customerEmail) {
-    alert('Vui lòng nhập email khách hàng')
+  if (!customerName || !customerPhone || !customerEmail) {
+    alert('Vui lòng nhập đầy đủ thông tin khách hàng')
     return
   }
 
@@ -1927,6 +1917,11 @@ const handleCreateOrderDelivery = async () => {
 
   if (!selectedProvince.value || !selectedDistrict.value || !selectedWard.value) {
     alert('Vui lòng chọn đầy đủ địa chỉ giao hàng')
+    return
+  }
+
+  if (!detailAddress) {
+    alert('Vui lòng nhập địa chỉ cụ thể')
     return
   }
 
@@ -1956,7 +1951,7 @@ const handleCreateOrderDelivery = async () => {
     tenKhachHang: recipientName,
     soDienThoai: recipientPhone,
 
-    diaChiChiTiet: '',
+    diaChiChiTiet: detailAddress,
 
     provinceName: province?.provinceName || '',
     districtName: district?.districtName || '',
@@ -2378,7 +2373,7 @@ const isDelivery = computed({
 
 watch(orderType, (value) => {
   if (value === 'TAI_QUAY') {
-    shippingFee.value = 0
+    clearDeliveryFormWhenBackToCounter()
   }
 })
 
@@ -2429,6 +2424,46 @@ const wards = ref([])
 const selectedProvince = ref('')
 const selectedDistrict = ref('')
 const selectedWard = ref('')
+
+const isDeliveryAddressReady = computed(() =>
+  Boolean(selectedProvince.value && selectedDistrict.value && selectedWard.value)
+)
+
+const refreshShippingFee = async () => {
+  if (orderType.value !== 'GIAO_HANG') {
+    shippingFee.value = 0
+    return
+  }
+
+  if (!isDeliveryAddressReady.value) {
+    shippingFee.value = 0
+    return
+  }
+
+  await calculateShippingFee()
+}
+
+const clearDeliveryFormWhenBackToCounter = () => {
+  customer.value = {
+    name: '',
+    phone: '',
+    email: '',
+    address: ''
+  }
+
+  recipient.value = {
+    name: '',
+    phone: ''
+  }
+
+  note.value = ''
+  selectedProvince.value = ''
+  selectedDistrict.value = ''
+  selectedWard.value = ''
+  districts.value = []
+  wards.value = []
+  shippingFee.value = 0
+}
 
 // GHN Functions
 const fetchProvinces = async () => {
@@ -3258,6 +3293,94 @@ input:disabled {
   background: rgba(239, 246, 255, 0.35);
 }
 
+.customer-inline-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.customer-inline-label {
+  min-width: 150px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.customer-inline-value {
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.delivery-summary {
+  margin-bottom: 14px;
+}
+
+.counter-note {
+  font-size: 14px;
+}
+
+.delivery-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 13px;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.field-label span,
+.address-label span {
+  color: #ef4444;
+}
+
+.delivery-address-group {
+  margin-bottom: 12px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.note-field textarea {
+  min-height: 80px;
+}
+
+@media (max-width: 768px) {
+  .customer-inline-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .customer-inline-label {
+    min-width: unset;
+  }
+
+  .delivery-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .voucher-inline-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pay-body .row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
 .name-cell {
   text-align: left;
   min-width: 180px;
@@ -3432,7 +3555,7 @@ input:disabled {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
 .voucher-code-input {
@@ -3479,6 +3602,44 @@ input:disabled {
   font-weight: 600;
 }
 
+.merged-payment-card .pay-body {
+  display: grid;
+  gap: 10px;
+}
+
+.voucher-inline-grid {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 10px;
+}
+
+.voucher-inline-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voucher-inline-field label {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.voucher-value-input {
+  height: 38px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #475569;
+  background: #f1f5f9;
+  font-weight: 700;
+}
+
+.voucher-suggestion-inline {
+  margin: 0;
+}
+
 /* ===== PAYMENT CARD ===== */
 .payment-card {
   margin-top: auto;
@@ -3496,6 +3657,56 @@ input:disabled {
 
 .pay-body .row:last-of-type {
   border-bottom: none;
+}
+
+.shipping-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shipping-logo {
+  height: 18px;
+  width: auto;
+  object-fit: contain;
+}
+
+.shipping-control-wrap {
+  display: grid;
+  grid-template-columns: 1fr 34px auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.ship-refresh-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #334155;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ship-refresh-btn:hover {
+  background: #f8fafc;
+}
+
+.ship-unit {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.shipping-hint {
+  border: 1px solid #f1d5d5;
+  background: #fef2f2;
+  color: #7f1d1d;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
 }
 
 .total-row {
@@ -3753,12 +3964,45 @@ input:disabled {
   width: 120px;
 }
 
-.modal-content.large .modal-table .mono {
-  display: inline-block;
+.modal-content.large .modal-table .product-code-cell .mono {
+  display: block;
   max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
-  vertical-align: bottom;
+  line-height: 1.35;
+}
+
+.product-code-head,
+.product-code-cell {
+  text-align: left;
+}
+
+.modal-content.large .modal-table th:nth-child(7),
+.modal-content.large .modal-table td:nth-child(7) {
+  width: 170px;
+}
+
+.modal-content.large .modal-table th:nth-child(8),
+.modal-content.large .modal-table td:nth-child(8) {
+  width: 70px;
+}
+
+.product-qty-cell {
+  padding-right: 10px;
+}
+
+.product-check-head,
+.product-check-cell {
+  width: 54px;
+  text-align: center;
+}
+
+.product-check-cell {
+  padding-left: 10px;
+}
+
+.product-check-cell .product-check {
+  margin: 0 auto;
 }
 
 .small-table {
