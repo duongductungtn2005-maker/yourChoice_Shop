@@ -138,7 +138,7 @@
       <div class="pos-cart">
 
         <!-- ===== CUSTOMER ===== -->
-        <div class="card mt">
+        <div class="card">
           <div class="order-type-toggle">
             <span :class="{ active: orderType === 'TAI_QUAY' }"></span>
 
