@@ -416,37 +416,27 @@ const handleSubmit = async () => {
     // 1. Validate Form (Thêm await ở đây 👇)
     if (!(await validateForm())) return;
 
-    // 2. Hiển thị Popup với 2 lựa chọn chính + nút X
+    // 2. Hiển thị Popup xác nhận
     const result = await Swal.fire({
         title: 'Xác nhận thêm nhân viên',
-        text: `Bạn có muốn gửi mail cho nhân viên này không?`,
+        text: 'Hệ thống sẽ tự động gửi email thông báo cho nhân viên.',
         icon: 'question',
-        
-        showCloseButton: true,   // <--- Thêm dấu X ở góc phải
-        showCancelButton: false, // <--- Ẩn nút Hủy bỏ ở dưới
-        showDenyButton: true,    // Vẫn giữ nút lựa chọn thứ 2
-        
-        confirmButtonText: '<i class="fas fa-paper-plane"></i> Gửi Email',
-        confirmButtonColor: '#3085d6', // Màu xanh
-        
-        denyButtonText: '<i class="fas fa-user-plus"></i> KHÔNG Gửi Email',
-        denyButtonColor: '#f39c12',    // Màu cam/vàng
-        
-        allowOutsideClick: false // Không cho click ra ngoài, bắt buộc chọn hoặc bấm X
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-check"></i> Xác nhận',
+        confirmButtonColor: '#3085d6',
+        cancelButtonText: 'Hủy',
+        cancelButtonColor: '#6b7280',
     });
 
-    // Nếu bấm dấu X (Dismiss) thì dừng lại
-    if (result.isDismissed) return;
+    if (!result.isConfirmed) return;
 
-    // Xác định xem có gửi mail hay không dựa vào nút vừa bấm
-    // isConfirmed = Nút Xanh (Gửi mail)
-    // isDenied = Nút Cam (Không gửi mail)
-    const isSendEmail = result.isConfirmed; 
+    // Luôn gửi email khi thêm nhân viên
+    const isSendEmail = true;
 
     // 3. Hiển thị Loading
     Swal.fire({
         title: 'Đang xử lý...',
-        text: isSendEmail ? 'Đang thêm và gửi email kích hoạt...' : 'Đang thêm nhân viên...',
+        text: 'Đang thêm nhân viên và gửi email kích hoạt...',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
@@ -459,7 +449,7 @@ const handleSubmit = async () => {
         fd.append("soDienThoai", employee.soDienThoai);
         fd.append("gioiTinh", employee.gioiTinh); 
         fd.append("ngaySinh", employee.ngaySinh);
-        fd.append("chucVu", 'STAFF');
+        fd.append("chucVu", employee.chucVu);
 
         // Gửi cờ (flag) lên server
         fd.append("isSendEmail", isSendEmail); 
@@ -481,9 +471,7 @@ const handleSubmit = async () => {
         await Swal.fire({
             icon: 'success',
             title: 'Thành công!',
-            text: isSendEmail 
-                ? 'Đã thêm nhân viên và gửi email kích hoạt.' 
-                : 'Đã thêm nhân viên thành công (Không gửi mail).',
+            text: 'Đã thêm nhân viên và gửi email kích hoạt.',
             timer: 2000,
             showConfirmButton: false
         });

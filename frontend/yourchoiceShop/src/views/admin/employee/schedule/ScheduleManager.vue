@@ -25,23 +25,38 @@
           </button>
         </div>
 
-        <button class="btn btn-export" @click="downloadTemplate">
-  <i class="fas fa-download"></i> Tải Template
-</button>
+        <div class="action-buttons-group">
+          <button class="btn btn-magic" @click="handleCopyLastWeek">
+            <i class="fas fa-copy"></i> Sao chép tuần trước
+          </button>
 
-<button class="btn btn-import" @click="triggerFileUpload">
-  <i class="fas fa-file-excel"></i> Nhập Excel
-</button>
-        <input 
-          type="file" 
-          ref="fileInput" 
-          accept=".xlsx, .xls" 
-          style="display: none" 
-          @change="handleFileUpload"
-        />
-        <button class="btn btn-refresh" @click="fetchSchedules">
-          <i class="fas fa-sync-alt"></i> Làm mới
-        </button>
+          <div class="dropdown-container">
+            <button class="btn btn-excel" @click="showExcelMenu = !showExcelMenu">
+              <i class="fas fa-file-excel"></i> Excel <i class="fas fa-chevron-down ml-1"></i>
+            </button>
+            
+            <div class="dropdown-menu" v-if="showExcelMenu">
+              <a class="dropdown-item" href="#" @click.prevent="downloadTemplate">
+                <i class="fas fa-download"></i> Tải Template
+              </a>
+              <a class="dropdown-item" href="#" @click.prevent="triggerFileUpload">
+                <i class="fas fa-upload"></i> Nhập dữ liệu
+              </a>
+            </div>
+          </div>
+
+          <input 
+            type="file" 
+            ref="fileInput" 
+            accept=".xlsx, .xls" 
+            style="display: none" 
+            @change="handleFileUpload"
+          />
+
+          <button class="btn btn-refresh icon-only" @click="fetchSchedules" title="Làm mới dữ liệu">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
       </div>
     </div>
     
@@ -79,21 +94,19 @@
             
             <td v-for="day in weekDays" :key="day.dateStr" class="calendar-cell">
               
-              <template v-if="getAssignmentsForCell(shift.id, day.dateStr).length > 0">
-                <div 
-                  v-for="assignment in getAssignmentsForCell(shift.id, day.dateStr)" 
-                  :key="assignment.id" 
-                  class="assignment-card"
-                >
-                  <div class="avatar">{{ assignment.nhanVien.avatar || (assignment.nhanVien.ten || assignment.nhanVien.tenNhanVien || 'N').charAt(0).toUpperCase() }}</div>
-                  <div class="emp-details">
-                    <div class="emp-name">{{ assignment.nhanVien.ten || assignment.nhanVien.tenNhanVien }}</div>
-                    <div class="emp-code">{{ assignment.nhanVien.ma || assignment.nhanVien.maNhanVien }}</div>
-                  </div>
+              <div 
+                v-for="assignment in getAssignmentsForCell(shift.id, day.dateStr)" 
+                :key="assignment.id" 
+                class="assignment-card"
+              >
+                <div class="avatar">{{ assignment.nhanVien.avatar || (assignment.nhanVien.ten || assignment.nhanVien.tenNhanVien || 'N').charAt(0).toUpperCase() }}</div>
+                <div class="emp-details">
+                  <div class="emp-name">{{ assignment.nhanVien.ten || assignment.nhanVien.tenNhanVien }}</div>
+                  <div class="emp-code">{{ assignment.nhanVien.ma || assignment.nhanVien.maNhanVien }}</div>
                 </div>
-              </template>
+              </div>
               
-              <div v-else class="add-assignment-btn" @click="openAssignModal(shift, day.dateStr)">
+              <div class="add-assignment-btn" @click="openAssignModal(shift, day.dateStr)">
                 <i class="fas fa-plus"></i>
               </div>
 
@@ -208,19 +221,51 @@
           <strong>{{ selectedDateModal }}</strong>
         </div>
         
-        <div class="form-group mt-3">
-          <label>Chọn nhân viên <span class="text-red">*</span></label>
-          <select v-model="selectedEmployeeId" class="form-control">
-            <option value="" disabled>-- Vui lòng chọn nhân viên --</option>
-            <option v-for="emp in employees" :key="emp.id" :value="emp.id">
-              {{ emp.maNhanVien || emp.ma }} - {{ emp.tenNhanVien || emp.ten }}
-            </option>
-          </select>
-        </div>
+        <template v-if="isEditMode">
+          <div class="form-group mt-3">
+            <label>Chọn nhân viên <span class="text-red">*</span></label>
+            <select v-model="selectedEmployeeId" class="form-control">
+              <option value="" disabled>-- Vui lòng chọn nhân viên --</option>
+              <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                {{ emp.maNhanVien || emp.ma }} - {{ emp.tenNhanVien || emp.ten }}
+              </option>
+            </select>
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="form-group mt-3">
+            <label>Chọn nhân viên <span class="text-red">*</span> <span class="text-gray text-xs">(có thể chọn nhiều)</span></label>
+            <div class="employee-search-box">
+              <i class="fas fa-search search-icon-sm"></i>
+              <input type="text" v-model="employeeSearch" class="form-control" placeholder="Tìm tên hoặc mã nhân viên..." />
+            </div>
+            <div class="employee-checkbox-list">
+              <label 
+                v-for="emp in availableEmployees" 
+                :key="emp.id" 
+                class="employee-checkbox-item"
+                :class="{ 'is-checked': selectedEmployeeIds.includes(emp.id) }"
+              >
+                <input type="checkbox" :value="emp.id" v-model="selectedEmployeeIds" />
+                <span class="emp-avatar-sm">{{ (emp.tenNhanVien || emp.ten || 'N').charAt(0).toUpperCase() }}</span>
+                <span class="emp-label">{{ emp.maNhanVien || emp.ma }} - {{ emp.tenNhanVien || emp.ten }}</span>
+              </label>
+              <div v-if="availableEmployees.length === 0" class="no-emp-msg">
+                <i class="fas fa-info-circle"></i> Không tìm thấy nhân viên phù hợp
+              </div>
+            </div>
+            <div v-if="selectedEmployeeIds.length > 0" class="selected-count-bar">
+              Đã chọn: <strong>{{ selectedEmployeeIds.length }}</strong> nhân viên
+            </div>
+          </div>
+        </template>
       </div>
       <div class="modal-footer">
         <button class="btn-cancel" @click="closeModal">Hủy</button>
-        <button class="btn-save" @click="saveSchedule">Lưu lịch</button>
+        <button class="btn-save" @click="saveSchedule">
+          <i class="fas fa-save"></i> {{ isEditMode ? 'Cập nhật' : 'Xếp lịch' }}
+        </button>
       </div>
     </div>
   </div>
@@ -233,6 +278,7 @@ import Swal from 'sweetalert2';
 import axios from 'axios';
 
 const currentView = ref('calendar');
+const showExcelMenu = ref(false);
 
 // ==========================================
 // 1. LOGIC XỬ LÝ NGÀY THÁNG (TUẦN)
@@ -297,6 +343,8 @@ const showModal = ref(false);
 const selectedShiftModal = ref(null);
 const selectedDateModal = ref('');
 const selectedEmployeeId = ref('');
+const selectedEmployeeIds = ref([]);
+const employeeSearch = ref('');
 
 // ==========================================
 // 3. CÁC HÀM GỌI API
@@ -342,10 +390,29 @@ const getAssignmentsForCell = (shiftId, dateStr) => {
   return schedules.value.filter(s => s.caLamViec?.id === shiftId && s.ngayLamViec === dateStr);
 };
 
+const availableEmployees = computed(() => {
+  const assigned = getAssignmentsForCell(
+    selectedShiftModal.value?.id, 
+    selectedDateModal.value
+  ).map(a => a.nhanVien?.id);
+  
+  const keyword = employeeSearch.value.toLowerCase().trim();
+  
+  return employees.value.filter(emp => {
+    if (assigned.includes(emp.id)) return false;
+    if (!keyword) return true;
+    const name = (emp.tenNhanVien || emp.ten || '').toLowerCase();
+    const code = (emp.maNhanVien || emp.ma || '').toLowerCase();
+    return name.includes(keyword) || code.includes(keyword);
+  });
+});
+
 const openAssignModal = async (shift, dateStr) => {
   selectedShiftModal.value = shift;
   selectedDateModal.value = dateStr;
   selectedEmployeeId.value = ''; 
+  selectedEmployeeIds.value = [];
+  employeeSearch.value = '';
   showModal.value = true;
 
   if (employees.value.length === 0) {
@@ -407,29 +474,50 @@ const editSchedule = async (schedule) => {
 };
 
 const saveSchedule = async () => {
-  if (!selectedEmployeeId.value) {
-    return Swal.fire('Lỗi', 'Vui lòng chọn nhân viên!', 'warning');
-  }
-
-  try {
-    const payload = {
-      caLamViecId: selectedShiftModal.value.id, 
-      nhanVienId: selectedEmployeeId.value,     
-      ngayLamViec: selectedDateModal.value      
-    };
-
-    if (isEditMode.value) {
+  if (isEditMode.value) {
+    if (!selectedEmployeeId.value) {
+      return Swal.fire('Lỗi', 'Vui lòng chọn nhân viên!', 'warning');
+    }
+    try {
+      const payload = {
+        caLamViecId: selectedShiftModal.value.id,
+        nhanVienId: selectedEmployeeId.value,
+        ngayLamViec: selectedDateModal.value
+      };
       await request.put(`/lich-lam-viec/${currentEditId.value}`, payload);
       Swal.fire({ icon: 'success', title: 'Thành công', text: 'Cập nhật lịch thành công!', timer: 1500, showConfirmButton: false });
-    } else {
-      await request.post('/lich-lam-viec', payload);
-      Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã xếp lịch nhân viên!', timer: 1500, showConfirmButton: false });
+      closeModal();
+      fetchSchedules();
+    } catch (error) {
+      Swal.fire('Lỗi', error.response?.data?.message || 'Không thể cập nhật lịch', 'error');
     }
-    
-    closeModal();
-    fetchSchedules(); 
-  } catch (error) {
-    Swal.fire('Lỗi', 'Không thể lưu lịch làm việc', 'error');
+  } else {
+    if (selectedEmployeeIds.value.length === 0) {
+      return Swal.fire('Lỗi', 'Vui lòng chọn ít nhất 1 nhân viên!', 'warning');
+    }
+    try {
+      const promises = selectedEmployeeIds.value.map(empId =>
+        request.post('/lich-lam-viec', {
+          caLamViecId: selectedShiftModal.value.id,
+          nhanVienId: empId,
+          ngayLamViec: selectedDateModal.value
+        })
+      );
+      const results = await Promise.allSettled(promises);
+      const failed = results.filter(r => r.status === 'rejected');
+      
+      if (failed.length === 0) {
+        Swal.fire({ icon: 'success', title: 'Thành công', text: `Đã xếp lịch cho ${selectedEmployeeIds.value.length} nhân viên!`, timer: 1500, showConfirmButton: false });
+      } else if (failed.length < results.length) {
+        Swal.fire({ icon: 'warning', title: 'Hoàn tất một phần', text: `Thành công: ${results.length - failed.length}, Thất bại: ${failed.length}` });
+      } else {
+        Swal.fire('Lỗi', 'Không thể xếp lịch cho nhân viên đã chọn', 'error');
+      }
+      closeModal();
+      fetchSchedules();
+    } catch (error) {
+      Swal.fire('Lỗi', 'Không thể lưu lịch làm việc', 'error');
+    }
   }
 };
 
@@ -488,18 +576,11 @@ const handleFileUpload = async (event) => {
   if (!file) return;
 
   const formData = new FormData();
-  formData.append('file', file); // Gói món 1: File Excel
-  
-  // Gói món 2: Ngày từ giao diện (Nhớ dùng hàm format để ép về chuẩn YYYY-MM-DD)
-  // Lưu ý: Sửa 'selectedDate.value' thành biến lưu ngày hiện tại của bạn nếu khác nhé
-  const dateString = formatDateToYYYYMMDD(selectedDate.value); 
-  formData.append('ngayLamViec', dateString); 
+  formData.append('file', file);
 
   try {
     const response = await axios.post('http://localhost:8080/api/v1/lich-lam-viec/import', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
     
     alert('Import thành công!');
@@ -555,6 +636,56 @@ const downloadTemplate = async () => {
     alert('Không thể tải file template!');
   }
 };
+const handleCopyLastWeek = async () => {
+  // 1. Hiển thị Popup xác nhận
+  const result = await Swal.fire({
+    title: 'Sao chép lịch tuần trước?',
+    text: "Hệ thống sẽ lấy lịch của tuần trước và áp dụng cho tuần hiện tại. Những ca đã có sẵn sẽ bị bỏ qua để tránh trùng lặp.",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#10b981',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Có!',
+    cancelButtonText: 'Hủy'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      // Đóng dropdown menu nếu đang mở
+      showExcelMenu.value = false;
+      
+      // Hiện loading để user không bấm lung tung lúc đang chờ API
+      Swal.showLoading();
+
+      // 2. Gọi API (Truyền ngày đang chọn trên giao diện: selectedDate)
+      // Chú ý: Format ngày sang YYYY-MM-DD trước khi gửi
+      const dateString = formatDateToYYYYMMDD(selectedDate.value);
+      
+      const response = await axios.post(`http://localhost:8080/api/v1/lich-lam-viec/copy-last-week?date=${dateString}`);
+
+      // 3. Tải lại bảng dữ liệu
+      await fetchSchedules();
+
+      // 4. Báo thành công
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công!',
+        text: response.data, // Hiển thị câu thông báo từ Backend trả về
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+    } catch (error) {
+      console.error('Lỗi khi copy lịch:', error);
+      // Báo lỗi (Ví dụ: Tuần trước không có dữ liệu)
+      Swal.fire({
+        icon: 'error',
+        title: 'Không thể sao chép',
+        text: error.response?.data || 'Đã có lỗi xảy ra, vui lòng thử lại sau.'
+      });
+    }
+  }
+};
 const closeModal = () => { 
   showModal.value = false; 
   isEditMode.value = false; 
@@ -601,6 +732,78 @@ onMounted(() => {
 
 /* View Toggle & Buttons */
 .action-section { display: flex; gap: 15px; align-items: center; }
+.action-buttons-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Nút Sao chép - Màu Gradient hoặc tím nổi bật */
+.btn-magic {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: opacity 0.3s;
+}
+.btn-magic:hover {
+  opacity: 0.9;
+}
+
+/* Nút Dropdown Excel */
+.btn-excel {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+.dropdown-container {
+  position: relative;
+}
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 5px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  z-index: 50;
+  overflow: hidden;
+}
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  color: #374151;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.dropdown-item:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+/* Nút icon only cho nút Refresh */
+.icon-only {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+.ml-1 {
+  margin-left: 4px;
+}
 .view-toggle {
   display: flex;
   border: 1px solid #e5e7eb;
@@ -787,8 +990,9 @@ onMounted(() => {
   z-index: 1000;
 }
 .modal-content {
-  background: white; width: 450px; border-radius: 12px;
+  background: white; width: 520px; max-height: 85vh; border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden;
+  display: flex; flex-direction: column;
 }
 .modal-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -796,7 +1000,7 @@ onMounted(() => {
 }
 .modal-header h3 { margin: 0; font-size: 18px; color: #1e293b; }
 .btn-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8; }
-.modal-body { padding: 20px; }
+.modal-body { padding: 20px; overflow-y: auto; }
 .info-group { margin-bottom: 10px; font-size: 15px; color: #475569; }
 .info-group label { display: inline-block; width: 100px; }
 .form-control {
@@ -818,6 +1022,42 @@ onMounted(() => {
   padding: 8px 16px; border: none; background: #2563eb; color: white;
   border-radius: 6px; cursor: pointer; font-weight: 500;
 }
+
+/* Employee multi-select */
+.employee-search-box {
+  position: relative; margin-bottom: 8px;
+}
+.employee-search-box .search-icon-sm {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 13px;
+}
+.employee-search-box input {
+  padding-left: 32px;
+}
+.employee-checkbox-list {
+  max-height: 280px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;
+  padding: 4px;
+}
+.employee-checkbox-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px;
+  cursor: pointer; transition: background 0.15s; margin: 2px 0;
+}
+.employee-checkbox-item:hover { background: #f1f5f9; }
+.employee-checkbox-item.is-checked { background: #eff6ff; }
+.employee-checkbox-item input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; flex-shrink: 0;
+}
+.emp-avatar-sm {
+  width: 30px; height: 30px; border-radius: 50%; background: #2563eb; color: white;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0;
+}
+.emp-label { font-size: 14px; color: #334155; }
+.no-emp-msg { text-align: center; padding: 20px; color: #94a3b8; font-size: 13px; }
+.selected-count-bar {
+  margin-top: 8px; padding: 6px 12px; background: #eff6ff; border-radius: 6px;
+  font-size: 13px; color: #1e40af; text-align: center;
+}
+.text-xs { font-size: 12px; }
+.text-gray { color: #9ca3af; }
 /* =======================================
    CSS CHO BỘ LỌC DANH SÁCH (CUSTOM FILTER BAR)
    ======================================= */

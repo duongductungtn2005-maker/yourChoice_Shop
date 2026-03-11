@@ -104,7 +104,7 @@
               <td class="text-center"><input type="checkbox" :value="variant.id" v-model="selectedIds"></td>
               <td>
                 <div class="img-thumb">
-                    <img v-if="variant.listAnh && variant.listAnh.length > 0" :src="variant.listAnh[0]" class="custom-thumb-img" @error="$event.target.style.display='none'">
+                    <img v-if="variant.listAnh && variant.listAnh.length > 0" :src="normalizeImageUrl(variant.listAnh[0])" class="custom-thumb-img" @error="$event.target.style.display='none'">
                     <font-awesome-icon v-else :icon="['far', 'image']" class="icon-placeholder" />
                 </div>
               </td>
@@ -180,6 +180,14 @@ import { Html5QrcodeScanner } from "html5-qrcode"; // IMPORT THƯ VIỆN QR
 const route = useRoute();
 const productId = route.params.id;
 const API_URL = 'http://localhost:8080/api/v1';
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
+
+// Helper: Chuẩn hóa URL ảnh
+const normalizeImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${IMAGE_BASE_URL}${url.replace(/^\//, '')}`;
+};
 
 // STATE
 const loading = ref(false);
@@ -368,8 +376,9 @@ const handleBulkUpdate = async () => {
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 const openEditModal = (variant) => { selectedVariant.value = variant; isModalOpen.value = true; };
 
-const handleSaveVariant = () => {
+const handleSaveVariant = (updatedData) => {
     isModalOpen.value = false;
+    // Reload data để cập nhật bảng với ảnh mới
     fetchData();
 };
 

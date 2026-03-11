@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/hoa-don")
@@ -47,7 +48,9 @@ public class HoaDonController {
             typeDb = "TRUC_TUYEN";
         if ("Tại quầy".equals(type))
             typeDb = "TAI_QUAY";
-        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("ngayTao").descending());
+        if ("Giao hàng".equals(type))
+            typeDb = "GIAO_HANG";
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("ngayTao").ascending());
 
         return ResponseEntity.ok(hoaDonService.getOrders(keyword, status, typeDb, from, to, pageable));
     }
@@ -82,6 +85,19 @@ public class HoaDonController {
         return ResponseEntity.ok("Tạo hóa đơn thành công");
     }
 
+    @PostMapping("/pos/draft")
+    public ResponseEntity<?> createPosDraft(@RequestBody(required = false) CreateOrderRequest req) {
+        Integer idNhanVien = req != null ? req.getIdNhanVien() : null;
+        String maHoaDon = hoaDonService.createDraftOrderAtCounter(idNhanVien);
+        return ResponseEntity.ok(Map.of("maHoaDon", maHoaDon));
+    }
+
+    @DeleteMapping("/pos/draft/{maHoaDon}")
+    public ResponseEntity<?> deletePosDraft(@PathVariable String maHoaDon) {
+        hoaDonService.deleteDraftOrderAtCounter(maHoaDon);
+        return ResponseEntity.ok("Xóa hóa đơn nháp thành công");
+    }
+
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportExcel(
             @RequestParam(required = false) String keyword,
@@ -96,6 +112,8 @@ public class HoaDonController {
             typeDb = "TRUC_TUYEN";
         if ("Tại quầy".equals(type))
             typeDb = "TAI_QUAY";
+        if ("Giao hàng".equals(type))
+            typeDb = "GIAO_HANG";
 
         byte[] excelData = hoaDonService.exportExcel(keyword, status, typeDb, from, to);
 
@@ -117,12 +135,12 @@ public class HoaDonController {
         return ResponseEntity.ok("Thanh toán thành công");
     }
 
-    @PostMapping("/online")
-    public ResponseEntity<?> createOrderOnline(
+    @PostMapping("/delivery")
+    public ResponseEntity<?> createOrderDelivery(
             @RequestBody CreateOrderRequest req) {
 
-        hoaDonService.createOrderOnline(req);
-        return ResponseEntity.ok().build();
+        String maHoaDon = hoaDonService.createOrderDelivery(req);
+        return ResponseEntity.ok(java.util.Map.of("maHoaDon", maHoaDon));
     }
 
     @PostMapping("/tai-quay")

@@ -20,8 +20,8 @@
 
         <div class="header-icons">
           <div class="search-wrap">
-            <input type="text" placeholder="Tìm kiếm..." class="search-input" />
-            <i class="fas fa-search search-icon"></i>
+            <input type="text" placeholder="Tìm kiếm..." class="search-input" v-model="searchKeyword" @keyup.enter="handleSearch" />
+            <i class="fas fa-search search-icon" @click="handleSearch" style="cursor: pointer;"></i>
           </div>
           
           <div class="icon-item user-icon" @click="toggleUserDropdown" :class="{ 'dropdown-open': isUserDropdownOpen }">
@@ -31,21 +31,32 @@
             <div v-if="isUserDropdownOpen" class="user-dropdown">
               <template v-if="isCustomerLoggedIn">
                 <div class="dropdown-btn customer-label">
-                  <i class="fas fa-user-check"></i> Đã đăng nhập
+                  <i class="fas fa-user-check"></i> {{ customerName || 'Đã đăng nhập' }}
                 </div>
+                <router-link to="/account" class="dropdown-btn" @click="isUserDropdownOpen = false">
+                  <i class="fas fa-user-cog"></i> Tài khoản
+                </router-link>
+                <router-link to="/orders" class="dropdown-btn" @click="isUserDropdownOpen = false">
+                  <i class="fas fa-clipboard-list"></i> Đơn hàng
+                </router-link>
                 <button class="dropdown-btn" @click="handleLogout">
                   <i class="fas fa-sign-out-alt"></i> Đăng xuất
                 </button>
               </template>
-              <router-link v-else to="/login" class="dropdown-btn login-btn" @click="isUserDropdownOpen = false">
-                <i class="fas fa-sign-in-alt"></i> Đăng nhập
-              </router-link>
+              <template v-else>
+                <router-link to="/login" class="dropdown-btn login-btn" @click="isUserDropdownOpen = false">
+                  <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                </router-link>
+                <router-link to="/register" class="dropdown-btn" @click="isUserDropdownOpen = false">
+                  <i class="fas fa-user-plus"></i> Đăng ký
+                </router-link>
+              </template>
             </div>
           </div>
           
-          <div class="icon-item cart-icon">
+          <div class="icon-item cart-icon" @click="$router.push('/cart')" style="cursor: pointer;">
             <i class="fas fa-shopping-bag"></i>
-            <span class="cart-badge">0</span>
+            <span class="cart-badge">{{ cartCount }}</span>
           </div>
         </div>
       </div>
@@ -94,13 +105,26 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
+import { useCartStore } from '@/stores/cart';
 
 const router = useRouter();
+const cartStore = useCartStore();
 const isScrolled = ref(false);
 const isUserDropdownOpen = ref(false);
 const userRole = ref('');
 const hasToken = ref(false);
+const searchKeyword = ref('');
 const isCustomerLoggedIn = computed(() => hasToken.value && userRole.value === 'CUSTOMER');
+const cartCount = computed(() => cartStore.totalItems);
+
+const customerName = computed(() => {
+  try {
+    const userStr = sessionStorage.getItem('user');
+    if (!userStr) return null;
+    const user = JSON.parse(userStr);
+    return user.hoTen || user.tenKhachHang || user.tenNhanVien || null;
+  } catch { return null; }
+});
 
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 50;
@@ -111,14 +135,22 @@ const toggleUserDropdown = () => {
 };
 
 const loadAuthState = () => {
-  userRole.value = String(localStorage.getItem('userRole') || '').toUpperCase();
-  hasToken.value = !!localStorage.getItem('token');
+  userRole.value = String(sessionStorage.getItem('userRole') || '').toUpperCase();
+  hasToken.value = !!sessionStorage.getItem('token');
+};
+
+const handleSearch = () => {
+  const kw = searchKeyword.value.trim();
+  if (kw) {
+    router.push({ path: '/products', query: { keyword: kw } });
+  }
 };
 
 const handleLogout = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  localStorage.removeItem('userRole');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('userRole');
+  sessionStorage.removeItem('loginTime');
   isUserDropdownOpen.value = false;
   loadAuthState();
   toastSuccess('Đăng xuất thành công!');

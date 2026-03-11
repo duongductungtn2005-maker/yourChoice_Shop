@@ -14,4 +14,5 @@ public interface LichLamViecRepository extends JpaRepository<LichLamViec, Intege
     List<LichLamViec> findByNgayLamViecBetweenOrderByNgayLamViecAsc(LocalDate startDate, LocalDate endDate);
     List<LichLamViec> findAllByOrderByNgayLamViecAsc();
     boolean existsByNhanVienAndCaLamViecAndNgayLamViec(NhanVien nhanVien, CaLamViec caLamViec, LocalDate ngayLamViec);
+    List<LichLamViec> findByNgayLamViecBetween(LocalDate startDate, LocalDate endDate);
 }

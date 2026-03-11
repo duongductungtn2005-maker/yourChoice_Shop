@@ -214,14 +214,7 @@ const onSlideError = (idx) => {
 onMounted(() => startAuto());
 onBeforeUnmount(() => stopAuto());
 
-// ===== LOGIN LOGIC (GIỮ NGUYÊN) =====
-const resolveRoleFromUsername = (value) => {
-  const account = String(value || '').toLowerCase();
-  if (account.includes('admin') || account.includes('quantri') || account.includes('quan-tri')) return 'ADMIN';
-  if (account.includes('employee') || account.includes('nhanvien') || account.includes('nhan-vien')) return 'STAFF';
-  return null;
-};
-
+// ===== LOGIN LOGIC =====
 const authenticateCustomer = async (usernameValue, passwordValue) => {
   const finalUsername = String(usernameValue || '').trim();
   const finalPassword = String(passwordValue || '').trim();
@@ -240,16 +233,32 @@ const authenticateCustomer = async (usernameValue, passwordValue) => {
 const authenticateEmployee = async (usernameValue, passwordValue) => {
   const finalUsername = String(usernameValue || '').trim();
   const finalPassword = String(passwordValue || '').trim();
-  if (!finalUsername || !finalPassword) return false;
+  if (!finalUsername || !finalPassword) return null;
 
   try {
     const response = await request.get('/nhan-vien/authenticate', {
       params: { username: finalUsername, password: finalPassword }
     });
-    return response?.data?.authenticated === true;
+    if (response?.data?.authenticated === true) {
+      return response?.data?.employee || null;
+    }
+    return null;
   } catch {
-    return false;
+    return null;
   }
+};
+
+const determineRole = (employee) => {
+  if (!employee || !employee.quyenHan) return 'STAFF';
+
+  const roleId = Number(employee.quyenHan.id);
+  if (!Number.isNaN(roleId) && roleId === 1) return 'ADMIN';
+
+  const roleName = String(employee.quyenHan.tenQuyenHan || '').toUpperCase().trim();
+  if (roleName.includes('ADMIN') || roleName.includes('QUẢN TRỊ') || roleName.includes('QUANTRI')) {
+    return 'ADMIN';
+  }
+  return 'STAFF';
 };
 
 const handleLogin = async () => {
@@ -260,30 +269,25 @@ const handleLogin = async () => {
 
   errorMessage.value = '';
 
-  // 1. Thử đăng nhập Admin (mật khẩu cứng, tên tài khoản chứa "admin")
-  const accountLower = username.value.toLowerCase();
-  if (accountLower.includes('admin') || accountLower.includes('quantri') || accountLower.includes('quan-tri')) {
-    if (password.value === '123456') {
-      authLogin({ role: 'ADMIN' });
-      toastSuccess('Đăng nhập thành công!');
+  // 1. Thử đăng nhập Nhân viên/Admin (từ database)
+  const employeeData = await authenticateEmployee(username.value, password.value);
+  if (employeeData) {
+    const role = determineRole(employeeData);
+    authLogin({ 
+      role: role, 
+      user: employeeData 
+    });
+    toastSuccess(`Đăng nhập thành công! Xin chào ${employeeData.tenNhanVien}`);
+    
+    if (role === 'ADMIN') {
       router.push('/admin/dashboard');
-      return;
     } else {
-      errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
-      return;
+      router.push('/staff/pos');
     }
-  }
-
-  // 2. Thử đăng nhập Nhân viên (từ database)
-  const isEmployee = await authenticateEmployee(username.value, password.value);
-  if (isEmployee) {
-    authLogin({ role: 'STAFF' });
-    toastSuccess('Đăng nhập thành công!');
-    router.push('/staff/pos');
     return;
   }
 
-  // 3. Thử đăng nhập Khách hàng (từ database)
+  // 2. Thử đăng nhập Khách hàng (từ database)
   const isCustomer = await authenticateCustomer(username.value, password.value);
   if (isCustomer) {
     authLogin({ role: 'CUSTOMER' });

@@ -31,12 +31,12 @@ public class HoaDonChiTiet extends PrimaryEntity {
     @Column(name = "trang_thai")
     private Integer trangThai;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_hoa_don")
     @JsonIgnore // Ngắt vòng lặp JSON khi load từ chi tiết lên hóa đơn
     private HoaDon hoaDon;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_chi_tiet_san_pham")
     private ChiTietSanPham chiTietSanPham;
 }

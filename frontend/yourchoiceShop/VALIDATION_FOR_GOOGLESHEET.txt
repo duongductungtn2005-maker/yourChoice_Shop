@@ -1,0 +1,78 @@
+STT	Role	Màn hình	Chức năng	Validate
+1	Admin	Login	Đăng nhập	Username: required, không được để trống
+2	Admin	Login	Đăng nhập	Password: required, không được để trống
+3	Admin	Login	Đăng nhập	Thông báo lỗi: "Vui lòng nhập đầy đủ tài khoản và mật khẩu"
+4	Admin	Login	Đăng nhập	Thông báo lỗi: "Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại"
+5	Admin	Khách hàng	Thêm khách hàng	Tên khách hàng: required, không được để trống
+6	Admin	Khách hàng	Thêm khách hàng	Tên tài khoản: required, không được để trống
+7	Admin	Khách hàng	Thêm khách hàng	Tên tài khoản: required + email format (@domain.com)
+8	Admin	Khách hàng	Thêm khách hàng	Số điện thoại: required + phone format (10 số, dạng 03/05/07/08/09)
+9	Admin	Khách hàng	Thêm khách hàng	Ngày sinh: required + không được là ngày tương lai
+10	Admin	Khách hàng	Thêm khách hàng	Tuổi: >= 18 tuổi
+11	Admin	Khách hàng	Thêm khách hàng	Giới tính: required (Nam/Nữ)
+12	Admin	Khách hàng	Thêm khách hàng	Tên tài khoản: unique, không trùng lặp
+13	Admin	Khách hàng	Thêm khách hàng	Số điện thoại: unique, không trùng lặp
+14	Admin	Khách hàng	Thêm địa chỉ	Tên địa chỉ: required
+15	Admin	Khách hàng	Thêm địa chỉ	Tên người nhận: required
+16	Admin	Khách hàng	Thêm địa chỉ	Số điện thoại: required + phone format
+17	Admin	Khách hàng	Thêm địa chỉ	Tỉnh/Thành: required
+18	Admin	Khách hàng	Thêm địa chỉ	Quận/Huyện: required
+19	Admin	Khách hàng	Thêm địa chỉ	Phường/Xã: required
+20	Admin	Khách hàng	Thêm địa chỉ	Địa chỉ cụ thể: required
+21	Admin	Thêm nhân viên	Thêm nhân viên	Tên nhân viên: required
+22	Admin	Nhân viên	Thêm nhân viên	Email: required + email format
+23	Admin	Nhân viên	Thêm nhân viên	Số điện thoại: required + phone format
+24	Admin	Nhân viên	Thêm nhân viên	Ngày sinh: required + không trùng lặp
+25	Admin	Nhân viên	Thêm nhân viên	Tuổi: >= 18 tuổi
+26	Admin	Nhân viên	Thêm nhân viên	Giới tính: required
+27	Admin	Nhân viên	Thêm nhân viên	Quyền hạn: required (STAFF/ADMIN)
+28	Admin	Nhân viên	Thêm nhân viên	Địa chỉ cụ thể: required
+29	Admin	Nhân viên	Thêm nhân viên	CCCD QR: format validation (6 parts)
+30	Admin	Nhân viên	Thêm nhân viên	Số điện thoại: unique, không trùng lặp
+31	Admin	Sản phẩm	Tạo sản phẩm	Tên sản phẩm: required
+32	Admin	Sản phẩm	Tạo sản phẩm	Thương hiệu: required
+33	Admin	Sản phẩm	Tạo sản phẩm	Chất liệu: required
+34	Admin	Sản phẩm	Tạo sản phẩm	Cổ áo: required
+35	Admin	Sản phẩm	Tạo sản phẩm	Tay áo: required
+36	Admin	Sản phẩm	Tạo sản phẩm	Xuất xứ: required
+37	Admin	Sản phẩm	Tạo sản phẩm	Màu sắc: required (ít nhất 1 màu)
+38	Admin	Sản phẩm	Tạo sản phẩm	Kích thước: required (ít nhất 1 size)
+39	Admin	Sản phẩm	Tạo sản phẩm	Hình ảnh: required + file format validation
+40	Admin	Sản phẩm	Tạo biến thể	Kích cỡ - Màu sắc: phải có ít nhất 1 biến thể
+41	Admin	Sản phẩm	Cập nhật giá	Giá bán: required + >= 0
+42	Admin	Sản phẩm	Cập nhật giá	Giá bán: > giá nhập
+43	Admin	Sản phẩm	Cập nhật giá	Số lượng: required + >= 0
+44	Admin	Sản phẩm	Cập nhật giá	Giá nhập: required (nếu cần)
+45	Admin	Chất liệu	Tạo chất liệu	Tên chất liệu: required, min 2 ký tự
+46	Admin	Cổ áo	Tạo cổ áo	Tên cổ áo: required, min 2 ký tự
+47	Admin	Tay áo	Tạo tay áo	Tên tay áo: required, min 2 ký tự
+48	Admin	Thương hiệu	Tạo thương hiệu	Tên thương hiệu: required, min 2 ký tự
+49	Admin	Xuất xứ	Tạo xuất xứ	Tên xuất xứ: required, min 2 ký tự
+50	Admin	Kích thước	Tạo kích thước	Tên kích thước: required
+51	Admin	Màu sắc	Tạo màu sắc	Tên màu sắc: required
+52	Admin	Khuyến mãi	Tạo khuyến mãi	Tên đợt giảm giá: required
+53	Admin	Khuyến mãi	Tạo khuyến mãi	Mức giảm: > 0
+54	Admin	Khuyến mãi	Tạo khuyến mãi	Ngày bắt đầu: required
+55	Admin	Khuyến mãi	Tạo khuyến mãi	Ngày kết thúc: required
+56	Admin	Khuyến mãi	Tạo khuyến mãi	Ngày kết thúc: > ngày bắt đầu
+57	Admin	Khuyến mãi	Tạo khuyến mãi	Sản phẩm: ít nhất 1 sản phẩm được chọn
+58	Admin	Phiếu giảm giá	Tạo voucher	Tên phiếu: required
+59	Admin	Phiếu giảm giá	Tạo voucher	Giá trị giảm: > 0
+60	Admin	Phiếu giảm giá	Tạo voucher	Số lượng: >= 0
+61	Admin	Phiếu giảm giá	Tạo voucher	Ngày bắt đầu: required
+62	Admin	Phiếu giảm giá	Tạo voucher	Ngày kết thúc: required
+63	Admin	Phiếu giảm giá	Tạo voucher	Ngày kết thúc: > ngày bắt đầu
+64	Admin	Phiếu giảm giá	Tạo voucher	Khách hàng: required (nếu voucher cá nhân)
+65	Staff	Bán hàng tại quầy	Chọn sản phẩm	Số lượng: 1 <= qty <= tồn kho
+66	Staff	Bán hàng tại quầy	Giữ kho	Số lượng giữ: > 0
+67	Staff	Bán hàng tại quầy	Hoàn kho	Số lượng hoàn: > 0
+68	Staff	Bán hàng tại quầy	Giao hàng	Tên người nhận: required
+69	Staff	Bán hàng tại quầy	Giao hàng	Số điện thoại: required
+70	Staff	Bán hàng tại quầy	Giao hàng	Tỉnh/Thành phố: required
+71	Staff	Bán hàng tại quầy	Giao hàng	Quận/Huyện: required
+72	Staff	Bán hàng tại quầy	Giao hàng	Phường/Xã: required
+73	Staff	Bán hàng tại quầy	Giao hàng	Địa chỉ cụ thể: required
+74	Staff	Bán hàng tại quầy	Bán hàng	Khách hàng: required
+75	Admin	Thống kê	Bộ lọc	Khoảng thời gian: hợp lệ
+76	Admin	Thống kê	Báo cáo	Email: required + email format
+77	Admin	Thống kê	Thống kê	Ngưỡng tồn kho: 1-100

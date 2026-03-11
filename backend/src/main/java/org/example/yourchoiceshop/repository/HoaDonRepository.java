@@ -15,13 +15,12 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
 
         Optional<HoaDon> findByMaHoaDon(String maHoaDon);
 
-        // THÊM DÒNG NÀY ĐỂ TỐI ƯU QUERY KHÁCH HÀNG VÀ HÓA ĐƠN CHI TIẾT
-        // - tránh n+1 query khi lặp qua hd.getHoaDonChiTiets() trong service
-        @EntityGraph(attributePaths = { "khachHang", "nhanVien", "hoaDonChiTiets" })
+        @EntityGraph(attributePaths = { "khachHang", "nhanVien" })
         @Query("""
                             SELECT h FROM HoaDon h
                             WHERE
                                 (:keyword IS NULL OR h.maHoaDon LIKE %:keyword% OR h.tenNguoiNhan LIKE %:keyword%)
+                                AND h.trangThai <> 9
                                 AND (:status IS NULL OR h.trangThai = :status)
                                 AND (:type IS NULL OR h.loaiHoaDon = :type)
                                 AND (:fromDate IS NULL OR h.ngayTao >= :fromDate)

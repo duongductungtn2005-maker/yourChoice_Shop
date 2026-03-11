@@ -28,7 +28,7 @@ public class CaLamViecController {
 
     // API thêm mới: POST http://localhost:8080/api/ca-lam-viec
     @PostMapping
-public ResponseEntity<?> createCaLamViec(@RequestBody CaLamViec request) {
+public ResponseEntity<?> createCaLamViec(@RequestBody CaLamViecRequest request) {
     // THÊM ĐOẠN NÀY ĐỂ CHECK TRÙNG TÊN:
     if (caLamViecRepository.existsByTenCa(request.getTenCa())) {
         return ResponseEntity.badRequest().body("Tên ca làm việc này đã tồn tại. Vui lòng chọn tên khác!");

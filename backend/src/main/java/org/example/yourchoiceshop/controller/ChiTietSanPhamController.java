@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -45,6 +46,14 @@ public class ChiTietSanPhamController {
         );
 
         return ResponseEntity.ok(result);
+    }
+
+    // API Tìm biến thể theo mã CTSP (dùng cho quét QR)
+    @GetMapping("/by-ma")
+    public ResponseEntity<?> getByMaCtsp(@RequestParam String maCtsp) {
+        return repository.findByMaCtspAndActive(maCtsp)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // --- API SỬA (FIX LỖI TẠI ĐÂY) ---
@@ -106,6 +115,37 @@ public class ChiTietSanPhamController {
 
             repository.save(detail);
             return ResponseEntity.ok(detail);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/reserve")
+    public ResponseEntity<?> reserveStock(@PathVariable Integer id, @RequestBody Map<String, Integer> request) {
+        Integer soLuong = request.get("soLuong");
+        Optional<ChiTietSanPham> optional = repository.findById(id);
+        if (optional.isPresent()) {
+            ChiTietSanPham sp = optional.get();
+            if (sp.getSoLuong() < soLuong) {
+                return ResponseEntity.badRequest().body("Không đủ tồn kho (còn " + sp.getSoLuong() + ")");
+            }
+            sp.setSoLuong(sp.getSoLuong() - soLuong);
+            repository.save(sp);
+            return ResponseEntity.ok(sp);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/release")
+    public ResponseEntity<?> releaseStock(@PathVariable Integer id, @RequestBody Map<String, Integer> request) {
+        Integer soLuong = request.get("soLuong");
+        Optional<ChiTietSanPham> optional = repository.findById(id);
+        if (optional.isPresent()) {
+            ChiTietSanPham sp = optional.get();
+            sp.setSoLuong(sp.getSoLuong() + soLuong);
+            repository.save(sp);
+            return ResponseEntity.ok(sp);
         } else {
             return ResponseEntity.notFound().build();
         }

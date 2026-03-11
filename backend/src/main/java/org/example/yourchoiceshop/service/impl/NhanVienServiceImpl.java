@@ -107,14 +107,9 @@ public class NhanVienServiceImpl implements NhanVienService {
             nv.setAnhDaiDien(saveFile(req.getAvatarFile()));
         }
 
-        // Tạo mật khẩu: ADMIN dùng "123456", STAFF dùng random
-        String matKhau;
+        // Luôn tạo mật khẩu ngẫu nhiên cho cả ADMIN và STAFF.
+        String matKhau = generateRandomPassword();
         boolean isAdmin = "ADMIN".equalsIgnoreCase(req.getChucVu());
-        if (isAdmin) {
-            matKhau = "123456";
-        } else {
-            matKhau = generateRandomPassword();
-        }
         nv.setMatKhau(matKhau);
         nv.setTrangThai(1);
 
@@ -258,6 +253,16 @@ public class NhanVienServiceImpl implements NhanVienService {
             return false;
         }
         return nhanVienRepo.existsByTenTaiKhoanAndMatKhau(usernameValue, passwordValue);
+    }
+
+    @Override
+    public NhanVien getEmployeeByCredentials(String username, String password) {
+        String usernameValue = username != null ? username.trim() : "";
+        String passwordValue = password != null ? password.trim() : "";
+        if (usernameValue.isEmpty() || passwordValue.isEmpty()) {
+            return null;
+        }
+        return nhanVienRepo.findByTenTaiKhoanAndMatKhau(usernameValue, passwordValue).orElse(null);
     }
 
     private String generateRandomPassword() {

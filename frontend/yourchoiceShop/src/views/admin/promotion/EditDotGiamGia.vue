@@ -104,27 +104,20 @@
                         <th width="40px" class="text-center">
                             <input type="checkbox" @change="toggleAllParent" :checked="isAllParentSelected" />
                         </th>
-                        <th width="60px" class="text-center">Ảnh</th>
                         <th width="100px" class="text-center">Mã SP</th>
                         <th>Tên sản phẩm</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="loadingProd">
-                        <td colspan="4" class="text-center py-4">Đang tải dữ liệu...</td>
+                        <td colspan="3" class="text-center py-4">Đang tải dữ liệu...</td>
                     </tr>
                     <tr v-else-if="parentProducts.length === 0">
-                         <td colspan="4" class="text-center empty-state">Không tìm thấy sản phẩm nào.</td>
+                         <td colspan="3" class="text-center empty-state">Không tìm thấy sản phẩm nào.</td>
                     </tr>
                     <tr v-else v-for="sp in parentProducts" :key="sp.id" :class="{ 'selected-row': selectedParentIds.includes(sp.id) }">
                         <td class="text-center">
                             <input type="checkbox" :value="sp.id" v-model="selectedParentIds" @change="handleSelectParent(sp.id)" />
-                        </td>
-                        <td class="text-center">
-                            <div class="img-wrapper">
-                                <img v-if="sp.hinhAnh" :src="'http://localhost:8080/api/v1/product-images/' + sp.hinhAnh" class="thumb-img" @error="handleImgError" />
-                                <div v-else class="img-placeholder"><i class="far fa-image"></i></div>
-                            </div>
                         </td>
                         <td class="text-center code-text">{{ sp.maSanPham }}</td>
                         <td>
@@ -204,7 +197,7 @@
                         <td class="text-center">{{ (detailPage - 1) * detailPageSize + index + 1 }}</td>
                         <td class="text-center">
                             <div class="img-wrapper-sm">
-                                <img v-if="v.hinhAnh" :src="'http://localhost:8080/api/v1/product-images/' + v.hinhAnh" class="thumb-img" @error="handleImgError" />
+                                <img v-if="v.hinhAnh" :src="getImageUrl(v.hinhAnh)" class="thumb-img" @error="handleImgError" />
                                 <div v-else class="img-placeholder"><i class="far fa-image"></i></div>
                                 
                                 <span v-if="form.giaTriGiam > 0" class="discount-badge" :style="{ backgroundColor: getBadgeColor(form.giaTriGiam) }">
@@ -344,7 +337,7 @@ const fetchDiscountDetail = async () => {
                     
                     tenKichThuoc: v.kichThuoc?.tenKichThuoc || v.tenKichThuoc || '-',
                     tenMauSac: v.mauSac?.tenMauSac || v.tenMauSac || '-',
-                    hinhAnh: v.listAnh && v.listAnh.length > 0 ? v.listAnh[0] : (v.hinhAnh || v.sanPham?.hinhAnh || ''),
+                    hinhAnh: v.hinhAnhs && v.hinhAnhs.length > 0 ? v.hinhAnhs[0].duongDanAnh : (v.hinhAnh || v.sanPham?.hinhAnh || ''),
                     giaBan: v.giaBan,
                     parentId: idCha 
                 };
@@ -516,8 +509,23 @@ const updateSale = async () => {
 };
 
 // --- UTILS ---
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
+const getImageUrl = (img) => {
+    if (!img) return '';
+    if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:')) return img;
+    return IMAGE_BASE_URL + img;
+};
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
-const handleImgError = (e) => { e.target.src = "https://via.placeholder.com/50?text=IMG"; };
+const handleImgError = (e) => {
+    e.target.style.display = 'none';
+    const wrapper = e.target.parentElement;
+    if (wrapper && !wrapper.querySelector('.img-fallback')) {
+        const fallback = document.createElement('div');
+        fallback.className = 'img-fallback';
+        fallback.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+        wrapper.appendChild(fallback);
+    }
+};
 const getColorCode = (name) => {
     const map = { 'Đen': '#000', 'Trắng': '#fff', 'Xanh': '#3b82f6', 'Đỏ': '#ef4444', 'Vàng': '#eab308', 'Hồng': '#ec4899', 'Xám': '#6b7280', 'Cam': '#f97316', 'Tím': '#a855f7' };
     return map[name] || '#e5e7eb';

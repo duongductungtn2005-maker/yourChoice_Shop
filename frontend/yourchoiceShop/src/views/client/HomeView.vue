@@ -51,13 +51,17 @@
                   <button class="btn-quick-view">Xem chi tiết</button>
                </div>
                <div class="sale-tag" v-if="prod.phanTramGiam">-{{ prod.phanTramGiam }}%</div>
+               <div v-if="prod.soLuong <= 0" class="sold-out-overlay">
+                  <span class="sold-out-text">Đã hết hàng</span>
+               </div>
             </div>
             
             <div class="product-info">
                <div class="brand-name">{{ prod.tenThuongHieu || 'No Brand' }}</div>
                <h3 class="product-name">{{ prod.tenSanPham }}</h3>
                <div class="product-price">
-                  <span class="current-price">{{ formatMoney(prod.giaBan || 250000) }}</span>
+                  <span class="current-price">{{ formatMoney(prod.giaBanMin || 0) }}</span>
+                  <span v-if="prod.giaBanMax && prod.giaBanMax > prod.giaBanMin" class="price-range"> ~ {{ formatMoney(prod.giaBanMax) }}</span>
                </div>
             </div>
          </div>
@@ -100,6 +104,8 @@ import axios from 'axios';
 
 // --- CONFIG ---
 const API_URL = 'http://localhost:8080/api/v1';
+// backend cung cấp endpoint trả về ảnh sản phẩm (tên file hoặc path)
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
 const featuredProducts = ref([]);
 const currentSlide = ref(0);
 let slideInterval;
@@ -143,19 +149,32 @@ const startSlideTimer = () => {
 const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
 const getProductImage = (prod) => {
-    // Nếu có list ảnh thì lấy ảnh đầu, không thì lấy placeholder
-    // return prod.listAnh && prod.listAnh.length > 0 ? prod.listAnh[0] : `https://picsum.photos/300/400?random=${prod.id}`;
-    return `https://picsum.photos/300/400?random=${prod.id}`; // Demo
+    // Dùng ảnh chính từ ProductResponse
+    if (prod.anhChinh) {
+        if (prod.anhChinh.startsWith('http')) return prod.anhChinh;
+        return `${IMAGE_BASE_URL}${prod.anhChinh}`;
+    }
+    // fallback nếu không có ảnh
+    return `https://placehold.co/300x400?text=No+Image`;
 };
 
 // --- LIFECYCLE ---
+let stockInterval;
+const onVisibilityChange = () => {
+    if (document.visibilityState === 'visible') fetchFeatured();
+};
+
 onMounted(() => { 
     fetchFeatured(); 
-    startSlideTimer(); 
+    startSlideTimer();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    stockInterval = setInterval(fetchFeatured, 30000);
 });
 
 onUnmounted(() => {
     if (slideInterval) clearInterval(slideInterval);
+    if (stockInterval) clearInterval(stockInterval);
+    document.removeEventListener('visibilitychange', onVisibilityChange);
 });
 </script>
 
@@ -228,6 +247,8 @@ onUnmounted(() => {
 .btn-quick-view:hover { background: #0f172a; color: white; }
 
 .sale-tag { position: absolute; top: 10px; left: 10px; background: #ef4444; color: white; padding: 4px 8px; font-size: 12px; font-weight: 700; border-radius: 4px; }
+.sold-out-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 5; }
+.sold-out-text { color: #fff; background: #dc2626; font-size: 14px; font-weight: 700; padding: 6px 18px; border-radius: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
 
 .product-info { text-align: center; }
 .brand-name { font-size: 12px; text-transform: uppercase; color: #94a3b8; margin-bottom: 5px; font-weight: 600; }
@@ -235,7 +256,8 @@ onUnmounted(() => {
   font-size: 16px; font-weight: 600; margin: 0 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #334155; 
 }
 .product-name:hover { color: #1e3a8a; }
-.product-price { font-weight: 700; color: #0f172a; font-size: 16px; }
+.product-price { font-weight: 700; color: #0f172a; font-size: 16px; display: flex; justify-content: center; align-items: baseline; gap: 2px; flex-wrap: wrap; }
+.price-range { font-size: 14px; color: #64748b; font-weight: 500; }
 
 /* === BUTTON VIEW ALL === */
 .btn-view-all { 
