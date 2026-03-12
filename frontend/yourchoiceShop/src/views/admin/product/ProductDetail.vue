@@ -123,7 +123,7 @@
                   <div v-else>{{ variant.soLuong }}</div>
               </td>
               <td>
-                 <span :class="['status-badge', variant.trangThai === 1 ? 'status-active' : 'status-inactive']">{{ variant.trangThai === 1 ? 'Đang bán' : 'Ngừng HĐ' }}</span>
+                 <span :class="['status-badge', variant.trangThai === 1 ? 'status-active' : 'status-inactive']">{{ variant.trangThai === 1 ? 'Đang bán' : 'Ngừng hoạt động' }}</span>
               </td>
               <td>
                  <button class="btn-icon-eye" title="Xem chi tiết" @click="openEditModal(variant)"><font-awesome-icon :icon="['far', 'eye']" /></button>
@@ -476,7 +476,7 @@ td { padding: 15px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vert
 
 /* STATUS BADGE */
 .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-.status-active { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.status-active { background-color: #dbeafe; color: #201dd8; border: 1px solid #93c5fd; }
 .status-inactive { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
 /* THUMBNAIL */

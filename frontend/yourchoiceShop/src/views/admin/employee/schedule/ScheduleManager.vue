@@ -98,8 +98,9 @@
                 v-for="assignment in getAssignmentsForCell(shift.id, day.dateStr)" 
                 :key="assignment.id" 
                 class="assignment-card"
+                :title="(assignment.nhanVien.ten || assignment.nhanVien.tenNhanVien) + ' · ' + (assignment.nhanVien.ma || assignment.nhanVien.maNhanVien)"
               >
-                <div class="avatar">{{ assignment.nhanVien.avatar || (assignment.nhanVien.ten || assignment.nhanVien.tenNhanVien || 'N').charAt(0).toUpperCase() }}</div>
+                <div class="avatar">{{ (assignment.nhanVien.ten || assignment.nhanVien.tenNhanVien || 'N').charAt(0).toUpperCase() }}</div>
                 <div class="emp-details">
                   <div class="emp-name">{{ assignment.nhanVien.ten || assignment.nhanVien.tenNhanVien }}</div>
                   <div class="emp-code">{{ assignment.nhanVien.ma || assignment.nhanVien.maNhanVien }}</div>
@@ -740,7 +741,7 @@ onMounted(() => {
 
 /* Nút Sao chép - Màu Gradient hoặc tím nổi bật */
 .btn-magic {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); 
   color: white;
   border: none;
   padding: 8px 15px;
@@ -754,7 +755,7 @@ onMounted(() => {
 
 /* Nút Dropdown Excel */
 .btn-excel {
-  background-color: #10b981;
+  background-color: #1b10b9;
   color: white;
   border: none;
   padding: 8px 15px;
@@ -946,24 +947,49 @@ onMounted(() => {
 .shift-time { font-size: 12px; color: #2563eb; background: #e6fcf5; display: inline-block; padding: 2px 6px; border-radius: 4px; }
 
 /* Grid Cells & Assignment Card */
-.calendar-cell { height: 100px; vertical-align: top; position: relative; }
+.calendar-cell {
+  min-height: 60px;
+  vertical-align: top;
+  position: relative;
+  padding: 4px 4px 28px 4px;
+}
 .add-assignment-btn {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex; justify-content: center; align-items: center;
-  height: 40px; width: 40px; margin: 0 auto;
+  height: 22px; width: 22px;
   border-radius: 50%; border: 1px dashed #cbd5e1; color: #2563eb;
   cursor: pointer; opacity: 0; transition: opacity 0.2s;
   background: #f8fafc;
+  font-size: 10px;
 }
 .calendar-cell:hover .add-assignment-btn { opacity: 1; }
 
 .assignment-card {
-  display: flex; flex-direction: column; align-items: center;
-  background: white; border: 1px solid #2563eb; border-left: 4px solid #2563eb;
-  border-radius: 6px; padding: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-left: 3px solid #2563eb;
+  border-radius: 5px;
+  padding: 3px 5px;
+  margin-bottom: 3px;
+  overflow: hidden;
+  cursor: default;
 }
-.avatar { width: 30px; height: 30px; border-radius: 50%; background: #1e3a8a; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 5px; }
-.emp-name { font-size: 13px; font-weight: bold; }
-.emp-code { font-size: 11px; color: #2563eb; }
+.avatar {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border-radius: 50%; background: #1e3a8a; color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; font-size: 11px;
+}
+.emp-details { overflow: hidden; min-width: 0; }
+.emp-name { font-size: 11px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.emp-code { font-size: 10px; color: #2563eb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* List View Filters & Table */
 .filter-row { display: flex; gap: 15px; margin-bottom: 20px; }

@@ -41,7 +41,9 @@
 
            <div class="p-price">
               <span class="current-price">{{ formatMoney(displayPrice) }}</span>
-              <span v-if="!currentVariant && product.giaBanMax && product.giaBanMax > product.giaBanMin" class="price-range"> ~ {{ formatMoney(product.giaBanMax) }}</span>
+              <span v-if="!currentVariant && !originalPrice && product.giaBanMax && product.giaBanMax > product.giaBanMin" class="price-range"> ~ {{ formatMoney(product.giaBanMax) }}</span>
+              <span v-if="originalPrice" class="original-price">{{ formatMoney(originalPrice) }}</span>
+              <span v-if="discountPercent" class="discount-badge">-{{ discountPercent }}%</span>
            </div>
 
            <div class="p-desc-short">
@@ -178,6 +180,8 @@ const product = reactive({
   thuongHieu: '',
   giaBanMin: 0,
   giaBanMax: 0,
+  giaSauGiamMin: null,
+  phanTramGiamMax: null,
   moTa: '',
   anhChinh: '',
   variants: [] // Chứa danh sách chi tiết (Màu, Size, Số lượng) từ DB
@@ -202,6 +206,8 @@ const fetchProductDetail = async () => {
        product.thuongHieu = data.tenThuongHieu;
        product.giaBanMin = data.giaBanMin || 0;
        product.giaBanMax = data.giaBanMax || 0;
+       product.giaSauGiamMin = data.giaSauGiamMin || null;
+       product.phanTramGiamMax = data.phanTramGiamMax || null;
        product.moTa = data.moTa;
        product.anhChinh = data.anhChinh;
        
@@ -216,6 +222,9 @@ const fetchProductDetail = async () => {
                maCtsp: v.maCtsp,
                soLuong: v.soLuong,
                giaBan: v.giaBan,
+               giaSauGiam: v.giaSauGiam || null,
+               phanTramGiam: v.phanTramGiam || null,
+               tenDotGiamGia: v.tenDotGiamGia || null,
                tenMauSac: v.mauSac ? v.mauSac.tenMauSac : '',
                tenKichThuoc: v.kichThuoc ? v.kichThuoc.tenKichThuoc : '',
                listAnh: v.listAnh || []
@@ -236,12 +245,34 @@ const fetchProductDetail = async () => {
 
 // --- COMPUTED PROPERTIES (XỬ LÝ BIẾN THỂ) ---
 
-// Giá hiển thị: ưu tiên giá của biến thể đang chọn, fallback giá min
+// Giá hiển thị: ưu tiên giá giảm của biến thể đang chọn, fallback giá min
 const displayPrice = computed(() => {
-    if (currentVariant.value && currentVariant.value.giaBan) {
+    if (currentVariant.value) {
+        return currentVariant.value.giaSauGiam || currentVariant.value.giaBan;
+    }
+    return product.giaSauGiamMin || product.giaBanMin || 0;
+});
+
+// Giá gốc (trước giảm) - chỉ hiển thị khi có giảm giá
+const originalPrice = computed(() => {
+    if (currentVariant.value && currentVariant.value.giaSauGiam) {
         return currentVariant.value.giaBan;
     }
-    return product.giaBanMin || 0;
+    if (!currentVariant.value && product.giaSauGiamMin) {
+        return product.giaBanMin;
+    }
+    return null;
+});
+
+// Phần trăm giảm giá
+const discountPercent = computed(() => {
+    if (currentVariant.value && currentVariant.value.phanTramGiam) {
+        return currentVariant.value.phanTramGiam;
+    }
+    if (!currentVariant.value && product.phanTramGiamMax) {
+        return product.phanTramGiamMax;
+    }
+    return null;
 });
 
 // Lọc ra danh sách màu duy nhất
@@ -323,6 +354,9 @@ const refreshVariantStock = async () => {
             const existing = product.variants.find(ev => ev.id === v.id);
             if (existing) {
                 existing.soLuong = v.soLuong;
+                existing.giaSauGiam = v.giaSauGiam || null;
+                existing.phanTramGiam = v.phanTramGiam || null;
+                existing.tenDotGiamGia = v.tenDotGiamGia || null;
             }
         });
     } catch (e) { /* silent */ }
@@ -340,6 +374,7 @@ const addToCart = async () => {
     }
 
     // Add to cart using Pinia store
+    const effectivePrice = currentVariant.value.giaSauGiam || currentVariant.value.giaBan;
     const cartItem = {
         variantId: currentVariant.value.id,
         productId: product.id,
@@ -347,7 +382,9 @@ const addToCart = async () => {
         mauSac: selectedColor.value,
         kichThuoc: selectedSize.value,
         soLuong: quantity.value,
-        donGia: currentVariant.value.giaBan,
+        donGia: effectivePrice,
+        giaGoc: currentVariant.value.giaSauGiam ? currentVariant.value.giaBan : null,
+        phanTramGiam: currentVariant.value.phanTramGiam || null,
         anh: activeImage.value,
         maxStock: currentVariant.value.soLuong
     };
@@ -380,7 +417,8 @@ const buyNow = async () => {
             <p>Màu: <strong>${selectedColor.value}</strong></p>
             <p>Kích thước: <strong>${selectedSize.value}</strong></p>
             <p>Số lượng: <strong>${quantity.value}</strong></p>
-            <p style="margin-top: 15px; font-size: 18px; color: #d32f2f;">Giá: <strong>${formatMoney(currentVariant.value.giaBan * quantity.value)}</strong></p>
+            <p style="margin-top: 15px; font-size: 18px; color: #d32f2f;">Giá: <strong>${formatMoney((currentVariant.value.giaSauGiam || currentVariant.value.giaBan) * quantity.value)}</strong></p>
+            ${currentVariant.value.giaSauGiam ? `<p style="text-decoration: line-through; color: #999;">Giá gốc: ${formatMoney(currentVariant.value.giaBan * quantity.value)}</p>` : ''}
         </div>`,
         icon: 'info',
         showCancelButton: true,
@@ -394,6 +432,7 @@ const buyNow = async () => {
             // Clear cart and add only this item
             cartStore.clearCart();
             
+            const buyPrice = currentVariant.value.giaSauGiam || currentVariant.value.giaBan;
             const cartItem = {
                 variantId: currentVariant.value.id,
                 productId: product.id,
@@ -401,7 +440,9 @@ const buyNow = async () => {
                 mauSac: selectedColor.value,
                 kichThuoc: selectedSize.value,
                 soLuong: quantity.value,
-                donGia: currentVariant.value.giaBan,
+                donGia: buyPrice,
+                giaGoc: currentVariant.value.giaSauGiam ? currentVariant.value.giaBan : null,
+                phanTramGiam: currentVariant.value.phanTramGiam || null,
                 anh: activeImage.value,
                 maxStock: currentVariant.value.soLuong
             };
@@ -499,6 +540,8 @@ onUnmounted(() => {
 .current-price { font-size: 26px; font-weight: 700; color: #d32f2f; }
 .price-range { font-size: 18px; color: #64748b; font-weight: 500; }
 .old-price { font-size: 16px; text-decoration: line-through; color: #999; margin-bottom: 5px; }
+.original-price { font-size: 16px; text-decoration: line-through; color: #999; align-self: center; }
+.discount-badge { background: #d32f2f; color: white; padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: 600; align-self: center; }
 .sale-label { background: #d32f2f; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-bottom: 8px; }
 
 .p-desc-short { font-size: 15px; line-height: 1.6; color: #555; margin-bottom: 30px; }

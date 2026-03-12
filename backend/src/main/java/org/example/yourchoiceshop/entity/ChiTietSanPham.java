@@ -2,9 +2,12 @@ package org.example.yourchoiceshop.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -73,4 +76,44 @@ public class ChiTietSanPham extends BaseStatusEntity {
     @JoinColumn(name = "id_dot_giam_gia")
     @JsonIgnore
     private DotGiamGia dotGiamGia;
+
+    // === Computed fields cho Frontend (không lưu DB) ===
+
+    @JsonProperty("giaSauGiam")
+    public BigDecimal getGiaSauGiam() {
+        if (dotGiamGia == null || giaBan == null) return null;
+        if (dotGiamGia.getTrangThai() == null || dotGiamGia.getTrangThai() != 1) return null;
+        LocalDateTime now = LocalDateTime.now();
+        if (dotGiamGia.getNgayBatDau() != null && now.isBefore(dotGiamGia.getNgayBatDau())) return null;
+        if (dotGiamGia.getNgayKetThuc() != null && now.isAfter(dotGiamGia.getNgayKetThuc())) return null;
+
+        BigDecimal giaTriGiam = dotGiamGia.getGiaTriGiam();
+        if (giaTriGiam == null || giaTriGiam.compareTo(BigDecimal.ZERO) <= 0) return null;
+
+        BigDecimal giaSauGiam;
+        if ("%".equals(dotGiamGia.getLoaiGiamGia())) {
+            giaSauGiam = giaBan.subtract(giaBan.multiply(giaTriGiam).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP));
+        } else {
+            giaSauGiam = giaBan.subtract(giaTriGiam);
+        }
+        return giaSauGiam.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : giaSauGiam;
+    }
+
+    @JsonProperty("phanTramGiam")
+    public BigDecimal getPhanTramGiam() {
+        if (dotGiamGia == null || giaBan == null || giaBan.compareTo(BigDecimal.ZERO) == 0) return null;
+        BigDecimal giaSauGiam = getGiaSauGiam();
+        if (giaSauGiam == null) return null;
+        return giaBan.subtract(giaSauGiam).multiply(BigDecimal.valueOf(100)).divide(giaBan, 0, RoundingMode.HALF_UP);
+    }
+
+    @JsonProperty("tenDotGiamGia")
+    public String getTenDotGiamGia() {
+        if (dotGiamGia == null) return null;
+        if (dotGiamGia.getTrangThai() == null || dotGiamGia.getTrangThai() != 1) return null;
+        LocalDateTime now = LocalDateTime.now();
+        if (dotGiamGia.getNgayBatDau() != null && now.isBefore(dotGiamGia.getNgayBatDau())) return null;
+        if (dotGiamGia.getNgayKetThuc() != null && now.isAfter(dotGiamGia.getNgayKetThuc())) return null;
+        return dotGiamGia.getTenDotGiamGia();
+    }
 }

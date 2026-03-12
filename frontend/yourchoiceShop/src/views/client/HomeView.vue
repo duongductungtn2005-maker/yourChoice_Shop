@@ -45,7 +45,14 @@
             @click="$router.push(`/product/${prod.id}`)"
          >
             <div class="product-image">
-               <img :src="getProductImage(prod)" alt="Product Image">
+               <img 
+                  v-for="(img, idx) in getProductImages(prod)" 
+                  :key="idx"
+                  :src="img"
+                  :class="{ active: (productSlideIndex[prod.id] || 0) === idx }"
+                  class="product-slide-img"
+                  alt="Product Image"
+               >
                
                <div class="overlay-actions">
                   <button class="btn-quick-view">Xem chi tiết</button>
@@ -99,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, reactive } from 'vue';
 import axios from 'axios';
 
 // --- CONFIG ---
@@ -158,6 +165,29 @@ const getProductImage = (prod) => {
     return `https://placehold.co/300x400?text=No+Image`;
 };
 
+// --- PRODUCT IMAGE SLIDER ---
+const productSlideIndex = reactive({});
+let productSlideInterval;
+
+const getProductImages = (prod) => {
+    if (prod.dsAnh && prod.dsAnh.length > 0) {
+        return prod.dsAnh.map(img => img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`);
+    }
+    return [getProductImage(prod)];
+};
+
+const startProductSlider = () => {
+    productSlideInterval = setInterval(() => {
+        featuredProducts.value.forEach(prod => {
+            const images = prod.dsAnh && prod.dsAnh.length > 0 ? prod.dsAnh : [];
+            if (images.length > 1) {
+                const current = productSlideIndex[prod.id] || 0;
+                productSlideIndex[prod.id] = (current + 1) % images.length;
+            }
+        });
+    }, 2000);
+};
+
 // --- LIFECYCLE ---
 let stockInterval;
 const onVisibilityChange = () => {
@@ -167,12 +197,14 @@ const onVisibilityChange = () => {
 onMounted(() => { 
     fetchFeatured(); 
     startSlideTimer();
+    startProductSlider();
     document.addEventListener('visibilitychange', onVisibilityChange);
     stockInterval = setInterval(fetchFeatured, 30000);
 });
 
 onUnmounted(() => {
     if (slideInterval) clearInterval(slideInterval);
+    if (productSlideInterval) clearInterval(productSlideInterval);
     if (stockInterval) clearInterval(stockInterval);
     document.removeEventListener('visibilitychange', onVisibilityChange);
 });
@@ -237,6 +269,8 @@ onUnmounted(() => {
 
 .product-image { position: relative; overflow: hidden; aspect-ratio: 3/4; background: #f8fafc; margin-bottom: 15px; border-radius: 8px; }
 .product-image img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s ease; }
+.product-slide-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.6s ease; }
+.product-slide-img.active { opacity: 1; }
 
 .overlay-actions { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; }
 .btn-quick-view {

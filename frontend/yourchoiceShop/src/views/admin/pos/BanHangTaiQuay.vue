@@ -81,7 +81,7 @@
             <div class="price-change-banner-content">
               <b>Giá sản phẩm đã thay đổi ({{ priceChangedItems.length }} sản phẩm)</b>
               <ul>
-                <li v-for="pc in priceChangedItems" :key="pc.id">
+                <li v-for="pc in priceChangedItems" :key="pc.cartKey || pc.id">
                   <b>{{ pc.name }}</b> ({{ pc.color }} / {{ pc.size }}):
                   <span class="old-val">{{ formatMoney(pc.priceChangeMeta.oldPrice) }}</span>
                   → <span class="new-val">{{ formatMoney(pc.priceChangeMeta.newPrice) }}</span>
@@ -108,7 +108,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, i) in cart" :key="item.id">
+                <tr v-for="(item, i) in cart" :key="item.cartKey || item.id">
                   <td class="mono">{{ item.productCode || item.code }}</td>
                   <td class="name-cell">
                     <div class="name-main">{{ item.name }}</div>
@@ -116,29 +116,32 @@
                       {{ item.material || '—' }} • {{ item.coAo || '—' }} • {{ item.tayAo || '—' }} • {{ item.xuatXu ||
                         '—' }}
                     </div>
+                    <div v-if="item.isOldPriceLine && item.priceChangeMeta" class="price-change-line-msg">
+                      Giá đã thay đổi: {{ formatMoney(item.priceChangeMeta.oldPrice) }} → {{ formatMoney(item.priceChangeMeta.newPrice) }}
+                    </div>
                   </td>
                   <td>{{ item.brand || '-' }}</td>
                   <td>{{ item.color || '-' }}</td>
                   <td>{{ item.size || '-' }}</td>
                   <td class="p-price">
-                    <div class="price-main" :class="{ 'price-changed': item.priceChangeMeta }">{{ formatMoney(item.price) }}</div>
-                    <div v-if="item.priceChangeMeta" class="price-old">{{ formatMoney(item.priceChangeMeta.oldPrice) }}</div>
+                    <div class="price-main">{{ formatMoney(item.price) }}</div>
+                    <div v-if="item.giaGoc" class="price-original">{{ formatMoney(item.giaGoc) }}</div>
+                    <div v-if="item.phanTramGiam" class="discount-badge-inline">-{{ item.phanTramGiam }}%</div>
                   </td>
                   <td>
                     <div>
                       <div class="item-control">
                         <button @click="decreaseCartQty(item)" :disabled="item.qty <= 1" title="Giảm">−</button>
                         <input class="qty-input" :class="{ 'qty-input-error': !!item.qtyWarning }" type="number" min="1"
-                          :max="item.qty + item.tonKho" :value="item.qty"
-                          @change="updateCartQty(item, $event.target.value)" />
-                        <button @click="increaseCartQty(item)" :disabled="item.tonKho <= 0" title="Tăng">＋</button>
+                          :max="item.isOldPriceLine ? item.qty : item.qty + item.tonKho" :value="item.qty"
+                          @change="updateCartQty(item, $event.target.value)" :readonly="!!item.isOldPriceLine" />
+                        <button v-if="!item.isOldPriceLine" @click="increaseCartQty(item)" :disabled="item.tonKho <= 0" title="Tăng">＋</button>
                       </div>
-                      <div v-if="item.qtyWarning" class="qty-warning">{{ item.qtyWarning }}</div>
+                      <div v-if="item.qtyWarning && !item.isOldPriceLine" class="qty-warning">{{ item.qtyWarning }}</div>
                     </div>
                   </td>
                   <td class="p-price">
-                    <div class="price-main" :class="{ 'price-changed': item.priceChangeMeta }">{{ formatMoney(item.price * item.qty) }}</div>
-                    <div v-if="item.priceChangeMeta" class="price-old">{{ formatMoney(item.priceChangeMeta.oldPrice * item.qty) }}</div>
+                    <div class="price-main">{{ formatMoney(item.price * item.qty) }}</div>
                   </td>
                   <td>
                     <button class="btn-remove" title="Xoá" @click="removeCartItem(i, item)">×</button>
@@ -435,7 +438,11 @@
                 <td>{{ p.brand || '-' }}</td>
                 <td>{{ p.material || '-' }}</td>
                 <td>{{ p.tonKho }}</td>
-                <td class="p-price">{{ formatMoney(p.price) }}</td>
+                <td class="p-price">
+                  <div class="price-main">{{ formatMoney(p.price) }}</div>
+                  <div v-if="p.giaGoc" class="price-original">{{ formatMoney(p.giaGoc) }}</div>
+                  <div v-if="p.phanTramGiam" class="discount-badge-inline">-{{ p.phanTramGiam }}%</div>
+                </td>
                 <td class="product-qty-cell">
                   <div>
                     <div class="item-control">
@@ -827,6 +834,11 @@ const mapProductDetail = (p) => {
   const inCart = cart.value.find(i => i.id === p.id)
   const parentProduct = p.sanPham || {}
 
+  // Giá hiển thị: ưu tiên giá sau giảm (đợt giảm giá) nếu có
+  const giaGoc = p.giaBan
+  const giaSauGiam = p.giaSauGiam != null ? Number(p.giaSauGiam) : null
+  const effectivePrice = giaSauGiam != null ? giaSauGiam : giaGoc
+
   return {
     id: p.id,
     code: p.maCtsp,
@@ -839,7 +851,10 @@ const mapProductDetail = (p) => {
     coAo: p.coAo?.tenCoAo || parentProduct.coAo?.tenCoAo || '—',
     tayAo: p.tayAo?.tenTayAo || parentProduct.tayAo?.tenTayAo || '—',
     xuatXu: p.xuatXu?.tenXuatXu || parentProduct.xuatXu?.tenXuatXu || '—',
-    price: p.giaBan,
+    price: effectivePrice,
+    giaGoc: giaSauGiam != null ? giaGoc : null,  // Chỉ lưu giá gốc nếu có giảm
+    phanTramGiam: p.phanTramGiam != null ? Number(p.phanTramGiam) : null,
+    tenDotGiamGia: p.tenDotGiamGia || null,
     tonKho: p.soLuong,
     qty: inCart ? Number(inCart.qty || 1) : 1,
     checked: false,
@@ -928,16 +943,21 @@ const onQrScanSuccess = async (decodedText) => {
 
     // Add to cart or increment existing
     const mapped = mapProductDetail(raw)
-    const exist = cart.value.find(i => i.id === mapped.id)
+    const exist = cart.value.find(i => i.id === mapped.id && !i.isOldPriceLine)
     if (exist) {
       exist.qty = Number(exist.qty || 0) + 1
       exist.tonKho = Math.max(0, Number(exist.tonKho || 0) - 1)
     } else {
-      cart.value.push({
+      const oldLine = cart.value.find(i => i.id === mapped.id && i.isOldPriceLine)
+      const newItem = {
         ...mapped,
         qty: 1,
         tonKho: Math.max(0, mapped.tonKho - 1)
-      })
+      }
+      if (oldLine) {
+        newItem.priceChangeMeta = { oldPrice: oldLine.price, newPrice: mapped.price }
+      }
+      cart.value.push(newItem)
     }
 
     const parentName = raw.sanPham?.tenSanPham || decodedText
@@ -1026,13 +1046,27 @@ const reserveProductStock = async (id, soLuong, showError = true) => {
   }
 }
 
+const getOriginalProductId = (item) => {
+  if (item && item.originalId && Number.isFinite(Number(item.originalId))) return Number(item.originalId)
+  const id = typeof item === 'object' ? item?.id : item
+  const numId = Number(id)
+  return Number.isFinite(numId) ? numId : null
+}
+
 const releaseProductStock = async (id, soLuong, showError = true) => {
   if (!Number.isFinite(soLuong) || soLuong <= 0) {
     return false
   }
 
+  // Đảm bảo ID là số nguyên (tránh lỗi ID dạng "19_oldPrice_xxx")
+  const numericId = Number(id)
+  if (!Number.isFinite(numericId)) {
+    console.warn('releaseProductStock: invalid ID', id)
+    return true // cho phép xóa khỏi cart mà không gọi API
+  }
+
   try {
-    await releaseStock(id, soLuong)
+    await releaseStock(numericId, soLuong)
     return true
   } catch (error) {
     if (showError) {
@@ -1040,6 +1074,18 @@ const releaseProductStock = async (id, soLuong, showError = true) => {
     }
     return false
   }
+}
+
+// Đồng bộ tonKho giữa dòng giá cũ và dòng giá mới của cùng sản phẩm
+const syncSiblingTonKho = (item, delta) => {
+  const productId = getOriginalProductId(item)
+  if (!productId) return
+  cart.value.forEach(other => {
+    if (other === item) return
+    if (getOriginalProductId(other) === productId) {
+      other.tonKho = Math.max(0, Number(other.tonKho || 0) + delta)
+    }
+  })
 }
 
 const normalizeQty = (value, maxQty) => {
@@ -1065,9 +1111,15 @@ const getQtyWarning = (value, maxQty) => {
 
 const updateCartQty = async (item, value) => {
   const currentQty = Number(item.qty) || 1
-  const maxQty = currentQty + Number(item.tonKho || 0)
+  const maxQty = item.isOldPriceLine ? currentQty : currentQty + Number(item.tonKho || 0)
   const warning = getQtyWarning(value, maxQty)
   const nextQty = normalizeQty(value, maxQty)
+
+  // Dòng giá cũ không được tăng số lượng
+  if (item.isOldPriceLine && nextQty > currentQty) {
+    item.qty = currentQty
+    return
+  }
 
   item.qtyWarning = warning
 
@@ -1078,21 +1130,23 @@ const updateCartQty = async (item, value) => {
 
   if (nextQty > currentQty) {
     const delta = nextQty - currentQty
-    const reserved = await reserveProductStock(item.id, delta)
+    const reserved = await reserveProductStock(getOriginalProductId(item), delta)
     if (!reserved) {
       item.qtyWarning = 'Không đủ tồn kho'
       item.qty = currentQty
       return
     }
     item.tonKho = Math.max(0, Number(item.tonKho || 0) - delta)
+    syncSiblingTonKho(item, -delta)
   } else {
     const delta = currentQty - nextQty
-    const released = await releaseProductStock(item.id, delta)
+    const released = await releaseProductStock(getOriginalProductId(item), delta)
     if (!released) {
       item.qty = currentQty
       return
     }
     item.tonKho = Number(item.tonKho || 0) + delta
+    syncSiblingTonKho(item, delta)
   }
 
   if (!warning) {
@@ -1107,7 +1161,7 @@ const increaseCartQty = async (item) => {
     return
   }
 
-  const reserved = await reserveProductStock(item.id, 1)
+  const reserved = await reserveProductStock(getOriginalProductId(item), 1)
   if (!reserved) {
     item.qtyWarning = 'Không đủ tồn kho'
     return
@@ -1116,12 +1170,13 @@ const increaseCartQty = async (item) => {
   item.qtyWarning = ''
   item.qty = Number(item.qty || 0) + 1
   item.tonKho = Math.max(0, Number(item.tonKho || 0) - 1)
+  syncSiblingTonKho(item, -1)
 }
 
 const decreaseCartQty = async (item) => {
   if (Number(item.qty) <= 1) return
 
-  const released = await releaseProductStock(item.id, 1)
+  const released = await releaseProductStock(getOriginalProductId(item), 1)
   if (!released) {
     return
   }
@@ -1129,6 +1184,7 @@ const decreaseCartQty = async (item) => {
   item.qtyWarning = ''
   item.qty = Number(item.qty || 1) - 1
   item.tonKho = Number(item.tonKho || 0) + 1
+  syncSiblingTonKho(item, 1)
 }
 
 const updateProductQty = (product, value) => {
@@ -1154,7 +1210,7 @@ const hasInvalidCartQty = () => {
 }
 
 const confirmAddProduct = async () => {
-  for (const p of products.value) {
+  for (const p of productFilterSource.value) {
     if (!p.checked) continue
 
     const normalizedQty = normalizeQty(p.qty, p.tonKho)
@@ -1171,16 +1227,17 @@ const confirmAddProduct = async () => {
       continue
     }
 
-    const exist = cart.value.find(i => i.id === p.id)
+    const exist = cart.value.find(i => i.id === p.id && !i.isOldPriceLine)
 
     if (exist) {
-      // Sản phẩm đã có trong hoá đơn: giữ nguyên giá cũ, chỉ cập nhật số lượng
+      // Sản phẩm đã có trong hoá đơn (dòng giá mới): chỉ cập nhật số lượng
       exist.qty = Number(exist.qty || 0) + normalizedQty
       exist.tonKho = Math.max(0, Number(exist.tonKho || 0) - normalizedQty)
       exist.qtyWarning = ''
     } else {
-      // Sản phẩm mới: áp dụng giá hiện tại từ hệ thống
-      cart.value.push({
+      // Sản phẩm mới hoặc chỉ có dòng giá cũ: tạo dòng mới
+      const oldLine = cart.value.find(i => i.id === p.id && i.isOldPriceLine)
+      const newItem = {
         id: p.id,
         code: p.code,
         productCode: p.productCode,
@@ -1193,10 +1250,17 @@ const confirmAddProduct = async () => {
         tayAo: p.tayAo,
         xuatXu: p.xuatXu,
         price: p.price,
+        giaGoc: p.giaGoc || null,
+        phanTramGiam: p.phanTramGiam || null,
+        tenDotGiamGia: p.tenDotGiamGia || null,
         qty: normalizedQty,
         tonKho: Math.max(0, Number(p.tonKho || 0) - normalizedQty),
         qtyWarning: ''
-      })
+      }
+      if (oldLine) {
+        newItem.priceChangeMeta = { oldPrice: oldLine.price, newPrice: p.price }
+      }
+      cart.value.push(newItem)
     }
 
     p.tonKho = Math.max(0, Number(p.tonKho || 0) - normalizedQty)
@@ -1216,12 +1280,21 @@ const removeCartItem = async (index, item) => {
     return
   }
 
-  const released = await releaseProductStock(item.id, qtyToRelease)
+  const productId = getOriginalProductId(item)
+  const released = await releaseProductStock(productId, qtyToRelease)
   if (!released) {
     return
   }
 
   cart.value.splice(index, 1)
+  // Cập nhật tonKho cho dòng còn lại của cùng sản phẩm
+  if (productId) {
+    cart.value.forEach(other => {
+      if (getOriginalProductId(other) === productId) {
+        other.tonKho = Number(other.tonKho || 0) + qtyToRelease
+      }
+    })
+  }
 }
 
 const filteredProducts = computed(() =>
@@ -1301,7 +1374,7 @@ const loadDiscounts = async () => {
   const res = await getPhieuGiamGia({
     page: discountPage.value,
     size: discountSize.value,
-    trangThai: 1
+    status: 1
   })
 
   discountList.value = res.data.content.map(d => ({
@@ -1414,7 +1487,7 @@ const loadAllActiveVouchers = async () => {
     const res = await getPhieuGiamGia({
       page: 0,
       size: 1000,
-      trangThai: 1
+      status: 1
     })
     const mappedVouchers = res.data.content.map(d => ({
       id: d.id,
@@ -1654,17 +1727,19 @@ const syncAllTabsVouchers = () => {
   })
 }
 
-// Computed: danh sách sản phẩm trong tab hiện tại có giá thay đổi
+// Computed: danh sách sản phẩm trong tab hiện tại có giá thay đổi (chưa xác nhận)
 const priceChangedItems = computed(() => {
   if (!currentOrder.value || !Array.isArray(currentOrder.value.cart)) return []
-  return currentOrder.value.cart.filter(item => item.priceChangeMeta)
+  return currentOrder.value.cart.filter(item => item.isOldPriceLine && item.priceChangeMeta && !item.priceDismissed)
 })
 
-// Xác nhận đã biết giá thay đổi → xoá priceChangeMeta
+// Xác nhận đã biết giá thay đổi → ẩn banner, giữ thông tin trên dòng cũ
 const dismissPriceChanges = () => {
   if (!currentOrder.value || !Array.isArray(currentOrder.value.cart)) return
   currentOrder.value.cart.forEach(item => {
-    delete item.priceChangeMeta
+    if (item.priceChangeMeta) {
+      item.priceDismissed = true
+    }
   })
 }
 
@@ -1681,6 +1756,15 @@ const syncCartPriceWithServer = async () => {
       (res?.data?.content || []).map(p => [p.id, Number(p.giaBan || 0)])
     )
 
+    // Map giá sau giảm từ server
+    const latestDiscountMap = new Map(
+      (res?.data?.content || []).map(p => [p.id, {
+        giaSauGiam: p.giaSauGiam != null ? Number(p.giaSauGiam) : null,
+        phanTramGiam: p.phanTramGiam != null ? Number(p.phanTramGiam) : null,
+        tenDotGiamGia: p.tenDotGiamGia || null
+      }])
+    )
+
     orderTabs.value.forEach(tab => {
       if (!Array.isArray(tab.cart)) return
 
@@ -1688,14 +1772,32 @@ const syncCartPriceWithServer = async () => {
         const latestPrice = latestPriceMap.get(item.id)
         if (!Number.isFinite(latestPrice)) return
 
-        const oldPrice = Number(item.price || 0)
-        if (oldPrice !== latestPrice) {
-          item.priceChangeMeta = {
-            oldPrice,
-            newPrice: latestPrice,
-            changedAt: Date.now()
+        // Cập nhật thông tin đợt giảm giá cho item
+        const discountInfo = latestDiscountMap.get(item.id)
+        if (discountInfo && !item.isOldPriceLine) {
+          const effectivePrice = discountInfo.giaSauGiam != null ? discountInfo.giaSauGiam : latestPrice
+          item.giaGoc = discountInfo.giaSauGiam != null ? latestPrice : null
+          item.phanTramGiam = discountInfo.phanTramGiam
+          item.tenDotGiamGia = discountInfo.tenDotGiamGia
+
+          const currentItemPrice = Number(item.price || 0)
+          if (currentItemPrice !== effectivePrice) {
+            item.isOldPriceLine = true
+            item.priceDismissed = false
+            item.priceChangeMeta = {
+              oldPrice: currentItemPrice,
+              newPrice: effectivePrice,
+              changedAt: Date.now()
+            }
+            if (!item.cartKey) {
+              item.cartKey = `${item.id}_old_${Date.now()}`
+            }
           }
-          item.price = latestPrice
+        } else if (item.isOldPriceLine && item.priceChangeMeta) {
+          // Cập nhật giá mới hiển thị cho dòng cũ
+          const discInfo = latestDiscountMap.get(item.id)
+          const newEffective = discInfo?.giaSauGiam != null ? discInfo.giaSauGiam : latestPrice
+          item.priceChangeMeta.newPrice = newEffective
         }
       })
     })
@@ -1754,9 +1856,15 @@ const checkForBetterVouchers = async () => {
   const hasCoreChanges = await loadAllActiveVouchers()
 
   if (hasCoreChanges) {
-    // Chỉ đồng bộ phiếu đang áp dụng (gỡ phiếu đã hết hiệu lực),
-    // không tự chọn phiếu tốt nhất ở đây để tránh auto-apply trước khi popup xác nhận.
+    // Đồng bộ phiếu đang áp dụng (gỡ phiếu đã hết hiệu lực)
+    const beforeCount = discounts.value.length
     syncAppliedDiscountWithActiveVouchers()
+    const afterCount = discounts.value.length
+
+    // Nếu có phiếu bị gỡ → tự động chọn phiếu tốt nhất còn lại
+    if (afterCount < beforeCount) {
+      autoSelectBestVoucher()
+    }
   }
 
   // Nếu phiếu đang hiển thị popup đã bị xóa/hết hiệu lực thì đóng popup ngay.
@@ -1935,7 +2043,7 @@ const handleCreateOrder = async () => {
           : 'CHUYEN_KHOAN',
 
       items: cart.value.map(i => ({
-        idChiTietSanPham: i.id,
+        idChiTietSanPham: getOriginalProductId(i) || i.id,
         soLuong: i.qty,
         donGia: i.price
       }))
@@ -1958,7 +2066,8 @@ const handleCreateOrder = async () => {
     router.push({ name: orderListRouteName.value })
   } catch (err) {
     console.error(err)
-    alert('Lỗi khi tạo hóa đơn!')
+    const msg = err?.response?.data?.message || err?.response?.data || 'Lỗi khi tạo hóa đơn!'
+    alert(msg)
   }
 }
 
@@ -2156,7 +2265,7 @@ const handleCreateOrderDelivery = async () => {
     })),
 
     items: cart.value.map(i => ({
-      idChiTietSanPham: i.id,
+      idChiTietSanPham: getOriginalProductId(i) || i.id,
       soLuong: i.qty,
       donGia: i.price
     }))
@@ -2166,7 +2275,7 @@ const handleCreateOrderDelivery = async () => {
   // vì backend sẽ tự trừ kho khi admin xác nhận đơn (trạng thái 1→2).
   for (const item of cart.value) {
     if (item.qty > 0) {
-      await releaseProductStock(item.id, item.qty, false)
+      await releaseProductStock(getOriginalProductId(item), item.qty, false)
     }
   }
 
@@ -2252,7 +2361,7 @@ const resetExpiredPendingOrders = async (tabs) => {
     for (const item of tab.cart) {
       const qtyToRelease = Number(item.qty || 0)
       if (qtyToRelease <= 0) continue
-      await releaseProductStock(item.id, qtyToRelease, false)
+      await releaseProductStock(getOriginalProductId(item), qtyToRelease, false)
     }
   }
 }
@@ -2460,7 +2569,7 @@ const releaseTabStock = async (tab) => {
     const qtyToRelease = Number(item.qty || 0)
     if (qtyToRelease <= 0) continue
 
-    const released = await releaseProductStock(item.id, qtyToRelease)
+    const released = await releaseProductStock(getOriginalProductId(item), qtyToRelease)
     if (!released) {
       return false
     }
@@ -2950,7 +3059,7 @@ const getFullAddress = () => {
   font-size: 13px;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); 
   box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
   display: inline-flex;
@@ -3614,6 +3723,33 @@ input:disabled {
   color: #94a3b8;
   text-decoration: line-through;
   font-weight: 600;
+}
+
+.price-change-line-msg {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #dc2626;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.price-original {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.discount-badge-inline {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: #dc2626;
+  border-radius: 4px;
 }
 
 .price-main.price-changed {
@@ -4530,7 +4666,7 @@ input:disabled {
   --brand-danger: #c53131;
   --brand-success: #168a55;
   padding: 6px;
-  background: radial-gradient(circle at top right, #f7f9fc 0%, var(--brand-bg) 60%);
+  background: #ebecee;
   color: var(--brand-text);
   font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
 }

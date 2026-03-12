@@ -9,7 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
 
@@ -33,4 +35,15 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
                         @Param("fromDate") LocalDateTime fromDate,
                         @Param("toDate") LocalDateTime toDate,
                         Pageable pageable);
+
+        @EntityGraph(attributePaths = {"hoaDonChiTiets", "hoaDonChiTiets.chiTietSanPham"})
+        @Query("""
+                        SELECT DISTINCT h FROM HoaDon h
+                        WHERE h.trangThai = 1
+                        AND EXISTS (
+                            SELECT 1 FROM HoaDonChiTiet ct
+                            WHERE ct.hoaDon = h AND ct.chiTietSanPham.id IN :productIds
+                        )
+                """)
+        List<HoaDon> findPendingOrdersByProductIds(@Param("productIds") Set<Integer> productIds);
 }

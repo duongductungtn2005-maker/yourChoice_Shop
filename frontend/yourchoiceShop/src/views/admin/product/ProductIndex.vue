@@ -368,8 +368,8 @@ onMounted(() => {
 }
 .btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
 
-.btn-orange { background: #f97316; color: white; }
-.btn-orange:hover { background: #ea580c; }
+.btn-orange { background: #161af9; color: white; }
+.btn-orange:hover { background: #220cea; }
 .btn-dark { background: #334155; color: white; }
 .btn-dark:hover { background: #1e293b; }
 .btn-icon-gray { color: #64748b !important; margin-right: 6px; font-size: 16px; }
@@ -392,9 +392,9 @@ onMounted(() => {
 .font-bold { font-weight: 600; }
 .text-primary { color: #3b82f6; }
 
-.badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-.badge-success { background: #dcfce7; color: #166534; }
-.badge-danger { background: #fee2e2; color: #991b1b; }
+.badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid transparent; }
+.badge-success { background: #dbeafe; color: #201dd8; border-color: #93c5fd; }
+.badge-danger { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
 
 .action-cell { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .btn-icon-eye { width: 32px; height: 32px; border-radius: 6px; background: #fff; border: 1px solid #e2e8f0; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }

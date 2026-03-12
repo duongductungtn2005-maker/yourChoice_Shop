@@ -40,7 +40,11 @@
                   <span class="variant-label">{{ item.mauSac }} / {{ item.kichThuoc }}</span>
                 </div>
               </div>
-              <div class="col-price">{{ formatMoney(item.donGia) }}</div>
+              <div class="col-price">
+                <span>{{ formatMoney(item.donGia) }}</span>
+                <span v-if="item.giaGoc" style="text-decoration: line-through; color: #999; font-size: 12px; display: block;">{{ formatMoney(item.giaGoc) }}</span>
+                <span v-if="item.phanTramGiam" style="color: #d32f2f; font-size: 12px; font-weight: 600;">-{{ item.phanTramGiam }}%</span>
+              </div>
               <div class="col-qty">
                 <div class="qty-control">
                   <button @click="changeQty(item.variantId, item.soLuong - 1)">-</button>

@@ -36,20 +36,9 @@ public class ThanhToanServiceImpl implements ThanhToanService {
             throw new RuntimeException("Hóa đơn không ở trạng thái chờ thanh toán");
         }
 
-        // 1️⃣ TRỪ KHO
-        for (HoaDonChiTiet ct : hoaDon.getHoaDonChiTiets()) {
-            ChiTietSanPham sp = ct.getChiTietSanPham();
+        // Kho đã được trừ khi xác nhận đơn (trạng thái 1→2), KHÔNG trừ lại ở đây
 
-            if (sp.getSoLuong() < ct.getSoLuong()) {
-                throw new RuntimeException(
-                        "Không đủ tồn kho cho sản phẩm: " + sp.getSanPham().getTenSanPham());
-            }
-
-            sp.setSoLuong(sp.getSoLuong() - ct.getSoLuong());
-            chiTietSanPhamRepo.save(sp);
-        }
-
-        // 2️⃣ LƯU LỊCH SỬ THANH TOÁN
+        // 1️⃣ LƯU LỊCH SỬ THANH TOÁN
         LichSuThanhToan ls = new LichSuThanhToan();
         ls.setHoaDon(hoaDon);
         ls.setSoTien(req.getSoTien());
@@ -60,7 +49,7 @@ public class ThanhToanServiceImpl implements ThanhToanService {
 
         lichSuThanhToanRepository.save(ls);
 
-        // 3️⃣ HOÀN THÀNH ĐƠN
+        // 2️⃣ HOÀN THÀNH ĐƠN
         hoaDon.setTongTienSauGiam(req.getSoTien());
         hoaDon.setTrangThai(5);
         hoaDonRepo.save(hoaDon);
