@@ -105,7 +105,7 @@
                 </div>
 
                 <div v-for="(imgUrl, index) in form.listAnh" :key="index" class="box-img">
-                    <img :src="imgUrl" alt="Product Img" @error="$event.target.src='https://placehold.co/80x80?text=Error'">
+                    <img :src="normalizeImageUrl(imgUrl)" alt="Product Img" @error="$event.target.src='https://placehold.co/80x80?text=Error'">
                     <span class="remove-img" @click="removeImage(index)">×</span>
                 </div>
 
@@ -143,7 +143,8 @@ import { toastSuccess, toastError, Toast } from '@/utils/toast';
 
 const props = defineProps(['isOpen', 'variantData', 'parentData', 'options']);
 const emit = defineEmits(['close', 'save']); // Event 'save' dùng để reload lại bảng ở cha
-const API_URL = 'http://localhost:8080/api/v1'; 
+const API_URL = 'http://localhost:8080/api/v1';
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
 
 const fileInput = ref(null);
 const uploading = ref(false);
@@ -199,6 +200,7 @@ watch(() => props.isOpen, (newVal) => {
         form.idMauSac = val.mauSac?.id;
         form.idKichThuoc = val.kichThuoc?.id;
         
+        // Lưu tên file gốc (không normalize), normalize chỉ khi hiển thị
         form.listAnh = val.listAnh ? [...val.listAnh] : [];
 
         // Map các thuộc tính cha
@@ -216,6 +218,15 @@ watch(() => props.isOpen, (newVal) => {
     }
 });
 
+// Helper: Chuẩn hóa URL ảnh
+const normalizeImageUrl = (url) => {
+    if (!url) return '';
+    // Nếu đã là URL đầy đủ (http/https), trả về nguyên
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    // Nếu chỉ là tên file hoặc path tương đối, thêm base URL
+    return `${IMAGE_BASE_URL}${url.replace(/^\//, '')}`; // Remove leading slash if any
+};
+
 // Upload Ảnh
 const triggerFileInput = () => { fileInput.value.click(); };
 
@@ -231,7 +242,9 @@ const handleUploadImage = async (event) => {
         const res = await axios.post(`${API_URL}/upload`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        form.listAnh.push(res.data.url);
+        // Backend trả về chỉ tên file, không phải full URL
+        const fileName = res.data.url;
+        form.listAnh.push(fileName);
     } catch (e) {
         console.error("Lỗi upload:", e);
         toastError("Lỗi upload ảnh! Vui lòng thử lại.");
@@ -259,8 +272,8 @@ const save = async () => {
 
     loading.value = true;
     try {
-        // 2. Gọi API Update
-        await axios.put(`${API_URL}/chi-tiet-san-pham/${form.id}`, form);
+        // 2. Gọi API Update - SỬA ENDPOINT ĐỂ XỬ LÝ ẢNH
+        await axios.put(`${API_URL}/products/variants/${form.id}`, form);
 
         // 3. Thông báo thành công
         toastSuccess('Cập nhật thành công!');

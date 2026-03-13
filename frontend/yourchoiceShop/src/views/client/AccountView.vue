@@ -335,7 +335,7 @@ const handleLogout = () => {
 .text-muted { font-size: 13px; color: #94a3b8; margin: 0; }
 
 .sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
-.sidebar-nav button { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: none; background: none; font-size: 14px; color: #475569; cursor: pointer; border-radius: 8px; transition: 0.2s; text-align: left; width: 100%; }
+.sidebar-nav button { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: none; background: none; font-size: 14px; color: #334155; cursor: pointer; border-radius: 8px; transition: 0.2s; text-align: left; width: 100%; }
 .sidebar-nav button:hover, .sidebar-nav button.active { background: #eff6ff; color: #1e3a8a; font-weight: 600; }
 .sidebar-nav button i { width: 18px; text-align: center; }
 .btn-logout { color: #ef4444 !important; }
@@ -360,7 +360,7 @@ const handleLogout = () => {
 .form-actions { display: flex; gap: 12px; margin-top: 10px; }
 .btn-save { padding: 10px 28px; background: #0f172a; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
 .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-cancel { padding: 10px 28px; background: #fff; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+.btn-cancel { padding: 10px 28px; background: #fff; color: #334155; border: 1px solid #e2e8f0; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
 
 /* Addresses */
 .btn-add-addr { padding: 8px 18px; background: #0f172a; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -376,7 +376,7 @@ const handleLogout = () => {
 .address-card p { margin: 3px 0; font-size: 14px; color: #64748b; }
 .addr-detail { margin-top: 4px; }
 .addr-actions { display: flex; gap: 10px; margin-top: 10px; }
-.addr-actions button { padding: 5px 12px; font-size: 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 5px; cursor: pointer; color: #475569; }
+.addr-actions button { padding: 5px 12px; font-size: 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 5px; cursor: pointer; color: #334155; }
 .addr-actions button:hover { border-color: #1e3a8a; color: #1e3a8a; }
 .addr-actions .btn-del:hover { border-color: #ef4444; color: #ef4444; }
 

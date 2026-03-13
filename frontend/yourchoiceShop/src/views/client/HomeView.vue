@@ -45,19 +45,30 @@
             @click="$router.push(`/product/${prod.id}`)"
          >
             <div class="product-image">
-               <img :src="getProductImage(prod)" alt="Product Image">
+               <img 
+                  v-for="(img, idx) in getProductImages(prod)" 
+                  :key="idx"
+                  :src="img"
+                  :class="{ active: (productSlideIndex[prod.id] || 0) === idx }"
+                  class="product-slide-img"
+                  alt="Product Image"
+               >
                
                <div class="overlay-actions">
                   <button class="btn-quick-view">Xem chi tiết</button>
                </div>
                <div class="sale-tag" v-if="prod.phanTramGiam">-{{ prod.phanTramGiam }}%</div>
+               <div v-if="prod.soLuong <= 0" class="sold-out-overlay">
+                  <span class="sold-out-text">Đã hết hàng</span>
+               </div>
             </div>
             
             <div class="product-info">
                <div class="brand-name">{{ prod.tenThuongHieu || 'No Brand' }}</div>
                <h3 class="product-name">{{ prod.tenSanPham }}</h3>
                <div class="product-price">
-                  <span class="current-price">{{ formatMoney(prod.giaBan || 250000) }}</span>
+                  <span class="current-price">{{ formatMoney(prod.giaBanMin || 0) }}</span>
+                  <span v-if="prod.giaBanMax && prod.giaBanMax > prod.giaBanMin" class="price-range"> ~ {{ formatMoney(prod.giaBanMax) }}</span>
                </div>
             </div>
          </div>
@@ -95,11 +106,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, reactive } from 'vue';
 import axios from 'axios';
 
 // --- CONFIG ---
 const API_URL = 'http://localhost:8080/api/v1';
+// backend cung cấp endpoint trả về ảnh sản phẩm (tên file hoặc path)
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
 const featuredProducts = ref([]);
 const currentSlide = ref(0);
 let slideInterval;
@@ -143,19 +156,57 @@ const startSlideTimer = () => {
 const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
 const getProductImage = (prod) => {
-    // Nếu có list ảnh thì lấy ảnh đầu, không thì lấy placeholder
-    // return prod.listAnh && prod.listAnh.length > 0 ? prod.listAnh[0] : `https://picsum.photos/300/400?random=${prod.id}`;
-    return `https://picsum.photos/300/400?random=${prod.id}`; // Demo
+    // Dùng ảnh chính từ ProductResponse
+    if (prod.anhChinh) {
+        if (prod.anhChinh.startsWith('http')) return prod.anhChinh;
+        return `${IMAGE_BASE_URL}${prod.anhChinh}`;
+    }
+    // fallback nếu không có ảnh
+    return `https://placehold.co/300x400?text=No+Image`;
+};
+
+// --- PRODUCT IMAGE SLIDER ---
+const productSlideIndex = reactive({});
+let productSlideInterval;
+
+const getProductImages = (prod) => {
+    if (prod.dsAnh && prod.dsAnh.length > 0) {
+        return prod.dsAnh.map(img => img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`);
+    }
+    return [getProductImage(prod)];
+};
+
+const startProductSlider = () => {
+    productSlideInterval = setInterval(() => {
+        featuredProducts.value.forEach(prod => {
+            const images = prod.dsAnh && prod.dsAnh.length > 0 ? prod.dsAnh : [];
+            if (images.length > 1) {
+                const current = productSlideIndex[prod.id] || 0;
+                productSlideIndex[prod.id] = (current + 1) % images.length;
+            }
+        });
+    }, 2000);
 };
 
 // --- LIFECYCLE ---
+let stockInterval;
+const onVisibilityChange = () => {
+    if (document.visibilityState === 'visible') fetchFeatured();
+};
+
 onMounted(() => { 
     fetchFeatured(); 
-    startSlideTimer(); 
+    startSlideTimer();
+    startProductSlider();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    stockInterval = setInterval(fetchFeatured, 30000);
 });
 
 onUnmounted(() => {
     if (slideInterval) clearInterval(slideInterval);
+    if (productSlideInterval) clearInterval(productSlideInterval);
+    if (stockInterval) clearInterval(stockInterval);
+    document.removeEventListener('visibilitychange', onVisibilityChange);
 });
 </script>
 
@@ -218,6 +269,8 @@ onUnmounted(() => {
 
 .product-image { position: relative; overflow: hidden; aspect-ratio: 3/4; background: #f8fafc; margin-bottom: 15px; border-radius: 8px; }
 .product-image img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s ease; }
+.product-slide-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.6s ease; }
+.product-slide-img.active { opacity: 1; }
 
 .overlay-actions { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; }
 .btn-quick-view {
@@ -228,6 +281,8 @@ onUnmounted(() => {
 .btn-quick-view:hover { background: #0f172a; color: white; }
 
 .sale-tag { position: absolute; top: 10px; left: 10px; background: #ef4444; color: white; padding: 4px 8px; font-size: 12px; font-weight: 700; border-radius: 4px; }
+.sold-out-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 5; }
+.sold-out-text { color: #fff; background: #dc2626; font-size: 14px; font-weight: 700; padding: 6px 18px; border-radius: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
 
 .product-info { text-align: center; }
 .brand-name { font-size: 12px; text-transform: uppercase; color: #94a3b8; margin-bottom: 5px; font-weight: 600; }
@@ -235,7 +290,8 @@ onUnmounted(() => {
   font-size: 16px; font-weight: 600; margin: 0 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #334155; 
 }
 .product-name:hover { color: #1e3a8a; }
-.product-price { font-weight: 700; color: #0f172a; font-size: 16px; }
+.product-price { font-weight: 700; color: #0f172a; font-size: 16px; display: flex; justify-content: center; align-items: baseline; gap: 2px; flex-wrap: wrap; }
+.price-range { font-size: 14px; color: #64748b; font-weight: 500; }
 
 /* === BUTTON VIEW ALL === */
 .btn-view-all { 

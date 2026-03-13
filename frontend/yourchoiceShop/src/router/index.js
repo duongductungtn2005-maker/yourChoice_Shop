@@ -78,6 +78,7 @@ const router = createRouter({
         { path: "contact", name: "contact", component: () => import("../views/client/ContactView.vue") },
         { path: "cart", name: "cart", component: () => import("../views/client/CartView.vue") },
         { path: "checkout", name: "checkout", component: () => import("../views/client/CheckoutView.vue") },
+        { path: "vnpay-return", name: "vnpay-return", component: () => import("../views/client/VnPayReturnView.vue") },
         { path: "orders", name: "orders", component: () => import("../views/client/OrderHistoryView.vue"), meta: { requiresAuth: true, roles: ["CUSTOMER"] } },
         { path: "account", name: "account", component: () => import("../views/client/AccountView.vue"), meta: { requiresAuth: true, roles: ["CUSTOMER"] } },
       ],

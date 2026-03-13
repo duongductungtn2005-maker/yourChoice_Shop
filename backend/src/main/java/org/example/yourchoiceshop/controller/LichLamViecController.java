@@ -65,23 +65,30 @@ public class LichLamViecController {
         }
     }
 
-    // 2. API Import file Excel
     @PostMapping("/import")
-    public ResponseEntity<?> importExcel(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("ngayLamViec") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ngayLamViec) {
-            
+    public ResponseEntity<?> importExcel(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("File không được để trống!");
         }
         try {
-            lichLamViecService.importLichLamViec(file, ngayLamViec);
+            // Không cần truyền ngày vào nữa
+            lichLamViecService.importLichLamViec(file);
             return ResponseEntity.ok("Import dữ liệu thành công!");
         } catch (IllegalArgumentException e) {
-            // Đây là nơi bắt các lỗi Validate từ file Excel (Dòng X sai mã, Dòng Y trùng lịch...)
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống khi đọc file: " + e.getMessage());
+        }
+    }
+    @PostMapping("/copy-last-week")
+    public ResponseEntity<?> copyLastWeekSchedule(@RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        try {
+            String message = lichLamViecService.copyLichTuTuanTruoc(date);
+            return ResponseEntity.ok(message);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
 }

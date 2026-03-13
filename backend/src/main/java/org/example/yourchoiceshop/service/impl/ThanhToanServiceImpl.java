@@ -3,8 +3,11 @@ package org.example.yourchoiceshop.service.impl;
 import java.time.LocalDateTime;
 
 import org.example.yourchoiceshop.dto.request.ThanhToanRequest;
+import org.example.yourchoiceshop.entity.ChiTietSanPham;
 import org.example.yourchoiceshop.entity.HoaDon;
+import org.example.yourchoiceshop.entity.HoaDonChiTiet;
 import org.example.yourchoiceshop.entity.LichSuThanhToan;
+import org.example.yourchoiceshop.repository.ChiTietSanPhamRepository;
 import org.example.yourchoiceshop.repository.HoaDonRepository;
 import org.example.yourchoiceshop.repository.LichSuThanhToanRepository;
 import org.example.yourchoiceshop.service.ThanhToanService;
@@ -18,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 public class ThanhToanServiceImpl implements ThanhToanService {
 
     private final LichSuThanhToanRepository lichSuThanhToanRepository;
+    private final ChiTietSanPhamRepository chiTietSanPhamRepo;
     private final HoaDonRepository hoaDonRepo;
 
     @Override
@@ -31,6 +35,8 @@ public class ThanhToanServiceImpl implements ThanhToanService {
         if (hoaDon.getTrangThai() != 4) {
             throw new RuntimeException("Hóa đơn không ở trạng thái chờ thanh toán");
         }
+
+        // Kho đã được trừ khi xác nhận đơn (trạng thái 1→2), KHÔNG trừ lại ở đây
 
         // 1️⃣ LƯU LỊCH SỬ THANH TOÁN
         LichSuThanhToan ls = new LichSuThanhToan();
@@ -60,7 +66,20 @@ public class ThanhToanServiceImpl implements ThanhToanService {
             throw new RuntimeException("Hóa đơn không ở trạng thái chờ thanh toán");
         }
 
-        // 1️⃣ Lưu lịch sử thanh toán
+        // 1️⃣ Trừ kho
+        for (HoaDonChiTiet ct : hoaDon.getHoaDonChiTiets()) {
+            ChiTietSanPham sp = ct.getChiTietSanPham();
+
+            if (sp.getSoLuong() < ct.getSoLuong()) {
+                throw new RuntimeException(
+                        "Không đủ tồn kho cho sản phẩm: " + sp.getSanPham().getTenSanPham());
+            }
+
+            sp.setSoLuong(sp.getSoLuong() - ct.getSoLuong());
+            chiTietSanPhamRepo.save(sp);
+        }
+
+        // 2️⃣ Lưu lịch sử thanh toán
         LichSuThanhToan ls = new LichSuThanhToan();
         ls.setHoaDon(hoaDon);
         ls.setSoTien(hoaDon.getTongTienSauGiam());
@@ -70,7 +89,7 @@ public class ThanhToanServiceImpl implements ThanhToanService {
 
         lichSuThanhToanRepository.save(ls);
 
-        // 2️⃣ Chuyển trạng thái → HOÀN THÀNH
+        // 3️⃣ Chuyển trạng thái → HOÀN THÀNH
         hoaDon.setTrangThai(5);
         hoaDonRepo.save(hoaDon);
     }

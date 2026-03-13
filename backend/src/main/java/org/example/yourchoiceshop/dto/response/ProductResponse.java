@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -43,6 +44,12 @@ public class ProductResponse {
     // Giá bán min/max từ các biến thể
     private BigDecimal giaBanMin;
     private BigDecimal giaBanMax;
+    // Giá sau giảm min (nếu có đợt giảm giá đang hoạt động)
+    private BigDecimal giaSauGiamMin;
+    // % giảm tối đa (dùng để hiển thị badge)
+    private BigDecimal phanTramGiamMax;
     // Ảnh đại diện sản phẩm (lấy từ biến thể đầu tiên)
     private String anhChinh;
+    // Danh sách tất cả ảnh của các biến thể (dùng cho slider)
+    private List<String> dsAnh;
 }

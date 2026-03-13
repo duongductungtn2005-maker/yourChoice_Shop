@@ -22,5 +22,5 @@ public interface HoaDonService {
     void deleteDraftOrderAtCounter(String maHoaDon);
     void createOrderAtCounter(CreateOrderRequest req);
     byte[] exportExcel(String keyword, Integer status, String type, LocalDateTime from, LocalDateTime to);
-    void createOrderDelivery(CreateOrderRequest req);
+    String createOrderDelivery(CreateOrderRequest req);
 }

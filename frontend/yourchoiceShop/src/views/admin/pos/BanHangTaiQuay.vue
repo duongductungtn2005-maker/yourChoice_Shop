@@ -60,7 +60,10 @@
           <div class="card-title">
             <h3>Sản phẩm trong hóa đơn</h3>
           </div>
-          <button class="btn-primary" @click="openProductModal">+ Thêm sản phẩm</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-qr-scan" @click="openQrScanner">📷 Quét QR</button>
+            <button class="btn-primary" @click="openProductModal">+ Thêm sản phẩm</button>
+          </div>
         </div>
 
         <div class="card-body">
@@ -72,7 +75,24 @@
             </div>
           </div>
 
-          <div v-else class="table-wrap">
+          <!-- Banner cảnh báo giá thay đổi -->
+          <div v-if="priceChangedItems.length > 0" class="price-change-banner">
+            <div class="price-change-banner-icon">⚠️</div>
+            <div class="price-change-banner-content">
+              <b>Giá sản phẩm đã thay đổi ({{ priceChangedItems.length }} sản phẩm)</b>
+              <ul>
+                <li v-for="pc in priceChangedItems" :key="pc.cartKey || pc.id">
+                  <b>{{ pc.name }}</b> ({{ pc.color }} / {{ pc.size }}):
+                  <span class="old-val">{{ formatMoney(pc.priceChangeMeta.oldPrice) }}</span>
+                  → <span class="new-val">{{ formatMoney(pc.priceChangeMeta.newPrice) }}</span>
+                </li>
+              </ul>
+              <button class="btn-dismiss-price" @click="dismissPriceChanges">✓ Đã xác nhận</button>
+            </div>
+          </div>
+
+          <div v-else-if="cart.length === 0"></div>
+          <div v-if="cart.length > 0" class="table-wrap">
             <table class="table">
               <thead>
                 <tr>
@@ -88,7 +108,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, i) in cart" :key="item.id">
+                <tr v-for="(item, i) in cart" :key="item.cartKey || item.id">
                   <td class="mono">{{ item.productCode || item.code }}</td>
                   <td class="name-cell">
                     <div class="name-main">{{ item.name }}</div>
@@ -96,34 +116,32 @@
                       {{ item.material || '—' }} • {{ item.coAo || '—' }} • {{ item.tayAo || '—' }} • {{ item.xuatXu ||
                         '—' }}
                     </div>
+                    <div v-if="item.isOldPriceLine && item.priceChangeMeta" class="price-change-line-msg">
+                      Giá đã thay đổi: {{ formatMoney(item.priceChangeMeta.oldPrice) }} → {{ formatMoney(item.priceChangeMeta.newPrice) }}
+                    </div>
                   </td>
                   <td>{{ item.brand || '-' }}</td>
                   <td>{{ item.color || '-' }}</td>
                   <td>{{ item.size || '-' }}</td>
                   <td class="p-price">
                     <div class="price-main">{{ formatMoney(item.price) }}</div>
-                    <div v-if="item.priceChangeMeta" class="price-old">{{ formatMoney(item.priceChangeMeta.oldPrice) }}
-                    </div>
+                    <div v-if="item.giaGoc" class="price-original">{{ formatMoney(item.giaGoc) }}</div>
+                    <div v-if="item.phanTramGiam" class="discount-badge-inline">-{{ item.phanTramGiam }}%</div>
                   </td>
                   <td>
                     <div>
                       <div class="item-control">
                         <button @click="decreaseCartQty(item)" :disabled="item.qty <= 1" title="Giảm">−</button>
                         <input class="qty-input" :class="{ 'qty-input-error': !!item.qtyWarning }" type="number" min="1"
-                          :max="item.qty + item.tonKho" :value="item.qty"
-                          @change="updateCartQty(item, $event.target.value)" />
-                        <button @click="increaseCartQty(item)" :disabled="item.tonKho <= 0" title="Tăng">＋</button>
+                          :max="item.isOldPriceLine ? item.qty : item.qty + item.tonKho" :value="item.qty"
+                          @change="updateCartQty(item, $event.target.value)" :readonly="!!item.isOldPriceLine" />
+                        <button v-if="!item.isOldPriceLine" @click="increaseCartQty(item)" :disabled="item.tonKho <= 0" title="Tăng">＋</button>
                       </div>
-                      <div v-if="item.qtyWarning" class="qty-warning">{{ item.qtyWarning }}</div>
+                      <div v-if="item.qtyWarning && !item.isOldPriceLine" class="qty-warning">{{ item.qtyWarning }}</div>
                     </div>
                   </td>
                   <td class="p-price">
                     <div class="price-main">{{ formatMoney(item.price * item.qty) }}</div>
-                    <div v-if="item.priceChangeMeta" class="price-change-note">
-                      <div class="price-change-title">Giá gốc đã thay đổi</div>
-                      <div class="price-change-flow">{{ formatMoney(item.priceChangeMeta.oldPrice) }} -> {{
-                        formatMoney(item.priceChangeMeta.newPrice) }}</div>
-                    </div>
                   </td>
                   <td>
                     <button class="btn-remove" title="Xoá" @click="removeCartItem(i, item)">×</button>
@@ -408,10 +426,10 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-if="filteredProducts.length === 0">
+              <tr v-if="paginatedProducts.length === 0">
                 <td colspan="8" class="empty-state">Không có sản phẩm đang kinh doanh phù hợp bộ lọc.</td>
               </tr>
-              <tr v-for="p in filteredProducts" :key="p.id">
+              <tr v-for="p in paginatedProducts" :key="p.id">
                 <td class="product-code-cell"><span class="mono">{{ p.productCode || p.code }}</span></td>
                 <td class="name-cell">
                   <div class="name-main">{{ p.name }}</div>
@@ -420,7 +438,11 @@
                 <td>{{ p.brand || '-' }}</td>
                 <td>{{ p.material || '-' }}</td>
                 <td>{{ p.tonKho }}</td>
-                <td class="p-price">{{ formatMoney(p.price) }}</td>
+                <td class="p-price">
+                  <div class="price-main">{{ formatMoney(p.price) }}</div>
+                  <div v-if="p.giaGoc" class="price-original">{{ formatMoney(p.giaGoc) }}</div>
+                  <div v-if="p.phanTramGiam" class="discount-badge-inline">-{{ p.phanTramGiam }}%</div>
+                </td>
                 <td class="product-qty-cell">
                   <div>
                     <div class="item-control">
@@ -622,6 +644,20 @@
       </div>
     </div>
   </div>
+
+  <!-- ===== QR SCANNER MODAL ===== -->
+  <div v-if="showQrScanner" class="modal-overlay" @click.self="closeQrScanner">
+    <div class="qr-scanner-modal">
+      <div class="qr-scanner-header">
+        <h3>📷 Quét mã QR sản phẩm</h3>
+        <button class="btn-close-qr" @click="closeQrScanner">&times;</button>
+      </div>
+      <div class="qr-scanner-body">
+        <div id="qr-reader" style="width: 100%;"></div>
+        <p v-if="qrScanMessage" :class="['qr-scan-msg', qrScanError ? 'error' : 'success']">{{ qrScanMessage }}</p>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -631,6 +667,7 @@ import axios from 'axios'
 import { createOrder, createPosDraftOrder, deletePosDraftOrder } from '@/api/HoaDonApi'
 import { getCurrentUser, getRole } from '@/services/auth'
 import ghnLogo from '@/img/Logo_GHN.webp'
+import { Html5Qrcode } from 'html5-qrcode'
 
 /* ================= FILTER SẢN PHẨM ================= */
 const productKeyword = ref('')
@@ -734,7 +771,6 @@ const productAttributeOptions = ref({
 })
 const productPage = ref(0)
 const productSize = ref(10)
-const totalProductPages = ref(0)
 
 const ATTRIBUTE_API_MAP = {
   coAo: { url: 'http://localhost:8080/api/v1/co-ao', nameKey: 'tenCoAo' },
@@ -798,6 +834,11 @@ const mapProductDetail = (p) => {
   const inCart = cart.value.find(i => i.id === p.id)
   const parentProduct = p.sanPham || {}
 
+  // Giá hiển thị: ưu tiên giá sau giảm (đợt giảm giá) nếu có
+  const giaGoc = p.giaBan
+  const giaSauGiam = p.giaSauGiam != null ? Number(p.giaSauGiam) : null
+  const effectivePrice = giaSauGiam != null ? giaSauGiam : giaGoc
+
   return {
     id: p.id,
     code: p.maCtsp,
@@ -810,11 +851,123 @@ const mapProductDetail = (p) => {
     coAo: p.coAo?.tenCoAo || parentProduct.coAo?.tenCoAo || '—',
     tayAo: p.tayAo?.tenTayAo || parentProduct.tayAo?.tenTayAo || '—',
     xuatXu: p.xuatXu?.tenXuatXu || parentProduct.xuatXu?.tenXuatXu || '—',
-    price: p.giaBan,
+    price: effectivePrice,
+    giaGoc: giaSauGiam != null ? giaGoc : null,  // Chỉ lưu giá gốc nếu có giảm
+    phanTramGiam: p.phanTramGiam != null ? Number(p.phanTramGiam) : null,
+    tenDotGiamGia: p.tenDotGiamGia || null,
     tonKho: p.soLuong,
     qty: inCart ? Number(inCart.qty || 1) : 1,
     checked: false,
     qtyWarning: ''
+  }
+}
+
+/* ================= QR SCANNER ================= */
+const showQrScanner = ref(false)
+const qrScanMessage = ref('')
+const qrScanError = ref(false)
+let html5QrCode = null
+
+const openQrScanner = async () => {
+  if (!currentOrder.value) {
+    alert('Vui lòng tạo hóa đơn trước khi quét QR.')
+    return
+  }
+  qrScanMessage.value = ''
+  qrScanError.value = false
+  showQrScanner.value = true
+
+  // Wait for DOM to render #qr-reader
+  await new Promise(r => setTimeout(r, 300))
+
+  html5QrCode = new Html5Qrcode('qr-reader')
+  html5QrCode.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    onQrScanSuccess,
+    () => {} // ignore scan errors (no QR detected yet)
+  ).catch(err => {
+    qrScanMessage.value = 'Không thể mở camera: ' + (err?.message || err)
+    qrScanError.value = true
+  })
+}
+
+const closeQrScanner = async () => {
+  if (html5QrCode) {
+    try {
+      const state = html5QrCode.getState()
+      // state 2 = scanning, 3 = paused
+      if (state === 2 || state === 3) {
+        await html5QrCode.stop()
+      }
+    } catch (_) { /* ignore */ }
+    try { html5QrCode.clear() } catch (_) { /* ignore */ }
+    html5QrCode = null
+  }
+  showQrScanner.value = false
+}
+
+let qrProcessing = false
+const onQrScanSuccess = async (decodedText) => {
+  if (qrProcessing) return
+  qrProcessing = true
+
+  // Dừng camera ngay khi quét được
+  await closeQrScanner()
+
+  try {
+    // Dùng endpoint search hiện có, tìm theo keyword = maCtsp, chỉ lấy trạng thái Kinh doanh
+    const res = await getChiTietSanPham({ keyword: decodedText, trangThai: 1, page: 0, size: 10 })
+    const list = res?.data?.content || []
+    // Tìm chính xác theo maCtsp
+    const raw = list.find(item => item.maCtsp === decodedText)
+
+    if (!raw) {
+      alert(`Không tìm thấy sản phẩm đang kinh doanh với mã: ${decodedText}`)
+      qrProcessing = false
+      return
+    }
+
+    if (raw.soLuong <= 0) {
+      alert('Sản phẩm đã hết hàng.')
+      qrProcessing = false
+      return
+    }
+
+    // Reserve 1 unit
+    const reserved = await reserveProductStock(raw.id, 1)
+    if (!reserved) {
+      qrProcessing = false
+      return
+    }
+
+    // Add to cart or increment existing
+    const mapped = mapProductDetail(raw)
+    const exist = cart.value.find(i => i.id === mapped.id && !i.isOldPriceLine)
+    if (exist) {
+      exist.qty = Number(exist.qty || 0) + 1
+      exist.tonKho = Math.max(0, Number(exist.tonKho || 0) - 1)
+    } else {
+      const oldLine = cart.value.find(i => i.id === mapped.id && i.isOldPriceLine)
+      const newItem = {
+        ...mapped,
+        qty: 1,
+        tonKho: Math.max(0, mapped.tonKho - 1)
+      }
+      if (oldLine) {
+        newItem.priceChangeMeta = { oldPrice: oldLine.price, newPrice: mapped.price }
+      }
+      cart.value.push(newItem)
+    }
+
+    const parentName = raw.sanPham?.tenSanPham || decodedText
+    const color = raw.mauSac?.tenMauSac || ''
+    const size = raw.kichThuoc?.tenKichThuoc || ''
+    alert(`✓ Đã thêm: ${parentName} (${color} / ${size})`)
+  } catch (err) {
+    alert('Lỗi khi xử lý mã QR. Vui lòng thử lại.')
+  } finally {
+    qrProcessing = false
   }
 }
 
@@ -828,8 +981,6 @@ const loadProducts = async () => {
   products.value = (res?.data?.content || [])
     .filter(isActiveProductDetail)
     .map(mapProductDetail)
-
-  totalProductPages.value = res.data.totalPages
 }
 
 const loadProductFilterSource = async () => {
@@ -895,13 +1046,27 @@ const reserveProductStock = async (id, soLuong, showError = true) => {
   }
 }
 
+const getOriginalProductId = (item) => {
+  if (item && item.originalId && Number.isFinite(Number(item.originalId))) return Number(item.originalId)
+  const id = typeof item === 'object' ? item?.id : item
+  const numId = Number(id)
+  return Number.isFinite(numId) ? numId : null
+}
+
 const releaseProductStock = async (id, soLuong, showError = true) => {
   if (!Number.isFinite(soLuong) || soLuong <= 0) {
     return false
   }
 
+  // Đảm bảo ID là số nguyên (tránh lỗi ID dạng "19_oldPrice_xxx")
+  const numericId = Number(id)
+  if (!Number.isFinite(numericId)) {
+    console.warn('releaseProductStock: invalid ID', id)
+    return true // cho phép xóa khỏi cart mà không gọi API
+  }
+
   try {
-    await releaseStock(id, soLuong)
+    await releaseStock(numericId, soLuong)
     return true
   } catch (error) {
     if (showError) {
@@ -909,6 +1074,18 @@ const releaseProductStock = async (id, soLuong, showError = true) => {
     }
     return false
   }
+}
+
+// Đồng bộ tonKho giữa dòng giá cũ và dòng giá mới của cùng sản phẩm
+const syncSiblingTonKho = (item, delta) => {
+  const productId = getOriginalProductId(item)
+  if (!productId) return
+  cart.value.forEach(other => {
+    if (other === item) return
+    if (getOriginalProductId(other) === productId) {
+      other.tonKho = Math.max(0, Number(other.tonKho || 0) + delta)
+    }
+  })
 }
 
 const normalizeQty = (value, maxQty) => {
@@ -934,9 +1111,15 @@ const getQtyWarning = (value, maxQty) => {
 
 const updateCartQty = async (item, value) => {
   const currentQty = Number(item.qty) || 1
-  const maxQty = currentQty + Number(item.tonKho || 0)
+  const maxQty = item.isOldPriceLine ? currentQty : currentQty + Number(item.tonKho || 0)
   const warning = getQtyWarning(value, maxQty)
   const nextQty = normalizeQty(value, maxQty)
+
+  // Dòng giá cũ không được tăng số lượng
+  if (item.isOldPriceLine && nextQty > currentQty) {
+    item.qty = currentQty
+    return
+  }
 
   item.qtyWarning = warning
 
@@ -947,21 +1130,23 @@ const updateCartQty = async (item, value) => {
 
   if (nextQty > currentQty) {
     const delta = nextQty - currentQty
-    const reserved = await reserveProductStock(item.id, delta)
+    const reserved = await reserveProductStock(getOriginalProductId(item), delta)
     if (!reserved) {
       item.qtyWarning = 'Không đủ tồn kho'
       item.qty = currentQty
       return
     }
     item.tonKho = Math.max(0, Number(item.tonKho || 0) - delta)
+    syncSiblingTonKho(item, -delta)
   } else {
     const delta = currentQty - nextQty
-    const released = await releaseProductStock(item.id, delta)
+    const released = await releaseProductStock(getOriginalProductId(item), delta)
     if (!released) {
       item.qty = currentQty
       return
     }
     item.tonKho = Number(item.tonKho || 0) + delta
+    syncSiblingTonKho(item, delta)
   }
 
   if (!warning) {
@@ -976,7 +1161,7 @@ const increaseCartQty = async (item) => {
     return
   }
 
-  const reserved = await reserveProductStock(item.id, 1)
+  const reserved = await reserveProductStock(getOriginalProductId(item), 1)
   if (!reserved) {
     item.qtyWarning = 'Không đủ tồn kho'
     return
@@ -985,12 +1170,13 @@ const increaseCartQty = async (item) => {
   item.qtyWarning = ''
   item.qty = Number(item.qty || 0) + 1
   item.tonKho = Math.max(0, Number(item.tonKho || 0) - 1)
+  syncSiblingTonKho(item, -1)
 }
 
 const decreaseCartQty = async (item) => {
   if (Number(item.qty) <= 1) return
 
-  const released = await releaseProductStock(item.id, 1)
+  const released = await releaseProductStock(getOriginalProductId(item), 1)
   if (!released) {
     return
   }
@@ -998,6 +1184,7 @@ const decreaseCartQty = async (item) => {
   item.qtyWarning = ''
   item.qty = Number(item.qty || 1) - 1
   item.tonKho = Number(item.tonKho || 0) + 1
+  syncSiblingTonKho(item, 1)
 }
 
 const updateProductQty = (product, value) => {
@@ -1023,7 +1210,7 @@ const hasInvalidCartQty = () => {
 }
 
 const confirmAddProduct = async () => {
-  for (const p of products.value) {
+  for (const p of productFilterSource.value) {
     if (!p.checked) continue
 
     const normalizedQty = normalizeQty(p.qty, p.tonKho)
@@ -1040,16 +1227,17 @@ const confirmAddProduct = async () => {
       continue
     }
 
-    const exist = cart.value.find(i => i.id === p.id)
+    const exist = cart.value.find(i => i.id === p.id && !i.isOldPriceLine)
 
     if (exist) {
-      // Sản phẩm đã có trong hoá đơn: giữ nguyên giá cũ, chỉ cập nhật số lượng
+      // Sản phẩm đã có trong hoá đơn (dòng giá mới): chỉ cập nhật số lượng
       exist.qty = Number(exist.qty || 0) + normalizedQty
       exist.tonKho = Math.max(0, Number(exist.tonKho || 0) - normalizedQty)
       exist.qtyWarning = ''
     } else {
-      // Sản phẩm mới: áp dụng giá hiện tại từ hệ thống
-      cart.value.push({
+      // Sản phẩm mới hoặc chỉ có dòng giá cũ: tạo dòng mới
+      const oldLine = cart.value.find(i => i.id === p.id && i.isOldPriceLine)
+      const newItem = {
         id: p.id,
         code: p.code,
         productCode: p.productCode,
@@ -1062,10 +1250,17 @@ const confirmAddProduct = async () => {
         tayAo: p.tayAo,
         xuatXu: p.xuatXu,
         price: p.price,
+        giaGoc: p.giaGoc || null,
+        phanTramGiam: p.phanTramGiam || null,
+        tenDotGiamGia: p.tenDotGiamGia || null,
         qty: normalizedQty,
         tonKho: Math.max(0, Number(p.tonKho || 0) - normalizedQty),
         qtyWarning: ''
-      })
+      }
+      if (oldLine) {
+        newItem.priceChangeMeta = { oldPrice: oldLine.price, newPrice: p.price }
+      }
+      cart.value.push(newItem)
     }
 
     p.tonKho = Math.max(0, Number(p.tonKho || 0) - normalizedQty)
@@ -1074,7 +1269,7 @@ const confirmAddProduct = async () => {
     p.qty = 1
   }
 
-  await loadProducts()
+  await loadProductFilterSource()
   showModal.value = false
 }
 
@@ -1085,16 +1280,25 @@ const removeCartItem = async (index, item) => {
     return
   }
 
-  const released = await releaseProductStock(item.id, qtyToRelease)
+  const productId = getOriginalProductId(item)
+  const released = await releaseProductStock(productId, qtyToRelease)
   if (!released) {
     return
   }
 
   cart.value.splice(index, 1)
+  // Cập nhật tonKho cho dòng còn lại của cùng sản phẩm
+  if (productId) {
+    cart.value.forEach(other => {
+      if (getOriginalProductId(other) === productId) {
+        other.tonKho = Number(other.tonKho || 0) + qtyToRelease
+      }
+    })
+  }
 }
 
 const filteredProducts = computed(() =>
-  products.value.filter(p => {
+  productFilterSource.value.filter(p => {
     const keyword = productKeyword.value.toLowerCase()
 
     const matchKeyword =
@@ -1128,6 +1332,13 @@ const filteredProducts = computed(() =>
     )
   })
 )
+
+// Pagination tính trên kết quả đã lọc
+const totalProductPages = computed(() => Math.max(1, Math.ceil(filteredProducts.value.length / productSize.value)))
+const paginatedProducts = computed(() => {
+  const start = productPage.value * productSize.value
+  return filteredProducts.value.slice(start, start + productSize.value)
+})
 
 const makeFilterOptions = (key) => {
   return [...new Set(productFilterSource.value.map(p => p[key]).filter(v => v && v !== '—'))]
@@ -1163,7 +1374,7 @@ const loadDiscounts = async () => {
   const res = await getPhieuGiamGia({
     page: discountPage.value,
     size: discountSize.value,
-    trangThai: 1
+    status: 1
   })
 
   discountList.value = res.data.content.map(d => ({
@@ -1247,6 +1458,12 @@ const newBetterVoucher = ref(null)
 const voucherCodeInput = ref('')
 let voucherPollTimer = null
 let pricePollTimer = null
+
+const onVisibilityChange = () => {
+  if (document.visibilityState === 'visible') {
+    void syncCartPriceWithServer()
+  }
+}
 let lastVoucherCoreSnapshot = ''
 const VOUCHER_POLL_INTERVAL_MS = 3000
 
@@ -1270,7 +1487,7 @@ const loadAllActiveVouchers = async () => {
     const res = await getPhieuGiamGia({
       page: 0,
       size: 1000,
-      trangThai: 1
+      status: 1
     })
     const mappedVouchers = res.data.content.map(d => ({
       id: d.id,
@@ -1510,6 +1727,22 @@ const syncAllTabsVouchers = () => {
   })
 }
 
+// Computed: danh sách sản phẩm trong tab hiện tại có giá thay đổi (chưa xác nhận)
+const priceChangedItems = computed(() => {
+  if (!currentOrder.value || !Array.isArray(currentOrder.value.cart)) return []
+  return currentOrder.value.cart.filter(item => item.isOldPriceLine && item.priceChangeMeta && !item.priceDismissed)
+})
+
+// Xác nhận đã biết giá thay đổi → ẩn banner, giữ thông tin trên dòng cũ
+const dismissPriceChanges = () => {
+  if (!currentOrder.value || !Array.isArray(currentOrder.value.cart)) return
+  currentOrder.value.cart.forEach(item => {
+    if (item.priceChangeMeta) {
+      item.priceDismissed = true
+    }
+  })
+}
+
 const syncCartPriceWithServer = async () => {
   if (!Array.isArray(orderTabs.value) || orderTabs.value.length === 0) return
 
@@ -1523,6 +1756,15 @@ const syncCartPriceWithServer = async () => {
       (res?.data?.content || []).map(p => [p.id, Number(p.giaBan || 0)])
     )
 
+    // Map giá sau giảm từ server
+    const latestDiscountMap = new Map(
+      (res?.data?.content || []).map(p => [p.id, {
+        giaSauGiam: p.giaSauGiam != null ? Number(p.giaSauGiam) : null,
+        phanTramGiam: p.phanTramGiam != null ? Number(p.phanTramGiam) : null,
+        tenDotGiamGia: p.tenDotGiamGia || null
+      }])
+    )
+
     orderTabs.value.forEach(tab => {
       if (!Array.isArray(tab.cart)) return
 
@@ -1530,14 +1772,32 @@ const syncCartPriceWithServer = async () => {
         const latestPrice = latestPriceMap.get(item.id)
         if (!Number.isFinite(latestPrice)) return
 
-        const oldPrice = Number(item.price || 0)
-        if (oldPrice !== latestPrice) {
-          item.priceChangeMeta = {
-            oldPrice,
-            newPrice: latestPrice,
-            changedAt: Date.now()
+        // Cập nhật thông tin đợt giảm giá cho item
+        const discountInfo = latestDiscountMap.get(item.id)
+        if (discountInfo && !item.isOldPriceLine) {
+          const effectivePrice = discountInfo.giaSauGiam != null ? discountInfo.giaSauGiam : latestPrice
+          item.giaGoc = discountInfo.giaSauGiam != null ? latestPrice : null
+          item.phanTramGiam = discountInfo.phanTramGiam
+          item.tenDotGiamGia = discountInfo.tenDotGiamGia
+
+          const currentItemPrice = Number(item.price || 0)
+          if (currentItemPrice !== effectivePrice) {
+            item.isOldPriceLine = true
+            item.priceDismissed = false
+            item.priceChangeMeta = {
+              oldPrice: currentItemPrice,
+              newPrice: effectivePrice,
+              changedAt: Date.now()
+            }
+            if (!item.cartKey) {
+              item.cartKey = `${item.id}_old_${Date.now()}`
+            }
           }
-          item.price = latestPrice
+        } else if (item.isOldPriceLine && item.priceChangeMeta) {
+          // Cập nhật giá mới hiển thị cho dòng cũ
+          const discInfo = latestDiscountMap.get(item.id)
+          const newEffective = discInfo?.giaSauGiam != null ? discInfo.giaSauGiam : latestPrice
+          item.priceChangeMeta.newPrice = newEffective
         }
       })
     })
@@ -1596,9 +1856,15 @@ const checkForBetterVouchers = async () => {
   const hasCoreChanges = await loadAllActiveVouchers()
 
   if (hasCoreChanges) {
-    // Chỉ đồng bộ phiếu đang áp dụng (gỡ phiếu đã hết hiệu lực),
-    // không tự chọn phiếu tốt nhất ở đây để tránh auto-apply trước khi popup xác nhận.
+    // Đồng bộ phiếu đang áp dụng (gỡ phiếu đã hết hiệu lực)
+    const beforeCount = discounts.value.length
     syncAppliedDiscountWithActiveVouchers()
+    const afterCount = discounts.value.length
+
+    // Nếu có phiếu bị gỡ → tự động chọn phiếu tốt nhất còn lại
+    if (afterCount < beforeCount) {
+      autoSelectBestVoucher()
+    }
   }
 
   // Nếu phiếu đang hiển thị popup đã bị xóa/hết hiệu lực thì đóng popup ngay.
@@ -1777,7 +2043,7 @@ const handleCreateOrder = async () => {
           : 'CHUYEN_KHOAN',
 
       items: cart.value.map(i => ({
-        idChiTietSanPham: i.id,
+        idChiTietSanPham: getOriginalProductId(i) || i.id,
         soLuong: i.qty,
         donGia: i.price
       }))
@@ -1800,7 +2066,8 @@ const handleCreateOrder = async () => {
     router.push({ name: orderListRouteName.value })
   } catch (err) {
     console.error(err)
-    alert('Lỗi khi tạo hóa đơn!')
+    const msg = err?.response?.data?.message || err?.response?.data || 'Lỗi khi tạo hóa đơn!'
+    alert(msg)
   }
 }
 
@@ -1998,11 +2265,20 @@ const handleCreateOrderDelivery = async () => {
     })),
 
     items: cart.value.map(i => ({
-      idChiTietSanPham: i.id,
+      idChiTietSanPham: getOriginalProductId(i) || i.id,
       soLuong: i.qty,
       donGia: i.price
     }))
   }
+
+  // Hoàn lại tồn kho đã giữ từ POS trước khi tạo đơn giao hàng,
+  // vì backend sẽ tự trừ kho khi admin xác nhận đơn (trạng thái 1→2).
+  for (const item of cart.value) {
+    if (item.qty > 0) {
+      await releaseProductStock(getOriginalProductId(item), item.qty, false)
+    }
+  }
+
   await createOrderDelivery(payload)
 
   if (currentOrder.value?.maHoaDon) {
@@ -2085,7 +2361,7 @@ const resetExpiredPendingOrders = async (tabs) => {
     for (const item of tab.cart) {
       const qtyToRelease = Number(item.qty || 0)
       if (qtyToRelease <= 0) continue
-      await releaseProductStock(item.id, qtyToRelease, false)
+      await releaseProductStock(getOriginalProductId(item), qtyToRelease, false)
     }
   }
 }
@@ -2203,6 +2479,9 @@ onMounted(async () => {
   pricePollTimer = window.setInterval(() => {
     void syncCartPriceWithServer()
   }, 20000)
+
+  // Đồng bộ giá ngay khi quay lại tab POS (không cần F5)
+  document.addEventListener('visibilitychange', onVisibilityChange)
 })
 
 onUnmounted(() => {
@@ -2218,15 +2497,24 @@ onUnmounted(() => {
     window.clearInterval(pricePollTimer)
     pricePollTimer = null
   }
+  // Cleanup QR scanner
+  if (html5QrCode) {
+    html5QrCode.stop().catch(() => {})
+    html5QrCode.clear()
+    html5QrCode = null
+  }
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 
 watch(orderTabs, saveOrderTabs, { deep: true })
 watch(activeTabId, saveOrderTabs)
 
 watch(staffPage, loadStaffs)
-watch(productPage, loadProducts)
 watch(customerPage, loadCustomers)
 watch(discountPage, loadDiscounts)
+
+// Reset về trang 1 khi bộ lọc sản phẩm thay đổi
+watch([productKeyword, productFilter, priceRange], () => { productPage.value = 0 }, { deep: true })
 
 const createNewTab = async () => {
   if (orderTabs.value.length >= MAX_TABS) {
@@ -2281,7 +2569,7 @@ const releaseTabStock = async (tab) => {
     const qtyToRelease = Number(item.qty || 0)
     if (qtyToRelease <= 0) continue
 
-    const released = await releaseProductStock(item.id, qtyToRelease)
+    const released = await releaseProductStock(getOriginalProductId(item), qtyToRelease)
     if (!released) {
       return false
     }
@@ -2771,7 +3059,7 @@ const getFullAddress = () => {
   font-size: 13px;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); 
   box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
   display: inline-flex;
@@ -3434,7 +3722,39 @@ input:disabled {
   font-size: 12px;
   color: #94a3b8;
   text-decoration: line-through;
+  font-weight: 600;
+}
+
+.price-change-line-msg {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #dc2626;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.price-original {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.discount-badge-inline {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 6px;
+  font-size: 11px;
   font-weight: 700;
+  color: #fff;
+  background: #dc2626;
+  border-radius: 4px;
+}
+
+.price-main.price-changed {
+  color: #dc2626;
+  font-weight: 800;
 }
 
 .price-change-note {
@@ -3444,16 +3764,76 @@ input:disabled {
 
 .price-change-title {
   font-size: 11px;
-  color: #09003d;
+  color: #dc2626;
   font-weight: 700;
   line-height: 1.2;
 }
 
 .price-change-flow {
   font-size: 12px;
-  color: #09003d;
+  color: #dc2626;
   font-weight: 700;
   line-height: 1.2;
+}
+
+/* ===== Price Change Banner ===== */
+.price-change-banner {
+  display: flex;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 4px solid #dc2626;
+  border-radius: 8px;
+  animation: bannerSlideIn .3s ease;
+}
+@keyframes bannerSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.price-change-banner-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+.price-change-banner-content {
+  flex: 1;
+}
+.price-change-banner-content b {
+  color: #991b1b;
+  font-size: 14px;
+}
+.price-change-banner-content ul {
+  margin: 6px 0 10px 18px;
+  padding: 0;
+  font-size: 13px;
+  color: #7f1d1d;
+}
+.price-change-banner-content ul li {
+  margin-bottom: 2px;
+}
+.price-change-banner .old-val {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+.price-change-banner .new-val {
+  color: #dc2626;
+  font-weight: 700;
+}
+.btn-dismiss-price {
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #991b1b;
+  background: #fff;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-dismiss-price:hover {
+  background: #dc2626;
+  color: #fff;
 }
 
 .price-col {
@@ -4286,7 +4666,7 @@ input:disabled {
   --brand-danger: #c53131;
   --brand-success: #168a55;
   padding: 6px;
-  background: radial-gradient(circle at top right, #f7f9fc 0%, var(--brand-bg) 60%);
+  background: #ebecee;
   color: var(--brand-text);
   font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
 }
@@ -4426,5 +4806,76 @@ input:disabled {
 
 .customer-table .btn-select {
   min-width: 72px;
+}
+
+/* ===== QR Scanner ===== */
+.btn-qr-scan {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #fff;
+  color: #1e3a8a;
+  border: 2px solid #1e3a8a;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-qr-scan:hover {
+  background: #1e3a8a;
+  color: #fff;
+}
+
+.qr-scanner-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 420px;
+  max-width: 95vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  overflow: hidden;
+}
+.qr-scanner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.qr-scanner-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.btn-close-qr {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+  line-height: 1;
+}
+.btn-close-qr:hover {
+  color: #111;
+}
+.qr-scanner-body {
+  padding: 20px;
+}
+.qr-scan-msg {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+}
+.qr-scan-msg.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.qr-scan-msg.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 </style>

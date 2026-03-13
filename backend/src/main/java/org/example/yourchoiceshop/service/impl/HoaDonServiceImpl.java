@@ -62,11 +62,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         return page.map(hd -> {
             HoaDonResponse res = new HoaDonResponse();
             res.setMaHoaDon(hd.getMaHoaDon());
-
-            int totalItems = hd.getHoaDonChiTiets() != null
-                    ? hd.getHoaDonChiTiets().stream().mapToInt(HoaDonChiTiet::getSoLuong).sum()
-                    : 0;
-            res.setTongSanPham(totalItems);
+            res.setTongSanPham(0);
 
             res.setTongTienSauGiam(hd.getTongTienSauGiam());
 
@@ -215,19 +211,22 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         // 2. Lưu trạng thái cũ để tạo lịch sử
         Integer oldStatus = hd.getTrangThai();
 
-        // 3. Nếu chuyển sang trạng thái hủy thì hoàn kho lại sản phẩm trong hóa đơn.
-        // Chỉ hoàn kho 1 lần khi trạng thái cũ khác 0 để tránh cộng kho trùng.
-        if (Integer.valueOf(0).equals(newStatus) && !Integer.valueOf(0).equals(oldStatus)) {
+        // 3. Nếu hủy đơn (stock đã trừ khi tạo đơn → cần hoàn kho)
+        if (Integer.valueOf(0).equals(newStatus) && oldStatus != null && oldStatus >= 1) {
             restoreStockForCanceledOrder(hd);
         }
+
+        // 4. Sau khi releaseStock clear context, cần re-fetch hóa đơn
+        hd = hoaDonRepo.findByMaHoaDon(maHoaDon)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn: " + maHoaDon));
         
-        // 4. Cập nhật trạng thái mới
+        // 5. Cập nhật trạng thái mới
         hd.setTrangThai(newStatus);
 
-        // 5. Lưu hóa đơn vào Database
+        // 6. Lưu hóa đơn vào Database
         hoaDonRepo.save(hd);
         
-        // 6. Tạo lịch sử thay đổi trạng thái
+        // 7. Tạo lịch sử thay đổi trạng thái
         LichSuHoaDon history = new LichSuHoaDon();
         history.setHoaDon(hd);
         history.setHanhDong("Cập nhật trạng thái từ " + getStatusLabel(oldStatus) + " sang " + getStatusLabel(newStatus));
@@ -243,20 +242,91 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             return;
         }
 
+        // Thu thập dữ liệu trước để tránh LazyInitializationException
+        List<Object[]> items = new ArrayList<>();
         for (HoaDonChiTiet item : hd.getHoaDonChiTiets()) {
             if (item == null || item.getChiTietSanPham() == null || item.getChiTietSanPham().getId() == null) {
                 continue;
             }
-
             Integer soLuong = item.getSoLuong();
             if (soLuong == null || soLuong <= 0) {
                 continue;
             }
+            items.add(new Object[]{item.getChiTietSanPham().getId(), soLuong});
+        }
 
-            chiTietSanPhamRepo.releaseStock(item.getChiTietSanPham().getId(), soLuong);
+        for (Object[] data : items) {
+            chiTietSanPhamRepo.releaseStock((Integer) data[0], (Integer) data[1]);
         }
     }
-    
+
+    private void deductStockForConfirmedOrder(HoaDon hd) {
+        if (hd.getHoaDonChiTiets() == null || hd.getHoaDonChiTiets().isEmpty()) {
+            return;
+        }
+
+        // Thu thập dữ liệu trước để tránh LazyInitializationException
+        // (reserveStock có clearAutomatically=true sẽ xóa persistence context)
+        List<Object[]> items = new ArrayList<>();
+        for (HoaDonChiTiet item : hd.getHoaDonChiTiets()) {
+            if (item == null || item.getChiTietSanPham() == null || item.getChiTietSanPham().getId() == null) {
+                continue;
+            }
+            Integer soLuong = item.getSoLuong();
+            if (soLuong == null || soLuong <= 0) {
+                continue;
+            }
+            items.add(new Object[]{
+                    item.getChiTietSanPham().getId(),
+                    soLuong,
+                    item.getChiTietSanPham().getMaCtsp()
+            });
+        }
+
+        for (Object[] data : items) {
+            Integer id = (Integer) data[0];
+            Integer soLuong = (Integer) data[1];
+            String maCtsp = (String) data[2];
+
+            int reduced = chiTietSanPhamRepo.reserveStock(id, soLuong);
+            if (reduced == 0) {
+                throw new RuntimeException("Sản phẩm " + maCtsp
+                        + " không đủ số lượng trong kho để xác nhận đơn hàng");
+            }
+        }
+    }
+
+    private void cancelUnfulfillablePendingOrders(Set<Integer> affectedProductIds) {
+        if (affectedProductIds == null || affectedProductIds.isEmpty()) return;
+
+        List<HoaDon> pendingOrders = hoaDonRepo.findPendingOrdersByProductIds(affectedProductIds);
+
+        for (HoaDon pending : pendingOrders) {
+            boolean canFulfill = true;
+            for (HoaDonChiTiet item : pending.getHoaDonChiTiets()) {
+                if (item.getChiTietSanPham() == null) continue;
+                if (item.getChiTietSanPham().getSoLuong() == null
+                        || item.getChiTietSanPham().getSoLuong() < item.getSoLuong()) {
+                    canFulfill = false;
+                    break;
+                }
+            }
+
+            if (!canFulfill) {
+                pending.setTrangThai(0);
+                hoaDonRepo.save(pending);
+
+                LichSuHoaDon history = new LichSuHoaDon();
+                history.setHoaDon(pending);
+                history.setHanhDong("Đơn hàng đã bị hủy tự động");
+                history.setThoiGian(LocalDateTime.now());
+                history.setTrangThai(0);
+                history.setGhiChu("Đã hủy do không đủ số lượng sản phẩm");
+                lichSuHoaDonRepo.save(history);
+            }
+        }
+    }
+
     private String getStatusLabel(Integer status) {
         if (status == null) return "Không xác định";
         return switch(status) {
@@ -280,11 +350,19 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         LocalDateTime now = LocalDateTime.now();
 
         for (PhieuGiamGiaRequest reqVoucher : vouchers) {
-            if (reqVoucher.getId() == null || consumedVoucherIds.contains(reqVoucher.getId())) {
+            // Hỗ trợ tìm bằng id hoặc maPhieuGiamGia (online checkout gửi mã, không gửi id)
+            PhieuGiamGia voucher = null;
+            Integer lookupId = reqVoucher.getId();
+
+            if (lookupId != null) {
+                if (consumedVoucherIds.contains(lookupId)) continue;
+                voucher = phieuGiamGiaRepo.findById(lookupId).orElse(null);
+            } else if (reqVoucher.getMaPhieuGiamGia() != null && !reqVoucher.getMaPhieuGiamGia().isBlank()) {
+                voucher = phieuGiamGiaRepo.findFirstByMaPhieuGiamGia(reqVoucher.getMaPhieuGiamGia()).orElse(null);
+                if (voucher != null && consumedVoucherIds.contains(voucher.getId())) continue;
+            } else {
                 continue;
             }
-
-            PhieuGiamGia voucher = phieuGiamGiaRepo.findById(reqVoucher.getId()).orElse(null);
             if (voucher == null) continue;
             if (voucher.getTrangThai() == null || voucher.getTrangThai() != 1) continue;
             if (voucher.getSoLuong() == null || voucher.getSoLuong() <= 0) continue;
@@ -433,6 +511,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
             hoaDonChiTietRepo.save(ct);
         }
+
         // 3. Cập nhật tiền
         hd.setTongTien(tongTien);
 
@@ -528,7 +607,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
     @Override
     @Transactional
-    public void createOrderDelivery(CreateOrderRequest req) {
+    public String createOrderDelivery(CreateOrderRequest req) {
 
         HoaDon hd = new HoaDon();
         hd.setMaHoaDon("HD" + System.currentTimeMillis());
@@ -558,9 +637,35 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
         BigDecimal tongTien = BigDecimal.ZERO;
 
+        // Thu thập thông tin items trước khi reserveStock (tránh LazyInitializationException)
+        List<Object[]> itemsToReserve = new ArrayList<>();
         for (CreateOrderRequest.CartItem item : req.getItems()) {
             ChiTietSanPham sp = chiTietSanPhamRepo.findById(item.getIdChiTietSanPham())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+            itemsToReserve.add(new Object[]{sp, item});
+        }
+
+        // Trừ tồn kho ngay khi đặt hàng (atomic) để tránh race condition
+        for (Object[] data : itemsToReserve) {
+            ChiTietSanPham sp = (ChiTietSanPham) data[0];
+            CreateOrderRequest.CartItem item = (CreateOrderRequest.CartItem) data[1];
+            int reserved = chiTietSanPhamRepo.reserveStock(sp.getId(), item.getSoLuong());
+            if (reserved == 0) {
+                throw new RuntimeException("Sản phẩm " + sp.getMaCtsp()
+                        + " không đủ số lượng trong kho (còn lại: " + sp.getSoLuong() + ", cần: " + item.getSoLuong() + ")");
+            }
+        }
+
+        // Re-fetch hóa đơn sau reserveStock (clearAutomatically=true xóa context)
+        hd = hoaDonRepo.findByMaHoaDon(hd.getMaHoaDon())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
+
+        for (Object[] data : itemsToReserve) {
+            ChiTietSanPham sp = (ChiTietSanPham) data[0];
+            CreateOrderRequest.CartItem item = (CreateOrderRequest.CartItem) data[1];
+
+            // Re-fetch sp sau khi context bị clear
+            sp = chiTietSanPhamRepo.findById(sp.getId()).orElse(sp);
 
             HoaDonChiTiet ct = new HoaDonChiTiet();
             ct.setHoaDon(hd);
@@ -608,6 +713,8 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         }
         
         lichSuHoaDonRepo.save(history);
+
+        return hd.getMaHoaDon();
     }
 
     private String convertStatusToText(Integer status) {

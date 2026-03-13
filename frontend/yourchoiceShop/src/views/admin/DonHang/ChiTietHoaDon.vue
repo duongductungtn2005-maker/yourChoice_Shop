@@ -2187,7 +2187,7 @@ onMounted(() => {
   --brand-success: #1f8f5a;
   --brand-warning: #a06210;
   --brand-radius: 12px;
-  background: radial-gradient(circle at top right, #f7f9fc 0%, var(--brand-bg) 65%);
+ 
   font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
   color: var(--brand-text);
 }

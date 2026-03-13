@@ -13,3 +13,7 @@ export const reserveStock = (id, soLuong) => {
 export const releaseStock = (id, soLuong) => {
   return axios.post(`${API_URL}/${id}/release`, { soLuong })
 }
+
+export const getByMaCtsp = (maCtsp) => {
+  return axios.get(`${API_URL}/by-ma`, { params: { maCtsp } })
+}

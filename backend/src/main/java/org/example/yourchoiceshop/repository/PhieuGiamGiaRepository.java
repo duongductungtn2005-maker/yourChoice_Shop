@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia, Integer> {
 
@@ -25,4 +27,6 @@ public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia, Inte
     );
 
     boolean existsByMaPhieuGiamGia(String ma);
+
+    Optional<PhieuGiamGia> findFirstByMaPhieuGiamGia(String maPhieuGiamGia);
 }

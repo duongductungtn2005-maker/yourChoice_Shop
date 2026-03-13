@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -46,6 +47,14 @@ public class ChiTietSanPhamController {
         );
 
         return ResponseEntity.ok(result);
+    }
+
+    // API Tìm biến thể theo mã CTSP (dùng cho quét QR)
+    @GetMapping("/by-ma")
+    public ResponseEntity<?> getByMaCtsp(@RequestParam String maCtsp) {
+        return repository.findByMaCtspAndActive(maCtsp)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // --- API SỬA (FIX LỖI TẠI ĐÂY) ---
@@ -114,34 +123,33 @@ public class ChiTietSanPhamController {
 
     @PostMapping("/{id}/reserve")
     @Transactional
-    public ResponseEntity<?> reserveStock(@PathVariable Integer id, @RequestBody StockAdjustmentRequest request) {
-        Integer soLuong = request.getSoLuong();
+    public ResponseEntity<?> reserveStock(@PathVariable Integer id, @RequestBody Map<String, Integer> request) {
+        Integer soLuong = request.get("soLuong");
         if (soLuong == null || soLuong <= 0) {
-            return ResponseEntity.badRequest().body("Số lượng phải lớn hơn 0");
+            return ResponseEntity.badRequest().body("Số lượng không hợp lệ");
         }
-
+        if (!repository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
         int updated = repository.reserveStock(id, soLuong);
         if (updated == 0) {
-            return ResponseEntity.badRequest().body("Không đủ tồn kho hoặc sản phẩm không tồn tại");
+            return ResponseEntity.badRequest().body("Không đủ tồn kho");
         }
-
-        return ResponseEntity.ok("Giữ kho thành công");
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/release")
     @Transactional
-    public ResponseEntity<?> releaseStock(@PathVariable Integer id, @RequestBody StockAdjustmentRequest request) {
-        Integer soLuong = request.getSoLuong();
+    public ResponseEntity<?> releaseStock(@PathVariable Integer id, @RequestBody Map<String, Integer> request) {
+        Integer soLuong = request.get("soLuong");
         if (soLuong == null || soLuong <= 0) {
-            return ResponseEntity.badRequest().body("Số lượng phải lớn hơn 0");
+            return ResponseEntity.badRequest().body("Số lượng không hợp lệ");
         }
-
-        int updated = repository.releaseStock(id, soLuong);
-        if (updated == 0) {
-            return ResponseEntity.badRequest().body("Sản phẩm không tồn tại");
+        if (!repository.existsById(id)) {
+            return ResponseEntity.notFound().build();
         }
-
-        return ResponseEntity.ok("Hoàn kho thành công");
+        repository.releaseStock(id, soLuong);
+        return ResponseEntity.ok().build();
     }
 
     // --- DTO: Class phụ để hứng dữ liệu JSON từ Frontend ---
@@ -160,11 +168,5 @@ public class ChiTietSanPhamController {
         private Integer idCoAo;
         private Integer idTayAo;
         private Integer idXuatXu;
-    }
-
-    @Getter
-    @Setter
-    public static class StockAdjustmentRequest {
-        private Integer soLuong;
     }
 }

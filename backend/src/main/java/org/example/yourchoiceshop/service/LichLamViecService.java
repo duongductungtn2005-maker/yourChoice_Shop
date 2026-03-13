@@ -18,6 +18,7 @@ import org.example.yourchoiceshop.entity.NhanVien;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.DataValidation;
 import org.apache.poi.ss.usermodel.DataValidationConstraint;
 import org.apache.poi.ss.usermodel.DataValidationHelper;
@@ -111,14 +112,14 @@ public class LichLamViecService {
                     .filter(ca -> ca.getTrangThai() != null && ca.getTrangThai() == 1)
                     .collect(Collectors.toList());
 
-            // Ghi Ca làm việc vào sheet ẩn (Cột A)
+            // Ghi Ca làm việc vào sheet ẩn
             for (int i = 0; i < caLamViecs.size(); i++) {
                 Row row = hiddenSheet.createRow(i);
-                row.createCell(0).setCellValue(caLamViecs.get(i).getTenCa()); 
+                row.createCell(0).setCellValue(caLamViecs.get(i).getTenCa());
             }
-            workbook.setSheetHidden(1, true); // Giấu sheet data
+            workbook.setSheetHidden(1, true);
 
-            // Tạo tiêu đề cho sheet chính (3 Cột)
+            // Tiêu đề
             Row headerRow = mainSheet.createRow(0);
             CellStyle headerStyle = workbook.createCellStyle();
             Font font = workbook.createFont();
@@ -127,31 +128,31 @@ public class LichLamViecService {
             headerStyle.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
-            // Bỏ cột ngày, chỉ còn 3 cột này
-            String[] headers = {
-                "Mã nhân viên", 
-                "Tên nhân viên", 
-                "Ca làm việc (Chọn)"
-            };
-            
+            String[] headers = {"Ngày làm việc (dd/MM/yyyy)", "Mã nhân viên", "Ca làm việc (Chọn)"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
                 cell.setCellStyle(headerStyle);
             }
 
-            // Tạo Dropdown cho cột Ca Làm Việc (Cột C - index 2)
+            // Set Format cột A (Ngày tháng) thành Text hoặc Date chuẩn để user dễ nhập
+            CellStyle dateStyle = workbook.createCellStyle();
+            CreationHelper createHelper = workbook.getCreationHelper();
+            dateStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd/MM/yyyy"));
+            mainSheet.setDefaultColumnStyle(0, dateStyle);
+
+            // Tạo Dropdown cho cột C (Ca làm việc - Index 2)
             if (!caLamViecs.isEmpty()) {
                 DataValidationHelper validationHelper = mainSheet.getDataValidationHelper();
                 DataValidationConstraint caConstraint = validationHelper.createFormulaListConstraint("HiddenData!$A$1:$A$" + caLamViecs.size());
-                // Áp dụng cho cột C (index 2), từ dòng 2 đến dòng 1000
-                CellRangeAddressList caAddressList = new CellRangeAddressList(1, 1000, 2, 2);
+                CellRangeAddressList caAddressList = new CellRangeAddressList(1, 2000, 2, 2);
                 mainSheet.addValidationData(validationHelper.createValidation(caConstraint, caAddressList));
             }
 
-            for (int i = 0; i < headers.length; i++) {
-                mainSheet.autoSizeColumn(i);
-            }
+            // Chỉnh độ rộng cột cho đẹp
+            mainSheet.setColumnWidth(0, 6000); 
+            mainSheet.setColumnWidth(1, 5000);
+            mainSheet.setColumnWidth(2, 6000);
 
             workbook.write(out);
             return out.toByteArray();
@@ -159,62 +160,69 @@ public class LichLamViecService {
     }
 
     // ===== 2. ĐỌC FILE IMPORT =====
-    public void importLichLamViec(MultipartFile file, LocalDate ngayLamViec) throws Exception {
+    // LƯU Ý: Đã bỏ tham số ngayLamViec truyền từ Web vào, vì giờ sẽ đọc ngày từ file Excel
+    public void importLichLamViec(MultipartFile file) throws Exception {
         List<String> errorMessages = new ArrayList<>();
         List<LichLamViec> validRecords = new ArrayList<>();
 
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
-            
+
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
+                int rowNum = i + 1;
 
-                // Dòng trong Excel hiển thị cho user (Bắt đầu từ 1, header là 1, data là 2)
-                int rowNum = i + 1; 
+                Cell dateCell = row.getCell(0);
+                Cell maNvCell = row.getCell(1);
+                Cell caCell = row.getCell(2);
 
-                Cell maNvCell = row.getCell(0);
-                Cell caCell = row.getCell(2); // Cột C
-
-                // 1. Validate: Dữ liệu bị trống
-                if (maNvCell == null || caCell == null || 
-                    maNvCell.getCellType() == CellType.BLANK || caCell.getCellType() == CellType.BLANK) {
-                    errorMessages.add("Dòng " + rowNum + ": Mã nhân viên và Ca làm việc không được để trống.");
+                if (dateCell == null || maNvCell == null || caCell == null ||
+                    dateCell.getCellType() == CellType.BLANK || maNvCell.getCellType() == CellType.BLANK || caCell.getCellType() == CellType.BLANK) {
+                    errorMessages.add("Dòng " + rowNum + ": Thiếu dữ liệu (Ngày, Mã NV hoặc Ca làm việc).");
                     continue;
                 }
 
-                // Xử lý đọc Mã nhân viên
-                String maNhanVien = "";
-                if (maNvCell.getCellType() == CellType.NUMERIC) {
-                    maNhanVien = String.valueOf((long) maNvCell.getNumericCellValue());
-                } else {
-                    maNhanVien = maNvCell.getStringCellValue().trim();
+                // --- 1. Đọc và Validate Ngày ---
+                LocalDate ngayLamViec = null;
+                try {
+                    if (DateUtil.isCellDateFormatted(dateCell)) {
+                        ngayLamViec = dateCell.getLocalDateTimeCellValue().toLocalDate();
+                    } else {
+                        // Nếu user lỡ tay nhập text "05/03/2026"
+                        String dateStr = dateCell.getStringCellValue().trim();
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                        ngayLamViec = LocalDate.parse(dateStr, formatter);
+                    }
+                } catch (Exception e) {
+                    errorMessages.add("Dòng " + rowNum + ": Sai định dạng ngày. Vui lòng nhập chuẩn dd/MM/yyyy.");
+                    continue;
                 }
-                
-                // Xử lý đọc Tên ca
+
+                // --- 2. Đọc Mã NV & Ca làm việc ---
+                String maNhanVien = (maNvCell.getCellType() == CellType.NUMERIC) ? 
+                                    String.valueOf((long) maNvCell.getNumericCellValue()) : maNvCell.getStringCellValue().trim();
                 String tenCa = caCell.getStringCellValue().trim();
 
-                // 2. Validate: Kiểm tra tồn tại trong DB
+                // --- 3. Validate Database ---
                 NhanVien nhanVien = nhanVienRepository.findByMaNhanVien(maNhanVien).orElse(null);
                 if (nhanVien == null || (nhanVien.getTrangThai() != null && nhanVien.getTrangThai() != 1)) {
-                    errorMessages.add("Dòng " + rowNum + ": Không tìm thấy nhân viên mã '" + maNhanVien + "' hoặc đã ngừng hoạt động.");
-                    continue; // Chuyển sang dòng tiếp theo
+                    errorMessages.add("Dòng " + rowNum + ": Mã nhân viên '" + maNhanVien + "' không hợp lệ.");
+                    continue;
                 }
 
                 CaLamViec caLamViec = caLamViecRepository.findFirstByTenCa(tenCa).orElse(null);
                 if (caLamViec == null || (caLamViec.getTrangThai() != null && caLamViec.getTrangThai() != 1)) {
-                    errorMessages.add("Dòng " + rowNum + ": Không tìm thấy ca làm việc '" + tenCa + "' hoặc ca đã ngừng hoạt động.");
+                    errorMessages.add("Dòng " + rowNum + ": Ca làm việc '" + tenCa + "' không hợp lệ.");
                     continue;
                 }
 
-                // 3. Validate: Chống trùng lặp lịch (1 người không thể làm 1 ca 2 lần trong 1 ngày)
-                boolean isDuplicate = lichLamViecRepository.existsByNhanVienAndCaLamViecAndNgayLamViec(nhanVien, caLamViec, ngayLamViec);
-                if (isDuplicate) {
-                    errorMessages.add("Dòng " + rowNum + ": Nhân viên '" + nhanVien.getTenNhanVien() + "' đã được xếp vào ca '" + tenCa + "' trong ngày này rồi.");
+                // --- 4. Validate Trùng lặp ---
+                if (lichLamViecRepository.existsByNhanVienAndCaLamViecAndNgayLamViec(nhanVien, caLamViec, ngayLamViec)) {
+                    errorMessages.add("Dòng " + rowNum + ": NV '" + nhanVien.getTenNhanVien() + "' đã có ca '" + tenCa + "' vào ngày " + ngayLamViec.toString() + ".");
                     continue;
                 }
 
-                // Nếu vượt qua mọi bài kiểm tra -> Đưa vào danh sách chờ lưu
                 LichLamViec lich = new LichLamViec();
                 lich.setNgayLamViec(ngayLamViec);
                 lich.setNhanVien(nhanVien);
@@ -223,18 +231,60 @@ public class LichLamViecService {
             }
         }
 
-        // 4. Quyết định Lưu hoặc Báo lỗi
         if (!errorMessages.isEmpty()) {
-            // Nối các lỗi lại thành 1 chuỗi, cách nhau bởi dấu xuống dòng
-            String combinedErrors = String.join("\n", errorMessages);
-            // Ném lỗi ra để Controller bắt lấy
-            throw new IllegalArgumentException(combinedErrors); 
+            throw new IllegalArgumentException(String.join("\n", errorMessages));
         }
 
-        // Nếu không có lỗi nào, tiến hành lưu toàn bộ vào DB
         if (!validRecords.isEmpty()) {
             lichLamViecRepository.saveAll(validRecords);
         }
     }
-    
+    @Transactional
+    public String copyLichTuTuanTruoc(LocalDate ngayTrongTuanHienTai) {
+        // 1. Xác định Thứ 2 và Chủ Nhật của tuần HIỆN TẠI (tuần đích)
+        LocalDate thuHaiHienTai = ngayTrongTuanHienTai.with(java.time.DayOfWeek.MONDAY);
+        
+        // 2. Xác định Thứ 2 và Chủ Nhật của tuần TRƯỚC (tuần nguồn)
+        LocalDate thuHaiTuanTruoc = thuHaiHienTai.minusWeeks(1);
+        LocalDate chuNhatTuanTruoc = thuHaiTuanTruoc.plusDays(6);
+
+        // 3. Lấy toàn bộ lịch làm việc của tuần trước
+        List<LichLamViec> lichTuanTruoc = lichLamViecRepository.findByNgayLamViecBetween(thuHaiTuanTruoc, chuNhatTuanTruoc);
+
+        if (lichTuanTruoc.isEmpty()) {
+            throw new RuntimeException("Tuần trước không có lịch làm việc nào để sao chép!");
+        }
+
+        List<LichLamViec> lichMoiDeLuu = new ArrayList<>();
+        int soLuongCopyThanhCong = 0;
+
+        // 4. Duyệt qua từng lịch tuần trước, cộng thêm 7 ngày
+        for (LichLamViec lichCu : lichTuanTruoc) {
+            LocalDate ngayMoi = lichCu.getNgayLamViec().plusWeeks(1);
+
+            // Kiểm tra xem ngày mới này, nhân viên này, ca này đã được xếp lịch chưa (tránh trùng lặp)
+            boolean daTonTai = lichLamViecRepository.existsByNhanVienAndCaLamViecAndNgayLamViec(
+                    lichCu.getNhanVien(), lichCu.getCaLamViec(), ngayMoi
+            );
+
+            if (!daTonTai) {
+                LichLamViec lichMoi = new LichLamViec();
+                lichMoi.setNgayLamViec(ngayMoi);
+                lichMoi.setNhanVien(lichCu.getNhanVien());
+                lichMoi.setCaLamViec(lichCu.getCaLamViec());
+                
+                lichMoiDeLuu.add(lichMoi);
+                soLuongCopyThanhCong++;
+            }
+        }
+
+        if (soLuongCopyThanhCong == 0) {
+            return "Dữ liệu tuần này đã tồn tại, không có lịch mới nào được sao chép thêm.";
+        }
+
+        // 5. Lưu toàn bộ xuống Database
+        lichLamViecRepository.saveAll(lichMoiDeLuu);
+        
+        return "Đã sao chép thành công " + soLuongCopyThanhCong + " ca làm việc từ tuần trước!";
+    }
 }

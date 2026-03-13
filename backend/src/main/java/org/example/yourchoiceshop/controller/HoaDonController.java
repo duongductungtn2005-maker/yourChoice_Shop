@@ -66,8 +66,12 @@ public class HoaDonController {
     public ResponseEntity<?> updateStatus(
             @PathVariable String maHoaDon,
             @RequestParam Integer newStatus) {
-        hoaDonService.updateStatus(maHoaDon, newStatus);
-        return ResponseEntity.ok().body("Cập nhật trạng thái thành công");
+        try {
+            hoaDonService.updateStatus(maHoaDon, newStatus);
+            return ResponseEntity.ok().body("Cập nhật trạng thái thành công");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     // --- API MỚI: CẬP NHẬT THÔNG TIN NGƯỜI NHẬN ---
@@ -81,8 +85,12 @@ public class HoaDonController {
 
     @PostMapping("/create")
     public ResponseEntity<?> createOrder(@RequestBody CreateOrderRequest req) {
-        hoaDonService.createOrderAtCounter(req);
-        return ResponseEntity.ok("Tạo hóa đơn thành công");
+        try {
+            hoaDonService.createOrderAtCounter(req);
+            return ResponseEntity.ok("Tạo hóa đơn thành công");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping("/pos/draft")
@@ -130,25 +138,35 @@ public class HoaDonController {
     public ResponseEntity<?> thanhToan(
             @PathVariable String maHoaDon,
             @RequestBody ThanhToanRequest request) {
-
-        thanhToanService.thanhToan(maHoaDon, request);
-        return ResponseEntity.ok("Thanh toán thành công");
+        try {
+            thanhToanService.thanhToan(maHoaDon, request);
+            return ResponseEntity.ok("Thanh toán thành công");
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PostMapping("/delivery")
     public ResponseEntity<?> createOrderDelivery(
             @RequestBody CreateOrderRequest req) {
-
-        hoaDonService.createOrderDelivery(req);
-        return ResponseEntity.ok().build();
+        try {
+            String maHoaDon = hoaDonService.createOrderDelivery(req);
+            return ResponseEntity.ok(java.util.Map.of("maHoaDon", maHoaDon));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
+        }
     }
 
     @PostMapping("/tai-quay")
     public ResponseEntity<?> createOrderAtCounter(
             @RequestBody CreateOrderRequest req) {
-
-        hoaDonService.createOrderAtCounter(req);
-        return ResponseEntity.ok().build();
+        try {
+            hoaDonService.createOrderAtCounter(req);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     

@@ -9,9 +9,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, Integer> {
+
+    // Tìm biến thể theo mã CTSP (dùng cho quét QR) - chỉ lấy sản phẩm đang kinh doanh
+    @Query("SELECT c FROM ChiTietSanPham c WHERE c.maCtsp = :maCtsp AND c.trangThai = 1 AND c.sanPham.trangThai = 1")
+    Optional<ChiTietSanPham> findByMaCtspAndActive(@Param("maCtsp") String maCtsp);
 
     // Lấy tất cả con theo cha
     List<ChiTietSanPham> findBySanPhamId(Integer sanPhamId);

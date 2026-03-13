@@ -455,7 +455,7 @@ onBeforeUnmount(() => {
   --brand-sub: #607089;
   padding: 20px;
   font-family: "Be Vietnam Pro", "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top right, #f7f9fc 0%, var(--brand-bg) 65%);
+  background: #ebecee;
   min-height: 100vh;
   color: var(--brand-text);
   font-size: 14px;

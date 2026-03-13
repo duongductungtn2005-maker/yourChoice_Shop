@@ -15,6 +15,9 @@ public class VariantResponse {
     private Integer soLuong;
     private BigDecimal giaNhap;
     private BigDecimal giaBan;
+    private BigDecimal giaSauGiam;     // Giá sau khi áp dụng đợt giảm giá (null = không giảm)
+    private BigDecimal phanTramGiam;   // % giảm (null = không giảm)
+    private String tenDotGiamGia;      // Tên đợt giảm giá đang áp dụng
     private Integer trangThai;
 
     // Trả về Object con để Frontend dùng v.mauSac.tenMauSac

@@ -66,7 +66,7 @@
                   <label>Tỉnh/Thành phố <span class="required">*</span></label>
                   <select v-model="form.provinceId" @change="onProvinceChange" :class="{ error: errors.province }">
                     <option :value="null">-- Chọn --</option>
-                    <option v-for="p in provinces" :key="p.ProvinceID" :value="p.ProvinceID">{{ p.ProvinceName }}</option>
+                    <option v-for="p in provinces" :key="p.provinceId" :value="p.provinceId">{{ p.provinceName }}</option>
                   </select>
                   <span class="error-msg" v-if="errors.province">{{ errors.province }}</span>
                 </div>
@@ -74,7 +74,7 @@
                   <label>Quận/Huyện <span class="required">*</span></label>
                   <select v-model="form.districtId" @change="onDistrictChange" :class="{ error: errors.district }">
                     <option :value="null">-- Chọn --</option>
-                    <option v-for="d in districts" :key="d.DistrictID" :value="d.DistrictID">{{ d.DistrictName }}</option>
+                    <option v-for="d in districts" :key="d.districtId" :value="d.districtId">{{ d.districtName }}</option>
                   </select>
                   <span class="error-msg" v-if="errors.district">{{ errors.district }}</span>
                 </div>
@@ -82,7 +82,7 @@
                   <label>Phường/Xã <span class="required">*</span></label>
                   <select v-model="form.wardCode" :class="{ error: errors.ward }">
                     <option :value="null">-- Chọn --</option>
-                    <option v-for="w in wards" :key="w.WardCode" :value="w.WardCode">{{ w.WardName }}</option>
+                    <option v-for="w in wards" :key="w.wardCode" :value="w.wardCode">{{ w.wardName }}</option>
                   </select>
                   <span class="error-msg" v-if="errors.ward">{{ errors.ward }}</span>
                 </div>
@@ -101,16 +101,18 @@
             <div class="shipping-options">
               <label class="shipping-option" :class="{ active: form.shippingMethod === 'standard' }">
                 <input type="radio" value="standard" v-model="form.shippingMethod" />
+                <img src="/src/img/Logo_GHN.webp" alt="GHN" class="ghn-logo" />
                 <div class="option-info">
-                  <span class="option-name">Vận chuyển tiêu chuẩn</span>
+                  <span class="option-name">Vận chuyển tiêu chuẩn (GHN)</span>
                   <span class="option-desc">3-5 ngày | {{ cartStore.totalMoney >= 500000 ? 'MIỄN PHÍ' : formatMoney(30000) }}</span>
                 </div>
                 <span class="option-price">{{ cartStore.totalMoney >= 500000 ? 'Miễn phí' : formatMoney(30000) }}</span>
               </label>
               <label class="shipping-option" :class="{ active: form.shippingMethod === 'express' }">
                 <input type="radio" value="express" v-model="form.shippingMethod" />
+                <img src="/src/img/Logo_GHN.webp" alt="GHN" class="ghn-logo" />
                 <div class="option-info">
-                  <span class="option-name">Vận chuyển nhanh</span>
+                  <span class="option-name">Vận chuyển nhanh (GHN Express)</span>
                   <span class="option-desc">1-2 ngày</span>
                 </div>
                 <span class="option-price">{{ formatMoney(50000) }}</span>
@@ -211,6 +213,7 @@ import { useCartStore } from '@/stores/cart'
 import { createOrderOnline, getProvinces, getDistricts, getWards, getVouchers, getAddresses } from '@/api/clientApi'
 import { getCurrentUser, isAuthenticated } from '@/services/auth'
 import Swal from 'sweetalert2'
+import axios from 'axios'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -249,7 +252,7 @@ const shippingFee = computed(() => {
 const discountAmount = computed(() => {
   if (!appliedVoucher.value) return 0
   const v = appliedVoucher.value
-  if (v.loaiPhieu === 0) { // Phần trăm
+  if (v.loaiPhieu === 'PhanTram') { // Phần trăm
     const discount = cartStore.totalMoney * v.giaTriGiam / 100
     return v.giaTriGiamToiDa ? Math.min(discount, v.giaTriGiamToiDa) : discount
   }
@@ -298,8 +301,8 @@ const onProvinceChange = async () => {
   wards.value = []
   form.districtId = null
   form.wardCode = null
-  const prov = provinces.value.find(p => p.ProvinceID === form.provinceId)
-  form.provinceName = prov ? prov.ProvinceName : ''
+  const prov = provinces.value.find(p => p.provinceId === form.provinceId)
+  form.provinceName = prov ? prov.provinceName : ''
   if (!form.provinceId) return
   try {
     const res = await getDistricts(form.provinceId)
@@ -310,8 +313,8 @@ const onProvinceChange = async () => {
 const onDistrictChange = async () => {
   wards.value = []
   form.wardCode = null
-  const dist = districts.value.find(d => d.DistrictID === form.districtId)
-  form.districtName = dist ? dist.DistrictName : ''
+  const dist = districts.value.find(d => d.districtId === form.districtId)
+  form.districtName = dist ? dist.districtName : ''
   if (!form.districtId) return
   try {
     const res = await getWards(form.districtId)
@@ -320,8 +323,8 @@ const onDistrictChange = async () => {
 }
 
 watch(() => form.wardCode, (val) => {
-  const w = wards.value.find(x => x.WardCode === val)
-  form.wardName = w ? w.WardName : ''
+  const w = wards.value.find(x => x.wardCode === val)
+  form.wardName = w ? w.wardName : ''
 })
 
 const fillAddress = (addr) => {
@@ -364,7 +367,7 @@ const applyVoucher = async () => {
 const removeVoucher = () => { appliedVoucher.value = null; voucherCode.value = '' }
 
 const formatDiscount = (v) => {
-  if (v.loaiPhieu === 0) return `${v.giaTriGiam}%`
+  if (v.loaiPhieu === 'PhanTram') return `${v.giaTriGiam}%`
   return formatMoney(v.giaTriGiam)
 }
 
@@ -425,7 +428,23 @@ const placeOrder = async () => {
       })),
     }
 
-    await createOrderOnline(orderData)
+    const res = await createOrderOnline(orderData)
+    const maHoaDon = res.data.maHoaDon
+
+    // Nếu chọn thanh toán chuyển khoản (VNPay) → redirect sang VNPay
+    if (form.paymentMethod === 'BANKING') {
+      const { data: vnpayData } = await axios.get('http://localhost:8080/api/v1/vnpay/create-payment', {
+        params: {
+          maHoaDon: maHoaDon,
+          amount: Math.round(totalPayment.value),
+        }
+      })
+      // Redirect sang trang thanh toán VNPay
+      window.location.href = vnpayData.paymentUrl
+      return
+    }
+
+    // COD → hiển thị thành công
     cartStore.clearCart()
 
     await Swal.fire({
@@ -497,6 +516,7 @@ textarea:focus { border-color: #1e3a8a; }
 .shipping-option { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: 0.2s; }
 .shipping-option.active { border-color: #1e3a8a; background: #eff6ff; }
 .shipping-option input { accent-color: #1e3a8a; }
+.ghn-logo { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; flex-shrink: 0; }
 .option-info { flex: 1; }
 .option-name { font-weight: 600; font-size: 14px; display: block; }
 .option-desc { font-size: 13px; color: #64748b; }

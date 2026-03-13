@@ -40,7 +40,11 @@
                   <span class="variant-label">{{ item.mauSac }} / {{ item.kichThuoc }}</span>
                 </div>
               </div>
-              <div class="col-price">{{ formatMoney(item.donGia) }}</div>
+              <div class="col-price">
+                <span>{{ formatMoney(item.donGia) }}</span>
+                <span v-if="item.giaGoc" style="text-decoration: line-through; color: #999; font-size: 12px; display: block;">{{ formatMoney(item.giaGoc) }}</span>
+                <span v-if="item.phanTramGiam" style="color: #d32f2f; font-size: 12px; font-weight: 600;">-{{ item.phanTramGiam }}%</span>
+              </div>
               <div class="col-qty">
                 <div class="qty-control">
                   <button @click="changeQty(item.variantId, item.soLuong - 1)">-</button>
@@ -222,7 +226,7 @@ const handleImgError = (e) => { e.target.src = 'https://placehold.co/100x120?tex
 .btn-checkout:hover { opacity: 0.9; box-shadow: 0 4px 15px rgba(15, 23, 42, 0.3); }
 .payment-methods { text-align: center; margin-top: 20px; font-size: 13px; color: #94a3b8; }
 .methods-icons { display: flex; justify-content: center; gap: 15px; margin-top: 10px; }
-.methods-icons span { font-size: 20px; color: #64748b; }
+.methods-icons span { font-size: 20px; color: #1e3a8a; }
 
 @media (max-width: 992px) {
   .cart-grid { grid-template-columns: 1fr; }

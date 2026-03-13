@@ -16,38 +16,63 @@
            </div>
            <div class="form-group">
              <label class="required">Thương hiệu</label>
-             <select v-model="product.idThuongHieu" class="form-control">
-               <option :value="null">-- Chọn thương hiệu --</option>
-               <option v-for="item in attributes.thuongHieu" :key="item.id" :value="item.id">{{ item.tenThuongHieu }}</option>
-             </select>
+             <QuickAddSelect
+               v-model="product.idThuongHieu"
+               :options="attributes.thuongHieu"
+               label-key="tenThuongHieu"
+               label="Thương hiệu"
+               placeholder="Tìm hoặc chọn thương hiệu..."
+               :api-url="`${API_URL}/thuong-hieu`"
+               @item-added="(item) => attributes.thuongHieu.push(item)"
+             />
            </div>
            <div class="form-group">
              <label class="required">Chất liệu</label>
-             <select v-model="product.idChatLieu" class="form-control">
-               <option :value="null">-- Chọn chất liệu --</option>
-               <option v-for="item in attributes.chatLieu" :key="item.id" :value="item.id">{{ item.tenChatLieu }}</option>
-             </select>
+             <QuickAddSelect
+               v-model="product.idChatLieu"
+               :options="attributes.chatLieu"
+               label-key="tenChatLieu"
+               label="Chất liệu"
+               placeholder="Tìm hoặc chọn chất liệu..."
+               :api-url="`${API_URL}/chat-lieu`"
+               @item-added="(item) => attributes.chatLieu.push(item)"
+             />
            </div>
            <div class="form-group">
               <label class="required">Cổ áo</label>
-              <select v-model="product.idCoAo" class="form-control">
-                <option :value="null">-- Chọn cổ áo --</option>
-                <option v-for="item in attributes.coAo" :key="item.id" :value="item.id">{{ item.tenCoAo }}</option>
-              </select>
+              <QuickAddSelect
+                v-model="product.idCoAo"
+                :options="attributes.coAo"
+                label-key="tenCoAo"
+                label="Cổ áo"
+                placeholder="Tìm hoặc chọn cổ áo..."
+                :api-url="`${API_URL}/co-ao`"
+                @item-added="(item) => attributes.coAo.push(item)"
+              />
             </div>
             <div class="form-group">
                <label class="required">Tay áo</label>
-               <select v-model="product.idTayAo" class="form-control">
-                 <option :value="null">-- Chọn tay áo --</option>
-                 <option v-for="item in attributes.tayAo" :key="item.id" :value="item.id">{{ item.tenTayAo }}</option>
-               </select>
+               <QuickAddSelect
+                 v-model="product.idTayAo"
+                 :options="attributes.tayAo"
+                 label-key="tenTayAo"
+                 label="Tay áo"
+                 placeholder="Tìm hoặc chọn tay áo..."
+                 :api-url="`${API_URL}/tay-ao`"
+                 @item-added="(item) => attributes.tayAo.push(item)"
+               />
             </div>
            <div class="form-group">
              <label class="required">Xuất xứ</label>
-             <select v-model="product.idXuatXu" class="form-control">
-               <option :value="null">-- Chọn xuất xứ --</option>
-               <option v-for="item in attributes.xuatXu" :key="item.id" :value="item.id">{{ item.tenXuatXu }}</option>
-             </select>
+             <QuickAddSelect
+               v-model="product.idXuatXu"
+               :options="attributes.xuatXu"
+               label-key="tenXuatXu"
+               label="Xuất xứ"
+               placeholder="Tìm hoặc chọn xuất xứ..."
+               :api-url="`${API_URL}/xuat-xu`"
+               @item-added="(item) => attributes.xuatXu.push(item)"
+             />
            </div>
            <div class="form-group full-width">
              <label>Mô tả sản phẩm</label>
@@ -156,7 +181,10 @@
                 </div>
 
                 <div class="col-right-images">
-                    <div class="img-header-row">Ảnh sản phẩm</div>
+                    <div class="img-header-row">
+                        <span>Ảnh sản phẩm</span>
+                        <span class="img-count-badge">{{ (groupImages[color.id] || []).length }} ảnh</span>
+                    </div>
 
                     <div class="image-content-wrap">
                         <div class="image-upload-area">
@@ -172,7 +200,7 @@
                             <div v-else class="image-gallery-container">
                                 <div class="gallery-grid">
                                     <div v-for="(img, idx) in groupImages[color.id]" :key="idx" class="img-thumbnail">
-                                        <img :src="getPreviewUrl(img)" alt="Product Image">
+                                        <img :src="getPreviewUrl(img)" alt="Product Image" @error="handlePreviewError">
                                     </div>
                                     <div class="add-image-tile" @click="openGalleryModal(color)">
                                         <div class="tile-icon">
@@ -252,11 +280,13 @@ import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 import ImageGalleryModal from './ImageGalleryModal.vue';
 import AttributeSelectionModal from './AttributeSelectionModal.vue';
+import QuickAddSelect from './QuickAddSelect.vue';
 import { toastSuccess, toastError, Toast } from '@/utils/toast';
 
 const router = useRouter();
 const loading = ref(false);
 const API_URL = 'http://localhost:8080/api/v1';
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
 
 // STATE
 const product = reactive({ tenSanPham: '', moTa: '', idThuongHieu: null, idChatLieu: null, idXuatXu: null, idCoAo: null, idTayAo: null });
@@ -423,10 +453,26 @@ const handleGallerySave = (selectedImages) => {
 };
 
 const getPreviewUrl = (imgObject) => {
-    if (typeof imgObject === 'string') return imgObject;
+    if (typeof imgObject === 'string') {
+        if (!imgObject) return '';
+        if (imgObject.startsWith('http://') || imgObject.startsWith('https://') || imgObject.startsWith('data:') || imgObject.startsWith('blob:')) {
+            return imgObject;
+        }
+        return `${IMAGE_BASE_URL}${imgObject.replace(/^\/+/, '')}`;
+    }
     if (imgObject && imgObject.dataURL) return imgObject.dataURL;
-    if (imgObject && imgObject.url) return imgObject.url;
+    if (imgObject && imgObject.url) {
+        if (imgObject.url.startsWith('http://') || imgObject.url.startsWith('https://') || imgObject.url.startsWith('data:') || imgObject.url.startsWith('blob:')) {
+            return imgObject.url;
+        }
+        return `${IMAGE_BASE_URL}${imgObject.url.replace(/^\/+/, '')}`;
+    }
     return '';
+};
+
+const handlePreviewError = (event) => {
+    // Use a clean inline fallback so broken URL never renders as a browser error icon.
+    event.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Crect width='280' height='280' fill='%23eef2ff'/%3E%3Cg fill='none' stroke='%2364748b' stroke-width='10'%3E%3Crect x='52' y='66' width='176' height='148' rx='14'/%3E%3Cpath d='M80 182l34-36 30 28 28-24 28 32'/%3E%3Ccircle cx='182' cy='110' r='12'/%3E%3C/g%3E%3Ctext x='140' y='244' text-anchor='middle' fill='%2364748b' font-family='Arial' font-size='18'%3EImage unavailable%3C/text%3E%3C/svg%3E";
 };
 
 // BULK EDIT
@@ -529,6 +575,7 @@ onMounted(() => fetchAttributes());
     box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
     padding: 24px; 
     margin-bottom: 24px; 
+    overflow: visible;
 }
 
 .card-header h3 { 
@@ -542,7 +589,7 @@ onMounted(() => fetchAttributes());
 }
 
 /* FORM ELEMENTS */
-.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; } 
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; overflow: visible; } 
 .full-width { grid-column: span 2; }
 
 .form-group label { 
@@ -669,13 +716,26 @@ onMounted(() => fetchAttributes());
 .btn-bulk-edit-large.btn-active:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
 
 /* LAYOUT 2 COLUMNS (TABLE + IMAGE) */
-.group-body-flex { display: flex; align-items: stretch; }
+.group-body-flex { display: flex; align-items: flex-start; gap: 14px; padding: 14px; background: #f8fbff; }
 .col-left-table { 
-    flex: 2; 
-    border-right: 1px solid #bfdbfe !important; 
+    flex: 1; 
+    min-width: 0;
+    border: 1px solid #dbeafe;
+    border-radius: 10px;
+    background: #fff;
     padding: 0; 
 }
-.col-right-images { flex: 1; min-width: 320px; background-color: #fff; display: flex; flex-direction: column; }
+.col-right-images {
+    flex: 0 0 300px;
+    min-width: 300px;
+    max-width: 300px;
+    background: #fff;
+    border: 1px solid #dbeafe;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.08);
+    display: flex;
+    flex-direction: column;
+}
 
 /* TABLE VARIANT */
 .custom-table { width: 100%; border-collapse: collapse; }
@@ -731,38 +791,58 @@ onMounted(() => fetchAttributes());
 /* IMAGE UPLOAD AREA */
 .img-header-row { 
     width: 100%; 
-    padding: 12px 16px; 
-    border-bottom: 1px solid #bfdbfe !important; 
+    padding: 10px 12px; 
+    border-bottom: 1px solid #dbeafe; 
     font-size: 12px; 
     font-weight: 700; 
     color: #1e40af; 
-    text-align: center; 
-    background: #f8fafc; 
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8fbff; 
     text-transform: uppercase; 
 }
 
-.image-content-wrap { flex: 1; padding: 16px; display: flex; justify-content: center; }
+.img-count-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1d4ed8;
+    background: #dbeafe;
+    border-radius: 999px;
+    padding: 3px 8px;
+    text-transform: none;
+}
+
+.image-content-wrap { padding: 12px; display: flex; justify-content: center; }
+
+.image-upload-area {
+    width: 100%;
+}
 
 .upload-placeholder { 
-    width: 100%; min-height: 140px; border: 2px dashed #cbd5e1; border-radius: 8px; 
+    width: 100%; min-height: 120px; border: 2px dashed #cbd5e1; border-radius: 10px; 
     display: flex; flex-direction: column; align-items: center; justify-content: center; 
-    cursor: pointer; color: #64748b; transition: all 0.2s; background: #f8fafc; 
+    cursor: pointer; color: #64748b; transition: all 0.2s; background: #f8fafc;
+    gap: 8px;
 }
 .upload-placeholder:hover { border-color: #3b82f6; color: #3b82f6; background: #eff6ff; }
 
 .image-gallery-container { width: 100%; }
-.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; }
+.gallery-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 
 .img-thumbnail { 
-    width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; 
-    border: 1px solid #e2e8f0; position: relative; 
+    width: 100%; aspect-ratio: 1; border-radius: 10px; overflow: hidden; 
+    border: 1px solid #dbeafe; position: relative;
+    background: #f8fafc;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 .img-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
 
 .add-image-tile { 
-    width: 100%; aspect-ratio: 1; border: 2px dashed #cbd5e1; border-radius: 6px; 
+    width: 100%; aspect-ratio: 1; border: 2px dashed #cbd5e1; border-radius: 10px; 
     display: flex; flex-direction: column; align-items: center; justify-content: center; 
-    cursor: pointer; color: #64748b; transition: 0.2s; 
+    cursor: pointer; color: #64748b; transition: 0.2s;
+    background: #f8fafc;
 }
 .add-image-tile:hover { border-color: #3b82f6; color: #3b82f6; background: #eff6ff; }
 
@@ -808,4 +888,20 @@ onMounted(() => fetchAttributes());
 
 .text-center { text-align: center; }
 .text-right { text-align: right; }
+
+@media (max-width: 1360px) {
+    .group-body-flex {
+        flex-direction: column;
+    }
+
+    .col-right-images {
+        width: 100%;
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    .gallery-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
 </style>

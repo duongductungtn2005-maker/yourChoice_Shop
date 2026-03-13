@@ -147,6 +147,15 @@ public class ProductServiceImpl {
         // Cập nhật trạng thái (Đây là chỗ xử lý nút Bật/Tắt)
         sp.setTrangThai(req.getTrangThai());
 
+        // Đồng bộ trạng thái biến thể theo SP cha
+        if (req.getTrangThai() != null) {
+            List<ChiTietSanPham> variants = chiTietRepo.findBySanPhamId(id);
+            for (ChiTietSanPham v : variants) {
+                v.setTrangThai(req.getTrangThai());
+            }
+            chiTietRepo.saveAll(variants);
+        }
+
         // Cập nhật các mối quan hệ (Thuộc tính)
         if(req.getIdThuongHieu() != null) sp.setThuongHieu(thuongHieuRepo.findById(req.getIdThuongHieu()).orElse(null));
         else sp.setThuongHieu(null);
@@ -178,8 +187,24 @@ public class ProductServiceImpl {
     }
 
     // 6. LẤY DANH SÁCH BIẾN THỂ
+    @Transactional
     public List<VariantResponse> getVariantsByProductId(Integer productId) {
+        SanPham parent = sanPhamRepo.findById(productId).orElse(null);
         List<ChiTietSanPham> entities = chiTietRepo.findBySanPhamId(productId);
+
+        // Tự động đồng bộ: trạng thái biến thể phải khớp với SP cha
+        if (parent != null && parent.getTrangThai() != null) {
+            boolean needSave = false;
+            for (ChiTietSanPham ct : entities) {
+                if (!parent.getTrangThai().equals(ct.getTrangThai())) {
+                    ct.setTrangThai(parent.getTrangThai());
+                    needSave = true;
+                }
+            }
+            if (needSave) {
+                chiTietRepo.saveAll(entities);
+            }
+        }
 
         return entities.stream().map(ct -> {
             VariantResponse.AttributeDTO mauSacDTO = null;
@@ -205,6 +230,9 @@ public class ProductServiceImpl {
                     ct.getSoLuong(),
                     ct.getGiaNhap(),
                     ct.getGiaBan(),
+                    ct.getGiaSauGiam(),
+                    ct.getPhanTramGiam(),
+                    ct.getTenDotGiamGia(),
                     ct.getTrangThai(),
                     mauSacDTO,
                     kichThuocDTO,
@@ -236,7 +264,10 @@ public class ProductServiceImpl {
         // Tính giá bán min/max từ các biến thể
         BigDecimal giaBanMin = null;
         BigDecimal giaBanMax = null;
+        BigDecimal giaSauGiamMin = null;
+        BigDecimal phanTramGiamMax = null;
         String anhChinh = null;
+        List<String> dsAnh = new ArrayList<>();
 
         if (sp.getChiTietSanPhams() != null) {
             for (ChiTietSanPham ct : sp.getChiTietSanPhams()) {
@@ -247,13 +278,28 @@ public class ProductServiceImpl {
                     if (giaBanMax == null || ct.getGiaBan().compareTo(giaBanMax) > 0) {
                         giaBanMax = ct.getGiaBan();
                     }
+                    // Tính giá sau giảm min và % giảm max
+                    BigDecimal giaSauGiam = ct.getGiaSauGiam();
+                    if (giaSauGiam != null) {
+                        if (giaSauGiamMin == null || giaSauGiam.compareTo(giaSauGiamMin) < 0) {
+                            giaSauGiamMin = giaSauGiam;
+                        }
+                        BigDecimal phanTram = ct.getPhanTramGiam();
+                        if (phanTram != null && (phanTramGiamMax == null || phanTram.compareTo(phanTramGiamMax) > 0)) {
+                            phanTramGiamMax = phanTram;
+                        }
+                    }
                 }
-                // Lấy ảnh đầu tiên tìm được
-                if (anhChinh == null && ct.getHinhAnhs() != null) {
+                // Thu thập tất cả ảnh của các biến thể
+                if (ct.getHinhAnhs() != null) {
                     for (HinhAnh ha : ct.getHinhAnhs()) {
                         if (ha.getDuongDanAnh() != null && !ha.getDuongDanAnh().isEmpty()) {
-                            anhChinh = ha.getDuongDanAnh();
-                            break;
+                            if (anhChinh == null) {
+                                anhChinh = ha.getDuongDanAnh();
+                            }
+                            if (!dsAnh.contains(ha.getDuongDanAnh())) {
+                                dsAnh.add(ha.getDuongDanAnh());
+                            }
                         }
                     }
                 }
@@ -282,7 +328,10 @@ public class ProductServiceImpl {
         resp.setMoTa(sp.getMoTaChiTiet());
         resp.setGiaBanMin(giaBanMin);
         resp.setGiaBanMax(giaBanMax);
+        resp.setGiaSauGiamMin(giaSauGiamMin);
+        resp.setPhanTramGiamMax(phanTramGiamMax);
         resp.setAnhChinh(anhChinh);
+        resp.setDsAnh(dsAnh);
         return resp;
     }
 

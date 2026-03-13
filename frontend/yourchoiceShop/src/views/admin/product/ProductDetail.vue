@@ -104,7 +104,7 @@
               <td class="text-center"><input type="checkbox" :value="variant.id" v-model="selectedIds"></td>
               <td>
                 <div class="img-thumb">
-                    <img v-if="variant.listAnh && variant.listAnh.length > 0" :src="variant.listAnh[0]" class="custom-thumb-img" @error="$event.target.style.display='none'">
+                    <img v-if="variant.listAnh && variant.listAnh.length > 0" :src="normalizeImageUrl(variant.listAnh[0])" class="custom-thumb-img" @error="$event.target.style.display='none'">
                     <font-awesome-icon v-else :icon="['far', 'image']" class="icon-placeholder" />
                 </div>
               </td>
@@ -123,7 +123,7 @@
                   <div v-else>{{ variant.soLuong }}</div>
               </td>
               <td>
-                 <span :class="['status-badge', variant.trangThai === 1 ? 'status-active' : 'status-inactive']">{{ variant.trangThai === 1 ? 'Đang bán' : 'Ngừng HĐ' }}</span>
+                 <span :class="['status-badge', variant.trangThai === 1 ? 'status-active' : 'status-inactive']">{{ variant.trangThai === 1 ? 'Đang bán' : 'Ngừng hoạt động' }}</span>
               </td>
               <td>
                  <button class="btn-icon-eye" title="Xem chi tiết" @click="openEditModal(variant)"><font-awesome-icon :icon="['far', 'eye']" /></button>
@@ -180,6 +180,14 @@ import { Html5QrcodeScanner } from "html5-qrcode"; // IMPORT THƯ VIỆN QR
 const route = useRoute();
 const productId = route.params.id;
 const API_URL = 'http://localhost:8080/api/v1';
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
+
+// Helper: Chuẩn hóa URL ảnh
+const normalizeImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${IMAGE_BASE_URL}${url.replace(/^\//, '')}`;
+};
 
 // STATE
 const loading = ref(false);
@@ -368,8 +376,9 @@ const handleBulkUpdate = async () => {
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 const openEditModal = (variant) => { selectedVariant.value = variant; isModalOpen.value = true; };
 
-const handleSaveVariant = () => {
+const handleSaveVariant = (updatedData) => {
     isModalOpen.value = false;
+    // Reload data để cập nhật bảng với ảnh mới
     fetchData();
 };
 
@@ -467,7 +476,7 @@ td { padding: 15px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vert
 
 /* STATUS BADGE */
 .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-.status-active { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.status-active { background-color: #dbeafe; color: #201dd8; border: 1px solid #93c5fd; }
 .status-inactive { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
 /* THUMBNAIL */

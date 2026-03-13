@@ -303,26 +303,22 @@ const submitForm = async () => {
     return Toast.fire({ icon: 'error', title: 'Lỗi kết nối khi kiểm tra số điện thoại!' });
   }
 
-  // Dialog xác nhận gửi email
+  // Dialog xác nhận thêm khách hàng
   const result = await Swal.fire({
     title: 'Xác nhận thêm khách hàng',
-    text: 'Bạn có muốn gửi mail cho khách hàng này không?',
+    text: 'Hệ thống sẽ tự động gửi email thông báo cho khách hàng.',
     icon: 'question',
-    showCloseButton: true,
-    showCancelButton: false,
-    showDenyButton: true,
-    confirmButtonText: '<i class="fas fa-paper-plane"></i> Gửi Email',
+    showCancelButton: true,
+    confirmButtonText: '<i class="fas fa-check"></i> Xác nhận',
     confirmButtonColor: '#3085d6',
-    denyButtonText: '<i class="fas fa-user-plus"></i> KHÔNG Gửi Email',
-    denyButtonColor: '#f39c12',
-    allowOutsideClick: false
+    cancelButtonText: 'Hủy',
+    cancelButtonColor: '#6b7280',
   });
 
-  // Nếu người dùng nhấn X thì dừng lại không tạo khách hàng
-  if (result.isDismissed) return;
+  if (!result.isConfirmed) return;
 
-  // Xác định có gửi email hay không
-  const sendEmail = result.isConfirmed;
+  // Luôn gửi email khi thêm khách hàng
+  const sendEmail = true;
 
   loading.value = true;
   try {
