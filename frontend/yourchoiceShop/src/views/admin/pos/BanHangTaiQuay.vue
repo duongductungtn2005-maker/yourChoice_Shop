@@ -116,7 +116,7 @@
                       {{ item.material || '—' }} • {{ item.coAo || '—' }} • {{ item.tayAo || '—' }} • {{ item.xuatXu ||
                         '—' }}
                     </div>
-                    <div v-if="item.isOldPriceLine && item.priceChangeMeta" class="price-change-line-msg">
+                    <div v-if="item.priceChangeMeta && !item.priceDismissed" class="price-change-line-msg">
                       Giá đã thay đổi: {{ formatMoney(item.priceChangeMeta.oldPrice) }} → {{ formatMoney(item.priceChangeMeta.newPrice) }}
                     </div>
                   </td>
@@ -133,11 +133,11 @@
                       <div class="item-control">
                         <button @click="decreaseCartQty(item)" :disabled="item.qty <= 1" title="Giảm">−</button>
                         <input class="qty-input" :class="{ 'qty-input-error': !!item.qtyWarning }" type="number" min="1"
-                          :max="item.isOldPriceLine ? item.qty : item.qty + item.tonKho" :value="item.qty"
-                          @change="updateCartQty(item, $event.target.value)" :readonly="!!item.isOldPriceLine" />
-                        <button v-if="!item.isOldPriceLine" @click="increaseCartQty(item)" :disabled="item.tonKho <= 0" title="Tăng">＋</button>
+                          :max="item.qty + item.tonKho" :value="item.qty"
+                          @change="updateCartQty(item, $event.target.value)" />
+                        <button @click="increaseCartQty(item)" :disabled="item.tonKho <= 0" title="Tăng">＋</button>
                       </div>
-                      <div v-if="item.qtyWarning && !item.isOldPriceLine" class="qty-warning">{{ item.qtyWarning }}</div>
+                      <div v-if="item.qtyWarning" class="qty-warning">{{ item.qtyWarning }}</div>
                     </div>
                   </td>
                   <td class="p-price">
@@ -943,19 +943,15 @@ const onQrScanSuccess = async (decodedText) => {
 
     // Add to cart or increment existing
     const mapped = mapProductDetail(raw)
-    const exist = cart.value.find(i => i.id === mapped.id && !i.isOldPriceLine)
+    const exist = cart.value.find(i => i.id === mapped.id)
     if (exist) {
       exist.qty = Number(exist.qty || 0) + 1
       exist.tonKho = Math.max(0, Number(exist.tonKho || 0) - 1)
     } else {
-      const oldLine = cart.value.find(i => i.id === mapped.id && i.isOldPriceLine)
       const newItem = {
         ...mapped,
         qty: 1,
         tonKho: Math.max(0, mapped.tonKho - 1)
-      }
-      if (oldLine) {
-        newItem.priceChangeMeta = { oldPrice: oldLine.price, newPrice: mapped.price }
       }
       cart.value.push(newItem)
     }
@@ -1111,15 +1107,9 @@ const getQtyWarning = (value, maxQty) => {
 
 const updateCartQty = async (item, value) => {
   const currentQty = Number(item.qty) || 1
-  const maxQty = item.isOldPriceLine ? currentQty : currentQty + Number(item.tonKho || 0)
+  const maxQty = currentQty + Number(item.tonKho || 0)
   const warning = getQtyWarning(value, maxQty)
   const nextQty = normalizeQty(value, maxQty)
-
-  // Dòng giá cũ không được tăng số lượng
-  if (item.isOldPriceLine && nextQty > currentQty) {
-    item.qty = currentQty
-    return
-  }
 
   item.qtyWarning = warning
 
@@ -1227,7 +1217,7 @@ const confirmAddProduct = async () => {
       continue
     }
 
-    const exist = cart.value.find(i => i.id === p.id && !i.isOldPriceLine)
+    const exist = cart.value.find(i => i.id === p.id)
 
     if (exist) {
       // Sản phẩm đã có trong hoá đơn (dòng giá mới): chỉ cập nhật số lượng
@@ -1235,8 +1225,7 @@ const confirmAddProduct = async () => {
       exist.tonKho = Math.max(0, Number(exist.tonKho || 0) - normalizedQty)
       exist.qtyWarning = ''
     } else {
-      // Sản phẩm mới hoặc chỉ có dòng giá cũ: tạo dòng mới
-      const oldLine = cart.value.find(i => i.id === p.id && i.isOldPriceLine)
+      // Sản phẩm mới: tạo dòng mới
       const newItem = {
         id: p.id,
         code: p.code,
@@ -1256,9 +1245,6 @@ const confirmAddProduct = async () => {
         qty: normalizedQty,
         tonKho: Math.max(0, Number(p.tonKho || 0) - normalizedQty),
         qtyWarning: ''
-      }
-      if (oldLine) {
-        newItem.priceChangeMeta = { oldPrice: oldLine.price, newPrice: p.price }
       }
       cart.value.push(newItem)
     }
@@ -1518,6 +1504,7 @@ const loadAllActiveVouchers = async () => {
 
 const syncAppliedDiscountWithActiveVouchers = () => {
   if (!Array.isArray(discounts.value) || discounts.value.length === 0) return
+  const cartTotal = totalProductPrice.value
 
   const activeMap = new Map(
     allActiveVouchers.value
@@ -1534,22 +1521,18 @@ const syncAppliedDiscountWithActiveVouchers = () => {
         return null
       }
 
-      return {
-        id: latest.id,
-        code: latest.code,
-        name: latest.name,
-        type: latest.type,
-        value: latest.value,
-        maxDiscount: latest.maxDiscount,
-        minOrder: latest.minOrder,
-        startDate: latest.startDate,
-        endDate: latest.endDate
+      const discountAmount = calculateVoucherDiscount(latest, cartTotal)
+      if (discountAmount <= 0) {
+        removedCodes.push(latest.code || latest.name || `ID ${latest.id}`)
+        return null
       }
+
+      return toAppliedVoucher(latest)
     })
     .filter(Boolean)
 
   if (removedCodes.length > 0) {
-    alert(`Phiếu giảm giá ${removedCodes.join(', ')} đã ngừng hoạt động và đã được gỡ khỏi đơn.`)
+    alert(`Phiếu giảm giá ${removedCodes.join(', ')} không còn đủ điều kiện áp dụng và đã được gỡ khỏi đơn.`)
   }
 
   discounts.value = nextDiscounts
@@ -1649,10 +1632,6 @@ const applyVoucherByCode = async () => {
 }
 
 const autoSelectBestVoucher = () => {
-  if (Array.isArray(discounts.value) && discounts.value.length > 0) {
-    return
-  }
-
   const cartTotal = totalProductPrice.value
   const activeVouchers = allActiveVouchers.value.filter(isVoucherActiveNow)
 
@@ -1669,6 +1648,11 @@ const autoSelectBestVoucher = () => {
       discountAmount: calculateVoucherDiscount(v, cartTotal)
     }))
     .filter(item => item.discountAmount > 0)
+
+  if (eligibleVouchers.length === 0) {
+    discounts.value = []
+    return
+  }
 
   const bestDiscount = Math.max(...eligibleVouchers.map(item => item.discountAmount), 0)
   const bestCandidates = eligibleVouchers
@@ -1690,10 +1674,6 @@ const autoSelectBestVoucher = () => {
 const autoSelectBestVoucherForTab = (tab) => {
   if (!tab || !Array.isArray(tab.cart)) return
 
-  if (Array.isArray(tab.discounts) && tab.discounts.length > 0) {
-    return
-  }
-
   const cartTotal = getCartTotalByItems(tab.cart)
   const activeVouchers = allActiveVouchers.value.filter(isVoucherActiveNow)
 
@@ -1708,6 +1688,11 @@ const autoSelectBestVoucherForTab = (tab) => {
       discountAmount: calculateVoucherDiscount(v, cartTotal)
     }))
     .filter(item => item.discountAmount > 0)
+
+  if (eligibleVouchers.length === 0) {
+    tab.discounts = []
+    return
+  }
 
   const bestDiscount = Math.max(...eligibleVouchers.map(item => item.discountAmount), 0)
   const bestCandidates = eligibleVouchers
@@ -1730,7 +1715,7 @@ const syncAllTabsVouchers = () => {
 // Computed: danh sách sản phẩm trong tab hiện tại có giá thay đổi (chưa xác nhận)
 const priceChangedItems = computed(() => {
   if (!currentOrder.value || !Array.isArray(currentOrder.value.cart)) return []
-  return currentOrder.value.cart.filter(item => item.isOldPriceLine && item.priceChangeMeta && !item.priceDismissed)
+  return currentOrder.value.cart.filter(item => item.priceChangeMeta && !item.priceDismissed)
 })
 
 // Xác nhận đã biết giá thay đổi → ẩn banner, giữ thông tin trên dòng cũ
@@ -1741,6 +1726,38 @@ const dismissPriceChanges = () => {
       item.priceDismissed = true
     }
   })
+}
+
+const mergeCartLinesByProduct = (cartItems = []) => {
+  if (!Array.isArray(cartItems) || cartItems.length <= 1) return cartItems
+
+  const mergedMap = new Map()
+
+  cartItems.forEach(item => {
+    const productId = getOriginalProductId(item)
+    const key = Number.isFinite(productId) ? productId : item.id
+
+    if (!mergedMap.has(key)) {
+      mergedMap.set(key, {
+        ...item,
+        id: productId || item.id,
+        originalId: productId || item.originalId || item.id,
+        isOldPriceLine: false
+      })
+      return
+    }
+
+    const existing = mergedMap.get(key)
+    existing.qty = Number(existing.qty || 0) + Number(item.qty || 0)
+    existing.tonKho = Math.max(Number(existing.tonKho || 0), Number(item.tonKho || 0))
+
+    if (!existing.priceChangeMeta && item.priceChangeMeta) {
+      existing.priceChangeMeta = item.priceChangeMeta
+      existing.priceDismissed = !!item.priceDismissed
+    }
+  })
+
+  return Array.from(mergedMap.values())
 }
 
 const syncCartPriceWithServer = async () => {
@@ -1768,36 +1785,34 @@ const syncCartPriceWithServer = async () => {
     orderTabs.value.forEach(tab => {
       if (!Array.isArray(tab.cart)) return
 
+      tab.cart = mergeCartLinesByProduct(tab.cart)
+
       tab.cart.forEach(item => {
         const latestPrice = latestPriceMap.get(item.id)
         if (!Number.isFinite(latestPrice)) return
 
         // Cập nhật thông tin đợt giảm giá cho item
         const discountInfo = latestDiscountMap.get(item.id)
-        if (discountInfo && !item.isOldPriceLine) {
+        if (discountInfo) {
           const effectivePrice = discountInfo.giaSauGiam != null ? discountInfo.giaSauGiam : latestPrice
+          const currentItemPrice = Number(item.price || 0)
+
           item.giaGoc = discountInfo.giaSauGiam != null ? latestPrice : null
           item.phanTramGiam = discountInfo.phanTramGiam
           item.tenDotGiamGia = discountInfo.tenDotGiamGia
+          item.isOldPriceLine = false
 
-          const currentItemPrice = Number(item.price || 0)
           if (currentItemPrice !== effectivePrice) {
-            item.isOldPriceLine = true
-            item.priceDismissed = false
             item.priceChangeMeta = {
               oldPrice: currentItemPrice,
               newPrice: effectivePrice,
               changedAt: Date.now()
             }
-            if (!item.cartKey) {
-              item.cartKey = `${item.id}_old_${Date.now()}`
-            }
+            item.priceDismissed = false
+            item.price = effectivePrice
+          } else if (item.priceChangeMeta && !item.priceDismissed) {
+            item.priceChangeMeta.newPrice = effectivePrice
           }
-        } else if (item.isOldPriceLine && item.priceChangeMeta) {
-          // Cập nhật giá mới hiển thị cho dòng cũ
-          const discInfo = latestDiscountMap.get(item.id)
-          const newEffective = discInfo?.giaSauGiam != null ? discInfo.giaSauGiam : latestPrice
-          item.priceChangeMeta.newPrice = newEffective
         }
       })
     })

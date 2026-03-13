@@ -136,6 +136,7 @@
                 <col class="col-material" />
                 <col class="col-color" />
                 <col class="col-size" />
+                <col class="col-original-price" />
                 <col class="col-qty" />
               </colgroup>
               <thead>
@@ -147,6 +148,7 @@
                   <th class="text-center">Chất liệu</th>
                   <th class="text-center">Màu sắc</th>
                   <th class="text-center">Kích thước</th>
+                  <th class="text-center">Giá gốc</th>
                   <th class="text-center">Số lượng</th>
                 </tr>
               </thead>
@@ -159,6 +161,7 @@
                   <td class="text-center">{{ item.chatLieu || '-' }}</td>
                   <td class="text-center">{{ item.mauSac || item.tenMauSac || '-' }}</td>
                   <td class="text-center">{{ item.size || item.tenKichThuoc || '-' }}</td>
+                  <td class="text-center fw-bold">{{ formatMoney(item.giaGoc ?? item.giaBanGoc ?? item.donGia ?? 0) }}</td>
                   <td class="text-center fw-bold">{{ item.soLuong }}</td>
                 </tr>
               </tbody>
@@ -1100,14 +1103,15 @@ onMounted(() => {
   font-size: 13px;
 }
 
-.custom-table .col-stt { width: 52px; }
-.custom-table .col-code { width: 140px; }
-.custom-table .col-name { width: auto; }
-.custom-table .col-brand { width: 115px; }
-.custom-table .col-material { width: 105px; }
-.custom-table .col-color { width: 95px; }
-.custom-table .col-size { width: 95px; }
-.custom-table .col-qty { width: 100px; }
+.custom-table .col-stt { width: 6%; }
+.custom-table .col-code { width: 14%; }
+.custom-table .col-name { width: 22%; }
+.custom-table .col-brand { width: 10%; }
+.custom-table .col-material { width: 10%; }
+.custom-table .col-color { width: 10%; }
+.custom-table .col-size { width: 10%; }
+.custom-table .col-original-price { width: 12%; }
+.custom-table .col-qty { width: 6%; }
 
 .custom-table th {
   background: #f5f5f5 !important;
