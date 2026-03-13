@@ -10,9 +10,17 @@ export const createOrder = (data) => {
   return request.post('/hoa-don/create', data)
 }
 
-export const createOrderOnline = (data) => {
-  // 🌐 ONLINE – chỉ tạo đơn
-  return request.post('/hoa-don/online', data)
+export const createPosDraftOrder = (data = {}) => {
+  return request.post('/hoa-don/pos/draft', data)
+}
+
+export const deletePosDraftOrder = (maHoaDon) => {
+  return request.delete(`/hoa-don/pos/draft/${maHoaDon}`)
+}
+
+export const createOrderDelivery = (data) => {
+  // 🚚 GIAO HÀNG – chỉ tạo đơn
+  return request.post('/hoa-don/delivery', data)
 }
 
 export const exportOrders = (params) => {

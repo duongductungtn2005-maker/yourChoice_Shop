@@ -91,27 +91,20 @@
                         <th width="40px" class="text-center">
                             <input type="checkbox" @change="toggleAllParent" :checked="isAllParentSelected" />
                         </th>
-                        <th width="60px" class="text-center">Ảnh</th>
                         <th width="100px" class="text-center">Mã SP</th>
                         <th>Tên sản phẩm</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="loadingProd">
-                        <td colspan="4" class="text-center py-4">Đang tải dữ liệu...</td>
+                        <td colspan="3" class="text-center py-4">Đang tải dữ liệu...</td>
                     </tr>
                     <tr v-else-if="parentProducts.length === 0">
-                         <td colspan="4" class="text-center empty-state">Không tìm thấy sản phẩm nào.</td>
+                         <td colspan="3" class="text-center empty-state">Không tìm thấy sản phẩm nào.</td>
                     </tr>
                     <tr v-else v-for="sp in parentProducts" :key="sp.id" :class="{ 'selected-row': selectedParentIds.includes(sp.id) }">
                         <td class="text-center">
                             <input type="checkbox" :value="sp.id" v-model="selectedParentIds" @change="handleSelectParent(sp.id)" />
-                        </td>
-                        <td class="text-center">
-                            <div class="img-wrapper">
-                                <img v-if="sp.hinhAnh" :src="'http://localhost:8080/api/v1/product-images/' + sp.hinhAnh" class="thumb-img" @error="handleImgError" />
-                                <div v-else class="img-placeholder"><i class="far fa-image"></i></div>
-                            </div>
                         </td>
                         <td class="text-center code-text">{{ sp.maSanPham }}</td>
                         <td>
@@ -191,7 +184,7 @@
                         <td class="text-center">{{ (detailPage - 1) * detailPageSize + index + 1 }}</td>
                         <td class="text-center">
                             <div class="img-wrapper-sm">
-                                <img v-if="v.hinhAnh" :src="'http://localhost:8080/api/v1/product-images/' + v.hinhAnh" class="thumb-img" @error="handleImgError" />
+                                <img v-if="v.hinhAnh" :src="getImageUrl(v.hinhAnh)" class="thumb-img" @error="handleImgError" />
                                 <div v-else class="img-placeholder"><i class="far fa-image"></i></div>
                                 
                                 <span v-if="form.giaTriGiam > 0" class="discount-badge" :style="{ backgroundColor: getBadgeColor(form.giaTriGiam) }">
@@ -445,8 +438,16 @@ const createSale = async () => {
 };
 
 // --- UTILS ---
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
-const handleImgError = (e) => { e.target.src = "https://via.placeholder.com/50?text=IMG"; };
+const getImageUrl = (img) => {
+    if (!img) return '';
+    if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:')) return img;
+    return `${IMAGE_BASE_URL}${img.replace(/^\/+/, '')}`;
+};
+const handleImgError = (e) => {
+    e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' fill='%23f1f5f9'/%3E%3Ctext x='25' y='30' text-anchor='middle' fill='%2394a3b8' font-family='Arial' font-size='10'%3EIMG%3C/text%3E%3C/svg%3E";
+};
 const getColorCode = (name) => {
     const map = { 'Đen': '#000', 'Trắng': '#fff', 'Xanh': '#3b82f6', 'Đỏ': '#ef4444', 'Vàng': '#eab308', 'Hồng': '#ec4899', 'Xám': '#6b7280', 'Cam': '#f97316', 'Tím': '#a855f7' };
     return map[name] || '#e5e7eb';

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router"
-import { isAuthenticated, getRole, initCrossTabSync } from "@/services/auth"
+import { isAuthenticated, getRole } from "@/services/auth"
+// import { initCrossTabSync } from "@/services/auth" // Đã vô hiệu hóa cross-tab sync
 
 /* ================= STATIC IMPORT ================= */
 import CoAoIndex from "../views/admin/attribute/CoAoIndex.vue"
@@ -15,10 +16,10 @@ import ThongKeView from "@/views/admin/dashboard/ThongKeView.vue"
 
 /* ================= ROLE HELPER ================= */
 const getUserRole = () => {
-  const directRole = localStorage.getItem("userRole")
+  const directRole = sessionStorage.getItem("userRole")
   if (directRole) return String(directRole).toUpperCase()
 
-  const rawUser = localStorage.getItem("user")
+  const rawUser = sessionStorage.getItem("user")
   if (!rawUser) return null
 
   try {
@@ -57,6 +58,13 @@ const router = createRouter({
       component: () => import("../views/LoginView.vue"),
     },
 
+    /* ================= REGISTER ================= */
+    {
+      path: "/register",
+      name: "register",
+      component: () => import("../views/client/RegisterView.vue"),
+    },
+
     /* ================= CLIENT ================= */
     {
       path: "/",
@@ -68,6 +76,11 @@ const router = createRouter({
         { path: "coupons", name: "coupons", component: () => import("../views/client/CouponView.vue") },
         { path: "news", name: "news", component: () => import("../views/client/NewsView.vue") },
         { path: "contact", name: "contact", component: () => import("../views/client/ContactView.vue") },
+        { path: "cart", name: "cart", component: () => import("../views/client/CartView.vue") },
+        { path: "checkout", name: "checkout", component: () => import("../views/client/CheckoutView.vue") },
+        { path: "vnpay-return", name: "vnpay-return", component: () => import("../views/client/VnPayReturnView.vue") },
+        { path: "orders", name: "orders", component: () => import("../views/client/OrderHistoryView.vue"), meta: { requiresAuth: true, roles: ["CUSTOMER"] } },
+        { path: "account", name: "account", component: () => import("../views/client/AccountView.vue"), meta: { requiresAuth: true, roles: ["CUSTOMER"] } },
       ],
     },
 
@@ -148,7 +161,7 @@ const router = createRouter({
 
         /* Orders (theo File 1) */
         { path: "orders", name: "staff-order-list", component: () => import("../views/admin/DonHang/QuanLyHoaDon.vue") },
-        { path: "orders/:id", name: "staff-order-detail", component: () => import("../views/admin/DonHang/ChiTietHoadon.vue") },
+        { path: "orders/:id", name: "staff-order-detail", component: () => import("../views/admin/DonHang/ChiTietHoaDon.vue") },
 
         /* Customers */
         { path: "customers", name: "staff-customer-list", component: () => import("../views/admin/customer/CustomerList.vue") },
@@ -161,8 +174,8 @@ const router = createRouter({
 
 /* ================= NAVIGATION GUARD ================= */
 router.beforeEach((to, from, next) => {
-  // Ưu tiên service auth, fallback qua localStorage
-  const authenticated = isAuthenticated ? isAuthenticated() : !!localStorage.getItem("token")
+  // Ưa tiên service auth, fallback qua sessionStorage
+  const authenticated = isAuthenticated ? isAuthenticated() : !!sessionStorage.getItem("token")
   const roleFromService = authenticated && getRole ? getRole() : null
   const role = normalizeRole(roleFromService || getUserRole())
 
@@ -200,8 +213,9 @@ router.beforeEach((to, from, next) => {
 })
 
 /* ================= CROSS-TAB SYNC ================= */
-if (initCrossTabSync) {
-  initCrossTabSync(router)
-}
+// VÔ HIỆU HÓA đồng bộ tab - mỗi tab hoạt động độc lập
+// if (initCrossTabSync) {
+//   initCrossTabSync(router)
+// }
 
 export default router

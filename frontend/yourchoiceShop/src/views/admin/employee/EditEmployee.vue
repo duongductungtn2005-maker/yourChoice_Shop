@@ -26,6 +26,11 @@
                 <label class="required">Họ và tên</label>
                 <input type="text" v-model="employee.tenNhanVien" class="form-control" placeholder="Nhập họ tên">
               </div>
+
+              <div class="form-group">
+                <label>Mã nhân viên</label>
+                <input type="text" :value="employee.maNhanVien" class="form-control" readonly>
+              </div>
             </div>
 
             <div class="right-col">
@@ -44,8 +49,8 @@
 
               <div class="form-row">
                 <div class="form-group half">
-                  <label class="required">Số CCCD</label>
-                  <input type="number" v-model="employee.cccd" class="form-control">
+                  <label class="required">Ngày sinh</label>
+                  <input type="date" v-model="employee.ngaySinh" class="form-control">
                 </div>
                 <div class="form-group half">
                   <label class="required">Ngày sinh</label>
@@ -62,8 +67,8 @@
 
               <div class="form-row">
                 <div class="form-group half">
-                  <label class="required">Tên tài khoản</label>
-                  <input type="text" v-model="employee.tenTaiKhoan" class="form-control" placeholder="Nhập tên tài khoản">
+                  <label>Tên tài khoản (tự sinh theo tên)</label>
+                  <input type="text" :value="generatedUsername" class="form-control" readonly>
                 </div>
                 <div class="form-group half">
                   <label class="required">Quyền hạn</label>
@@ -117,7 +122,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'; 
+import { ref, reactive, onMounted, computed } from 'vue'; 
 import { useRouter, useRoute } from 'vue-router'; 
 import request from '@/services/request'; 
 import axios from 'axios'; 
@@ -126,10 +131,11 @@ import { toastSuccess, toastError, Toast } from '@/utils/toast';
 const router = useRouter();
 const route = useRoute();
 const id = route.params.id; 
+const generatedUsername = computed(() => buildUsernameFromName(employee.tenNhanVien));
 
 const employee = reactive({ 
     tenNhanVien: '', 
-    tenTaiKhoan: '', // 1. Bổ sung trường này để bind v-model
+    maNhanVien: '',
     cccd: '', 
     gioiTinh: true, 
     ngaySinh: '', 
@@ -153,9 +159,8 @@ const loadData = async () => {
         const res = await request.get(`/nhan-vien/${id}`); 
         const data = res.data; 
 
-        // 2. Gán dữ liệu Tên tài khoản từ database vào form
         employee.tenNhanVien = data.tenNhanVien;
-        employee.tenTaiKhoan = data.tenTaiKhoan; 
+        employee.maNhanVien = data.maNhanVien;
         employee.cccd = data.cccd;
         employee.email = data.email;
         employee.soDienThoai = data.soDienThoai;
@@ -185,6 +190,18 @@ const normalizeName = (str) => {
         // Bỏ các từ: Tỉnh, Thành phố, TP., Quận, Huyện, Xã, Phường... (kể cả có hoặc không có dấu chấm/cách)
         .replace(/(tỉnh|thành phố|tp\.?|quận|huyện|thị xã|tx\.?|xã|phường|thị trấn|tt\.?)\s*/g, '')
         .trim();
+};
+
+const removeAccents = (str) => {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+};
+
+const buildUsernameFromName = (name) => {
+  if (!name || !name.trim()) return "";
+  return removeAccents(name)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '');
 };
 
 const findLocationCode = (inputName, listData) => {
@@ -293,25 +310,8 @@ const validateForm = async () => {
         Toast.fire({ icon: 'warning', title: 'Vui lòng nhập họ tên' });
         return false;
     }
-    if (!employee.tenTaiKhoan.trim()) {
-        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập tên tài khoản' });
-        return false;
-    }
-    // Kiểm tra tên tài khoản không chứa khoảng trắng
-    if (/\s/.test(employee.tenTaiKhoan)) {
-        Toast.fire({ icon: 'warning', title: 'Tên tài khoản không được chứa khoảng trắng' });
-        return false;
-    }
-    // Kiểm tra trùng tên tài khoản
-    try {
-        const resTK = await request.get(`/nhan-vien/xac-thuc/tai-khoan?tenTaiKhoan=${employee.tenTaiKhoan}&id=${id}`);
-        if (resTK.data === true) {
-            Toast.fire({ icon: 'warning', title: 'Tên tài khoản này đã có người sử dụng!' });
-            return false;
-        }
-    } catch (error) {
-        console.error('Lỗi khi check trùng tài khoản:', error);
-        Toast.fire({ icon: 'error', title: 'Lỗi kết nối khi kiểm tra tài khoản!' });
+  if (!generatedUsername.value) {
+    Toast.fire({ icon: 'warning', title: 'Vui lòng nhập họ tên để tạo tài khoản tự động' });
         return false;
     }
     if (!employee.email.trim()) {
@@ -379,9 +379,7 @@ const handleSubmit = async () => {
     if (!(await validateForm())) return;
     try {
         const fd = new FormData();
-        // 3. Đưa tên tài khoản vào FormData để gửi lên Backend
         fd.append("tenNhanVien", employee.tenNhanVien); 
-        fd.append("tenTaiKhoan", employee.tenTaiKhoan); 
         fd.append("cccd", employee.cccd);
         fd.append("email", employee.email); 
         fd.append("soDienThoai", employee.soDienThoai);

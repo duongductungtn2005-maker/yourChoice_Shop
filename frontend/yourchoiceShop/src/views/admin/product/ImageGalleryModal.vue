@@ -12,8 +12,8 @@
            <span v-if="tempSelected.length === 0" class="text-hint">Chưa chọn ảnh nào</span>
         </div>
         <div class="selected-strip">
-           <div v-for="(img, idx) in tempSelected" :key="idx" class="selected-item">
-              <img :src="img">
+              <div v-for="(img, idx) in tempSelected" :key="idx" class="selected-item">
+                  <img :src="normalizeImageUrl(img)">
               <button class="remove-mini" @click="toggleSelect(img)">×</button>
            </div>
         </div>
@@ -38,7 +38,7 @@
               :class="{ 'active': tempSelected.includes(img) }"
               @click="toggleSelect(img)"
            >
-              <img :src="img">
+                  <img :src="normalizeImageUrl(img)">
               <div class="check-overlay"><font-awesome-icon :icon="['fas', 'check']" /></div>
            </div>
         </div>
@@ -59,10 +59,19 @@ import axios from 'axios';
 const props = defineProps(['isOpen', 'colorName', 'currentImages']);
 const emit = defineEmits(['close', 'save']);
 const API_URL = 'http://localhost:8080/api/v1';
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
 
 const galleryImages = ref([]); // Tất cả ảnh có trên server (hoặc vừa up)
 const tempSelected = ref([]);  // Ảnh đang tick chọn
 const uploading = ref(false);
+
+const normalizeImageUrl = (img) => {
+    if (!img || typeof img !== 'string') return '';
+    if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:') || img.startsWith('blob:')) {
+        return img;
+    }
+    return `${IMAGE_BASE_URL}${img.replace(/^\/+/, '')}`;
+};
 
 // Khi mở modal -> Load dữ liệu
 watch(() => props.isOpen, (newVal) => {

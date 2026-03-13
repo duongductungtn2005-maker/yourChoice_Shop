@@ -20,13 +20,13 @@
            </div>
            <div class="thumb-list">
               <div 
-                v-for="(img, idx) in product.listAnh" 
+                v-for="(img, idx) in currentImages" 
                 :key="idx" 
                 class="thumb-item"
-                :class="{ active: activeImage === img }"
-                @click="activeImage = img"
+                :class="{ active: activeImage === getImageUrl(img) }"
+                @click="activeImage = getImageUrl(img)"
               >
-                 <img :src="img" alt="Thumbnail" @error="handleImageError">
+                 <img :src="getImageUrl(img)" alt="Thumbnail" @error="handleImageError">
               </div>
            </div>
         </div>
@@ -40,8 +40,10 @@
            </div>
 
            <div class="p-price">
-              <span class="current-price">{{ formatMoney(product.giaBan) }}</span>
-              <span class="old-price">{{ formatMoney(product.giaBan * 1.1) }}</span>
+              <span class="current-price">{{ formatMoney(displayPrice) }}</span>
+              <span v-if="!currentVariant && !originalPrice && product.giaBanMax && product.giaBanMax > product.giaBanMin" class="price-range"> ~ {{ formatMoney(product.giaBanMax) }}</span>
+              <span v-if="originalPrice" class="original-price">{{ formatMoney(originalPrice) }}</span>
+              <span v-if="discountPercent" class="discount-badge">-{{ discountPercent }}%</span>
            </div>
 
            <div class="p-desc-short">
@@ -87,17 +89,19 @@
                     <input type="text" v-model="quantity" readonly>
                     <button @click="increaseQty">+</button>
                  </div>
-                 <span class="stock-info">
-                    {{ currentVariant ? currentVariant.soLuong + ' sản phẩm có sẵn' : 'Vui lòng chọn phân loại' }}
+                 <span class="stock-info" :class="{ 'out-of-stock': currentVariant && currentVariant.soLuong <= 0 }">
+                    <template v-if="!currentVariant">Vui lòng chọn phân loại</template>
+                    <template v-else-if="currentVariant.soLuong <= 0">Đã hết hàng</template>
+                    <template v-else>{{ currentVariant.soLuong }} sản phẩm có sẵn</template>
                  </span>
               </div>
            </div>
 
            <div class="action-buttons">
-              <button class="btn-add-cart" @click="addToCart">
+              <button class="btn-add-cart" @click="addToCart" :disabled="currentVariant && currentVariant.soLuong <= 0">
                  <i class="fas fa-cart-plus"></i> THÊM VÀO GIỎ
               </button>
-              <button class="btn-buy-now">MUA NGAY</button>
+              <button class="btn-buy-now" @click="buyNow" :disabled="currentVariant && currentVariant.soLuong <= 0">MUA NGAY</button>
            </div>
 
            <div class="shop-policy">
@@ -127,7 +131,7 @@
          <h3>SẢN PHẨM LIÊN QUAN</h3>
          <div class="related-grid">
             <div v-for="i in 4" :key="i" class="rel-item">
-               <img :src="`https://picsum.photos/300/400?random=${i+10}`" alt="">
+               <img :src="getImageUrl('')" alt="">
                <h4>Sơ mi nữ kiểu Hàn Quốc {{ i }}</h4>
                <span class="price">{{ formatMoney(250000) }}</span>
             </div>
@@ -139,14 +143,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import Swal from 'sweetalert2'; // Dùng để thông báo
+import { useCartStore } from '@/stores/cart';
 
 const route = useRoute();
+const router = useRouter();
+const cartStore = useCartStore();
 const productId = route.params.id;
 const API_URL = 'http://localhost:8080/api/v1';
+// URL cơ sở để truy vấn ảnh (tên file hoặc URL) từ backend
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
 
 // STATE
 const loading = ref(true);
@@ -156,15 +165,25 @@ const selectedColor = ref(null);
 const selectedSize = ref(null);
 const activeImage = ref('');
 
+// helper trả về đường dẫn ảnh hợp lệ
+const getImageUrl = (img) => {
+    if (!img) return 'https://placehold.co/500x650?text=No+Image';
+    if (img.startsWith('http')) return img;
+    return `${IMAGE_BASE_URL}${img}`;
+};
+
 // Product Data Structure
 const product = reactive({
   id: null,
   tenSanPham: '',
   maSanPham: '',
   thuongHieu: '',
-  giaBan: 0,
+  giaBanMin: 0,
+  giaBanMax: 0,
+  giaSauGiamMin: null,
+  phanTramGiamMax: null,
   moTa: '',
-  listAnh: [],
+  anhChinh: '',
   variants: [] // Chứa danh sách chi tiết (Màu, Size, Số lượng) từ DB
 });
 
@@ -172,30 +191,44 @@ const product = reactive({
 const fetchProductDetail = async () => {
    loading.value = true;
    try {
-       // Gọi API chi tiết sản phẩm
-       // API cần trả về thông tin chung + danh sách variants (chi tiết sản phẩm)
-       const res = await axios.get(`${API_URL}/san-pham/detail/${productId}`); 
-       const data = res.data;
+       // Gọi 2 API song song: thông tin sản phẩm + danh sách biến thể
+       const [productRes, variantsRes] = await Promise.all([
+           axios.get(`${API_URL}/products/${productId}`),
+           axios.get(`${API_URL}/products/${productId}/variants`)
+       ]);
+       const data = productRes.data;
+       const variantsData = variantsRes.data || [];
 
        // Map dữ liệu từ API vào state
        product.id = data.id;
        product.tenSanPham = data.tenSanPham;
        product.maSanPham = data.maSanPham;
        product.thuongHieu = data.tenThuongHieu;
-       product.giaBan = data.giaBan || 0; // Lấy giá bán thấp nhất hoặc mặc định
+       product.giaBanMin = data.giaBanMin || 0;
+       product.giaBanMax = data.giaBanMax || 0;
+       product.giaSauGiamMin = data.giaSauGiamMin || null;
+       product.phanTramGiamMax = data.phanTramGiamMax || null;
        product.moTa = data.moTa;
+       product.anhChinh = data.anhChinh;
        
-       // Xử lý ảnh (Nếu API trả về chuỗi ảnh cách nhau dấu phẩy hoặc list)
-       if (data.listAnh && data.listAnh.length > 0) {
-           product.listAnh = data.listAnh;
-       } else {
-           product.listAnh = ['https://via.placeholder.com/500x650'];
-       }
-       activeImage.value = product.listAnh[0];
+       // Xử lý ảnh chính
+       activeImage.value = getImageUrl(data.anhChinh);
 
-       // Xử lý Variants (Quan trọng)
-       // Giả sử API trả về list 'bienThe' hoặc 'chiTietSanPhams'
-       product.variants = data.bienThe || []; 
+       // Map variants từ VariantResponse (mauSac.tenMauSac, kichThuoc.tenKichThuoc)
+       product.variants = variantsData
+           .filter(v => v.trangThai === 1)
+           .map(v => ({
+               id: v.id,
+               maCtsp: v.maCtsp,
+               soLuong: v.soLuong,
+               giaBan: v.giaBan,
+               giaSauGiam: v.giaSauGiam || null,
+               phanTramGiam: v.phanTramGiam || null,
+               tenDotGiamGia: v.tenDotGiamGia || null,
+               tenMauSac: v.mauSac ? v.mauSac.tenMauSac : '',
+               tenKichThuoc: v.kichThuoc ? v.kichThuoc.tenKichThuoc : '',
+               listAnh: v.listAnh || []
+           }));
 
        // Tự động chọn biến thể đầu tiên nếu có
        if (product.variants.length > 0) {
@@ -212,17 +245,51 @@ const fetchProductDetail = async () => {
 
 // --- COMPUTED PROPERTIES (XỬ LÝ BIẾN THỂ) ---
 
+// Giá hiển thị: ưu tiên giá giảm của biến thể đang chọn, fallback giá min
+const displayPrice = computed(() => {
+    if (currentVariant.value) {
+        return currentVariant.value.giaSauGiam || currentVariant.value.giaBan;
+    }
+    return product.giaSauGiamMin || product.giaBanMin || 0;
+});
+
+// Giá gốc (trước giảm) - chỉ hiển thị khi có giảm giá
+const originalPrice = computed(() => {
+    if (currentVariant.value && currentVariant.value.giaSauGiam) {
+        return currentVariant.value.giaBan;
+    }
+    if (!currentVariant.value && product.giaSauGiamMin) {
+        return product.giaBanMin;
+    }
+    return null;
+});
+
+// Phần trăm giảm giá
+const discountPercent = computed(() => {
+    if (currentVariant.value && currentVariant.value.phanTramGiam) {
+        return currentVariant.value.phanTramGiam;
+    }
+    if (!currentVariant.value && product.phanTramGiamMax) {
+        return product.phanTramGiamMax;
+    }
+    return null;
+});
+
 // Lọc ra danh sách màu duy nhất
 const uniqueColors = computed(() => {
     if (!product.variants) return [];
-    const colors = product.variants.map(v => v.tenMauSac);
-    return [...new Set(colors)]; // Loại bỏ trùng lặp
+    const colors = product.variants.map(v => v.tenMauSac).filter(Boolean);
+    return [...new Set(colors)];
 });
 
-// Lọc ra danh sách size duy nhất
+// Lọc ra danh sách size khả dụng theo màu đã chọn
 const uniqueSizes = computed(() => {
     if (!product.variants) return [];
-    const sizes = product.variants.map(v => v.tenKichThuoc);
+    let filtered = product.variants;
+    if (selectedColor.value) {
+        filtered = filtered.filter(v => v.tenMauSac === selectedColor.value);
+    }
+    const sizes = filtered.map(v => v.tenKichThuoc).filter(Boolean);
     return [...new Set(sizes)];
 });
 
@@ -234,11 +301,30 @@ const currentVariant = computed(() => {
     );
 });
 
+// Danh sách ảnh hiển thị: ưu tiên ảnh biến thể, fallback ảnh chính
+const currentImages = computed(() => {
+    if (currentVariant.value && currentVariant.value.listAnh && currentVariant.value.listAnh.length > 0) {
+        return currentVariant.value.listAnh;
+    }
+    // Fallback: gom tất cả ảnh từ các biến thể cùng màu
+    if (selectedColor.value) {
+        const imgs = product.variants
+            .filter(v => v.tenMauSac === selectedColor.value)
+            .flatMap(v => v.listAnh || []);
+        if (imgs.length > 0) return [...new Set(imgs)];
+    }
+    return product.anhChinh ? [product.anhChinh] : [];
+});
+
 // --- METHODS ---
 
 const selectColor = (colorName) => {
     selectedColor.value = colorName;
-    // Reset size nếu combination không tồn tại (Optional logic)
+    // Reset size nếu combination không tồn tại
+    const available = product.variants.filter(v => v.tenMauSac === colorName);
+    if (selectedSize.value && !available.find(v => v.tenKichThuoc === selectedSize.value)) {
+        selectedSize.value = available.length > 0 ? available[0].tenKichThuoc : null;
+    }
 };
 
 const selectSize = (sizeName) => {
@@ -259,44 +345,113 @@ const decreaseQty = () => {
     if (quantity.value > 1) quantity.value--;
 };
 
-const addToCart = () => {
+// Hàm làm mới số lượng tồn kho từ API (không reset lựa chọn người dùng)
+const refreshVariantStock = async () => {
+    try {
+        const res = await axios.get(`${API_URL}/products/${productId}/variants`);
+        const variantsData = res.data || [];
+        variantsData.forEach(v => {
+            const existing = product.variants.find(ev => ev.id === v.id);
+            if (existing) {
+                existing.soLuong = v.soLuong;
+                existing.giaSauGiam = v.giaSauGiam || null;
+                existing.phanTramGiam = v.phanTramGiam || null;
+                existing.tenDotGiamGia = v.tenDotGiamGia || null;
+            }
+        });
+    } catch (e) { /* silent */ }
+};
+
+const addToCart = async () => {
     if (!currentVariant.value) {
         Swal.fire('Chưa chọn phân loại', 'Vui lòng chọn Màu sắc và Kích thước', 'warning');
         return;
     }
+    await refreshVariantStock();
     if (currentVariant.value.soLuong <= 0) {
         Swal.fire('Hết hàng', 'Sản phẩm này tạm thời hết hàng', 'error');
         return;
     }
 
-    // Logic thêm vào giỏ hàng (Lưu vào LocalStorage hoặc gọi API)
+    // Add to cart using Pinia store
+    const effectivePrice = currentVariant.value.giaSauGiam || currentVariant.value.giaBan;
     const cartItem = {
-        id: currentVariant.value.id,
+        variantId: currentVariant.value.id,
         productId: product.id,
         tenSanPham: product.tenSanPham,
         mauSac: selectedColor.value,
         kichThuoc: selectedSize.value,
         soLuong: quantity.value,
-        donGia: product.giaBan,
-        anh: activeImage.value
+        donGia: effectivePrice,
+        giaGoc: currentVariant.value.giaSauGiam ? currentVariant.value.giaBan : null,
+        phanTramGiam: currentVariant.value.phanTramGiam || null,
+        anh: activeImage.value,
+        maxStock: currentVariant.value.soLuong
     };
 
-    // Demo lưu LocalStorage
-    let cart = JSON.parse(localStorage.getItem('cart_items')) || [];
-    // Check trùng
-    const existItem = cart.find(x => x.id === cartItem.id);
-    if(existItem) {
-        existItem.soLuong += quantity.value;
-    } else {
-        cart.push(cartItem);
-    }
-    localStorage.setItem('cart_items', JSON.stringify(cart));
+    cartStore.addItem(cartItem);
     
     Swal.fire({
         icon: 'success',
         title: 'Đã thêm vào giỏ',
         showConfirmButton: false,
         timer: 1000
+    });
+};
+
+const buyNow = async () => {
+    if (!currentVariant.value) {
+        Swal.fire('Chưa chọn phân loại', 'Vui lòng chọn Màu sắc và Kích thước', 'warning');
+        return;
+    }
+    await refreshVariantStock();
+    if (currentVariant.value.soLuong <= 0) {
+        Swal.fire('Hết hàng', 'Sản phẩm này tạm thời hết hàng', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Xác nhận mua ngay',
+        html: `<div style="text-align: left; line-height: 1.8;">
+            <p><strong>${product.tenSanPham}</strong></p>
+            <p>Màu: <strong>${selectedColor.value}</strong></p>
+            <p>Kích thước: <strong>${selectedSize.value}</strong></p>
+            <p>Số lượng: <strong>${quantity.value}</strong></p>
+            <p style="margin-top: 15px; font-size: 18px; color: #d32f2f;">Giá: <strong>${formatMoney((currentVariant.value.giaSauGiam || currentVariant.value.giaBan) * quantity.value)}</strong></p>
+            ${currentVariant.value.giaSauGiam ? `<p style="text-decoration: line-through; color: #999;">Giá gốc: ${formatMoney(currentVariant.value.giaBan * quantity.value)}</p>` : ''}
+        </div>`,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Mua ngay',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#1e3a8a',
+        cancelButtonColor: '#999',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Clear cart and add only this item
+            cartStore.clearCart();
+            
+            const buyPrice = currentVariant.value.giaSauGiam || currentVariant.value.giaBan;
+            const cartItem = {
+                variantId: currentVariant.value.id,
+                productId: product.id,
+                tenSanPham: product.tenSanPham,
+                mauSac: selectedColor.value,
+                kichThuoc: selectedSize.value,
+                soLuong: quantity.value,
+                donGia: buyPrice,
+                giaGoc: currentVariant.value.giaSauGiam ? currentVariant.value.giaBan : null,
+                phanTramGiam: currentVariant.value.phanTramGiam || null,
+                anh: activeImage.value,
+                maxStock: currentVariant.value.soLuong
+            };
+            
+            cartStore.addItem(cartItem);
+            
+            // Navigate to checkout
+            router.push('/checkout');
+        }
     });
 };
 
@@ -312,13 +467,31 @@ const handleImageError = (e) => {
     e.target.src = "https://via.placeholder.com/500x650?text=No+Image";
 };
 
-// Reset quantity khi đổi biến thể
-watch(currentVariant, () => {
+// Reset quantity và cập nhật ảnh khi đổi biến thể
+watch(currentVariant, (variant) => {
     quantity.value = 1;
+    if (variant && variant.listAnh && variant.listAnh.length > 0) {
+        activeImage.value = getImageUrl(variant.listAnh[0]);
+    } else if (product.anhChinh) {
+        activeImage.value = getImageUrl(product.anhChinh);
+    }
 });
+
+// Auto-refresh: khi tab được focus lại hoặc mỗi 30 giây
+let stockInterval;
+const onVisibilityChange = () => {
+    if (document.visibilityState === 'visible') refreshVariantStock();
+};
 
 onMounted(() => {
    fetchProductDetail();
+   document.addEventListener('visibilitychange', onVisibilityChange);
+   stockInterval = setInterval(refreshVariantStock, 30000);
+});
+
+onUnmounted(() => {
+   document.removeEventListener('visibilitychange', onVisibilityChange);
+   if (stockInterval) clearInterval(stockInterval);
 });
 </script>
 
@@ -365,7 +538,10 @@ onMounted(() => {
 
 .p-price { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 20px; }
 .current-price { font-size: 26px; font-weight: 700; color: #d32f2f; }
+.price-range { font-size: 18px; color: #64748b; font-weight: 500; }
 .old-price { font-size: 16px; text-decoration: line-through; color: #999; margin-bottom: 5px; }
+.original-price { font-size: 16px; text-decoration: line-through; color: #999; align-self: center; }
+.discount-badge { background: #d32f2f; color: white; padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: 600; align-self: center; }
 .sale-label { background: #d32f2f; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-bottom: 8px; }
 
 .p-desc-short { font-size: 15px; line-height: 1.6; color: #555; margin-bottom: 30px; }
@@ -392,6 +568,8 @@ onMounted(() => {
 .qty-control button:hover { background: #e2e8f0; }
 .qty-control input { flex: 1; width: 100%; text-align: center; border: none; outline: none; font-weight: 600; }
 .stock-info { margin-left: 15px; font-size: 13px; color: #64748b; font-style: italic; }
+.stock-info.out-of-stock { color: #dc2626; font-weight: 700; font-style: normal; }
+.btn-add-cart:disabled, .btn-buy-now:disabled { opacity: 0.5; cursor: not-allowed; background: #94a3b8 !important; }
 .selected-val { margin-left: 10px; font-size: 13px; font-weight: 600; color: #334155; }
 
 /* BUTTONS ACTION */
@@ -410,6 +588,7 @@ onMounted(() => {
 /* POLICY */
 .shop-policy { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; border-top: 1px solid #eee; padding-top: 20px; }
 .policy-item { font-size: 13px; color: #555; display: flex; align-items: center; gap: 8px; }
+.policy-item i { color: #1e3a8a; }
 
 /* TABS */
 .product-tabs { margin-bottom: 50px; }

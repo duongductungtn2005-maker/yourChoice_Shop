@@ -16,7 +16,7 @@ public interface NhanVienService {
     NhanVien findById(Integer id);
     NhanVien update(Integer id, EmployeeRequest req);
     List<NhanVien> findAllList(String keyword, Boolean gender, Integer status);
-    boolean checkTrungTaiKhoan(String tenTaiKhoan, Integer id);
     boolean checkTrungSoDienThoai(String soDienThoai, Integer id);
     boolean authenticateEmployee(String username, String password);
+    NhanVien getEmployeeByCredentials(String username, String password);
 }

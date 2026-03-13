@@ -43,10 +43,6 @@
               
               <div class="form-row">
                  <div class="form-group third">
-                    <label class="required">Số CCCD</label>
-                    <input type="number" v-model="employee.cccd" class="form-control">
-                 </div>
-                 <div class="form-group third">
                     <label class="required">Ngày sinh</label>
                     <input type="date" v-model="employee.ngaySinh" class="form-control">
                  </div>
@@ -60,8 +56,8 @@
               </div>
               <div class="form-row">
                 <div class="form-group third">
-                    <label class="required">Tên tài khoản</label>
-                    <input type="text" v-model="employee.tenTaiKhoan" class="form-control">
+                    <label>Tên tài khoản (tự sinh theo tên)</label>
+                                        <input type="text" :value="generatedUsername" class="form-control" readonly>
                 </div>
                  <div class="form-group third">
                    <label class="required">Quyền hạn</label>
@@ -136,6 +132,7 @@ import Swal from 'sweetalert2'; // Import thư viện
 const router = useRouter();
 const route = useRoute(); 
 const isEditMode = computed(() => !!route.params.id);
+const generatedUsername = computed(() => buildUsernameFromName(employee.tenNhanVien));
 
 // --- STATE ---
 const employee = reactive({ 
@@ -173,6 +170,14 @@ const normalizeName = (str) => {
     // Bỏ các từ hành chính thông dụng
     clean = clean.replace(/(tỉnh|thành phố|tp\.?|quận|huyện|thị xã|tx\.?|xã|phường|thị trấn|tt\.?)\s*/g, '');
     return removeAccents(clean).trim();
+};
+
+const buildUsernameFromName = (name) => {
+    if (!name || !name.trim()) return "";
+    return removeAccents(name)
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '');
 };
 
 // Hàm tìm Code trong danh sách
@@ -360,42 +365,13 @@ const validateForm = async () => {
         return false;
     }
 
-    // 5. Kiểm tra Tên tài khoản
-    if (!employee.tenTaiKhoan || !employee.tenTaiKhoan.trim()) {
-        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập tên tài khoản' });
-        return false;
-    } else if (/\s/.test(employee.tenTaiKhoan)) {
-        Toast.fire({ icon: 'warning', title: 'Tên tài khoản không được chứa khoảng trắng' });
-        return false;
-    } else {
-        // Gọi API xuống Spring Boot để hỏi xem tài khoản trùng không
-        try {
-            const idParam = isEditMode.value ? `&id=${route.params.id}` : '';
-            
-            // Cập nhật lại đường dẫn mới ở đây 👇
-            const res = await request.get(`/nhan-vien/xac-thuc/tai-khoan?tenTaiKhoan=${employee.tenTaiKhoan}${idParam}`);
-            
-            if (res.data === true) {
-                Toast.fire({ icon: 'warning', title: 'Tên tài khoản này đã có người sử dụng!' });
-                return false;
-            }
-        } catch (error) {
-            console.error("Lỗi khi check trùng tài khoản:", error);
-            Toast.fire({ icon: 'error', title: 'Lỗi kết nối khi kiểm tra tài khoản!' });
-            return false; // BẮT BUỘC PHẢI CÓ DÒNG NÀY ĐỂ CHẶN LƯU
-        }
-    }
-
-    // 6. Kiểm tra CCCD - 12 chữ số
-    if (!employee.cccd || !employee.cccd.toString().trim()) {
-        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập số CCCD' });
-        return false;
-    } else if (!/^\d{12}$/.test(employee.cccd.toString().trim())) {
-        Toast.fire({ icon: 'warning', title: 'CCCD phải đúng 12 chữ số' });
+    // 5. Tên tài khoản tự sinh từ họ tên
+    if (!generatedUsername.value) {
+        Toast.fire({ icon: 'warning', title: 'Vui lòng nhập họ tên để tạo tài khoản tự động' });
         return false;
     }
 
-    // 7. Kiểm tra Quyền hạn (Chức vụ)
+    // 6. Kiểm tra Quyền hạn (Chức vụ)
     if (!employee.chucVu) {
         Toast.fire({ icon: 'warning', title: 'Vui lòng chọn quyền hạn' });
         return false;
@@ -440,51 +416,40 @@ const handleSubmit = async () => {
     // 1. Validate Form (Thêm await ở đây 👇)
     if (!(await validateForm())) return;
 
-    // 2. Hiển thị Popup với 2 lựa chọn chính + nút X
+    // 2. Hiển thị Popup xác nhận
     const result = await Swal.fire({
         title: 'Xác nhận thêm nhân viên',
-        text: `Bạn có muốn gửi mail cho nhân viên này không?`,
+        text: 'Hệ thống sẽ tự động gửi email thông báo cho nhân viên.',
         icon: 'question',
-        
-        showCloseButton: true,   // <--- Thêm dấu X ở góc phải
-        showCancelButton: false, // <--- Ẩn nút Hủy bỏ ở dưới
-        showDenyButton: true,    // Vẫn giữ nút lựa chọn thứ 2
-        
-        confirmButtonText: '<i class="fas fa-paper-plane"></i> Gửi Email',
-        confirmButtonColor: '#3085d6', // Màu xanh
-        
-        denyButtonText: '<i class="fas fa-user-plus"></i> KHÔNG Gửi Email',
-        denyButtonColor: '#f39c12',    // Màu cam/vàng
-        
-        allowOutsideClick: false // Không cho click ra ngoài, bắt buộc chọn hoặc bấm X
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-check"></i> Xác nhận',
+        confirmButtonColor: '#3085d6',
+        cancelButtonText: 'Hủy',
+        cancelButtonColor: '#6b7280',
     });
 
-    // Nếu bấm dấu X (Dismiss) thì dừng lại
-    if (result.isDismissed) return;
+    if (!result.isConfirmed) return;
 
-    // Xác định xem có gửi mail hay không dựa vào nút vừa bấm
-    // isConfirmed = Nút Xanh (Gửi mail)
-    // isDenied = Nút Cam (Không gửi mail)
-    const isSendEmail = result.isConfirmed; 
+    // Luôn gửi email khi thêm nhân viên
+    const isSendEmail = true;
 
     // 3. Hiển thị Loading
     Swal.fire({
         title: 'Đang xử lý...',
-        text: isSendEmail ? 'Đang thêm và gửi email kích hoạt...' : 'Đang thêm nhân viên...',
+        text: 'Đang thêm nhân viên và gửi email kích hoạt...',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
 
     try {
         const fd = new FormData();
-        fd.append("tenTaiKhoan", employee.tenTaiKhoan);
         fd.append("tenNhanVien", employee.tenNhanVien); 
         fd.append("cccd", employee.cccd);
         fd.append("email", employee.email); 
         fd.append("soDienThoai", employee.soDienThoai);
         fd.append("gioiTinh", employee.gioiTinh); 
         fd.append("ngaySinh", employee.ngaySinh);
-        fd.append("chucVu", 'STAFF');
+        fd.append("chucVu", employee.chucVu);
 
         // Gửi cờ (flag) lên server
         fd.append("isSendEmail", isSendEmail); 
@@ -506,9 +471,7 @@ const handleSubmit = async () => {
         await Swal.fire({
             icon: 'success',
             title: 'Thành công!',
-            text: isSendEmail 
-                ? 'Đã thêm nhân viên và gửi email kích hoạt.' 
-                : 'Đã thêm nhân viên thành công (Không gửi mail).',
+            text: 'Đã thêm nhân viên và gửi email kích hoạt.',
             timer: 2000,
             showConfirmButton: false
         });

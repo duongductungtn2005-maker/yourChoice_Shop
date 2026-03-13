@@ -4,13 +4,19 @@ import org.example.yourchoiceshop.entity.ChiTietSanPham;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, Integer> {
+
+    // Tìm biến thể theo mã CTSP (dùng cho quét QR) - chỉ lấy sản phẩm đang kinh doanh
+    @Query("SELECT c FROM ChiTietSanPham c WHERE c.maCtsp = :maCtsp AND c.trangThai = 1 AND c.sanPham.trangThai = 1")
+    Optional<ChiTietSanPham> findByMaCtspAndActive(@Param("maCtsp") String maCtsp);
 
     // Lấy tất cả con theo cha
     List<ChiTietSanPham> findBySanPhamId(Integer sanPhamId);
@@ -24,6 +30,7 @@ public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, 
             "(:keyword IS NULL OR :keyword = '' OR c.sanPham.tenSanPham LIKE %:keyword% OR c.maCtsp LIKE %:keyword%) " +
             "AND (:idMauSac IS NULL OR c.mauSac.id = :idMauSac) " +
             "AND (:idKichThuoc IS NULL OR c.kichThuoc.id = :idKichThuoc) " +
+            "AND c.sanPham.trangThai = 1 " +
             "AND (:trangThai IS NULL OR c.trangThai = :trangThai)")
     Page<ChiTietSanPham> searchByCriteria(
             @Param("keyword") String keyword,
@@ -32,4 +39,12 @@ public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, 
             @Param("trangThai") Integer trangThai,
             Pageable pageable
     );
+
+        @Modifying(clearAutomatically = true, flushAutomatically = true)
+        @Query("UPDATE ChiTietSanPham c SET c.soLuong = c.soLuong - :quantity WHERE c.id = :id AND c.soLuong >= :quantity")
+        int reserveStock(@Param("id") Integer id, @Param("quantity") Integer quantity);
+
+        @Modifying(clearAutomatically = true, flushAutomatically = true)
+        @Query("UPDATE ChiTietSanPham c SET c.soLuong = c.soLuong + :quantity WHERE c.id = :id")
+        int releaseStock(@Param("id") Integer id, @Param("quantity") Integer quantity);
 }

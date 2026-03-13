@@ -343,7 +343,7 @@ const pageSize = ref(10);
 const totalPages = ref(1);
 const filter = reactive({ keyword: '', gioiTinh: null, trangThai: null });
 const API_URL = '/khach-hang'; 
-const role = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
+const role = (sessionStorage.getItem('userRole') || 'ADMIN').toUpperCase();
 const customerCreateRouteName = computed(() => (role === 'STAFF' ? 'staff-customer-create' : 'admin-customer-create'));
 const customerDetailRouteName = computed(() => (role === 'STAFF' ? 'staff-customer-detail' : 'admin-customer-detail'));
 const showAddressModal = ref(false);

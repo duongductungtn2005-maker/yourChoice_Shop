@@ -96,11 +96,21 @@
               @click="$router.push(`/product/${prod.id}`)"
            >
               <div class="product-image">
-                 <img :src="getProductImage(prod)" alt="Product">
+                 <img 
+                    v-for="(img, idx) in getProductImages(prod)" 
+                    :key="idx"
+                    :src="img"
+                    :class="{ active: (productSlideIndex[prod.id] || 0) === idx }"
+                    class="product-slide-img"
+                    alt="Product"
+                 >
                  <div class="overlay-actions">
                     <button class="btn-quick-view">Xem nhanh</button>
                  </div>
-                 <div v-if="prod.phanTramGiam > 0" class="sale-tag">-{{ prod.phanTramGiam }}%</div>
+                 <div v-if="prod.phanTramGiamMax > 0" class="sale-tag">-{{ prod.phanTramGiamMax }}%</div>
+                 <div v-if="prod.soLuong <= 0" class="sold-out-overlay">
+                    <span class="sold-out-text">Đã hết hàng</span>
+                 </div>
               </div>
               
               <div class="product-info">
@@ -108,7 +118,7 @@
                  <h3 class="product-name">{{ prod.tenSanPham }}</h3>
                  <div class="product-price">
                     <span class="current-price">{{ formatMoney(calculateMinPrice(prod)) }}</span>
-                    <span v-if="calculateMinPrice(prod) < prod.giaGoc" class="old-price">{{ formatMoney(prod.giaGoc) }}</span>
+                    <span v-if="prod.giaSauGiamMin != null && prod.giaSauGiamMin < prod.giaBanMin" class="old-price">{{ formatMoney(prod.giaBanMin) }}</span>
                  </div>
                  
                  <div class="preview-colors">
@@ -135,13 +145,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
 import axios from 'axios';
 
 // --- CẤU HÌNH ---
 const API_URL = 'http://localhost:8080/api/v1';
 // SỬA LẠI ĐƯỜNG DẪN NÀY CHO KHỚP VỚI API ẢNH CỦA BẠN
-const IMAGE_BASE_URL = 'http://localhost:8080/api/v1/product-images/';
+const IMAGE_BASE_URL = 'http://localhost:8080/images/';
 // --- STATE ---
 const loading = ref(false);
 const products = ref([]);
@@ -239,36 +249,48 @@ watch(sortBy, () => { fetchProducts(); });
 
 // --- LOGIC GIÁ & ẢNH ---
 const calculateMinPrice = (prod) => {
-    // Ép kiểu về Number để tránh lỗi so sánh chuỗi
-    const giaBan = Number(prod.giaBan);
-    const giaGoc = Number(prod.giaGoc);
-
-    if (giaBan > 0) return giaBan;
-    if (giaGoc > 0) return giaGoc;
-    
-    // Nếu cả 2 đều bằng 0, có thể do chưa set giá trong Admin
+    if (prod.giaSauGiamMin != null && Number(prod.giaSauGiamMin) > 0) {
+        return Number(prod.giaSauGiamMin);
+    }
+    const giaBanMin = Number(prod.giaBanMin);
+    if (giaBanMin > 0) return giaBanMin;
     return 0; 
 };
 
 const getProductImage = (prod) => {
-    // 1. Kiểm tra nếu có list ảnh
-    if (prod.listAnh && prod.listAnh.length > 0) {
-        const imgName = prod.listAnh[0];
-        
-        // 2. Nếu tên ảnh là URL đầy đủ (http...) -> dùng luôn
-        if (imgName.startsWith('http')) return imgName;
-        
-        // 3. Nếu là tên file -> ghép với API server
-        // Lưu ý: Kiểm tra kỹ xem IMAGE_BASE_URL có đúng không
-        return `${IMAGE_BASE_URL}${imgName}`;
+    // Dùng ảnh chính từ ProductResponse
+    if (prod.anhChinh) {
+        if (prod.anhChinh.startsWith('http')) return prod.anhChinh;
+        return `${IMAGE_BASE_URL}${prod.anhChinh}`;
     }
-    
-    // 4. Nếu không có ảnh -> Dùng ảnh mặc định từ placehold.co (ổn định hơn via.placeholder)
     return 'https://placehold.co/300x400?text=No+Image';
 };
 
+// --- PRODUCT IMAGE SLIDER ---
+const productSlideIndex = reactive({});
+let productSlideInterval;
+
+const getProductImages = (prod) => {
+    if (prod.dsAnh && prod.dsAnh.length > 0) {
+        return prod.dsAnh.map(img => img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`);
+    }
+    return [getProductImage(prod)];
+};
+
+const startProductSlider = () => {
+    productSlideInterval = setInterval(() => {
+        products.value.forEach(prod => {
+            const images = prod.dsAnh && prod.dsAnh.length > 0 ? prod.dsAnh : [];
+            if (images.length > 1) {
+                const current = productSlideIndex[prod.id] || 0;
+                productSlideIndex[prod.id] = (current + 1) % images.length;
+            }
+        });
+    }, 2000);
+};
+
 const getPreviewColors = (prod) => {
-    return prod.mauSac ? prod.mauSac.split(', ') : []; 
+    return prod.dsMauSac ? prod.dsMauSac.split(', ') : []; 
 };
 
 const changePage = (p) => {
@@ -279,9 +301,23 @@ const changePage = (p) => {
   }
 };
 
+let stockInterval;
+const onVisibilityChange = () => {
+    if (document.visibilityState === 'visible') fetchProducts();
+};
+
 onMounted(() => {
   fetchAttributes();
   fetchProducts();
+  startProductSlider();
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  stockInterval = setInterval(fetchProducts, 30000);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('visibilitychange', onVisibilityChange);
+  if (stockInterval) clearInterval(stockInterval);
+  if (productSlideInterval) clearInterval(productSlideInterval);
 });
 </script>
 
@@ -347,6 +383,8 @@ onMounted(() => {
 
 .product-image { position: relative; overflow: hidden; aspect-ratio: 3/4; background: #f8fafc; margin-bottom: 18px; border-radius: 8px; }
 .product-image img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s ease; }
+.product-slide-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.6s ease; }
+.product-slide-img.active { opacity: 1; }
 
 .overlay-actions { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; }
 .btn-quick-view {
@@ -357,6 +395,8 @@ onMounted(() => {
 .btn-quick-view:hover { background: #0f172a; color: white; }
 
 .sale-tag { position: absolute; top: 10px; left: 10px; background: #ef4444; color: white; padding: 5px 10px; font-size: 13px; font-weight: 700; border-radius: 4px; }
+.sold-out-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 5; }
+.sold-out-text { color: #fff; background: #dc2626; font-size: 14px; font-weight: 700; padding: 6px 18px; border-radius: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
 
 .product-info { text-align: center; }
 .brand-name { font-size: 13px; text-transform: uppercase; color: #94a3b8; margin-bottom: 6px; font-weight: 600; }

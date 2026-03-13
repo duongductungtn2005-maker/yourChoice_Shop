@@ -12,9 +12,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // Khi gọi http://localhost:8080/images/ten-anh.jpg
-        // -> Nó sẽ tìm file trong thư mục "uploads" nằm ngang hàng với file pom.xml
+        // -> Nó sẽ tìm file trong thư mục "uploads/" (relative to working directory)
         registry.addResourceHandler("/images/**")
-                .addResourceLocations("file:./uploads/");
+                .addResourceLocations("file:uploads/");
     }
 
     // 2. Cấu hình CORS (Để tránh lỗi chặn truy cập từ Frontend)

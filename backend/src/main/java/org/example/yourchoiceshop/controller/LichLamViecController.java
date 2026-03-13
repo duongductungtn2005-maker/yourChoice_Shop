@@ -1,14 +1,18 @@
 package org.example.yourchoiceshop.controller;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
 import org.example.yourchoiceshop.dto.request.LichLamViecRequest;
 import org.example.yourchoiceshop.service.LichLamViecService; 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 @RestController
 @RequestMapping("/api/v1/lich-lam-viec")
@@ -43,5 +47,48 @@ public class LichLamViecController {
     public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody LichLamViecRequest request) { // Đã đổi Integer -> Long
         lichLamViecService.update(id, request);
         return ResponseEntity.ok("Cập nhật lịch thành công");
+    }
+    @GetMapping("/template")
+    public ResponseEntity<byte[]> downloadTemplate() {
+        try {
+            byte[] excelContent = lichLamViecService.generateExcelTemplate();
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDispositionFormData("attachment", "Template_XepLichNhanVien.xlsx");
+            
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(excelContent);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping("/import")
+    public ResponseEntity<?> importExcel(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("File không được để trống!");
+        }
+        try {
+            // Không cần truyền ngày vào nữa
+            lichLamViecService.importLichLamViec(file);
+            return ResponseEntity.ok("Import dữ liệu thành công!");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống khi đọc file: " + e.getMessage());
+        }
+    }
+    @PostMapping("/copy-last-week")
+    public ResponseEntity<?> copyLastWeekSchedule(@RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        try {
+            String message = lichLamViecService.copyLichTuTuanTruoc(date);
+            return ResponseEntity.ok(message);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
     }
 }

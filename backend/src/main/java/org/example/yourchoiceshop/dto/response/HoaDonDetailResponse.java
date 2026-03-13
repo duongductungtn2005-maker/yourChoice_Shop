@@ -16,6 +16,7 @@ public class HoaDonDetailResponse {
     private String maHoaDon;
     private String tenKhachHang;
     private String emailKhachHang; 
+    private String ghiChu;
     private String loaiHoaDon;
     private Integer trangThai;
     private LocalDateTime ngayTao;
@@ -28,6 +29,7 @@ public class HoaDonDetailResponse {
 
     private ThongTinNhanHang thongTinNhanHang;
     private List<LichSuThanhToanResponse> lichSuThanhToan;
+    private List<LichSuHoaDonResponse> lichSuHoaDon;
     private List<SanPhamHoaDonResponse> sanPhamHoaDon;
 
     @Data
@@ -46,7 +48,10 @@ public class HoaDonDetailResponse {
 
     @Data
     public static class SanPhamHoaDonResponse {
+        private String maSanPham;
         private String tenSanPham;
+        private String thuongHieu;
+        private String chatLieu;
         private String size;
         private String mauSac;
         private Integer soLuong;

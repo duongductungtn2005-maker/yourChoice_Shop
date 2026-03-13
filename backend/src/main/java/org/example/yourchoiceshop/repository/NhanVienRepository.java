@@ -1,6 +1,7 @@
 package org.example.yourchoiceshop.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.example.yourchoiceshop.entity.NhanVien;
 import org.springframework.data.domain.Page;
@@ -30,8 +31,10 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
         boolean existsByTenTaiKhoan(String tenTaiKhoan);
         boolean existsByTenTaiKhoanAndIdNot(String tenTaiKhoan, Integer id);
         boolean existsByTenTaiKhoanAndMatKhau(String tenTaiKhoan, String matKhau);
+        Optional<NhanVien> findByTenTaiKhoanAndMatKhau(String tenTaiKhoan, String matKhau);
 
         // Check trùng Số điện thoại
         boolean existsBySoDienThoai(String soDienThoai);
         boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);
+        Optional<NhanVien> findByMaNhanVien(String maNhanVien);
 }

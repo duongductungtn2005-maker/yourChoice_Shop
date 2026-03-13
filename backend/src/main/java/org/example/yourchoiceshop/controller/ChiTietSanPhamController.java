@@ -9,9 +9,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -45,6 +47,14 @@ public class ChiTietSanPhamController {
         );
 
         return ResponseEntity.ok(result);
+    }
+
+    // API Tìm biến thể theo mã CTSP (dùng cho quét QR)
+    @GetMapping("/by-ma")
+    public ResponseEntity<?> getByMaCtsp(@RequestParam String maCtsp) {
+        return repository.findByMaCtspAndActive(maCtsp)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // --- API SỬA (FIX LỖI TẠI ĐÂY) ---
@@ -109,6 +119,37 @@ public class ChiTietSanPhamController {
         } else {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @PostMapping("/{id}/reserve")
+    @Transactional
+    public ResponseEntity<?> reserveStock(@PathVariable Integer id, @RequestBody Map<String, Integer> request) {
+        Integer soLuong = request.get("soLuong");
+        if (soLuong == null || soLuong <= 0) {
+            return ResponseEntity.badRequest().body("Số lượng không hợp lệ");
+        }
+        if (!repository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        int updated = repository.reserveStock(id, soLuong);
+        if (updated == 0) {
+            return ResponseEntity.badRequest().body("Không đủ tồn kho");
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/release")
+    @Transactional
+    public ResponseEntity<?> releaseStock(@PathVariable Integer id, @RequestBody Map<String, Integer> request) {
+        Integer soLuong = request.get("soLuong");
+        if (soLuong == null || soLuong <= 0) {
+            return ResponseEntity.badRequest().body("Số lượng không hợp lệ");
+        }
+        if (!repository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        repository.releaseStock(id, soLuong);
+        return ResponseEntity.ok().build();
     }
 
     // --- DTO: Class phụ để hứng dữ liệu JSON từ Frontend ---

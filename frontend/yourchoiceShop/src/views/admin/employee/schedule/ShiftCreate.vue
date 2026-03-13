@@ -52,7 +52,7 @@ const handleSubmit = async () => {
   try {
     const payload = {
       maCa: 'CA' + new Date().getTime().toString().slice(-5), 
-      tenCa: form.name,
+      tenCa: form.name.trim(), // Thêm .trim() để lỡ user gõ dấu cách thừa ở 2 đầu
       thoiGianBatDau: form.startTime + ':00', 
       thoiGianKetThuc: form.endTime + ':00',
       ghiChu: form.description,
@@ -72,11 +72,20 @@ const handleSubmit = async () => {
       router.back(); 
     }
   } catch (error) {
-    console.error("Lỗi khi thêm ca làm việc:", error);
+    console.error("Có lỗi xảy ra khi thêm ca làm việc:", error);
+    
+    // BẮT LỖI TỪ BACKEND GỬI VỀ
+    let errorMessage = 'Không được để trùng tên ca làm việc.';
+    if (error.response && error.response.status === 400) {
+        // Lấy đúng câu chữ từ Spring Boot trả về
+        errorMessage = error.response.data || errorMessage; 
+    }
+
+    // Hiển thị lên popup
     Swal.fire({
       icon: 'error',
       title: 'Thất bại!',
-      text: error.response?.data?.message || 'Có lỗi xảy ra khi thêm ca làm việc.',
+      text: errorMessage,
     });
   }
 };

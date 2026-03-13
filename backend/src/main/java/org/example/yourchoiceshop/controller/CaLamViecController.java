@@ -1,6 +1,7 @@
 package org.example.yourchoiceshop.controller;
 
 import lombok.RequiredArgsConstructor;
+
 import org.example.yourchoiceshop.dto.request.CaLamViecRequest;
 import org.example.yourchoiceshop.entity.CaLamViec;
 import org.example.yourchoiceshop.service.CaLamViecService;
@@ -14,6 +15,8 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalTime;
 import java.util.List;
 
+import org.example.yourchoiceshop.repository.CaLamViecRepository;
+
 @RestController
 @RequestMapping("/api/v1/ca-lam-viec")
 @CrossOrigin(origins = "*") // Cho phép Frontend gọi API mà không bị lỗi CORS
@@ -21,10 +24,15 @@ import java.util.List;
 public class CaLamViecController {
 
     private final CaLamViecService caLamViecService;
+    private final CaLamViecRepository caLamViecRepository; // Thêm repository để check trùng tên
 
     // API thêm mới: POST http://localhost:8080/api/ca-lam-viec
     @PostMapping
-    public ResponseEntity<CaLamViec> create(@RequestBody CaLamViecRequest request) {
+public ResponseEntity<?> createCaLamViec(@RequestBody CaLamViecRequest request) {
+    // THÊM ĐOẠN NÀY ĐỂ CHECK TRÙNG TÊN:
+    if (caLamViecRepository.existsByTenCa(request.getTenCa())) {
+        return ResponseEntity.badRequest().body("Tên ca làm việc này đã tồn tại. Vui lòng chọn tên khác!");
+    }
         CaLamViec newCa = caLamViecService.create(request);
         return ResponseEntity.ok(newCa);
     }
