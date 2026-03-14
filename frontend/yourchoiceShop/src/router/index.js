@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router"
-import { isAuthenticated, getRole } from "@/services/auth"
+import { isAuthenticated, getRole, getCurrentUserId } from "@/services/auth"
 // import { initCrossTabSync } from "@/services/auth" // Đã vô hiệu hóa cross-tab sync
 
 /* ================= STATIC IMPORT ================= */
@@ -39,7 +39,10 @@ const normalizeRole = (role) => {
 
 const getDefaultPathByRole = (role) => {
   const normalized = normalizeRole(role)
-  if (normalized === "CUSTOMER") return "/"
+  if (normalized === "CUSTOMER") {
+    const currentUserId = getCurrentUserId()
+    return currentUserId ? `/customer/${currentUserId}/account` : "/"
+  }
   if (normalized === "STAFF") return "/staff/pos"
   return "/admin/dashboard"
 }
@@ -79,8 +82,32 @@ const router = createRouter({
         { path: "cart", name: "cart", component: () => import("../views/client/CartView.vue") },
         { path: "checkout", name: "checkout", component: () => import("../views/client/CheckoutView.vue") },
         { path: "vnpay-return", name: "vnpay-return", component: () => import("../views/client/VnPayReturnView.vue") },
-        { path: "orders", name: "orders", component: () => import("../views/client/OrderHistoryView.vue"), meta: { requiresAuth: true, roles: ["CUSTOMER"] } },
-        { path: "account", name: "account", component: () => import("../views/client/AccountView.vue"), meta: { requiresAuth: true, roles: ["CUSTOMER"] } },
+        {
+          path: "customer/:id/orders",
+          name: "orders",
+          component: () => import("../views/client/OrderHistoryView.vue"),
+          meta: { requiresAuth: true, roles: ["CUSTOMER"], customerOwned: true },
+        },
+        {
+          path: "customer/:id/account",
+          name: "account",
+          component: () => import("../views/client/AccountView.vue"),
+          meta: { requiresAuth: true, roles: ["CUSTOMER"], customerOwned: true },
+        },
+        {
+          path: "orders",
+          redirect: () => {
+            const currentUserId = getCurrentUserId()
+            return currentUserId ? `/customer/${currentUserId}/orders` : "/login"
+          },
+        },
+        {
+          path: "account",
+          redirect: () => {
+            const currentUserId = getCurrentUserId()
+            return currentUserId ? `/customer/${currentUserId}/account` : "/login"
+          },
+        },
       ],
     },
 
@@ -207,6 +234,17 @@ router.beforeEach((to, from, next) => {
   if (allowedRoles.length && !allowedRoles.includes(role)) {
     next(getDefaultPathByRole(role))
     return
+  }
+
+  // Khách hàng chỉ được truy cập route có id trùng với tài khoản hiện tại
+  const requiresCustomerOwnership = to.matched.some((r) => r.meta?.customerOwned)
+  if (requiresCustomerOwnership && role === "CUSTOMER") {
+    const routeCustomerId = Number(to.params?.id)
+    const currentUserId = getCurrentUserId()
+    if (!currentUserId || Number.isNaN(routeCustomerId) || routeCustomerId !== currentUserId) {
+      next(getDefaultPathByRole(role))
+      return
+    }
   }
 
   next()

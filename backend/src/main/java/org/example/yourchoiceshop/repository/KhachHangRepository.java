@@ -1,5 +1,8 @@
 package org.example.yourchoiceshop.repository;
 
+import java.util.Date;
+import java.util.Optional;
+
 import org.example.yourchoiceshop.entity.KhachHang;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,8 +11,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.util.Date;
 
 @Repository
 public interface KhachHangRepository extends JpaRepository<KhachHang, Integer>, JpaSpecificationExecutor<KhachHang> {
@@ -37,6 +38,8 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer>, 
     boolean existsByTenTaiKhoanIgnoreCase(String tenTaiKhoan);
 
     boolean existsByTenTaiKhoanIgnoreCaseAndMatKhau(String tenTaiKhoan, String matKhau);
+
+        Optional<KhachHang> findByTenTaiKhoanIgnoreCaseAndMatKhau(String tenTaiKhoan, String matKhau);
 
     boolean existsByTenTaiKhoanIgnoreCaseAndIdNot(String tenTaiKhoan, Integer id);
 

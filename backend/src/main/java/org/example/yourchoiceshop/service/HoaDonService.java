@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public interface HoaDonService {
 
     // Hàm lấy danh sách hóa đơn (cho màn Quản lý đơn hàng)
-    Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, LocalDateTime from, LocalDateTime to, Pageable pageable);
+    Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, Integer khachHangId, LocalDateTime from, LocalDateTime to, Pageable pageable);
 
     // Hàm lấy chi tiết hóa đơn (cho màn Chi tiết đơn hàng)
     HoaDonDetailResponse getOrderDetail(String maHoaDon);

@@ -9,12 +9,14 @@ import org.example.yourchoiceshop.dto.response.LichSuHoaDonResponse;
 import org.example.yourchoiceshop.entity.ChiTietSanPham;
 import org.example.yourchoiceshop.entity.HoaDon;
 import org.example.yourchoiceshop.entity.HoaDonChiTiet;
+import org.example.yourchoiceshop.entity.KhachHang;
 import org.example.yourchoiceshop.entity.LichSuHoaDon;
 import org.example.yourchoiceshop.entity.LichSuThanhToan;
 import org.example.yourchoiceshop.entity.PhieuGiamGia;
 import org.example.yourchoiceshop.repository.ChiTietSanPhamRepository;
 import org.example.yourchoiceshop.repository.HoaDonChiTietRepository;
 import org.example.yourchoiceshop.repository.HoaDonRepository;
+import org.example.yourchoiceshop.repository.KhachHangRepository;
 import org.example.yourchoiceshop.repository.LichSuHoaDonRepository;
 import org.example.yourchoiceshop.repository.LichSuThanhToanRepository;
 import org.example.yourchoiceshop.repository.NhanVienRepository;
@@ -53,11 +55,12 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
     private final LichSuThanhToanRepository lichSuThanhToanRepo; // Thêm Repository này để lấy lịch sử thanh toán
     private final LichSuHoaDonRepository lichSuHoaDonRepo;
     private final PhieuGiamGiaRepository phieuGiamGiaRepo;
+    private final KhachHangRepository khachHangRepo;
 
     @Override // <--- Thêm Override cho chắc chắn
-    public Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, LocalDateTime from,
+    public Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, Integer khachHangId, LocalDateTime from,
             LocalDateTime to, Pageable pageable) {
-        Page<HoaDon> page = hoaDonRepo.searchOrders(keyword, status, type, from, to, pageable);
+        Page<HoaDon> page = hoaDonRepo.searchOrders(keyword, status, type, khachHangId, from, to, pageable);
 
         return page.map(hd -> {
             HoaDonResponse res = new HoaDonResponse();
@@ -621,6 +624,12 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         hd.setDiaChiNguoiNhan(buildFullAddress(req));
         hd.setEmailKhachHang(req.getEmail());
         hd.setGhiChu(req.getGhiChu());
+
+        if (req.getIdKhachHang() != null) {
+            KhachHang khachHang = khachHangRepo.findById(req.getIdKhachHang())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+            hd.setKhachHang(khachHang);
+        }
 
         // fallback từ khách hàng (nếu có)
         if (hd.getEmailKhachHang() == null && hd.getKhachHang() != null) {

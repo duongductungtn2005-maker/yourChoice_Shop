@@ -211,7 +211,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
 import { createOrderOnline, getProvinces, getDistricts, getWards, getVouchers, getAddresses } from '@/api/clientApi'
-import { getCurrentUser, isAuthenticated } from '@/services/auth'
+import { getCurrentUser, isAuthenticated, getCustomerOrdersPath } from '@/services/auth'
 import Swal from 'sweetalert2'
 import axios from 'axios'
 
@@ -454,7 +454,7 @@ const placeOrder = async () => {
       confirmButtonColor: '#1e3a8a',
     })
 
-    router.push(isAuthenticated() ? '/orders' : '/')
+    router.push(isAuthenticated() ? getCustomerOrdersPath() : '/')
   } catch (e) {
     console.error('Lỗi đặt hàng:', e)
     Swal.fire('Lỗi', e.response?.data?.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.', 'error')

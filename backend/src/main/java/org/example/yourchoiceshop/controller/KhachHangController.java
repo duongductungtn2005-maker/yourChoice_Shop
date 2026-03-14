@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -97,8 +98,25 @@ public class KhachHangController {
             @RequestParam String password
     ) {
         try {
-            boolean authenticated = khachHangService.authenticateCustomer(username, password);
-            return ResponseEntity.ok(Map.of("authenticated", authenticated));
+            var customer = khachHangService.getCustomerByCredentials(username, password);
+            if (customer == null) {
+                return ResponseEntity.ok(Map.of("authenticated", false));
+            }
+
+                Map<String, Object> customerData = new LinkedHashMap<>();
+                customerData.put("id", customer.getId());
+                customerData.put("tenKhachHang", customer.getTenKhachHang());
+                customerData.put("email", customer.getEmail());
+                customerData.put("soDienThoai", customer.getSoDienThoai());
+                customerData.put("tenTaiKhoan", customer.getTenTaiKhoan());
+                customerData.put("avatar", customer.getAvatar());
+                customerData.put("trangThai", customer.getTrangThai());
+
+                Map<String, Object> response = new LinkedHashMap<>();
+                response.put("authenticated", true);
+                response.put("customer", customerData);
+
+                return ResponseEntity.ok(response);
         } catch (RuntimeException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         } catch (Exception ex) {

@@ -23,7 +23,7 @@
             </div>
           </div>
           <div class="actions">
-            <button class="btn-primary" @click="$router.push('/orders')" v-if="isAuth">
+            <button class="btn-primary" @click="$router.push(customerOrdersPath)" v-if="isAuth">
               <i class="fas fa-list"></i> Xem đơn hàng
             </button>
             <button class="btn-secondary" @click="$router.push('/')">
@@ -67,7 +67,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
-import { isAuthenticated } from '@/services/auth'
+import { isAuthenticated, getCustomerOrdersPath } from '@/services/auth'
 import axios from 'axios'
 
 const route = useRoute()
@@ -80,6 +80,7 @@ const maHoaDon = ref('')
 const transactionNo = ref('')
 const amount = ref(0)
 const isAuth = isAuthenticated()
+const customerOrdersPath = getCustomerOrdersPath()
 
 const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0)
 

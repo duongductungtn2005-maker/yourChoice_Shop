@@ -33,10 +33,10 @@
                 <div class="dropdown-btn customer-label">
                   <i class="fas fa-user-check"></i> {{ customerName || 'Đã đăng nhập' }}
                 </div>
-                <router-link to="/account" class="dropdown-btn" @click="isUserDropdownOpen = false">
+                <router-link :to="customerAccountPath" class="dropdown-btn" @click="isUserDropdownOpen = false">
                   <i class="fas fa-user-cog"></i> Tài khoản
                 </router-link>
-                <router-link to="/orders" class="dropdown-btn" @click="isUserDropdownOpen = false">
+                <router-link :to="customerOrdersPath" class="dropdown-btn" @click="isUserDropdownOpen = false">
                   <i class="fas fa-clipboard-list"></i> Đơn hàng
                 </router-link>
                 <button class="dropdown-btn" @click="handleLogout">
@@ -106,6 +106,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
 import { useCartStore } from '@/stores/cart';
+import { getCustomerAccountPath, getCustomerOrdersPath } from '@/services/auth';
 
 const router = useRouter();
 const cartStore = useCartStore();
@@ -113,17 +114,17 @@ const isScrolled = ref(false);
 const isUserDropdownOpen = ref(false);
 const userRole = ref('');
 const hasToken = ref(false);
+const authUser = ref(null);
 const searchKeyword = ref('');
 const isCustomerLoggedIn = computed(() => hasToken.value && userRole.value === 'CUSTOMER');
 const cartCount = computed(() => cartStore.totalItems);
+const customerAccountPath = computed(() => getCustomerAccountPath());
+const customerOrdersPath = computed(() => getCustomerOrdersPath());
 
 const customerName = computed(() => {
-  try {
-    const userStr = sessionStorage.getItem('user');
-    if (!userStr) return null;
-    const user = JSON.parse(userStr);
-    return user.hoTen || user.tenKhachHang || user.tenNhanVien || null;
-  } catch { return null; }
+  const user = authUser.value;
+  if (!user) return null;
+  return user.tenTaiKhoan || user.username || user.hoTen || user.tenKhachHang || user.tenNhanVien || null;
 });
 
 const handleScroll = () => {
@@ -137,6 +138,15 @@ const toggleUserDropdown = () => {
 const loadAuthState = () => {
   userRole.value = String(sessionStorage.getItem('userRole') || '').toUpperCase();
   hasToken.value = !!sessionStorage.getItem('token');
+  try {
+    authUser.value = JSON.parse(sessionStorage.getItem('user') || 'null');
+  } catch {
+    authUser.value = null;
+  }
+};
+
+const handleAuthUserUpdated = () => {
+  loadAuthState();
 };
 
 const handleSearch = () => {
@@ -165,8 +175,12 @@ const handleImageError = (e) => {
 onMounted(() => {
   loadAuthState();
   window.addEventListener('scroll', handleScroll);
+  window.addEventListener('auth-user-updated', handleAuthUserUpdated);
 });
-onUnmounted(() => window.removeEventListener('scroll', handleScroll));
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+  window.removeEventListener('auth-user-updated', handleAuthUserUpdated);
+});
 </script>
 
 <style scoped>

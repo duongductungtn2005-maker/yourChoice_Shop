@@ -19,7 +19,7 @@
               <img v-if="customer.anhDaiDien" :src="'http://localhost:8080/images/' + customer.anhDaiDien" alt="" @error="(e) => e.target.src = 'https://placehold.co/80?text=User'" />
               <i v-else class="fas fa-user-circle"></i>
             </div>
-            <h4>{{ customer.hoTen || 'Khách hàng' }}</h4>
+            <h4>{{ customer.tenTaiKhoan || customer.username || customer.tenKhachHang || customer.hoTen || 'Khách hàng' }}</h4>
             <p class="text-muted">{{ customer.email }}</p>
           </div>
 
@@ -30,7 +30,7 @@
             <button :class="{ active: activeTab === 'addresses' }" @click="activeTab = 'addresses'">
               <i class="fas fa-map-marker-alt"></i> Sổ địa chỉ
             </button>
-            <button @click="$router.push('/orders')">
+            <button @click="goToOrders">
               <i class="fas fa-clipboard-list"></i> Đơn hàng
             </button>
             <button class="btn-logout" @click="handleLogout">
@@ -48,17 +48,22 @@
             <form class="profile-form" @submit.prevent="saveProfile">
               <div class="form-row">
                 <div class="form-group">
+                  <label>Tên tài khoản <span class="required">*</span></label>
+                  <input v-model="form.username" type="text" maxlength="50" />
+                  <span class="error" v-if="errors.username">{{ errors.username }}</span>
+                </div>
+                <div class="form-group">
                   <label>Họ tên <span class="required">*</span></label>
                   <input v-model="form.hoTen" type="text" maxlength="100" />
                   <span class="error" v-if="errors.hoTen">{{ errors.hoTen }}</span>
                 </div>
+              </div>
+              <div class="form-row">
                 <div class="form-group">
                   <label>Email <span class="required">*</span></label>
                   <input v-model="form.email" type="email" />
                   <span class="error" v-if="errors.email">{{ errors.email }}</span>
                 </div>
-              </div>
-              <div class="form-row">
                 <div class="form-group">
                   <label>Số điện thoại <span class="required">*</span></label>
                   <input v-model="form.soDienThoai" type="text" maxlength="15" />
@@ -176,18 +181,19 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { isAuthenticated, getCurrentUser, logout } from '@/services/auth'
+import { useRouter, useRoute } from 'vue-router'
+import { isAuthenticated, getCurrentUser, getCurrentUserId, getCustomerOrdersPath, logout } from '@/services/auth'
 import { getCustomerDetail, updateCustomer, getAddresses, createAddress, updateAddress, deleteAddress, setDefaultAddress, getProvinces, getDistricts, getWards } from '@/api/clientApi'
 import { toastSuccess } from '@/utils/toast'
 import Swal from 'sweetalert2'
 
 const router = useRouter()
+const route = useRoute()
 const activeTab = ref('profile')
 const saving = ref(false)
 
 const customer = ref({})
-const form = reactive({ hoTen: '', email: '', soDienThoai: '', ngaySinh: '', gioiTinh: null })
+const form = reactive({ username: '', hoTen: '', email: '', soDienThoai: '', ngaySinh: '', gioiTinh: null })
 const errors = reactive({})
 
 // Addresses
@@ -201,6 +207,15 @@ const wards = ref([])
 
 onMounted(async () => {
   if (!isAuthenticated()) { router.push('/login'); return }
+
+  const currentUserId = getCurrentUserId()
+  const routeCustomerId = Number(route.params.id)
+  if (!currentUserId) { router.push('/login'); return }
+  if (Number.isNaN(routeCustomerId) || routeCustomerId !== currentUserId) {
+    router.replace(`/customer/${currentUserId}/account`)
+    return
+  }
+
   const user = getCurrentUser()
   if (user?.id) {
     await loadCustomer(user.id)
@@ -209,12 +224,17 @@ onMounted(async () => {
   try { const res = await getProvinces(); provinces.value = res.data?.data || res.data || [] } catch {}
 })
 
+const goToOrders = () => {
+  router.push(getCustomerOrdersPath())
+}
+
 const loadCustomer = async (id) => {
   try {
     const res = await getCustomerDetail(id)
     const c = res.data
     customer.value = c
-    form.hoTen = c.hoTen || ''
+    form.username = c.tenTaiKhoan || c.username || ''
+    form.hoTen = c.tenKhachHang || c.hoTen || ''
     form.email = c.email || ''
     form.soDienThoai = c.soDienThoai || ''
     form.ngaySinh = c.ngaySinh || ''
@@ -231,24 +251,59 @@ const loadAddresses = async (id) => {
 
 const saveProfile = async () => {
   Object.keys(errors).forEach(k => delete errors[k])
+  const normalizedUsername = form.username.trim()
+  if (!normalizedUsername) { errors.username = 'Vui lòng nhập tên tài khoản'; return }
+  if (!/^[A-Za-z0-9._-]{3,50}$/.test(normalizedUsername)) {
+    errors.username = 'Tên tài khoản chỉ gồm chữ, số, dấu chấm, gạch dưới, gạch ngang (3-50 ký tự)'
+    return
+  }
   if (!form.hoTen.trim()) { errors.hoTen = 'Vui lòng nhập họ tên'; return }
   if (!form.email.trim()) { errors.email = 'Vui lòng nhập email'; return }
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+    errors.email = 'Email không hợp lệ'
+    return
+  }
   if (!form.soDienThoai.trim()) { errors.soDienThoai = 'Vui lòng nhập SĐT'; return }
+  const normalizedPhone = form.soDienThoai.replace(/\s/g, '')
+  if (!/^0\d{9}$/.test(normalizedPhone)) {
+    errors.soDienThoai = 'SĐT không hợp lệ (phải gồm 10 số và bắt đầu bằng 0)'
+    return
+  }
 
   saving.value = true
   try {
     const fd = new FormData()
-    fd.append('hoTen', form.hoTen)
+    fd.append('tenKhachHang', form.hoTen)
     fd.append('email', form.email)
-    fd.append('soDienThoai', form.soDienThoai)
+    fd.append('soDienThoai', normalizedPhone)
+    fd.append('username', normalizedUsername)
     if (form.ngaySinh) fd.append('ngaySinh', form.ngaySinh)
     if (form.gioiTinh !== null) fd.append('gioiTinh', form.gioiTinh)
 
     await updateCustomer(customer.value.id, fd)
     toastSuccess('Cập nhật thành công!')
     await loadCustomer(customer.value.id)
+
+    // Đồng bộ lại user trong session để header/menu hiển thị tên mới ngay lập tức
+    try {
+      const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}')
+      const nextUser = {
+        ...currentUser,
+        id: customer.value.id,
+        tenTaiKhoan: customer.value.tenTaiKhoan || form.username,
+        username: customer.value.tenTaiKhoan || form.username,
+        tenKhachHang: customer.value.tenKhachHang || form.hoTen,
+        email: customer.value.email || form.email,
+        soDienThoai: customer.value.soDienThoai || form.soDienThoai,
+      }
+      sessionStorage.setItem('user', JSON.stringify(nextUser))
+      window.dispatchEvent(new Event('auth-user-updated'))
+    } catch {}
   } catch (e) {
-    Swal.fire('Lỗi', e.response?.data?.message || 'Không thể cập nhật', 'error')
+    const backendMessage = typeof e?.response?.data === 'string'
+      ? e.response.data
+      : (e?.response?.data?.message || 'Không thể cập nhật')
+    Swal.fire('Lỗi', backendMessage, 'error')
   } finally { saving.value = false }
 }
 

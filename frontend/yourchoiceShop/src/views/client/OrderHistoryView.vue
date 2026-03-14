@@ -156,12 +156,13 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { getOrders, getOrderDetail, updateOrderStatus } from '@/api/clientApi'
-import { getCurrentUser, isAuthenticated } from '@/services/auth'
+import { getCurrentUserId, isAuthenticated } from '@/services/auth'
 import Swal from 'sweetalert2'
 
 const router = useRouter()
+const route = useRoute()
 
 const loading = ref(false)
 const orders = ref([])
@@ -193,20 +194,32 @@ onMounted(() => {
     router.push('/login')
     return
   }
+
+  const currentUserId = getCurrentUserId()
+  const routeCustomerId = Number(route.params.id)
+  if (!currentUserId) {
+    router.push('/login')
+    return
+  }
+  if (Number.isNaN(routeCustomerId) || routeCustomerId !== currentUserId) {
+    router.replace(`/customer/${currentUserId}/orders`)
+    return
+  }
+
   fetchOrders()
 })
 
 const fetchOrders = async () => {
   loading.value = true
   try {
-    const user = getCurrentUser()
+    const currentUserId = getCurrentUserId()
     const params = {
       page: page.value,
       size: 10,
       keyword: searchKeyword.value || undefined,
       type: 'TRUC_TUYEN',
       status: activeStatus.value !== null ? activeStatus.value : undefined,
-      // Filter by customer phone/email if available
+      khachHangId: currentUserId || undefined,
     }
     const res = await getOrders(params)
     orders.value = res.data.content || []

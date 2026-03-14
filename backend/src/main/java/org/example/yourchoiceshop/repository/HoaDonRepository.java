@@ -25,6 +25,7 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
                                 AND h.trangThai <> 9
                                 AND (:status IS NULL OR h.trangThai = :status)
                                 AND (:type IS NULL OR h.loaiHoaDon = :type)
+                                AND (:khachHangId IS NULL OR h.khachHang.id = :khachHangId)
                                 AND (:fromDate IS NULL OR h.ngayTao >= :fromDate)
                                 AND (:toDate IS NULL OR h.ngayTao <= :toDate)
                         """)
@@ -32,6 +33,7 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
                         @Param("keyword") String keyword,
                         @Param("status") Integer status,
                         @Param("type") String type,
+                        @Param("khachHangId") Integer khachHangId,
                         @Param("fromDate") LocalDateTime fromDate,
                         @Param("toDate") LocalDateTime toDate,
                         Pageable pageable);
