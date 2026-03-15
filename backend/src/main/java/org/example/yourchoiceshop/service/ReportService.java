@@ -64,7 +64,7 @@ public class ReportService {
             }
 
             // 3. Lấy Hóa Đơn
-            Page<HoaDonResponse> pageOrders = hoaDonService.getOrders(null, null, null, start, end, PageRequest.of(0, 999999));
+            Page<HoaDonResponse> pageOrders = hoaDonService.getOrders(null, null, null, null, start, end, PageRequest.of(0, 999999));
             List<HoaDonResponse> listOrders = pageOrders.getContent();
 
             // 4. FIX LỖI "TOÀN 0": DÙNG MAP ĐỂ HỨNG DATA TRỰC TIẾP TỪ SQL KHÔNG QUA DTO

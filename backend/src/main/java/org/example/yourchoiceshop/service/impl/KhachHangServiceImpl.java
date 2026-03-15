@@ -247,6 +247,17 @@ public class KhachHangServiceImpl implements KhachHangService {
         return khachHangRepository.existsByTenTaiKhoanIgnoreCaseAndMatKhau(usernameValue, passwordValue);
     }
 
+    @Override
+    public KhachHang getCustomerByCredentials(String username, String password) {
+        String usernameValue = username != null ? username.trim() : "";
+        String passwordValue = password != null ? password.trim() : "";
+        if (usernameValue.isEmpty() || passwordValue.isEmpty()) return null;
+
+        return khachHangRepository
+                .findByTenTaiKhoanIgnoreCaseAndMatKhau(usernameValue, passwordValue)
+                .orElse(null);
+    }
+
     // =========================
     // EXPORT EXCEL
     // =========================

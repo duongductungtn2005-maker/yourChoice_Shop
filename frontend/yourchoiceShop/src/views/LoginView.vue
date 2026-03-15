@@ -218,15 +218,18 @@ onBeforeUnmount(() => stopAuto());
 const authenticateCustomer = async (usernameValue, passwordValue) => {
   const finalUsername = String(usernameValue || '').trim();
   const finalPassword = String(passwordValue || '').trim();
-  if (!finalUsername || !finalPassword) return false;
+  if (!finalUsername || !finalPassword) return null;
 
   try {
     const response = await request.get('/khach-hang/authenticate', {
       params: { username: finalUsername, password: finalPassword }
     });
-    return response?.data?.authenticated === true;
+    if (response?.data?.authenticated === true) {
+      return response?.data?.customer || null;
+    }
+    return null;
   } catch {
-    return false;
+    return null;
   }
 };
 
@@ -288,10 +291,10 @@ const handleLogin = async () => {
   }
 
   // 2. Thử đăng nhập Khách hàng (từ database)
-  const isCustomer = await authenticateCustomer(username.value, password.value);
-  if (isCustomer) {
-    authLogin({ role: 'CUSTOMER' });
-    toastSuccess('Đăng nhập thành công!');
+  const customerData = await authenticateCustomer(username.value, password.value);
+  if (customerData) {
+    authLogin({ role: 'CUSTOMER', user: customerData });
+    toastSuccess(`Đăng nhập thành công! Xin chào ${customerData.tenTaiKhoan || customerData.username || customerData.tenKhachHang || 'quý khách'}`);
     router.push('/');
     return;
   }
