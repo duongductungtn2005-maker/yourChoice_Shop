@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Date;
+import java.util.List;
 
 @Repository
 public interface KhachHangRepository extends JpaRepository<KhachHang, Integer>, JpaSpecificationExecutor<KhachHang> {
@@ -62,23 +63,35 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer>, 
             "k.email AS email, " +
             "k.ngay_sinh AS ngaySinh, " +
             "k.trang_thai AS trangThai, " +
-            "COALESCE(SUM(h.tong_tien), 0) AS tongChiTieu, " +
-            "COUNT(h.id) AS soDonHang, " +
-            "MAX(h.ngay_tao) AS donHangGanNhat " +
+            "(SELECT COALESCE(SUM(hd.tong_tien_sau_giam), 0) FROM hoa_don hd WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) AND hd.trang_thai != 0) AS tongChiTieu, " +
+            "(SELECT COUNT(hd.id) FROM hoa_don hd WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) AND hd.trang_thai != 0) AS soDonHang, " +
+            "(SELECT MAX(hd.ngay_tao) FROM hoa_don hd WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) AND hd.trang_thai != 0) AS donHangGanNhat " +
             "FROM khach_hang k " +
-            "LEFT JOIN hoa_don h ON k.id = h.id_khach_hang " +
-            "WHERE (:keyword = '' OR LOWER(k.ten_khach_hang) LIKE :keyword OR LOWER(k.email) LIKE :keyword OR k.so_dien_thoai LIKE :keyword) " +
-            "AND (:status = -1 OR k.trang_thai = :status) " +
-            "GROUP BY k.id, k.ten_khach_hang, k.so_dien_thoai, k.email, k.ngay_sinh, k.trang_thai",
+            "WHERE (:keyword = '' OR k.ten_khach_hang LIKE :keyword OR k.so_dien_thoai LIKE :keyword) " +
+            "AND (:trangThai = -1 OR k.trang_thai = :trangThai) " +
+            "ORDER BY k.id DESC",
+            
             countQuery = "SELECT COUNT(k.id) FROM khach_hang k " +
-                    "WHERE (:keyword = '' OR LOWER(k.ten_khach_hang) LIKE :keyword OR LOWER(k.email) LIKE :keyword OR k.so_dien_thoai LIKE :keyword) " +
-                    "AND (:status = -1 OR k.trang_thai = :status)",
+                         "WHERE (:keyword = '' OR k.ten_khach_hang LIKE :keyword OR k.so_dien_thoai LIKE :keyword) " +
+                         "AND (:trangThai = -1 OR k.trang_thai = :trangThai)",
             nativeQuery = true)
-    Page<KhachHangThongKeRes> searchKhachHangThongKe(
+    Page<org.example.yourchoiceshop.dto.response.KhachHangThongKeResponse> searchKhachHangThongKe(
             @Param("keyword") String keyword,
-            @Param("status") Integer status,
+            @Param("trangThai") Integer trangThai,
             Pageable pageable
     );
+
+
+    // 1. Lấy TẤT CẢ ID khách hàng đang hoạt động
+    @Query("SELECT k.id FROM KhachHang k WHERE k.trangThai = 1")
+    List<Integer> findAllActiveCustomerIds();
+
+    // 2. Lấy ID khách hàng theo Hạng (Tính cả đơn mua tại quầy qua SĐT)
+    @Query(value = "SELECT k.id FROM khach_hang k WHERE k.trang_thai = 1 AND " +
+            "(SELECT COALESCE(SUM(hd.tong_tien_sau_giam), 0) FROM hoa_don hd WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) AND hd.trang_thai != 0) >= :minSpend AND " +
+            "(SELECT COALESCE(SUM(hd.tong_tien_sau_giam), 0) FROM hoa_don hd WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) AND hd.trang_thai != 0) < :maxSpend",
+            nativeQuery = true)
+    List<Integer> findCustomerIdsBySpendRange(@Param("minSpend") Long minSpend, @Param("maxSpend") Long maxSpend);
 
     // =========================
     // PROJECTION KẾT QUẢ THỐNG KÊ

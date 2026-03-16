@@ -178,6 +178,15 @@ public class ReportService {
                 Cell cell = headerRow2.createCell(i + 1); cell.setCellValue(cols2[i]); cell.setCellStyle(headerStyle);
             }
 
+            // --- SHEET 3: VOUCHER & KHÁCH HÀNG ---
+Sheet sheet3 = workbook.createSheet("Khuyến Mãi & Khách VIP");
+Row headerRow3 = sheet3.createRow(0);
+headerRow3.createCell(0).setCellValue("Top Voucher");
+headerRow3.createCell(3).setCellValue("Top Khách Hàng");
+
+// Đổ dữ liệu từ statisticService.getVoucherStats() và getCustomerStats() vào đây
+// ... (Logic tương tự Sheet 1 và 2 mày đã làm)
+
             int rowNum2 = hr2 + 1;
             if (products != null && !products.isEmpty()) {
                 int stt2 = 1;
@@ -211,6 +220,7 @@ public class ReportService {
             workbook.write(out);
             return out.toByteArray();
         }
+        
     }
 
     private String buildHtmlEmail(String reportType, String dateString, long totalRevenue, int successOrders, int cancelOrders) {

@@ -1,5 +1,7 @@
 package org.example.yourchoiceshop.repository;
 
+import org.example.yourchoiceshop.dto.response.CustomerStatDTO;
+import org.example.yourchoiceshop.dto.response.VoucherStatDTO;
 import org.example.yourchoiceshop.entity.HoaDon;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,14 +38,44 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
                         @Param("toDate") LocalDateTime toDate,
                         Pageable pageable);
 
-        @EntityGraph(attributePaths = {"hoaDonChiTiets", "hoaDonChiTiets.chiTietSanPham"})
+        @EntityGraph(attributePaths = { "hoaDonChiTiets", "hoaDonChiTiets.chiTietSanPham" })
         @Query("""
-                        SELECT DISTINCT h FROM HoaDon h
-                        WHERE h.trangThai = 1
-                        AND EXISTS (
-                            SELECT 1 FROM HoaDonChiTiet ct
-                            WHERE ct.hoaDon = h AND ct.chiTietSanPham.id IN :productIds
-                        )
-                """)
+                                SELECT DISTINCT h FROM HoaDon h
+                                WHERE h.trangThai = 1
+                                AND EXISTS (
+                                    SELECT 1 FROM HoaDonChiTiet ct
+                                    WHERE ct.hoaDon = h AND ct.chiTietSanPham.id IN :productIds
+                                )
+                        """)
         List<HoaDon> findPendingOrdersByProductIds(@Param("productIds") Set<Integer> productIds);
+
+        // CHI THÊM
+        @Query(value = "SELECT " +
+            "p.ten_phieu_giam_gia AS tenPhieu, " +
+            "COUNT(h.id) AS soLuotDung " +
+            "FROM hoa_don h " +
+            "JOIN phieu_giam_gia p ON h.id_phieu_giam_gia = p.id " +
+            "WHERE h.ngay_tao >= :fromDate AND h.ngay_tao <= :toDate " + // Đã đổi thành :fromDate và :toDate
+            "AND h.trang_thai != 0 " +
+            "GROUP BY p.id, p.ten_phieu_giam_gia " +
+            "ORDER BY COUNT(h.id) DESC", 
+            nativeQuery = true)
+        List<VoucherStatDTO> getVoucherHot(
+                        @Param("fromDate") LocalDateTime fromDate,
+                        @Param("toDate") LocalDateTime toDate);
+
+        @Query("""
+                            SELECT new org.example.yourchoiceshop.dto.response.CustomerStatDTO(
+                                k.maKhachHang,
+                                k.tenKhachHang,
+                                COUNT(h.id),
+                                SUM(h.tongTienSauGiam)
+                            )
+                            FROM HoaDon h
+                            JOIN h.khachHang k
+                            WHERE h.trangThai = 4
+                            GROUP BY k.maKhachHang, k.tenKhachHang
+                            ORDER BY SUM(h.tongTienSauGiam) DESC
+                        """)
+        List<CustomerStatDTO> getTopCustomers(Pageable pageable);
 }

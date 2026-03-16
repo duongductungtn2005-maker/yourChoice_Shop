@@ -43,11 +43,14 @@
               <label class="radio-item">
                 <input type="radio" value="PhanTram" v-model="form.loaiPhieu" /> %
               </label>
+              <label class="radio-item">
+                <input type="radio" value="FreeShip" v-model="form.loaiPhieu" /> Free Ship
+              </label>
             </div>
           </div>
           
-          <div class="form-group">
-            <label>Giá trị giảm ({{ form.loaiPhieu === 'PhanTram' ? '%' : 'VNĐ' }})</label>
+          <div class="form-group" v-if="form.loaiPhieu !== 'FreeShip'">
+            <label>Giá trị giảm ({{ form.loaiPhieu === 'PhanTram' ? '%' : 'VNĐ' }}) <span class="required">*</span></label>
             <input 
                 v-model.number="form.giaTriGiam" 
                 type="number" 
@@ -56,12 +59,44 @@
                 min="0"
             />
           </div>
+          <div class="form-group" v-else>
+            <label>Giá trị giảm</label>
+            <input type="text" class="form-control disabled-input" value="100% Phí vận chuyển" disabled />
+          </div>
+        </div>
+
+        <div class="row-2">
+          <div class="form-group">
+            <label>
+              Giảm tối đa (VNĐ)
+              <span v-if="form.loaiPhieu === 'TienMat'" style="font-weight:normal; color:#64748b; font-size:12px;">(Không áp dụng cho VNĐ)</span>
+            </label>
+            <input 
+                v-model.number="form.giaTriGiamToiDa" 
+                type="number" 
+                class="form-control" 
+                :disabled="form.loaiPhieu === 'TienMat'"
+                :class="{'disabled-input': form.loaiPhieu === 'TienMat'}"
+                placeholder="0 (Để trống = Không giới hạn)" 
+                min="0" 
+            />
+          </div>
+          <div class="form-group">
+            <label>Giới hạn dùng / 1 Khách</label>
+            <input 
+                v-model.number="form.gioiHanMoiKhach" 
+                type="number" 
+                class="form-control" 
+                placeholder="Ví dụ: 1" 
+                min="1" 
+            />
+          </div>
         </div>
 
         <div class="row-2">
           <div class="form-group">
             <div class="label-row">
-                <label class="mb-0">Số lượng sử dụng</label>
+                <label class="mb-0">Số lượng sử dụng (Tổng)</label>
                 <div class="toggle-wrapper" v-if="form.kieu === 'CongKhai'">
                     <span class="toggle-text">Vô hạn</span>
                     <label class="switch">
@@ -101,7 +136,7 @@
           </div>
 
           <div class="form-group">
-            <label>Hóa đơn tối thiểu</label>
+            <label>Hóa đơn tối thiểu (VNĐ)</label>
             <input 
                 v-model.number="form.donHangToiThieu" 
                 type="number" 
@@ -152,9 +187,19 @@
         <div class="panel-header">
           <div class="selected-text mb-2">Đã chọn: {{ selectedCustomerIds.length }} khách hàng</div>
           
+          <div class="segment-actions mb-3">
+            <span style="font-weight: 600; font-size: 13px; color: #334155;">⚡ Hạng thành viên:</span>
+            <button class="btn-segment btn-all" @click="selectBySegment('ALL')" title="Chọn tất cả khách">Tất cả</button>
+            <button class="btn-segment btn-newbie" @click="selectBySegment('NEWBIE')" title="Chưa mua hàng">Newbie (0đ)</button>
+            <button class="btn-segment btn-bronze" @click="selectBySegment('BRONZE')" title="Dưới 2 Triệu">Đồng</button>
+            <button class="btn-segment btn-silver" @click="selectBySegment('SILVER')" title="2tr - 5 Triệu">Bạc</button>
+            <button class="btn-segment btn-gold" @click="selectBySegment('GOLD')" title="5tr - 10 Triệu">Vàng</button>
+            <button class="btn-segment btn-diamond" @click="selectBySegment('DIAMOND')" title="Trên 10 Triệu">Kim Cương 💎</button>
+            <button class="btn-segment btn-clear" @click="selectedCustomerIds = []">Bỏ chọn hết</button>
+          </div>
+
           <div class="filter-container">
             <button class="btn-filter-action btn-blue" @click="fetchCustomers">Làm mới</button>
-            
 
             <input 
               v-model="custFilter.ten" 
@@ -221,7 +266,7 @@
                 <td class="text-center"><span class="cust-info">{{ formatDate(cust.ngaySinh) }}</span></td>
                 <td class="text-center"><span class="cust-info">{{ formatCurrency(cust.tongChiTieu) }}</span></td>
                 <td class="text-center"><span class="cust-info">{{ cust.soDonHang || 0 }}</span></td>
-                <td class="text-center"><span class="cust-info">{{ formatDate(cust.donHangGanNhat) || 'Chưa có' }}</span></td>
+                <td class="text-center"><span class="cust-info">{{ cust.donHangGanNhat ? formatDate(cust.donHangGanNhat) : 'Chưa có' }}</span></td>
               </tr>
             </tbody>
           </table>
@@ -268,9 +313,10 @@ const form = ref({
   tenPhieuGiamGia: '',
   loaiPhieu: 'PhanTram',
   giaTriGiam: 0,
-  giaTriGiamToiDa: 0,
+  giaTriGiamToiDa: null,
   donHangToiThieu: 0,
   soLuong: 0, 
+  gioiHanMoiKhach: 1,
   ngayBatDau: '',
   ngayKetThuc: '',
   trangThai: 1,
@@ -322,21 +368,29 @@ const fetchCustomers = async () => {
     try {
         const searchKeyword = custFilter.ten.trim() !== '' ? custFilter.ten : custFilter.sdt.trim();
 
+        // 1. Chỉ tạo params với những giá trị bắt buộc
+        const queryParams = {
+            page: custPage.value,
+            size: custPageSize.value,
+            keyword: searchKeyword
+        };
+
+        // 2. NẾU CÓ CHỌN TRẠNG THÁI THÌ MỚI GỬI LÊN (Bỏ qua chuỗi rỗng)
+        if (custFilter.trangThai !== null && custFilter.trangThai !== '') {
+            queryParams.trangThai = parseInt(custFilter.trangThai);
+        }
+
+        // 3. Gửi request sạch
         const res = await request.get('/khach-hang/thong-ke', {
-            params: {
-                page: custPage.value,
-                size: custPageSize.value,
-                keyword: searchKeyword, 
-                ten: custFilter.ten,    
-                sdt: custFilter.sdt,    
-                trangThai: custFilter.trangThai === '' ? null : custFilter.trangThai
-            }
+            params: queryParams
         });
+        
         customers.value = res.data.content;
         custTotalPages.value = res.data.totalPages;
         custTotalElements.value = res.data.totalElements || res.data.content.length; 
     } catch (e) {
-        console.error(e);
+        console.error("Lỗi 400 chi tiết:", e);
+        Toast.fire({ icon: 'error', title: 'Lỗi tải danh sách khách hàng' });
     } finally {
         loadingCust.value = false;
     }
@@ -360,6 +414,26 @@ const clearFilters = () => {
     custFilter.trangThai = '';
     custPage.value = 0;
     fetchCustomers();
+};
+
+const selectBySegment = async (type) => {
+    loadingCust.value = true;
+    try {
+        const res = await request.get('/khach-hang/segmentation', { params: { type } });
+        const ids = res.data;
+
+        if (ids && ids.length > 0) {
+            selectedCustomerIds.value = ids; 
+            Toast.fire({ icon: 'success', title: `Đã tự động chọn ${ids.length} khách hàng!` });
+        } else {
+            Toast.fire({ icon: 'info', title: `Không có khách hàng nào thuộc nhóm này.` });
+        }
+    } catch (e) {
+        console.error(e);
+        Toast.fire({ icon: 'error', title: 'Lỗi khi lấy danh sách khách hàng theo nhóm' });
+    } finally {
+        loadingCust.value = false;
+    }
 };
 
 const displayStart = computed(() => {
@@ -400,9 +474,14 @@ const submitForm = async () => {
     if (!form.value.tenPhieuGiamGia || form.value.tenPhieuGiamGia.trim() === '') {
       return Toast.fire({ icon: 'warning', title: 'Vui lòng nhập tên phiếu giảm giá' });
     }
-    if (!form.value.giaTriGiam || Number(form.value.giaTriGiam) <= 0) {
+    
+    if (form.value.loaiPhieu !== 'FreeShip' && (!form.value.giaTriGiam || Number(form.value.giaTriGiam) <= 0)) {
       return Toast.fire({ icon: 'warning', title: 'Giá trị giảm phải lớn hơn 0' });
     }
+    if (!form.value.gioiHanMoiKhach || Number(form.value.gioiHanMoiKhach) < 1) {
+      return Toast.fire({ icon: 'warning', title: 'Giới hạn dùng mỗi khách phải từ 1 trở lên' });
+    }
+
     if (form.value.kieu === 'CongKhai' && !isUnlimited.value) {
         if (form.value.soLuong === null || form.value.soLuong === '' || Number(form.value.soLuong) <= 0) {
             return Toast.fire({ icon: 'warning', title: 'Số lượng phải lớn hơn 0' });
@@ -430,6 +509,9 @@ const submitForm = async () => {
         payload.soLuong = null; 
     }
 
+    if (payload.loaiPhieu === 'FreeShip') payload.giaTriGiam = 0;
+    if (payload.loaiPhieu === 'TienMat') payload.giaTriGiamToiDa = null;
+
     if (payload.kieu === 'CaNhan') {
         payload.customerIds = selectedCustomerIds.value;
         payload.soLuong = selectedCustomerIds.value.length;
@@ -442,7 +524,6 @@ const submitForm = async () => {
             icon: 'question',
             showDenyButton: true,
             showCancelButton: true,
-            // Sửa lại Label nút bấm chính xác theo ý bạn
             confirmButtonText: 'Có',
             denyButtonText: 'Không',
             cancelButtonText: 'Hủy',
@@ -451,7 +532,6 @@ const submitForm = async () => {
             reverseButtons: false
         });
 
-        // Nếu bấm Hủy hoặc click ra ngoài thì ngưng quá trình lưu
         if (confirmResult.isDismissed) return;
         payload.sendEmail = confirmResult.isConfirmed; 
     }
@@ -479,7 +559,6 @@ onMounted(() => {
 .btn-back { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);  color: #ffffff; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.2s; border: none;}
 .btn-back:hover { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); color: #ffffff; }
 
-/* CSS cho nút Gửi mail - Dùng chung màu trắng xám */
 .btn-outline-mail { background: #fff; border: 1px solid #cbd5e1; color: #475569; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
 .btn-outline-mail:hover { background: #f8fafc; border-color: #3b82f6; color: #3b82f6; }
 
@@ -684,4 +763,42 @@ input:checked + .slider:before {
 .mini-btn { width: 28px; height: 28px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; cursor: pointer; }
 .mini-btn:disabled { color: #ccc; cursor: not-allowed; background: #f9fafb; }
 .mini-btn:hover:not(:disabled) { border-color: #2b4360; color: #2b4360; }
+
+.segment-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    border: 1px dashed #cbd5e1;
+}
+.btn-segment {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #3b82f6;
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    transition: all 0.2s;
+}
+.btn-segment:hover {
+    background-color: #3b82f6;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+.btn-clear {
+    border-color: #ef4444;
+    background-color: #fef2f2;
+    color: #b91c1c;
+    margin-left: auto; 
+}
+.btn-clear:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+}
 </style>

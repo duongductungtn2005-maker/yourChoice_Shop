@@ -8,7 +8,6 @@ import org.example.yourchoiceshop.dto.response.*;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,7 +53,6 @@ public class StatisticRepositoryImpl implements StatisticRepository {
 
         Long totalProducts = ((Number) queryProd.getSingleResult()).longValue();
 
-        // Gắn dữ liệu vào DTO (Tốc độ tăng trưởng tạm để 0.0, nếu cần tao viết logic chia % sau)
         RevenueSummaryDTO dto = new RevenueSummaryDTO();
         dto.setTotalRevenue(result[0] != null ? new BigDecimal(result[0].toString()) : BigDecimal.ZERO);
         dto.setTotalOrders(result[1] != null ? ((Number) result[1]).longValue() : 0L);
@@ -63,14 +61,13 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         dto.setCancelOrders(result[4] != null ? ((Number) result[4]).longValue() : 0L);
         dto.setReturnOrders(result[5] != null ? ((Number) result[5]).longValue() : 0L);
         dto.setTotalProducts(totalProducts);
-        dto.setGrowthPercent(0.0); // Tạm thời
+        dto.setGrowthPercent(0.0); 
 
         return dto;
     }
 
     @Override
     public List<RevenueChartDTO> getRevenueChart(StatisticFilterRequest filter) {
-        // Group theo ngày để lấy Data vẽ Line Chart
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
                         "  DAY(ngay_tao) AS date, " +
@@ -99,10 +96,9 @@ public class StatisticRepositoryImpl implements StatisticRepository {
 
         return chartData;
     }
-    // 1. CẬP NHẬT HÀM: Top Sản Phẩm Bán Chạy (Có Kích cỡ + Ảnh)
+
     @Override
     public List<ProductStatDTO> getProductStats(StatisticFilterRequest filter) {
-        // Đã sửa lại chuẩn 100% tên cột theo YourChoiceShopDB
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
                         "  (SELECT TOP 1 ha.duong_dan_anh FROM hinh_anh ha WHERE ha.id_chi_tiet_san_pham = ctsp.id ORDER BY ha.anh_chinh DESC, ha.id ASC) AS anh, " +
@@ -115,15 +111,14 @@ public class StatisticRepositoryImpl implements StatisticRepository {
                         "JOIN chi_tiet_san_pham ctsp ON hdct.id_chi_tiet_san_pham = ctsp.id " +
                         "JOIN san_pham sp ON ctsp.id_san_pham = sp.id " +
                         "LEFT JOIN kich_thuoc kt ON ctsp.id_kich_thuoc = kt.id " +
-                        "WHERE hd.trang_thai = 5 " // Chỉ lấy sản phẩm từ đơn đã hoàn thành
+                        "WHERE hd.trang_thai = 5 " 
         );
 
         if (filter.getFromDate() != null) sql.append(" AND hd.ngay_tao >= :fromDate ");
         if (filter.getToDate() != null) sql.append(" AND hd.ngay_tao <= :toDate ");
 
-        // Group theo ID chi tiết sản phẩm để lấy đúng size
         sql.append(" GROUP BY ctsp.id, sp.ten_san_pham, kt.ten_kich_thuoc ");
-        sql.append(" ORDER BY soLuongBan DESC "); // Sắp xếp giảm dần
+        sql.append(" ORDER BY soLuongBan DESC ");
 
         Query query = entityManager.createNativeQuery(sql.toString());
         if (filter.getFromDate() != null) query.setParameter("fromDate", filter.getFromDate());
@@ -145,7 +140,6 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         return result;
     }
 
-    // 2. HÀM MỚI: Dữ liệu Biểu đồ tròn (Trạng thái đơn hàng)
     public List<OrderStatusDTO> getOrderStatusStats(StatisticFilterRequest filter) {
         StringBuilder sql = new StringBuilder(
                 "SELECT trang_thai, COUNT(id) FROM hoa_don WHERE 1=1 "
@@ -169,10 +163,7 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         return resultList;
     }
 
-    // 3. HÀM MỚI: Sản phẩm sắp hết hàng (Dưới 10 cái)
-
     public List<ProductStatDTO> getLowStockStats(StatisticFilterRequest filter) {
-        // Lấy ngưỡng tồn kho do Frontend gửi lên (mặc định là 10 nếu null)
         int threshold = (filter != null && filter.getThreshold() != null) ? filter.getThreshold() : 10;
 
         StringBuilder sql = new StringBuilder(
@@ -180,13 +171,13 @@ public class StatisticRepositoryImpl implements StatisticRepository {
                         "  (SELECT TOP 1 ha.duong_dan_anh FROM hinh_anh ha WHERE ha.id_chi_tiet_san_pham = ctsp.id ORDER BY ha.anh_chinh DESC, ha.id ASC) AS anh, " +
                         "  sp.ten_san_pham AS tenSanPham, " +
                         "  kt.ten_kich_thuoc AS kichCo, " +
-                        "  ctsp.gia_ban AS doanhThu, " +     // Mượn cột doanhThu để FE hiển thị 'Giá bán'
-                        "  ctsp.so_luong AS soLuongBan " +  // Mượn cột soLuongBan để FE hiển thị 'Tồn kho'
+                        "  ctsp.gia_ban AS doanhThu, " +
+                        "  ctsp.so_luong AS soLuongBan " +
                         "FROM chi_tiet_san_pham ctsp " +
                         "JOIN san_pham sp ON ctsp.id_san_pham = sp.id " +
                         "LEFT JOIN kich_thuoc kt ON ctsp.id_kich_thuoc = kt.id " +
-                        "WHERE ctsp.so_luong <= :threshold " + // Lọc tồn kho bé hơn hoặc bằng ngưỡng
-                        "ORDER BY ctsp.so_luong ASC " // Sắp xếp ưu tiên cái nào sắp cạn kiệt nhất lên đầu
+                        "WHERE ctsp.so_luong <= :threshold " +
+                        "ORDER BY ctsp.so_luong ASC "
         );
 
         Query query = entityManager.createNativeQuery(sql.toString());
@@ -207,6 +198,7 @@ public class StatisticRepositoryImpl implements StatisticRepository {
 
         return result;
     }
+
     @Override
     public List<EmployeeStatDTO> getEmployeeStats(StatisticFilterRequest filter) {
         StringBuilder sql = new StringBuilder(
@@ -220,15 +212,16 @@ public class StatisticRepositoryImpl implements StatisticRepository {
                         "WHERE hd.trang_thai = :status "
         );
 
-        if (filter.getFromDate() != null) sql.append(" AND hd.ngay_thanh_toan >= :fromDate ");
-        if (filter.getToDate() != null) sql.append(" AND hd.ngay_thanh_toan <= :toDate ");
+        // Đã sửa thành ngay_tao để đồng bộ
+        if (filter.getFromDate() != null) sql.append(" AND hd.ngay_tao >= :fromDate ");
+        if (filter.getToDate() != null) sql.append(" AND hd.ngay_tao <= :toDate ");
         if (filter.getChannel() != null && !filter.getChannel().isEmpty()) sql.append(" AND hd.loai_hoa_don = :channel ");
 
         sql.append(" GROUP BY nv.ma_nhan_vien, nv.ten_nhan_vien ");
-        sql.append(" ORDER BY tongDoanhThu DESC "); // Sắp xếp ai doanh thu cao lên đầu
+        sql.append(" ORDER BY tongDoanhThu DESC ");
 
         Query query = entityManager.createNativeQuery(sql.toString());
-        query.setParameter("status", filter.getStatus());
+        query.setParameter("status", filter.getStatus() != null ? filter.getStatus() : 5); // Đảm bảo luôn có status
 
         if (filter.getFromDate() != null) query.setParameter("fromDate", filter.getFromDate());
         if (filter.getToDate() != null) query.setParameter("toDate", filter.getToDate());
@@ -238,15 +231,16 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         List<EmployeeStatDTO> resultList = new ArrayList<>();
 
         for (Object[] row : rows) {
-            String maNV = row[0].toString();
-            String tenNV = row[1].toString();
-            Long tongSoDon = ((Number) row[2]).longValue();
-            BigDecimal tongDoanhThu = new BigDecimal(row[3].toString());
+            String maNV = row[0] != null ? row[0].toString() : "N/A";
+            String tenNV = row[1] != null ? row[1].toString() : "N/A";
+            Long tongSoDon = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+            BigDecimal tongDoanhThu = row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO;
             resultList.add(new EmployeeStatDTO(maNV, tenNV, tongSoDon, tongDoanhThu));
         }
 
         return resultList;
     }
+
     @Override
     public List<CustomerStatDTO> getCustomerStats(StatisticFilterRequest filter) {
         StringBuilder sql = new StringBuilder(
@@ -260,16 +254,16 @@ public class StatisticRepositoryImpl implements StatisticRepository {
                         "WHERE hd.trang_thai = :status "
         );
 
-        if (filter.getFromDate() != null) sql.append(" AND hd.ngay_thanh_toan >= :fromDate ");
-        if (filter.getToDate() != null) sql.append(" AND hd.ngay_thanh_toan <= :toDate ");
+        // Đã sửa thành ngay_tao
+        if (filter.getFromDate() != null) sql.append(" AND hd.ngay_tao >= :fromDate ");
+        if (filter.getToDate() != null) sql.append(" AND hd.ngay_tao <= :toDate ");
         if (filter.getChannel() != null && !filter.getChannel().isEmpty()) sql.append(" AND hd.loai_hoa_don = :channel ");
 
-        // Gom nhóm theo khách hàng
         sql.append(" GROUP BY kh.id, kh.ma_khach_hang, kh.ten_khach_hang ");
-        sql.append(" ORDER BY tongChiTieu DESC "); // Sắp xếp ai chi nhiều tiền nhất lên đầu
+        sql.append(" ORDER BY tongChiTieu DESC "); 
 
         Query query = entityManager.createNativeQuery(sql.toString());
-        query.setParameter("status", filter.getStatus());
+        query.setParameter("status", filter.getStatus() != null ? filter.getStatus() : 5);
 
         if (filter.getFromDate() != null) query.setParameter("fromDate", filter.getFromDate());
         if (filter.getToDate() != null) query.setParameter("toDate", filter.getToDate());
@@ -279,15 +273,16 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         List<CustomerStatDTO> resultList = new ArrayList<>();
 
         for (Object[] row : rows) {
-            String maKH = row[0].toString();
-            String tenKH = row[1].toString();
-            Long tongSoDon = ((Number) row[2]).longValue();
-            BigDecimal tongChiTieu = new BigDecimal(row[3].toString());
+            String maKH = row[0] != null ? row[0].toString() : "KHACH_LE";
+            String tenKH = row[1] != null ? row[1].toString() : "Khách lẻ";
+            Long tongSoDon = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+            BigDecimal tongChiTieu = row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO;
             resultList.add(new CustomerStatDTO(maKH, tenKH, tongSoDon, tongChiTieu));
         }
 
         return resultList;
     }
+
     @Override
     public List<VoucherStatDTO> getVoucherStats(StatisticFilterRequest filter) {
         StringBuilder sql = new StringBuilder(
@@ -301,16 +296,16 @@ public class StatisticRepositoryImpl implements StatisticRepository {
                         "WHERE hd.trang_thai = :status "
         );
 
-        if (filter.getFromDate() != null) sql.append(" AND hd.ngay_thanh_toan >= :fromDate ");
-        if (filter.getToDate() != null) sql.append(" AND hd.ngay_thanh_toan <= :toDate ");
+        // Đã sửa thành ngay_tao
+        if (filter.getFromDate() != null) sql.append(" AND hd.ngay_tao >= :fromDate ");
+        if (filter.getToDate() != null) sql.append(" AND hd.ngay_tao <= :toDate ");
         if (filter.getChannel() != null && !filter.getChannel().isEmpty()) sql.append(" AND hd.loai_hoa_don = :channel ");
 
-        // Gom nhóm theo Voucher
         sql.append(" GROUP BY pgg.id, pgg.ma_phieu_giam_gia, pgg.ten_phieu_giam_gia ");
-        sql.append(" ORDER BY tongTienGiam DESC "); // Sắp xếp theo tổng tiền giảm nhiều nhất
+        sql.append(" ORDER BY tongTienGiam DESC "); 
 
         Query query = entityManager.createNativeQuery(sql.toString());
-        query.setParameter("status", filter.getStatus());
+        query.setParameter("status", filter.getStatus() != null ? filter.getStatus() : 5);
 
         if (filter.getFromDate() != null) query.setParameter("fromDate", filter.getFromDate());
         if (filter.getToDate() != null) query.setParameter("toDate", filter.getToDate());
@@ -320,15 +315,16 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         List<VoucherStatDTO> resultList = new ArrayList<>();
 
         for (Object[] row : rows) {
-            String maVoucher = row[0].toString();
-            String tenVoucher = row[1].toString();
-            Long soLuotSuDung = ((Number) row[2]).longValue();
-            BigDecimal tongTienGiam = new BigDecimal(row[3].toString());
+            String maVoucher = row[0] != null ? row[0].toString() : "N/A";
+            String tenVoucher = row[1] != null ? row[1].toString() : "N/A";
+            Long soLuotSuDung = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+            BigDecimal tongTienGiam = row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO;
             resultList.add(new VoucherStatDTO(maVoucher, tenVoucher, soLuotSuDung, tongTienGiam));
         }
 
         return resultList;
     }
+
     @Override
     public List<DiscountCampaignStatDTO> getDiscountCampaignStats(StatisticFilterRequest filter) {
         StringBuilder sql = new StringBuilder(
@@ -342,11 +338,10 @@ public class StatisticRepositoryImpl implements StatisticRepository {
                         "JOIN hoa_don_chi_tiet hdct ON ctdgg.id_chi_tiet_san_pham = hdct.id_chi_tiet_san_pham " +
                         "JOIN hoa_don hd ON hdct.id_hoa_don = hd.id " +
                         "WHERE hd.trang_thai = :status " +
-                        "  AND hd.ngay_thanh_toan >= dgg.ngay_bat_dau " +
-                        "  AND hd.ngay_thanh_toan <= dgg.ngay_ket_thuc "
+                        "  AND hd.ngay_tao >= dgg.ngay_bat_dau " +
+                        "  AND hd.ngay_tao <= dgg.ngay_ket_thuc "
         );
 
-        // Lọc theo khoảng thời gian của đợt giảm giá
         if (filter.getFromDate() != null) sql.append(" AND dgg.ngay_bat_dau >= :fromDate ");
         if (filter.getToDate() != null) sql.append(" AND dgg.ngay_ket_thuc <= :toDate ");
         if (filter.getChannel() != null && !filter.getChannel().isEmpty()) sql.append(" AND hd.loai_hoa_don = :channel ");
@@ -355,7 +350,7 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         sql.append(" ORDER BY tongDoanhThu DESC ");
 
         Query query = entityManager.createNativeQuery(sql.toString());
-        query.setParameter("status", filter.getStatus());
+        query.setParameter("status", filter.getStatus() != null ? filter.getStatus() : 5);
 
         if (filter.getFromDate() != null) query.setParameter("fromDate", filter.getFromDate());
         if (filter.getToDate() != null) query.setParameter("toDate", filter.getToDate());
@@ -365,10 +360,10 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         List<DiscountCampaignStatDTO> resultList = new ArrayList<>();
 
         for (Object[] row : rows) {
-            String maCampaign = row[0].toString();
-            String tenCampaign = row[1].toString();
-            Long tongSoDon = ((Number) row[2]).longValue();
-            BigDecimal tongDoanhThu = new BigDecimal(row[3].toString());
+            String maCampaign = row[0] != null ? row[0].toString() : "N/A";
+            String tenCampaign = row[1] != null ? row[1].toString() : "N/A";
+            Long tongSoDon = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+            BigDecimal tongDoanhThu = row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO;
             resultList.add(new DiscountCampaignStatDTO(maCampaign, tenCampaign, tongSoDon, tongDoanhThu));
         }
 

@@ -19,7 +19,7 @@ import org.example.yourchoiceshop.repository.LichSuHoaDonRepository;
 import org.example.yourchoiceshop.repository.LichSuThanhToanRepository;
 import org.example.yourchoiceshop.repository.NhanVienRepository;
 import org.example.yourchoiceshop.repository.PhieuGiamGiaRepository;
-import org.example.yourchoiceshop.service.HoaDonService; // <--- Import Interface này
+import org.example.yourchoiceshop.service.HoaDonService; 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,28 +33,27 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.example.yourchoiceshop.dto.request.HoaDonRequest; // <--- Import DTO mớiimport org.apache.poi.ss.usermodel.*;
+import org.example.yourchoiceshop.dto.request.HoaDonRequest;
 import org.example.yourchoiceshop.dto.request.PhieuGiamGiaRequest;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.ByteArrayOutputStream;
-// import org.springframework.data.jpa.repository.EntityGraph; // Thêm import này
 
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implements HoaDonService
+public class HoaDonServiceImpl implements HoaDonService { 
 
     private static final int POS_DRAFT_STATUS = 9;
 
     private final HoaDonRepository hoaDonRepo;
     private final HoaDonChiTietRepository hoaDonChiTietRepo;
     private final ChiTietSanPhamRepository chiTietSanPhamRepo;
-    private final NhanVienRepository nhanVienRepo; // Thêm Repository này để lấy tên nhân viên
-    private final LichSuThanhToanRepository lichSuThanhToanRepo; // Thêm Repository này để lấy lịch sử thanh toán
+    private final NhanVienRepository nhanVienRepo; 
+    private final LichSuThanhToanRepository lichSuThanhToanRepo; 
     private final LichSuHoaDonRepository lichSuHoaDonRepo;
     private final PhieuGiamGiaRepository phieuGiamGiaRepo;
 
-    @Override // <--- Thêm Override cho chắc chắn
+    @Override 
     public Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, LocalDateTime from,
             LocalDateTime to, Pageable pageable) {
         Page<HoaDon> page = hoaDonRepo.searchOrders(keyword, status, type, from, to, pageable);
@@ -76,7 +75,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
                             ? hd.getSdtNguoiNhan()
                             : (hd.getKhachHang() != null ? hd.getKhachHang().getSoDienThoai() : null));
 
-            // ✅ CHỖ QUYẾT ĐỊNH
             res.setTenNhanVien(
                     hd.getNhanVien() != null
                             ? hd.getNhanVien().getTenNhanVien()
@@ -94,7 +92,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         HoaDon hd = hoaDonRepo.findByMaHoaDon(maHoaDon)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn: " + maHoaDon));
 
-        // Cập nhật thông tin nhận hàng
         hd.setTenNguoiNhan(req.getTenNguoiNhan());
         hd.setSdtNguoiNhan(req.getSdtNguoiNhan());
         hd.setDiaChiNguoiNhan(req.getDiaChiNguoiNhan());
@@ -102,7 +99,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         hoaDonRepo.save(hd);
     }
 
-    @Override // <--- Thêm Override
+    @Override 
     public HoaDonDetailResponse getOrderDetail(String maHoaDon) {
         HoaDon hd = hoaDonRepo.findByMaHoaDon(maHoaDon)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn: " + maHoaDon));
@@ -110,7 +107,7 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         HoaDonDetailResponse res = new HoaDonDetailResponse();
         res.setMaHoaDon(hd.getMaHoaDon());
         res.setTenKhachHang(hd.getKhachHang() != null ? hd.getKhachHang().getTenKhachHang() : "Khách lẻ");
-        res.setEmailKhachHang(hd.getEmailKhachHang()); // ✅ DÒNG QUYẾT ĐỊNH
+        res.setEmailKhachHang(hd.getEmailKhachHang()); 
         res.setGhiChu(hd.getGhiChu());
         res.setLoaiHoaDon(convertTypeToDisplay(hd.getLoaiHoaDon()));
         res.setTrangThai(hd.getTrangThai());
@@ -202,31 +199,24 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         return dbMethod;
     }
 
-    @Override // <--- Override từ Interface
+    @Override 
     public void updateStatus(String maHoaDon, Integer newStatus) {
-        // 1. Tìm hóa đơn theo mã
         HoaDon hd = hoaDonRepo.findByMaHoaDon(maHoaDon)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn: " + maHoaDon));
 
-        // 2. Lưu trạng thái cũ để tạo lịch sử
         Integer oldStatus = hd.getTrangThai();
 
-        // 3. Nếu hủy đơn (stock đã trừ khi tạo đơn → cần hoàn kho)
         if (Integer.valueOf(0).equals(newStatus) && oldStatus != null && oldStatus >= 1) {
             restoreStockForCanceledOrder(hd);
         }
 
-        // 4. Sau khi releaseStock clear context, cần re-fetch hóa đơn
         hd = hoaDonRepo.findByMaHoaDon(maHoaDon)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn: " + maHoaDon));
         
-        // 5. Cập nhật trạng thái mới
         hd.setTrangThai(newStatus);
 
-        // 6. Lưu hóa đơn vào Database
         hoaDonRepo.save(hd);
         
-        // 7. Tạo lịch sử thay đổi trạng thái
         LichSuHoaDon history = new LichSuHoaDon();
         history.setHoaDon(hd);
         history.setHanhDong("Cập nhật trạng thái từ " + getStatusLabel(oldStatus) + " sang " + getStatusLabel(newStatus));
@@ -242,7 +232,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             return;
         }
 
-        // Thu thập dữ liệu trước để tránh LazyInitializationException
         List<Object[]> items = new ArrayList<>();
         for (HoaDonChiTiet item : hd.getHoaDonChiTiets()) {
             if (item == null || item.getChiTietSanPham() == null || item.getChiTietSanPham().getId() == null) {
@@ -265,8 +254,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             return;
         }
 
-        // Thu thập dữ liệu trước để tránh LazyInitializationException
-        // (reserveStock có clearAutomatically=true sẽ xóa persistence context)
         List<Object[]> items = new ArrayList<>();
         for (HoaDonChiTiet item : hd.getHoaDonChiTiets()) {
             if (item == null || item.getChiTietSanPham() == null || item.getChiTietSanPham().getId() == null) {
@@ -340,7 +327,8 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         };
     }
 
-    private BigDecimal calculateAndConsumeVoucherDiscount(List<PhieuGiamGiaRequest> vouchers, BigDecimal orderTotal) {
+    // ✅ HÀM ĐÃ SỬA: NHẬN THÊM THAM SỐ HOADON ĐỂ GÁN VOUCHER
+    private BigDecimal calculateAndConsumeVoucherDiscount(HoaDon hd, List<PhieuGiamGiaRequest> vouchers, BigDecimal orderTotal) {
         if (vouchers == null || vouchers.isEmpty()) {
             return BigDecimal.ZERO;
         }
@@ -348,9 +336,10 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         BigDecimal totalDiscount = BigDecimal.ZERO;
         Set<Integer> consumedVoucherIds = new HashSet<>();
         LocalDateTime now = LocalDateTime.now();
+        
+        boolean isVoucherLinked = false;
 
         for (PhieuGiamGiaRequest reqVoucher : vouchers) {
-            // Hỗ trợ tìm bằng id hoặc maPhieuGiamGia (online checkout gửi mã, không gửi id)
             PhieuGiamGia voucher = null;
             Integer lookupId = reqVoucher.getId();
 
@@ -395,6 +384,11 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             }
             phieuGiamGiaRepo.save(voucher);
             consumedVoucherIds.add(voucher.getId());
+            
+            if (!isVoucherLinked) {
+                hd.setPhieuGiamGia(voucher); // Gán vào DB
+                isVoucherLinked = true;
+            }
         }
 
         return totalDiscount;
@@ -445,7 +439,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             throw new RuntimeException("Giỏ hàng đang trống");
         }
 
-        // 1. Lấy hóa đơn nháp (nếu có), nếu không thì tạo mới để tương thích ngược.
         HoaDon hd;
         if (req.getMaHoaDon() != null && !req.getMaHoaDon().isBlank()) {
             hd = hoaDonRepo.findByMaHoaDon(req.getMaHoaDon())
@@ -475,11 +468,9 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         hd.setEmailKhachHang(req.getEmail());
         hd.setGhiChu(req.getGhiChu());
 
-        // fallback từ khách hàng (nếu có)
         if (hd.getEmailKhachHang() == null && hd.getKhachHang() != null) {
             hd.setEmailKhachHang(hd.getKhachHang().getEmail());
         }
-        // ✅ GÁN NHÂN VIÊN THEO MÃ
         if (req.getIdNhanVien() != null) {
             hd.setNhanVien(
                     nhanVienRepo.findById(req.getIdNhanVien())
@@ -488,7 +479,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
         hoaDonRepo.save(hd);
 
-        // 2. Lưu chi tiết hóa đơn
         BigDecimal tongTien = BigDecimal.ZERO;
 
         for (CreateOrderRequest.CartItem item : req.getItems()) {
@@ -512,12 +502,11 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             hoaDonChiTietRepo.save(ct);
         }
 
-        // 3. Cập nhật tiền
         hd.setTongTien(tongTien);
 
-        BigDecimal tienGiam = calculateAndConsumeVoucherDiscount(req.getPhieuGiamGia(), tongTien);
+        // ✅ GỌI HÀM SỬA
+        BigDecimal tienGiam = calculateAndConsumeVoucherDiscount(hd, req.getPhieuGiamGia(), tongTien);
 
-        // không cho âm tiền
         if (tienGiam.compareTo(tongTien) > 0) {
             tienGiam = tongTien;
         }
@@ -527,7 +516,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
         hoaDonRepo.save(hd);
 
-        // 4. ✅ TẠO LỊCH SỬ THANH TOÁN (DUY NHẤT 1 BẢN GHI)
         LichSuThanhToan ls = new LichSuThanhToan();
         ls.setHoaDon(hd);
         ls.setSoTien(hd.getTongTienSauGiam());
@@ -537,7 +525,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
         lichSuThanhToanRepo.save(ls);
         
-        // 5. ✅ TẠO LỊCH SỬ HÓA ĐƠN (Ghi nhận tạo đơn hàng)
         LichSuHoaDon history = new LichSuHoaDon();
         history.setHoaDon(hd);
         history.setHanhDong("Thanh toán đơn hàng");
@@ -553,17 +540,11 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
     @Override
     public byte[] exportExcel(String keyword, Integer status, String type, LocalDateTime from, LocalDateTime to) {
-        // 1. Lấy danh sách hóa đơn (Không phân trang để xuất hết)
-        // Lưu ý: Bạn cần viết thêm hàm searchOrdersNoPage trong Repo hoặc dùng list
-        // findAll có điều kiện
-        // Ở đây mình ví dụ lấy tạm tất cả để demo, bạn nên dùng hàm search giống hệt
-        // hàm getOrders nhưng bỏ Pageable
         List<HoaDon> list = hoaDonRepo.findAll();
 
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Danh sách hóa đơn");
 
-            // 2. Tạo Header (Dòng tiêu đề)
             Row headerRow = sheet.createRow(0);
             String[] columns = { "STT", "Mã HĐ", "Khách hàng", "Ngày tạo", "Loại", "Trạng thái", "Tổng tiền" };
 
@@ -578,7 +559,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
                 cell.setCellStyle(headerStyle);
             }
 
-            // 3. Đổ dữ liệu vào dòng
             int rowIdx = 1;
             for (HoaDon hd : list) {
                 Row row = sheet.createRow(rowIdx++);
@@ -588,12 +568,10 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
                 row.createCell(2).setCellValue(hd.getTenNguoiNhan() != null ? hd.getTenNguoiNhan() : "Khách lẻ");
                 row.createCell(3).setCellValue(hd.getNgayTao().toString());
                 row.createCell(4).setCellValue(convertTypeToDisplay(hd.getLoaiHoaDon()));
-                row.createCell(5).setCellValue(convertStatusToText(hd.getTrangThai())); // Bạn tự viết hàm convert int
-                // -> String nhé
+                row.createCell(5).setCellValue(convertStatusToText(hd.getTrangThai())); 
                 row.createCell(6).setCellValue(hd.getTongTienSauGiam().doubleValue());
             }
 
-            // Auto size cột cho đẹp
             for (int i = 0; i < columns.length; i++) {
                 sheet.autoSizeColumn(i);
             }
@@ -622,11 +600,9 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         hd.setEmailKhachHang(req.getEmail());
         hd.setGhiChu(req.getGhiChu());
 
-        // fallback từ khách hàng (nếu có)
         if (hd.getEmailKhachHang() == null && hd.getKhachHang() != null) {
             hd.setEmailKhachHang(hd.getKhachHang().getEmail());
         }
-        // ✅ GÁN NHÂN VIÊN THEO MÃ
         if (req.getIdNhanVien() != null) {
             hd.setNhanVien(
                     nhanVienRepo.findById(req.getIdNhanVien())
@@ -637,7 +613,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
         BigDecimal tongTien = BigDecimal.ZERO;
 
-        // Thu thập thông tin items trước khi reserveStock (tránh LazyInitializationException)
         List<Object[]> itemsToReserve = new ArrayList<>();
         for (CreateOrderRequest.CartItem item : req.getItems()) {
             ChiTietSanPham sp = chiTietSanPhamRepo.findById(item.getIdChiTietSanPham())
@@ -645,7 +620,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             itemsToReserve.add(new Object[]{sp, item});
         }
 
-        // Trừ tồn kho ngay khi đặt hàng (atomic) để tránh race condition
         for (Object[] data : itemsToReserve) {
             ChiTietSanPham sp = (ChiTietSanPham) data[0];
             CreateOrderRequest.CartItem item = (CreateOrderRequest.CartItem) data[1];
@@ -656,7 +630,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             }
         }
 
-        // Re-fetch hóa đơn sau reserveStock (clearAutomatically=true xóa context)
         hd = hoaDonRepo.findByMaHoaDon(hd.getMaHoaDon())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
 
@@ -664,7 +637,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
             ChiTietSanPham sp = (ChiTietSanPham) data[0];
             CreateOrderRequest.CartItem item = (CreateOrderRequest.CartItem) data[1];
 
-            // Re-fetch sp sau khi context bị clear
             sp = chiTietSanPhamRepo.findById(sp.getId()).orElse(sp);
 
             HoaDonChiTiet ct = new HoaDonChiTiet();
@@ -688,7 +660,9 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
         hd.setPhiVanChuyen(phiVanChuyen);
 
         hd.setTongTien(tongTien);
-        BigDecimal tienGiam = calculateAndConsumeVoucherDiscount(req.getPhieuGiamGia(), tongTien);
+        
+        // ✅ GỌI HÀM SỬA
+        BigDecimal tienGiam = calculateAndConsumeVoucherDiscount(hd, req.getPhieuGiamGia(), tongTien);
         if (tienGiam.compareTo(tongTien) > 0) {
             tienGiam = tongTien;
         }
@@ -701,7 +675,6 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
         hoaDonRepo.save(hd);
         
-        // ✅ TẠO LỊCH SỬ HÓA ĐƠN (Ghi nhận tạo đơn hàng online)
         LichSuHoaDon history = new LichSuHoaDon();
         history.setHoaDon(hd);
         history.setHanhDong("Tạo đơn hàng mới");
@@ -727,32 +700,32 @@ public class HoaDonServiceImpl implements HoaDonService { // <--- THÊM implemen
 
     private String buildFullAddress(CreateOrderRequest req) {
 
-    String detail = req.getDiaChiChiTiet();
-    String ward = req.getWardName();
-    String district = req.getDistrictName();
-    String province = req.getProvinceName();
+        String detail = req.getDiaChiChiTiet();
+        String ward = req.getWardName();
+        String district = req.getDistrictName();
+        String province = req.getProvinceName();
 
-    StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
 
-    if (detail != null && !detail.isBlank()) {
-        sb.append(detail);
+        if (detail != null && !detail.isBlank()) {
+            sb.append(detail);
+        }
+
+        if (ward != null && !ward.isBlank()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(ward);
+        }
+
+        if (district != null && !district.isBlank()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(district);
+        }
+
+        if (province != null && !province.isBlank()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(province);
+        }
+
+        return sb.toString();
     }
-
-    if (ward != null && !ward.isBlank()) {
-        if (sb.length() > 0) sb.append(", ");
-        sb.append(ward);
-    }
-
-    if (district != null && !district.isBlank()) {
-        if (sb.length() > 0) sb.append(", ");
-        sb.append(district);
-    }
-
-    if (province != null && !province.isBlank()) {
-        if (sb.length() > 0) sb.append(", ");
-        sb.append(province);
-    }
-
-    return sb.toString();
-}
 }

@@ -11,17 +11,23 @@
     <div class="summary-grid">
       <div class="stat-card" v-for="(item, index) in summaryCards" :key="index">
         <h3 class="stat-title">{{ item.title }}</h3>
-        <p class="stat-value text-success">{{ formatCurrency(item.revenue) }}</p>
+        
+        <div class="flex align-center gap-8 mb-16 mt-1">
+          <p class="stat-value text-success m-0">{{ formatCurrency(item.revenue) }}</p>
+          <span class="growth-badge" :class="item.growthPercent >= 0 ? 'bg-success-light text-success' : 'bg-danger-light text-danger'">
+            {{ item.growthPercent >= 0 ? '↑' : '↓' }} {{ Math.abs(item.growthPercent).toFixed(1) }}%
+          </span>
+        </div>
         
         <div class="stat-sub-info">
           <span class="text-muted">Sản phẩm đã bán: </span><span class="font-medium">{{ item.products }}</span> <span class="divider">|</span> 
-          <span class="text-muted">Đơn hàng: </span><span class="font-medium">{{ item.successOrders + item.cancelOrders + item.returnOrders }}</span>
+          <span class="text-muted">Đơn hàng: </span><span class="font-medium">{{ item.totalOrders }}</span>
         </div>
         
         <div class="stat-sub-info mt-1">
           <span class="text-muted">Hoàn thành: </span><span class="text-success font-medium">{{ item.successOrders }}</span> <span class="divider">|</span> 
           <span class="text-muted">Hủy: </span><span class="text-danger font-medium">{{ item.cancelOrders || 0 }}</span> <span class="divider">|</span> 
-          <span class="text-muted">Xử lý/Trả: </span><span class="text-warning font-medium">{{ item.returnOrders || 0 }}</span>
+          <span class="text-muted">Xử lý/Trả: </span><span class="text-warning font-medium">{{ (item.processingOrders || 0) + (item.returnOrders || 0) }}</span>
         </div>
 
         <div v-if="isLoadingCards" class="loading-overlay">
@@ -127,7 +133,7 @@
                 <th class="text-center w-50">#</th>
                 <th class="text-center w-80">Ảnh</th>
                 <th class="text-left">Tên Sản Phẩm</th>
-                <th class="text-right w-120">Giá</th>
+                <th class="text-center w-120">Giá</th>
                 <th class="text-center w-80">Bán</th>
               </tr>
             </thead>
@@ -141,14 +147,14 @@
                 <td class="text-center text-muted">{{ i + 1 + (filter.page * filter.size) }}</td>
                 <td class="text-center">
                   <img v-if="prod?.anh" :src="prod.anh" class="product-img" />
-                  <div v-else class="product-img no-img" style="text-align: left !important">No Img</div>
+                  <div v-else class="product-img no-img">No Img</div>
                 </td>
-                <td class="font-medium text-dark text-left">
+                <td class="font-medium text-dark text-center">
                   {{ prod?.tenSanPham }} 
                   <span v-if="prod?.kichCo" class="text-xs text-muted block mt-1">Size: {{ prod.kichCo }}</span>
                 </td>
-                <td class="text-right text-danger font-medium">{{ formatCurrency(prod?.doanhThu) }}</td>
-                <td class="text-center" style="text-align: left !important">
+                <td class="text-center text-danger font-medium">{{ formatCurrency(prod?.doanhThu) }}</td>
+                <td class="text-center">
                   <span class="badge-success-light" >{{ prod?.soLuongBan }}</span>
                 </td>
               </tr>
@@ -187,7 +193,7 @@
                    {{ growth.type === 'currency' ? formatCurrency(growth.value) : formatNumber(growth.value) }}
                 </span>
                 <span class="growth-percent" :class="parseFloat(growth.percent) >= 0 ? 'bg-success-light text-success' : 'bg-danger-light text-danger'">
-                   {{ parseFloat(growth.percent) >= 0 ? '↑' : '↓' }} {{ Math.abs(parseFloat(growth.percent)) }}%
+                   {{ parseFloat(growth.percent) >= 0 ? '↑' : '↓' }} {{ Math.abs(parseFloat(growth.percent)).toFixed(1) }}%
                 </span>
              </div>
           </div>
@@ -195,6 +201,72 @@
           <div v-if="growthList.length === 0" class="empty-growth">
              <span class="empty-text text-muted">Đang cập nhật dữ liệu tăng trưởng...</span>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row-layout mb-24">
+      <div class="content-card">
+        <div class="card-header border-none">Top Khách Hàng VIP</div>
+        <div class="table-responsive" style="padding-bottom: 20px;">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th class="text-center w-50">#</th>
+                <th class="text-left">Tên Khách Hàng</th>
+                <th class="text-center w-80">Số Đơn</th>
+                <th class="text-center w-120">Tổng Chi Tiêu</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="topCustomers.length === 0">
+                <td colspan="4" class="empty-state"><p>Chưa có dữ liệu khách hàng</p></td>
+              </tr>
+              <tr v-for="(cus, i) in topCustomers" :key="i">
+                <td class="text-center text-muted">{{ i + 1 }}</td>
+                <td class="font-medium text-dark text-center">
+                  {{ cus?.tenKH || 'Khách lẻ' }}
+                  <span v-if="cus?.maKH && cus?.maKH !== 'KHACH_LE'" class="text-xs text-muted block mt-1">{{ cus.maKH }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge-blue-light">{{ cus?.tongSoDon }}</span>
+                </td>
+                <td class="text-center text-success font-medium">{{ formatCurrency(cus?.tongChiTieu) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="card-header border-none">Hiệu Quả Voucher</div>
+        <div class="table-responsive" style="padding-bottom: 20px;">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th class="text-center w-50">#</th>
+                <th class="text-left">Tên Voucher</th>
+                <th class="text-center w-80">Lượt Dùng</th>
+                <th class="text-center w-120">Tổng Đã Giảm</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="topVouchers.length === 0">
+                <td colspan="4" class="empty-state"><p>Chưa có dữ liệu voucher</p></td>
+              </tr>
+              <tr v-for="(v, i) in topVouchers" :key="i">
+                <td class="text-center text-muted">{{ i + 1 }}</td>
+                <td class="font-medium text-dark text-center">
+                  {{ v?.tenVoucher }}
+                  <span class="text-xs text-muted block mt-1">{{ v?.maVoucher }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge-warning-light">{{ v?.soLuotSuDung }}</span>
+                </td>
+                <td class="text-center text-danger font-medium">- {{ formatCurrency(v?.tongTienGiam) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -249,16 +321,16 @@
                       <th class="text-center w-50">Xóa</th>
                     </tr>
                   </thead>
-                  <tbody style="text-align: center;">
+                  <tbody>
                     <tr v-if="computedSelectedEmails.length === 0">
                       <td colspan="3" class="text-center text-muted">Chưa chọn người nhận nào</td>
                     </tr>
                     <tr v-for="item in computedSelectedEmails" :key="item.email">
-                      <td class="code-text">
+                      <td class="code-text text-left">
                         {{ item.email }}
                         <span v-if="!item.isSaved" class="badge-temp ml-2">Tạm thời</span>
                       </td>
-                      <td>{{ item.name }}</td>
+                      <td class="text-left">{{ item.name }}</td>
                       <td class="text-center">
                         <button class="btn-delete" @click="removeSelectedEmail(item.email)" title="Xóa khỏi danh sách gửi">✕</button>
                       </td>
@@ -333,14 +405,14 @@
                     <th class="text-center w-80">Thao tác</th>
                   </tr>
                 </thead>
-                <tbody style="text-align: center;">
+                <tbody>
                   <tr v-if="emailDatabaseList.length === 0">
                     <td colspan="4" class="text-center empty-state">Không có dữ liệu danh bạ</td>
                   </tr>
                   <tr v-for="(dbItem, index) in paginatedManageEmails" :key="dbItem.id">
                     <td class="text-center text-muted">{{ (managePage - 1) * managePageSize + index + 1 }}</td>
-                    <td class="font-medium text-dark">{{ dbItem.name }}</td>
-                    <td class="code-text">{{ dbItem.email }}</td>
+                    <td class="font-medium text-dark text-left">{{ dbItem.name }}</td>
+                    <td class="code-text text-left">{{ dbItem.email }}</td>
                     <td class="text-center">
                       <button class="btn-delete px-12" @click="deleteContact(dbItem.id)" title="Xóa khỏi DB">
                         <i class="fas fa-trash-alt"></i> Xóa
@@ -411,7 +483,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointE
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0)
 const formatNumber = (val) => new Intl.NumberFormat('vi-VN').format(val || 0)
 
-// --- PLUGIN VẼ DÂY VÀ CHỮ NGOÀI BIỂU ĐỒ TRẠNG THÁI (ĐÃ FIX) ---
+// --- PLUGIN VẼ DÂY VÀ CHỮ NGOÀI BIỂU ĐỒ TRẠNG THÁI ---
 const outlabelsPlugin = {
   id: 'outlabels',
   afterDraw(chart) {
@@ -427,14 +499,13 @@ const outlabelsPlugin = {
           let endAngle = element.endAngle;
           let midAngle = startAngle + (endAngle - startAngle) / 2;
 
-          // FIX ĐÈ CHỮ: Nếu chiếm 100% vòng tròn, bẻ góc sang ngang phải thay vì chĩa thẳng xuống
           if (endAngle - startAngle >= Math.PI * 1.99) {
-             midAngle = 0; // Góc 0 radian là chĩa sang mạn phải
+             midAngle = 0; 
           }
 
           const outerRadius = element.outerRadius;
           const lineStartRadius = outerRadius; 
-          const lineEndRadius = outerRadius + 20; // Kéo dài đường thẳng cắm ra một tí
+          const lineEndRadius = outerRadius + 20; 
 
           const x = element.x;
           const y = element.y;
@@ -445,7 +516,7 @@ const outlabelsPlugin = {
           const edgeY = y + Math.sin(midAngle) * lineEndRadius;
 
           const isRight = Math.cos(midAngle) >= 0;
-          const endX = edgeX + (isRight ? 20 : -20); // Gấp khúc dài ra xíu
+          const endX = edgeX + (isRight ? 20 : -20); 
           const endY = edgeY;
 
           ctx.beginPath();
@@ -467,7 +538,7 @@ const outlabelsPlugin = {
           ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
           ctx.fillText(label, endX + (isRight ? 5 : -5), endY - 8);
           
-          ctx.fillStyle = '#1f2937'; // Chữ đậm hơn tí
+          ctx.fillStyle = '#1f2937';
           ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
           ctx.fillText(`${dataVal} đơn (${percent})`, endX + (isRight ? 5 : -5), endY + 8);
         });
@@ -477,7 +548,8 @@ const outlabelsPlugin = {
 };
 
 // --- STATES CHÍNH ---
-const activeFilter = ref('ALL') 
+// FIX: Mặc định load vào là Hôm nay để đồng bộ
+const activeFilter = ref('DAY') 
 const filter = ref({ fromDate: null, toDate: null, status: 5, page: 0, size: 5 }) 
 const lowStockThreshold = ref(10) 
 const lowStockFilter = ref({ page: 0, size: 5 }) 
@@ -485,6 +557,10 @@ const lowStockFilter = ref({ page: 0, size: 5 })
 const topProducts = ref([])         
 const lowStockProducts = ref([])    
 const growthList = ref([])          
+
+// STATES KHÁCH HÀNG VÀ VOUCHER
+const topCustomers = ref([])
+const topVouchers = ref([])
 
 const filterSummary = ref({
   totalOrders: 0,
@@ -501,21 +577,17 @@ const isLoadingLowStock = ref(false)
 const hasChartData = ref(false)
 
 const summaryCards = ref([
-  { title: 'Hôm nay', revenue: 0, products: 0, successOrders: 0, cancelOrders: 0, returnOrders: 0 },
-  { title: 'Tuần này', revenue: 0, products: 0, successOrders: 0, cancelOrders: 0, returnOrders: 0 },
-  { title: 'Tháng này', revenue: 0, products: 0, successOrders: 0, cancelOrders: 0, returnOrders: 0 },
-  { title: 'Năm nay', revenue: 0, products: 0, successOrders: 0, cancelOrders: 0, returnOrders: 0 }
+  { title: 'Hôm nay', revenue: 0, products: 0, totalOrders: 0, successOrders: 0, cancelOrders: 0, processingOrders: 0, returnOrders: 0, growthPercent: 0 },
+  { title: 'Tuần này', revenue: 0, products: 0, totalOrders: 0, successOrders: 0, cancelOrders: 0, processingOrders: 0, returnOrders: 0, growthPercent: 0 },
+  { title: 'Tháng này', revenue: 0, products: 0, totalOrders: 0, successOrders: 0, cancelOrders: 0, processingOrders: 0, returnOrders: 0, growthPercent: 0 },
+  { title: 'Năm nay', revenue: 0, products: 0, totalOrders: 0, successOrders: 0, cancelOrders: 0, processingOrders: 0, returnOrders: 0, growthPercent: 0 }
 ])
 
-// --- STATES EMAIL MODAL & QUẢN LÝ EMAIL ---
+// --- STATES EMAIL MODAL ---
 const showEmailModal = ref(false)
 const activeEmailTab = ref('SEND')
-
-// Data Database Mock
 const emailDatabaseList = ref([]) 
 const newContact = ref({ name: '', email: '' })
-
-// Phân trang Quản lý Email
 const managePage = ref(1);
 const managePageSize = 5;
 const totalManagePages = computed(() => Math.ceil(emailDatabaseList.value.length / managePageSize));
@@ -531,15 +603,12 @@ const visibleManagePages = computed(() => {
   return [...new Set(p)].sort((a,b)=>a-b);
 });
 
-// Data Send Form
 const EMAIL_API_URL = 'http://localhost:8080/api/v1/email-recipients';
 const isSendingEmail = ref(false);
-const sendMode = ref('TODAY'); // 'TODAY' hoặc 'CUSTOM'
+const sendMode = ref('TODAY'); 
 const searchEmailQuery = ref('')
 const selectedEmailAddresses = ref([]) 
 const reportConfig = ref({ fromDate: '', toDate: '' })
-
-// Phân trang Chọn Nhanh (Tab Gửi)
 const sendPage = ref(1);
 const sendPageSize = 5;
 const totalSendPages = computed(() => Math.ceil(emailDatabaseList.value.length / sendPageSize));
@@ -547,8 +616,6 @@ const paginatedSendEmails = computed(() => {
   const start = (sendPage.value - 1) * sendPageSize;
   return emailDatabaseList.value.slice(start, start + sendPageSize);
 });
-
-// Bảng dữ liệu đã chọn
 const computedSelectedEmails = computed(() => {
   return selectedEmailAddresses.value.map(emailStr => {
     const foundInDB = emailDatabaseList.value.find(e => e.email === emailStr);
@@ -592,10 +659,10 @@ const chartData = ref({
   datasets: [{ backgroundColor: [], data: [], borderWidth: 1, hoverOffset: 4 }]
 })
 
-// FIX: Tăng padding bottom lên 50 để chú thích (legend) không dính vào chart
+// FIX: Tăng padding bottom lên 80 để chú thích (legend) và đường vẽ không dính viền khi mở rộng chart height
 const chartOptions = ref({
   responsive: true, maintainAspectRatio: false, cutout: '55%', 
-  layout: { padding: { top: 40, bottom: 50, left: 80, right: 80 } },
+  layout: { padding: { top: 60, bottom: 80, left: 80, right: 80 } },
   plugins: {
     legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15, font: { size: 12, family: 'sans-serif' }, color: '#4b5563', usePointStyle: true } },
     tooltip: { enabled: true } 
@@ -624,37 +691,72 @@ const formatYYYYMMDD = (d) => {
   return `${year}-${month}-${day}`;
 }
 
-const getTimeframes = () => {
+// TÍNH TOÁN KỲ TRƯỚC ĐỂ TÍNH TỐC ĐỘ TĂNG TRƯỞNG
+const getPeriodsData = () => {
   const now = new Date();
+  
+  // TODAY vs YESTERDAY
   const todayStart = formatToLocalDateTime(now);
   const todayEnd = formatToLocalDateTime(now, true);
+  const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+  const yestStart = formatToLocalDateTime(yesterday);
+  const yestEnd = formatToLocalDateTime(yesterday, true);
   
-  const d = new Date();
+  // WEEK vs LAST WEEK
+  const d = new Date(now);
   const weekStartObj = new Date(d.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1)));
   const weekStart = formatToLocalDateTime(weekStartObj);
+  const lastWeekStartObj = new Date(weekStartObj); lastWeekStartObj.setDate(lastWeekStartObj.getDate() - 7);
+  const lastWeekEndObj = new Date(lastWeekStartObj); lastWeekEndObj.setDate(lastWeekEndObj.getDate() + 6);
+  const lastWeekStart = formatToLocalDateTime(lastWeekStartObj);
+  const lastWeekEnd = formatToLocalDateTime(lastWeekEndObj, true);
   
+  // MONTH vs LAST MONTH
   const monthStartObj = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthStart = formatToLocalDateTime(monthStartObj);
+  const lastMonthStartObj = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEndObj = new Date(now.getFullYear(), now.getMonth(), 0);
+  const lastMonthStart = formatToLocalDateTime(lastMonthStartObj);
+  const lastMonthEnd = formatToLocalDateTime(lastMonthEndObj, true);
   
+  // YEAR vs LAST YEAR
   const yearStartObj = new Date(now.getFullYear(), 0, 1);
   const yearStart = formatToLocalDateTime(yearStartObj);
+  const lastYearStartObj = new Date(now.getFullYear() - 1, 0, 1);
+  const lastYearEndObj = new Date(now.getFullYear() - 1, 11, 31);
+  const lastYearStart = formatToLocalDateTime(lastYearStartObj);
+  const lastYearEnd = formatToLocalDateTime(lastYearEndObj, true);
   
   return [
-    { fromDate: todayStart, toDate: todayEnd },
-    { fromDate: weekStart, toDate: todayEnd },
-    { fromDate: monthStart, toDate: todayEnd },
-    { fromDate: yearStart, toDate: todayEnd }
+    { current: { fromDate: todayStart, toDate: todayEnd }, prev: { fromDate: yestStart, toDate: yestEnd } },
+    { current: { fromDate: weekStart, toDate: todayEnd }, prev: { fromDate: lastWeekStart, toDate: lastWeekEnd } },
+    { current: { fromDate: monthStart, toDate: todayEnd }, prev: { fromDate: lastMonthStart, toDate: lastMonthEnd } },
+    { current: { fromDate: yearStart, toDate: todayEnd }, prev: { fromDate: lastYearStart, toDate: lastYearEnd } }
   ]
 }
+
+// Tính % tăng trưởng (Công thức: (Kỳ này - Kỳ trước) / Kỳ trước * 100)
+const calcGrowthRate = (curr, prev) => {
+    if (prev === 0 && curr === 0) return 0;
+    if (prev === 0 && curr > 0) return 100;
+    return ((curr - prev) / prev) * 100;
+};
 
 // --- LOGIC API DỮ LIỆU BẢNG ĐIỀU KHIỂN ---
 
 const fetchSummaryCards = async () => {
   isLoadingCards.value = true;
   try {
-    const frames = getTimeframes();
-    const requests = frames.map(f => statisticApi.getRevenue({ fromDate: f.fromDate, toDate: f.toDate, status: 5 }));
-    const responses = await Promise.all(requests);
+    const periodsData = getPeriodsData();
+    
+    // Tạo mảng promise gọi API kỳ này và kỳ trước
+    const currentReqs = periodsData.map(p => statisticApi.getRevenue({ fromDate: p.current.fromDate, toDate: p.current.toDate, status: null }));
+    const prevReqs = periodsData.map(p => statisticApi.getRevenue({ fromDate: p.prev.fromDate, toDate: p.prev.toDate, status: null }));
+    
+    const [currentRes, prevRes] = await Promise.all([
+      Promise.all(currentReqs),
+      Promise.all(prevReqs)
+    ]);
     
     growthList.value = [];
     const periods = ['ngày', 'tuần', 'tháng', 'năm'];
@@ -662,27 +764,35 @@ const fetchSummaryCards = async () => {
     const orders = [];
     const products = [];
 
-    responses.forEach((res, index) => {
-      const summary = res.data?.summary || {}; 
+    currentRes.forEach((res, index) => {
+      const currSummary = res.data?.summary || {}; 
+      const prevSummary = prevRes[index].data?.summary || {};
       
-      summaryCards.value[index].revenue = summary.totalRevenue || 0;
-      summaryCards.value[index].successOrders = summary.totalOrders || 0; 
-      summaryCards.value[index].products = summary.totalProducts || 0;
-      summaryCards.value[index].cancelOrders = summary.cancelOrders || 0;
-      summaryCards.value[index].returnOrders = summary.returnOrders || 0;
+      const currRev = currSummary.totalRevenue || 0;
+      const prevRev = prevSummary.totalRevenue || 0;
+      const revGrowth = calcGrowthRate(currRev, prevRev);
 
-      revenues.push({
-          label: `Doanh thu ${periods[index]}`, value: summary.totalRevenue || 0,
-          percent: summary.growthPercent || summary.revenueGrowth || 0, type: 'currency', icon: 'revenue', colorClass: 'text-blue'
-      });
-      orders.push({
-          label: `Đơn hàng ${periods[index]}`, value: summary.totalOrders || 0,
-          percent: summary.orderGrowth || summary.growthPercent || 0, type: 'number', icon: 'order', colorClass: 'text-success-icon' 
-      });
-      products.push({
-          label: `Sản phẩm ${periods[index]}`, value: summary.totalProducts || 0,
-          percent: summary.productGrowth || summary.growthPercent || 0, type: 'number', icon: 'product', colorClass: 'text-warning-icon' 
-      });
+      const currOrders = currSummary.successOrders || 0;
+      const prevOrders = prevSummary.successOrders || 0;
+      const ordGrowth = calcGrowthRate(currOrders, prevOrders);
+
+      const currProds = currSummary.totalProducts || 0;
+      const prevProds = prevSummary.totalProducts || 0;
+      const prodGrowth = calcGrowthRate(currProds, prevProds);
+
+      // FIX LỖI SAI SỐ THẺ TỔNG QUAN: Gán đúng biến, ko dùng totalOrders đè lên successOrders
+      summaryCards.value[index].revenue = currRev;
+      summaryCards.value[index].totalOrders = currSummary.totalOrders || 0; 
+      summaryCards.value[index].successOrders = currOrders;
+      summaryCards.value[index].cancelOrders = currSummary.cancelOrders || 0;
+      summaryCards.value[index].returnOrders = currSummary.returnOrders || 0;
+      summaryCards.value[index].processingOrders = currSummary.processingOrders || 0;
+      summaryCards.value[index].products = currProds;
+      summaryCards.value[index].growthPercent = revGrowth; 
+
+      revenues.push({ label: `Doanh thu ${periods[index]}`, value: currRev, percent: revGrowth, type: 'currency', icon: 'revenue', colorClass: 'text-blue' });
+      orders.push({ label: `Đơn hàng ${periods[index]}`, value: currOrders, percent: ordGrowth, type: 'number', icon: 'order', colorClass: 'text-success-icon' });
+      products.push({ label: `Sản phẩm ${periods[index]}`, value: currProds, percent: prodGrowth, type: 'number', icon: 'product', colorClass: 'text-warning-icon' });
     });
     growthList.value = [...revenues, ...orders, ...products];
   } catch (error) { console.error(error) } finally { isLoadingCards.value = false; }
@@ -690,20 +800,16 @@ const fetchSummaryCards = async () => {
 
 const fetchFilterSummary = async (payload) => {
   try {
-    const payloadAll = { ...payload, status: null }; 
-    const resAll = await statisticApi.getRevenue(payloadAll);
+    const resAll = await statisticApi.getRevenue({ ...payload, status: null });
     const summaryAll = resAll.data?.summary || {};
+
+    filterSummary.value.actualRevenue = summaryAll.totalRevenue || 0; 
+    filterSummary.value.expectedRevenue = summaryAll.totalRevenue || 0; // Ghi chú: Nếu Backend sau này trả thêm biến tổng tiền của trạng thái Xử lý, hãy map vào đây!
     
-    const payloadSuccess = { ...payload, status: 5 };
-    const resSuccess = await statisticApi.getRevenue(payloadSuccess);
-    const summarySuccess = resSuccess.data?.summary || {};
-
-    const actualRev = summarySuccess.totalRevenue || 0;
-    const expectedRev = summaryAll.totalRevenue || actualRev; 
-
-    filterSummary.value.actualRevenue = actualRev; filterSummary.value.expectedRevenue = expectedRev;
-    filterSummary.value.totalOrders = summaryAll.totalOrders || 0; filterSummary.value.totalProducts = summaryAll.totalProducts || 0;
-    filterSummary.value.successOrders = summaryAll.successOrders || 0; filterSummary.value.processingOrders = summaryAll.processingOrders || 0; 
+    filterSummary.value.totalOrders = summaryAll.totalOrders || 0; 
+    filterSummary.value.totalProducts = summaryAll.totalProducts || 0;
+    filterSummary.value.successOrders = summaryAll.successOrders || 0; 
+    filterSummary.value.processingOrders = summaryAll.processingOrders || 0; 
     filterSummary.value.cancelOrders = summaryAll.cancelOrders || 0;
   } catch (error) { console.error("Lỗi fetchFilterSummary:", error); }
 }
@@ -724,8 +830,6 @@ const fetchLineChartData = async (payload) => {
 const fetchChartStatus = async (customPayload) => {
   try {
     const payloadForChart = { ...customPayload, status: null };
-    
-    // Dùng getRevenue để đồng bộ số liệu biểu đồ khớp 100% với text bên ngoài
     const res = await statisticApi.getRevenue(payloadForChart);
     const summary = res.data?.summary || {};
 
@@ -733,7 +837,6 @@ const fetchChartStatus = async (customPayload) => {
     const processing = summary.processingOrders || 0;
     const cancel = summary.cancelOrders || 0;
 
-    // Ẩn chart nếu không có data
     if (success === 0 && processing === 0 && cancel === 0) {
         hasChartData.value = false;
         return;
@@ -745,7 +848,6 @@ const fetchChartStatus = async (customPayload) => {
     const data = [];
     const bgColors = [];
 
-    // Chỉ đẩy vào chart những trạng thái có số lượng > 0
     if (success > 0) { 
         labels.push('Hoàn thành'); 
         data.push(success); 
@@ -762,7 +864,6 @@ const fetchChartStatus = async (customPayload) => {
         bgColors.push('#ef4444'); 
     }
 
-    // FIX CHÍNH LÀ ĐÂY: Tạo ra 1 object mới hoàn toàn để ép Vue-ChartJS re-render
     chartData.value = {
         labels: labels,
         datasets: [{
@@ -795,6 +896,7 @@ const applyCustomFilter = async () => {
     toDate: filter.value.toDate ? `${filter.value.toDate}T23:59:59` : null,
     status: 5, size: filter.value.size, page: filter.value.page
   }
+  
   try {
     const resTop = await statisticApi.getProductStats(payload);
     let dataList = resTop.data?.chartData || resTop.data?.data || resTop.data;
@@ -803,7 +905,17 @@ const applyCustomFilter = async () => {
     }
     if (Array.isArray(dataList)) topProducts.value = dataList.filter(item => item != null);
     else topProducts.value = [];
-  } catch (error) { console.error("Lỗi applyCustomFilter:", error); }
+  } catch (error) { console.error("Lỗi fetch sản phẩm:", error); }
+
+  try {
+    const resCus = await axios.post('http://localhost:8080/api/v1/statistics/CUSTOMER', payload);
+    topCustomers.value = resCus.data?.chartData || [];
+  } catch (error) { console.error("Lỗi fetch khách hàng:", error); }
+
+  try {
+    const resVou = await axios.post('http://localhost:8080/api/v1/statistics/VOUCHER', payload);
+    topVouchers.value = resVou.data?.chartData || [];
+  } catch (error) { console.error("Lỗi fetch voucher:", error); }
 
   fetchChartStatus({ fromDate: payload.fromDate, toDate: payload.toDate });
   fetchFilterSummary({ fromDate: payload.fromDate, toDate: payload.toDate });
@@ -909,7 +1021,6 @@ const removeSelectedEmail = (emailToRemove) => {
   selectedEmailAddresses.value = selectedEmailAddresses.value.filter(e => e !== emailToRemove);
 }
 
-// API Thêm liên hệ
 const addNewContact = async () => {
   if (!newContact.value.name || !newContact.value.email) {
     Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng điền đủ Tên và Email!' }); return;
@@ -936,7 +1047,6 @@ const addNewContact = async () => {
   }
 }
 
-// API Xóa liên hệ
 const deleteContact = async (id) => {
   const emailObj = emailDatabaseList.value.find(e => e.id === id);
   if(!emailObj) return;
@@ -958,13 +1068,11 @@ const deleteContact = async (id) => {
   }
 }
 
-// GỬI BÁO CÁO THỦ CÔNG CHỐT HẠ
 const handleSendNow = async () => {
   if (selectedEmailAddresses.value.length === 0) {
     Swal.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Vui lòng chọn ít nhất 1 người nhận!' }); return;
   }
   
-  // Format để giữ đúng múi giờ và giờ:phút:giây
   const formatExactTime = (d) => {
     const pad = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
@@ -979,7 +1087,6 @@ const handleSendNow = async () => {
     startTimeStr = reportConfig.value.fromDate; 
     endTimeStr = reportConfig.value.toDate;
   } else {
-    // TODAY
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
     
@@ -987,7 +1094,6 @@ const handleSendNow = async () => {
     endTimeStr = formatExactTime(now); 
   }
 
-  // ĐÃ THÊM FLAG attachExcel ĐỂ BACKEND BIẾT MÀ ĐÍNH KÈM FILE
   const payload = {
     emails: selectedEmailAddresses.value,
     startTime: startTimeStr,
@@ -1025,7 +1131,7 @@ const handleSendNow = async () => {
 onMounted(() => {
   fetchSummaryCards();
   fetchLowStock(); 
-  applyQuickFilter('MONTH'); 
+  applyQuickFilter('DAY'); // Mặc định load data Hôm nay
   fetchEmailDatabase(); 
 })
 </script>
@@ -1052,6 +1158,7 @@ onMounted(() => {
 .page-subtitle { font-size: 13px; color: #6b7280; margin: 0; }
 
 .mb-24 { margin-bottom: 24px; }
+.m-0 { margin: 0 !important; }
 .mt-1 { margin-top: 4px; }
 .w-full { width: 100%; }
 .flex { display: flex; }
@@ -1084,9 +1191,17 @@ onMounted(() => {
   display: flex; flex-direction: column; position: relative; border: 1px solid #f3f4f6; box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
 .stat-title { font-size: 14px; color: #6b7280; font-weight: 600; margin: 0 0 12px 0; }
-.stat-value { font-size: 24px; font-weight: 700; margin: 0 0 16px 0; letter-spacing: -0.5px; }
+.stat-value { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
 .stat-sub-info { font-size: 12px; color: #6b7280; }
 .divider { margin: 0 4px; color: #d1d5db; }
+
+/* BADGES MỚI */
+.growth-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-block; }
+.bg-success-light { background: #dcfce7 !important; }
+.bg-danger-light { background: #fee2e2 !important; }
+.badge-success-light { background: #dcfce7; color: #16a34a; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; }
+.badge-blue-light { background: #dbeafe; color: #2563eb; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; }
+.badge-warning-light { background: #fef3c7; color: #d97706; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; }
 
 /* COLOR UTILS */
 .text-success { color: #1e3a8a !important; background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; }
@@ -1141,7 +1256,8 @@ onMounted(() => {
 /* TABLE STYLES */
 .table-responsive { overflow-x: auto; flex: 1; padding: 0 20px; }
 .modern-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.modern-table thead th { background: #fff; color: #6b7280; font-weight: 500; padding: 12px 8px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+/* Bỏ .text-left mặc định ở thead th, dùng class riêng từng thẻ */
+.modern-table thead th { background: #fff; color: #6b7280; font-weight: 500; padding: 12px 8px; border-bottom: 1px solid #e5e7eb; }
 .modern-table tbody tr { border-bottom: 1px dashed #f3f4f6; transition: background 0.2s; }
 .modern-table tbody tr:hover { background: #f9fafb; }
 .modern-table tbody td { padding: 12px 8px; color: #4b5563; vertical-align: middle !important; }
@@ -1157,8 +1273,8 @@ onMounted(() => {
 /* CHARTS */
 .chart-card { min-height: 300px; }
 .chart-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.chart-wrapper { width: 100%; height: 250px; }
-.line-chart-wrapper { width: 100%; height: 320px; padding: 10px 20px 20px 20px; } 
+.chart-wrapper { width: 100%; height: 420px; } /* Mở rộng chiều cao từ 350 -> 420px */
+.line-chart-wrapper { width: 100%; height: 380px; padding: 10px 20px 20px 20px; } 
 
 /* GROWTH LIST */
 .growth-list { padding: 0 20px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
@@ -1182,8 +1298,6 @@ onMounted(() => {
 /* ========================================= */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .modal-content { background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
-
-/* FIX Ở ĐÂY: Mở rộng modal từ 750px lên 850px để không dính chữ */
 .large-modal { width: 850px; max-width: 95%; max-height: 90vh; }
 
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #eee; }
@@ -1191,23 +1305,14 @@ onMounted(() => {
 .close-btn { background: none; border: none; font-size: 20px; color: #64748b; cursor: pointer; }
 .close-btn:hover { color: #ef4444; }
 
-/* TABS */
 .tab-nav { display: flex; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
 .tab-btn { flex: 1; padding: 14px 0; font-size: 14px; font-weight: 600; color: #64748b; border: none; background: none; border-bottom: 2px solid transparent; cursor: pointer; transition: 0.2s; }
 .tab-btn:hover { color: #1e3a8a; }
 .tab-btn.active { color: #1e3a8a; border-bottom-color: #1e3a8a; background: #fff; }
 
-/* Fix cứng kích thước tab body */
-.tab-body { 
-  height: 650px; 
-  padding: 24px; 
-  overflow-y: auto; 
-  display: flex; 
-  flex-direction: column;
-}
+.tab-body { height: 650px; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; }
 .tab-content-wrapper { display: flex; flex-direction: column; height: 100%; }
 
-/* FORM ELEMENTS DÙNG CHUNG */
 .input-den::placeholder { color: #000000 !important; opacity: 1 !important; font-weight: 500; }
 .input-den { font-weight: 600; color: #1e293b;}
 .mt-16 { margin-top: 16px; } .mb-16 { margin-bottom: 16px; } .mb-8 { margin-bottom: 8px; } .mb-4 { margin-bottom: 4px; }
@@ -1225,7 +1330,6 @@ onMounted(() => {
 .checkbox-item:hover { background: #f3f4f6; }
 .checkbox-item input { width: 16px; height: 16px; cursor: pointer; }
 
-/* MINI PAGINATION CHO CHỌN NHANH */
 .mini-pagination { display: flex; align-items: center; justify-content: center; gap: 10px; background: #f8fafc; padding: 6px; border: 1px solid #e5e7eb; border-radius: 0 0 6px 6px;}
 .mini-pagination button { border: 1px solid #d1d5db; background: #fff; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #475569;}
 .mini-pagination button:hover:not(:disabled) { background: #e2e8f0; }
@@ -1251,7 +1355,6 @@ onMounted(() => {
 
 .badge-temp { background: #fef3c7; color: #d97706; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #fde68a; }
 
-/* PHÂN TRANG CUSTOM STYLE GIỐNG YÊU CẦU */
 .pagination-footer { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-top: 1px solid #e2e8f0; background: #fff;}
 .page-info { font-size: 13px; font-weight: 500;}
 .page-controls button { width: 30px; height: 30px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; margin-left: 5px; cursor: pointer; font-weight: 600; color: #475569;}
@@ -1259,7 +1362,6 @@ onMounted(() => {
 .page-controls button:disabled { opacity: 0.4; cursor: not-allowed;}
 .page-controls button.active { background: #0f172a; color: #fff; border-color: #0f172a; }
 
-/* SCROLLBAR CUSTOMIZATION */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }

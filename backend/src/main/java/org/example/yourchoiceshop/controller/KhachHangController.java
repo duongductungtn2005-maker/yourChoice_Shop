@@ -229,8 +229,10 @@ public class KhachHangController {
 
             Integer statusFilter = (trangThai != null) ? trangThai : -1;
 
+            // ĐÃ BỎ Sort.by("id").descending() Ở ĐÂY CHỈ ĐỂ LẠI PAGE VÀ SIZE
+            // Ở API Thống kê, CHỈ DÙNG PAGE VÀ SIZE NHƯ NÀY, KHÔNG DÙNG Sort.by()
             org.springframework.data.domain.Pageable pageable =
-                    org.springframework.data.domain.PageRequest.of(page, size, Sort.by("id").descending());
+                    org.springframework.data.domain.PageRequest.of(page, size);
 
             return ResponseEntity.ok(
                     khachHangRepository.searchKhachHangThongKe(searchKey, statusFilter, pageable)
@@ -241,5 +243,43 @@ public class KhachHangController {
             ex.printStackTrace();
             return ResponseEntity.status(500).body("Lỗi hệ thống: " + ex.getMessage());
         }
+    }
+
+    // =========================================================================
+    // 12) Phân loại khách hàng 5 Hạng (Customer Segmentation)
+    // =========================================================================
+    @GetMapping("/segmentation")
+    public ResponseEntity<List<Integer>> getCustomerIdsBySegment(@RequestParam String type) {
+        List<Integer> ids;
+        long MAX_VAL = 1000000000000L; // Mức max (1 nghìn tỷ) cho Kim Cương
+        
+        switch (type.toUpperCase()) {
+            case "ALL":
+                ids = khachHangRepository.findAllActiveCustomerIds();
+                break;
+            case "NEWBIE":
+                // 0đ
+                ids = khachHangRepository.findCustomerIdsBySpendRange(0L, 1L);
+                break;
+            case "BRONZE":
+                // 1đ -> dưới 2 triệu
+                ids = khachHangRepository.findCustomerIdsBySpendRange(1L, 2000000L);
+                break;
+            case "SILVER":
+                // 2 triệu -> dưới 5 triệu
+                ids = khachHangRepository.findCustomerIdsBySpendRange(2000000L, 5000000L);
+                break;
+            case "GOLD":
+                // 5 triệu -> dưới 10 triệu
+                ids = khachHangRepository.findCustomerIdsBySpendRange(5000000L, 10000000L);
+                break;
+            case "DIAMOND":
+                // Trên 10 triệu
+                ids = khachHangRepository.findCustomerIdsBySpendRange(10000000L, MAX_VAL);
+                break;
+            default:
+                ids = new java.util.ArrayList<>();
+        }
+        return ResponseEntity.ok(ids);
     }
 }

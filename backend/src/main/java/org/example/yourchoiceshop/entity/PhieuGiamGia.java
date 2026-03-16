@@ -28,6 +28,8 @@ public class PhieuGiamGia extends PrimaryEntity {
     private String kieu;      // Lưu: CongKhai, CaNhan
 // ...
 
+
+
     @Column(name = "gia_tri_giam")
     private BigDecimal giaTriGiam;
 
@@ -59,4 +61,7 @@ public class PhieuGiamGia extends PrimaryEntity {
     public void setMoTa(String moTa) {
         this.moTa = moTa;
     }
+    
+    @Column(name = "gioi_han_moi_khach")
+    private Integer gioiHanMoiKhach;
 }
