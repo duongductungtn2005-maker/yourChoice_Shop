@@ -162,6 +162,7 @@ const handleLogout = () => {
   sessionStorage.removeItem('userRole');
   sessionStorage.removeItem('loginTime');
   isUserDropdownOpen.value = false;
+  cartStore.reloadCart();
   loadAuthState();
   toastSuccess('Đăng xuất thành công!');
   router.push('/');

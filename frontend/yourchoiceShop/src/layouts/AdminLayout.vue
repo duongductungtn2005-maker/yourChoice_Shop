@@ -185,6 +185,9 @@
 
           <div v-if="isUserDropdownOpen" class="user-dropdown">
             <div class="dropdown-item admin-label">{{ userRoleLabel }}</div>
+            <button class="dropdown-item profile-btn" @click.stop="goToProfile">
+              <i class="fa-solid fa-user-pen"></i> Thông tin cá nhân
+            </button>
             <button class="dropdown-item logout-btn" @click.stop="handleLogout">
               <i class="fa-solid fa-sign-out-alt"></i> Đăng xuất
             </button>
@@ -263,6 +266,12 @@ const isUserDropdownOpen = ref(false);
 
 const toggleUserDropdown = () => {
   isUserDropdownOpen.value = !isUserDropdownOpen.value;
+};
+
+const goToProfile = () => {
+  isUserDropdownOpen.value = false;
+  const profilePath = isAdmin.value ? '/admin/thong-tin-ca-nhan' : '/staff/thong-tin-ca-nhan';
+  router.push(profilePath);
 };
 
 const handleLogout = () => {
@@ -614,6 +623,13 @@ const handleImageError = (e) => {
   cursor: default;
   font-weight: 500;
   border-bottom: 1px solid #e2e8f0;
+}
+.profile-btn {
+  color: #334155;
+}
+.profile-btn:hover {
+  background-color: #eff6ff !important;
+  color: #1e3a8a !important;
 }
 .logout-btn {
   color: #ef4444;

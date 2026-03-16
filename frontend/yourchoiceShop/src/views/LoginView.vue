@@ -20,8 +20,8 @@
               @error="onLogoError"
             />
             <div class="brand-text">
-              <h2 class="title">Xin chào quý khách</h2>
-              <p class="subtitle">Vui lòng nhập thông tin của bạn</p>
+              <h2 class="title">{{ isAdminLogin ? 'Quản trị / Nhân viên' : 'Xin chào quý khách' }}</h2>
+              <p class="subtitle">{{ isAdminLogin ? 'Dành cho Admin và Nhân viên' : 'Vui lòng nhập thông tin của bạn' }}</p>
             </div>
           </div>
 
@@ -135,12 +135,15 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
 import request from '@/services/request';
 import { login as authLogin } from '@/services/auth';
+import { useCartStore } from '@/stores/cart';
 
 const router = useRouter();
+const route = useRoute();
+const isAdminLogin = computed(() => route.path === '/admin/login');
 const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
@@ -272,28 +275,25 @@ const handleLogin = async () => {
 
   errorMessage.value = '';
 
-  // 1. Thử đăng nhập Nhân viên/Admin (từ database)
-  const employeeData = await authenticateEmployee(username.value, password.value);
-  if (employeeData) {
-    const role = determineRole(employeeData);
-    authLogin({ 
-      role: role, 
-      user: employeeData 
-    });
-    toastSuccess(`Đăng nhập thành công! Xin chào ${employeeData.tenNhanVien}`);
-    
-    if (role === 'ADMIN') {
-      router.push('/admin/dashboard');
+  if (isAdminLogin.value) {
+    // — Chỉ đăng nhập Nhân viên / Admin —
+    const employeeData = await authenticateEmployee(username.value, password.value);
+    if (employeeData) {
+      const role = determineRole(employeeData);
+      authLogin({ role, user: employeeData });
+      toastSuccess(`Đăng nhập thành công! Xin chào ${employeeData.tenNhanVien}`);
+      router.push(role === 'ADMIN' ? '/admin/dashboard' : '/staff/pos');
     } else {
-      router.push('/staff/pos');
+      errorMessage.value = 'Sai tài khoản hoặc mật khẩu. Vui lòng thử lại.';
     }
     return;
   }
 
-  // 2. Thử đăng nhập Khách hàng (từ database)
+  // — Chỉ đăng nhập Khách hàng —
   const customerData = await authenticateCustomer(username.value, password.value);
   if (customerData) {
     authLogin({ role: 'CUSTOMER', user: customerData });
+    useCartStore().reloadCart();
     toastSuccess(`Đăng nhập thành công! Xin chào ${customerData.tenTaiKhoan || customerData.username || customerData.tenKhachHang || 'quý khách'}`);
     router.push('/');
     return;
