@@ -170,6 +170,11 @@ public class KhachHangServiceImpl implements KhachHangService {
         if (request.getTrangThai() != null) kh.setTrangThai(request.getTrangThai());
         kh.setTenTaiKhoan(username);
 
+        // Password update (chỉ khi có giá trị mới)
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            kh.setMatKhau(request.getPassword().trim());
+        }
+
         // Avatar update
         if (request.getAvatarFile() != null && !request.getAvatarFile().isEmpty()) {
             kh.setAvatar(saveFile(request.getAvatarFile()));

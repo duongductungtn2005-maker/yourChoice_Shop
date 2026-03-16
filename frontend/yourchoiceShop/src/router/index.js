@@ -60,6 +60,11 @@ const router = createRouter({
       name: "login",
       component: () => import("../views/LoginView.vue"),
     },
+    {
+      path: "/admin/login",
+      name: "admin-login",
+      component: () => import("../views/LoginView.vue"),
+    },
 
     /* ================= REGISTER ================= */
     {
@@ -173,6 +178,9 @@ const router = createRouter({
 
         /* Thống kê riêng */
         { path: "thong-ke", name: "admin-thong-ke", component: ThongKeView },
+
+        /* Thông tin cá nhân */
+        { path: "thong-tin-ca-nhan", name: "admin-profile", component: () => import("../views/admin/employee/ProfileView.vue") },
       ],
     },
 
@@ -194,6 +202,9 @@ const router = createRouter({
         { path: "customers", name: "staff-customer-list", component: () => import("../views/admin/customer/CustomerList.vue") },
         { path: "customers/create", name: "staff-customer-create", component: CustomerCreate },
         { path: "customers/detail/:id", name: "staff-customer-detail", component: CustomerDetail },
+
+        /* Thông tin cá nhân */
+        { path: "thong-tin-ca-nhan", name: "staff-profile", component: () => import("../views/admin/employee/ProfileView.vue") },
       ],
     },
   ],
@@ -208,8 +219,8 @@ router.beforeEach((to, from, next) => {
 
   const requiresAuth = to.matched.some((r) => r.meta.requiresAuth)
 
-  // Đã đăng nhập mà vào /login → chuyển về trang mặc định theo role
-  if (to.path === "/login" && authenticated && role) {
+  // Đã đăng nhập mà vào trang login → chuyển về trang mặc định theo role
+  if ((to.path === "/login" || to.path === "/admin/login") && authenticated && role) {
     next(getDefaultPathByRole(role))
     return
   }
@@ -220,9 +231,13 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  // Chưa đăng nhập hoặc không có role → về login
+  // Chưa đăng nhập hoặc không có role → về đúng trang login theo loại route
   if (!authenticated || !role) {
-    next("/login")
+    const needsAdminLogin = to.matched.some((r) => {
+      const roles = (r.meta?.roles || []).map((x) => normalizeRole(x))
+      return roles.includes("ADMIN") || roles.includes("STAFF")
+    })
+    next(needsAdminLogin ? "/admin/login" : "/login")
     return
   }
 

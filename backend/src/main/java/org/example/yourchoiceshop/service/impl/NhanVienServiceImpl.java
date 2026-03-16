@@ -157,6 +157,9 @@ public class NhanVienServiceImpl implements NhanVienService {
         nv.setSoDienThoai(req.getSoDienThoai());
         nv.setGioiTinh(req.getGioiTinh());
         nv.setNgaySinh(req.getNgaySinh());
+        if (req.getMatKhau() != null && !req.getMatKhau().trim().isEmpty()) {
+            nv.setMatKhau(req.getMatKhau().trim());
+        }
 
         if (req.getDiaChi() != null && !req.getDiaChi().isEmpty()) {
             nv.setDiaChi(req.getDiaChi());
