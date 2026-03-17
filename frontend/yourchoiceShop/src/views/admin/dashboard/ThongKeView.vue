@@ -803,8 +803,12 @@ const fetchFilterSummary = async (payload) => {
     const resAll = await statisticApi.getRevenue({ ...payload, status: null });
     const summaryAll = resAll.data?.summary || {};
 
+    // HIỆN TẠI ĐÃ FIX ĐÚNG LOGIC:
+    // Thực tế = Lấy totalRevenue (đã lọc trang_thai = 5 ở Backend)
     filterSummary.value.actualRevenue = summaryAll.totalRevenue || 0; 
-    filterSummary.value.expectedRevenue = summaryAll.totalRevenue || 0; // Ghi chú: Nếu Backend sau này trả thêm biến tổng tiền của trạng thái Xử lý, hãy map vào đây!
+    
+    // Dự kiến = Lấy expectedRevenue (đã lọc trạng thái 1,2,3,4,5 ở Backend)
+    filterSummary.value.expectedRevenue = summaryAll.expectedRevenue || 0; 
     
     filterSummary.value.totalOrders = summaryAll.totalOrders || 0; 
     filterSummary.value.totalProducts = summaryAll.totalProducts || 0;

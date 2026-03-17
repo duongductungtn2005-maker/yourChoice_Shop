@@ -21,7 +21,10 @@ public class StatisticRepositoryImpl implements StatisticRepository {
     public RevenueSummaryDTO getRevenueSummary(StatisticFilterRequest filter) {
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
+                        // index 0: Thực tế (Chỉ tính trạng thái 5)
                         "  COALESCE(SUM(CASE WHEN hd.trang_thai = 5 THEN (hd.tong_tien_sau_giam - COALESCE(hd.phi_van_chuyen, 0)) ELSE 0 END), 0) AS totalRevenue, " +
+                        // index 1: Dự kiến (Tính trạng thái 1, 2, 3, 4, 5 - không tính 0 hủy và 6 trả hàng)
+                        "  COALESCE(SUM(CASE WHEN hd.trang_thai IN (1,2,3,4,5) THEN (hd.tong_tien_sau_giam - COALESCE(hd.phi_van_chuyen, 0)) ELSE 0 END), 0) AS expectedRevenue, " +
                         "  COUNT(hd.id) AS totalOrders, " +
                         "  COALESCE(SUM(CASE WHEN hd.trang_thai = 5 THEN 1 ELSE 0 END), 0) AS successOrders, " +
                         "  COALESCE(SUM(CASE WHEN hd.trang_thai IN (1,2,3,4) THEN 1 ELSE 0 END), 0) AS processingOrders, " +
@@ -54,12 +57,15 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         Long totalProducts = ((Number) queryProd.getSingleResult()).longValue();
 
         RevenueSummaryDTO dto = new RevenueSummaryDTO();
+        // Cập nhật lại Index mảng do mình vừa chèn thêm cột expectedRevenue vào giữa
         dto.setTotalRevenue(result[0] != null ? new BigDecimal(result[0].toString()) : BigDecimal.ZERO);
-        dto.setTotalOrders(result[1] != null ? ((Number) result[1]).longValue() : 0L);
-        dto.setSuccessOrders(result[2] != null ? ((Number) result[2]).longValue() : 0L);
-        dto.setProcessingOrders(result[3] != null ? ((Number) result[3]).longValue() : 0L);
-        dto.setCancelOrders(result[4] != null ? ((Number) result[4]).longValue() : 0L);
-        dto.setReturnOrders(result[5] != null ? ((Number) result[5]).longValue() : 0L);
+        dto.setExpectedRevenue(result[1] != null ? new BigDecimal(result[1].toString()) : BigDecimal.ZERO); // ĐÃ THÊM
+        dto.setTotalOrders(result[2] != null ? ((Number) result[2]).longValue() : 0L);
+        dto.setSuccessOrders(result[3] != null ? ((Number) result[3]).longValue() : 0L);
+        dto.setProcessingOrders(result[4] != null ? ((Number) result[4]).longValue() : 0L);
+        dto.setCancelOrders(result[5] != null ? ((Number) result[5]).longValue() : 0L);
+        dto.setReturnOrders(result[6] != null ? ((Number) result[6]).longValue() : 0L);
+        
         dto.setTotalProducts(totalProducts);
         dto.setGrowthPercent(0.0); 
 
