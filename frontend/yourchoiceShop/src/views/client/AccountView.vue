@@ -37,9 +37,6 @@
             <button @click="goToOrders">
               <i class="fas fa-clipboard-list"></i> Đơn hàng
             </button>
-            <button class="btn-logout" @click="handleLogout">
-              <i class="fas fa-sign-out-alt"></i> Đăng xuất
-            </button>
           </nav>
         </aside>
 
@@ -236,11 +233,11 @@ const districts = ref([])
 const wards = ref([])
 
 onMounted(async () => {
-  if (!isAuthenticated()) { router.push('/login'); return }
+  if (!isAuthenticated()) { router.push('/client/login'); return }
 
   const currentUserId = getCurrentUserId()
   const routeCustomerId = Number(route.params.id)
-  if (!currentUserId) { router.push('/login'); return }
+  if (!currentUserId) { router.push('/client/login'); return }
   if (Number.isNaN(routeCustomerId) || routeCustomerId !== currentUserId) {
     router.replace(`/customer/${currentUserId}/account`)
     return

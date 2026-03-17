@@ -191,14 +191,14 @@ const timelineSteps = [
 
 onMounted(() => {
   if (!isAuthenticated()) {
-    router.push('/login')
+    router.push('/client/login')
     return
   }
 
   const currentUserId = getCurrentUserId()
   const routeCustomerId = Number(route.params.id)
   if (!currentUserId) {
-    router.push('/login')
+    router.push('/client/login')
     return
   }
   if (Number.isNaN(routeCustomerId) || routeCustomerId !== currentUserId) {

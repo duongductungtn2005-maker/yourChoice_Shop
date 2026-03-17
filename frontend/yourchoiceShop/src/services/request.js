@@ -33,7 +33,7 @@ request.interceptors.response.use(
         if (error.response && error.response.status === 401) {
             // Xoá toàn bộ auth state (token + role + user + loginTime)
             logout();
-            window.location.href = '/login';
+            window.location.href = '/client/login';
         }
         return Promise.reject(error);
     }
