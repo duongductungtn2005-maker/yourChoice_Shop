@@ -21,7 +21,7 @@ public class StatisticRepositoryImpl implements StatisticRepository {
     public RevenueSummaryDTO getRevenueSummary(StatisticFilterRequest filter) {
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
-                        "  COALESCE(SUM(CASE WHEN hd.trang_thai = 5 THEN hd.tong_tien_sau_giam ELSE 0 END), 0) AS totalRevenue, " +
+                        "  COALESCE(SUM(CASE WHEN hd.trang_thai = 5 THEN (hd.tong_tien_sau_giam - COALESCE(hd.phi_van_chuyen, 0)) ELSE 0 END), 0) AS totalRevenue, " +
                         "  COUNT(hd.id) AS totalOrders, " +
                         "  COALESCE(SUM(CASE WHEN hd.trang_thai = 5 THEN 1 ELSE 0 END), 0) AS successOrders, " +
                         "  COALESCE(SUM(CASE WHEN hd.trang_thai IN (1,2,3,4) THEN 1 ELSE 0 END), 0) AS processingOrders, " +
@@ -71,7 +71,7 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
                         "  DAY(ngay_tao) AS date, " +
-                        "  COALESCE(SUM(tong_tien_sau_giam), 0) AS value " +
+                        "  COALESCE(SUM(tong_tien_sau_giam - COALESCE(phi_van_chuyen, 0)), 0) AS value " +
                         "FROM hoa_don " +
                         "WHERE trang_thai = 5 "
         );
