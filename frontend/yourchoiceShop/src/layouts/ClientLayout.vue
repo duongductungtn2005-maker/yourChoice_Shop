@@ -44,10 +44,10 @@
                 </button>
               </template>
               <template v-else>
-                <router-link to="/login" class="dropdown-btn login-btn" @click="isUserDropdownOpen = false">
+                <router-link to="/client/login" class="dropdown-btn login-btn" @click="isUserDropdownOpen = false">
                   <i class="fas fa-sign-in-alt"></i> Đăng nhập
                 </router-link>
-                <router-link to="/register" class="dropdown-btn" @click="isUserDropdownOpen = false">
+                <router-link to="/client/register" class="dropdown-btn" @click="isUserDropdownOpen = false">
                   <i class="fas fa-user-plus"></i> Đăng ký
                 </router-link>
               </template>
@@ -102,13 +102,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
 import { useCartStore } from '@/stores/cart';
 import { getCustomerAccountPath, getCustomerOrdersPath } from '@/services/auth';
 
 const router = useRouter();
+const route = useRoute();
 const cartStore = useCartStore();
 const isScrolled = ref(false);
 const isUserDropdownOpen = ref(false);
@@ -134,6 +135,17 @@ const handleScroll = () => {
 const toggleUserDropdown = () => {
   isUserDropdownOpen.value = !isUserDropdownOpen.value;
 };
+
+const handleClickOutside = (e) => {
+  const userIconEl = document.querySelector('.user-icon');
+  if (userIconEl && !userIconEl.contains(e.target)) {
+    isUserDropdownOpen.value = false;
+  }
+};
+
+watch(() => route.path, () => {
+  isUserDropdownOpen.value = false;
+});
 
 const loadAuthState = () => {
   userRole.value = String(sessionStorage.getItem('userRole') || '').toUpperCase();
@@ -177,10 +189,12 @@ onMounted(() => {
   loadAuthState();
   window.addEventListener('scroll', handleScroll);
   window.addEventListener('auth-user-updated', handleAuthUserUpdated);
+  document.addEventListener('click', handleClickOutside);
 });
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
   window.removeEventListener('auth-user-updated', handleAuthUserUpdated);
+  document.removeEventListener('click', handleClickOutside);
 });
 </script>
 

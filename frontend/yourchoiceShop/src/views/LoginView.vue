@@ -20,8 +20,8 @@
               @error="onLogoError"
             />
             <div class="brand-text">
-              <h2 class="title">{{ isAdminLogin ? 'Quản trị / Nhân viên' : 'Xin chào quý khách' }}</h2>
-              <p class="subtitle">{{ isAdminLogin ? 'Dành cho Admin và Nhân viên' : 'Vui lòng nhập thông tin của bạn' }}</p>
+              <h2 class="title">Quản trị / Nhân viên</h2>
+              <p class="subtitle">Dành cho Admin và Nhân viên</p>
             </div>
           </div>
 
@@ -64,7 +64,7 @@
             <div class="row">
               <label class="remember">
                 <input type="checkbox" />
-                <span>Remember for 30 days</span>
+                <span>Ghi nhớ tôi</span>
               </label>
               <button type="button" class="link">Quên mật khẩu?</button>
             </div>
@@ -143,7 +143,6 @@ import { useCartStore } from '@/stores/cart';
 
 const router = useRouter();
 const route = useRoute();
-const isAdminLogin = computed(() => route.path === '/admin/login');
 const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
@@ -275,32 +274,16 @@ const handleLogin = async () => {
 
   errorMessage.value = '';
 
-  if (isAdminLogin.value) {
-    // — Chỉ đăng nhập Nhân viên / Admin —
-    const employeeData = await authenticateEmployee(username.value, password.value);
-    if (employeeData) {
-      const role = determineRole(employeeData);
-      authLogin({ role, user: employeeData });
-      toastSuccess(`Đăng nhập thành công! Xin chào ${employeeData.tenNhanVien}`);
-      router.push(role === 'ADMIN' ? '/admin/dashboard' : '/staff/pos');
-    } else {
-      errorMessage.value = 'Sai tài khoản hoặc mật khẩu. Vui lòng thử lại.';
-    }
-    return;
+  // — Chỉ đăng nhập Nhân viên / Admin —
+  const employeeData = await authenticateEmployee(username.value, password.value);
+  if (employeeData) {
+    const role = determineRole(employeeData);
+    authLogin({ role, user: employeeData });
+    toastSuccess(`Đăng nhập thành công! Xin chào ${employeeData.tenNhanVien}`);
+    router.push(role === 'ADMIN' ? '/admin/dashboard' : '/staff/pos');
+  } else {
+    errorMessage.value = 'Sai tài khoản hoặc mật khẩu. Vui lòng thử lại.';
   }
-
-  // — Chỉ đăng nhập Khách hàng —
-  const customerData = await authenticateCustomer(username.value, password.value);
-  if (customerData) {
-    authLogin({ role: 'CUSTOMER', user: customerData });
-    useCartStore().reloadCart();
-    toastSuccess(`Đăng nhập thành công! Xin chào ${customerData.tenTaiKhoan || customerData.username || customerData.tenKhachHang || 'quý khách'}`);
-    router.push('/');
-    return;
-  }
-
-  // Không khớp gì
-  errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
 };
 
 const handleGoBack = () => {

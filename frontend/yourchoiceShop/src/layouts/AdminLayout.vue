@@ -203,7 +203,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toastSuccess } from '@/utils/toast'; // Nếu chưa có util này, bạn có thể xóa dòng import + dòng toastSuccess(...)
 import { logout as authLogout, getRole, getCurrentUser, getCurrentUserName } from '@/services/auth';
@@ -268,6 +268,24 @@ const toggleUserDropdown = () => {
   isUserDropdownOpen.value = !isUserDropdownOpen.value;
 };
 
+const handleClickOutside = (e) => {
+  const userInfoEl = document.querySelector('.user-info');
+  if (userInfoEl && !userInfoEl.contains(e.target)) {
+    isUserDropdownOpen.value = false;
+  }
+};
+
+watch(() => route.path, () => {
+  isUserDropdownOpen.value = false;
+});
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+
 const goToProfile = () => {
   isUserDropdownOpen.value = false;
   const profilePath = isAdmin.value ? '/admin/thong-tin-ca-nhan' : '/staff/thong-tin-ca-nhan';
@@ -284,7 +302,7 @@ const handleLogout = () => {
     // Nếu chưa cấu hình toast thì bỏ qua
   }
 
-  router.push('/login');
+  router.push('/admin/login');
 };
 
 /* =========================

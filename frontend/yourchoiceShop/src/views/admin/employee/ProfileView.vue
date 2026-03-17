@@ -179,7 +179,7 @@ const avatarLetter = computed(() => {
 const loadProfile = async () => {
   try {
     const user = getCurrentUser()
-    if (!user?.id) { router.push('/login'); return }
+    if (!user?.id) { router.push('/admin/login'); return }
 
     locationData.provinces = await apiFetchProvinces()
 

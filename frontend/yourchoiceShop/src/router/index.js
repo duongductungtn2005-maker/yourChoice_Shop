@@ -57,8 +57,7 @@ const router = createRouter({
     /* ================= LOGIN ================= */
     {
       path: "/login",
-      name: "login",
-      component: () => import("../views/LoginView.vue"),
+      redirect: "/client/login",
     },
     {
       path: "/admin/login",
@@ -79,6 +78,8 @@ const router = createRouter({
       component: () => import("../layouts/ClientLayout.vue"),
       children: [
         { path: "", name: "home", component: () => import("../views/client/HomeView.vue") },
+        { path: "client/login", name: "client-login", component: () => import("../views/client/ClientLoginView.vue") },
+        { path: "client/register", name: "client-register", component: () => import("../views/client/ClientRegisterView.vue") },
         { path: "products", name: "products", component: () => import("../views/client/ProductView.vue") },
         { path: "product/:id", name: "product-detail", component: () => import("../views/client/ProductDetailView.vue") },
         { path: "coupons", name: "coupons", component: () => import("../views/client/CouponView.vue") },
@@ -103,14 +104,14 @@ const router = createRouter({
           path: "orders",
           redirect: () => {
             const currentUserId = getCurrentUserId()
-            return currentUserId ? `/customer/${currentUserId}/orders` : "/login"
+            return currentUserId ? `/customer/${currentUserId}/orders` : "/client/login"
           },
         },
         {
           path: "account",
           redirect: () => {
             const currentUserId = getCurrentUserId()
-            return currentUserId ? `/customer/${currentUserId}/account` : "/login"
+            return currentUserId ? `/customer/${currentUserId}/account` : "/client/login"
           },
         },
       ],
@@ -220,7 +221,7 @@ router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some((r) => r.meta.requiresAuth)
 
   // Đã đăng nhập mà vào trang login → chuyển về trang mặc định theo role
-  if ((to.path === "/login" || to.path === "/admin/login") && authenticated && role) {
+  if ((to.path === "/login" || to.path === "/client/login" || to.path === "/admin/login") && authenticated && role) {
     next(getDefaultPathByRole(role))
     return
   }
@@ -237,7 +238,7 @@ router.beforeEach((to, from, next) => {
       const roles = (r.meta?.roles || []).map((x) => normalizeRole(x))
       return roles.includes("ADMIN") || roles.includes("STAFF")
     })
-    next(needsAdminLogin ? "/admin/login" : "/login")
+    next(needsAdminLogin ? "/admin/login" : "/client/login")
     return
   }
 
