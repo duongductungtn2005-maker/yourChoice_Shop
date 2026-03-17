@@ -223,8 +223,8 @@ const authenticateCustomer = async (usernameValue, passwordValue) => {
   if (!finalUsername || !finalPassword) return null;
 
   try {
-    const response = await request.get('/khach-hang/authenticate', {
-      params: { username: finalUsername, password: finalPassword }
+    const response = await request.post('/khach-hang/authenticate', {
+      username: finalUsername, password: finalPassword
     });
     if (response?.data?.authenticated === true) {
       return response?.data?.customer || null;
@@ -241,11 +241,11 @@ const authenticateEmployee = async (usernameValue, passwordValue) => {
   if (!finalUsername || !finalPassword) return null;
 
   try {
-    const response = await request.get('/nhan-vien/authenticate', {
-      params: { username: finalUsername, password: finalPassword }
+    const response = await request.post('/nhan-vien/authenticate', {
+      username: finalUsername, password: finalPassword
     });
     if (response?.data?.authenticated === true) {
-      return response?.data?.employee || null;
+      return response?.data || null;
     }
     return null;
   } catch {
@@ -275,10 +275,12 @@ const handleLogin = async () => {
   errorMessage.value = '';
 
   // — Chỉ đăng nhập Nhân viên / Admin —
-  const employeeData = await authenticateEmployee(username.value, password.value);
-  if (employeeData) {
+  const result = await authenticateEmployee(username.value, password.value);
+  if (result && result.employee) {
+    const employeeData = result.employee;
+    const token = result.token;
     const role = determineRole(employeeData);
-    authLogin({ role, user: employeeData });
+    authLogin({ token, role, user: employeeData });
     toastSuccess(`Đăng nhập thành công! Xin chào ${employeeData.tenNhanVien}`);
     router.push(role === 'ADMIN' ? '/admin/dashboard' : '/staff/pos');
   } else {

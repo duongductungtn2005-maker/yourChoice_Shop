@@ -17,15 +17,15 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.example.yourchoiceshop.dto.request.LoginRequest;
+import org.example.yourchoiceshop.security.JwtUtil;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/v1/nhan-vien")
@@ -34,10 +34,12 @@ public class NhanVienController {
 
     private static final Logger logger = LoggerFactory.getLogger(NhanVienController.class);
     private final NhanVienService nhanVienService;
+    private final JwtUtil jwtUtil;
 
     @Autowired
-    public NhanVienController(NhanVienService nhanVienService) {
+    public NhanVienController(NhanVienService nhanVienService, JwtUtil jwtUtil) {
         this.nhanVienService = nhanVienService;
+        this.jwtUtil = jwtUtil;
     }
 
     // [UPDATED] Bỏ gender, thêm role
@@ -156,18 +158,30 @@ public class NhanVienController {
         return ResponseEntity.ok(isExist);
     }
 
-    // Authenticate (đăng nhập)
-    @GetMapping("/authenticate")
-    public ResponseEntity<?> authenticate(
-            @RequestParam String username,
-            @RequestParam String password
-    ) {
-        NhanVien employee = nhanVienService.getEmployeeByCredentials(username, password);
+    // Authenticate (đăng nhập) — POST để tránh lộ password trong URL
+    @PostMapping("/authenticate")
+    public ResponseEntity<?> authenticate(@RequestBody LoginRequest loginRequest) {
+        NhanVien employee = nhanVienService.getEmployeeByCredentials(
+                loginRequest.getUsername(), loginRequest.getPassword());
         if (employee != null) {
-            return ResponseEntity.ok(Map.of(
-                "authenticated", true,
-                "employee", employee
-            ));
+            // Xác định role từ quyenHan
+            String role = "STAFF";
+            if (employee.getQuyenHan() != null) {
+                int roleId = employee.getQuyenHan().getId();
+                String roleName = String.valueOf(employee.getQuyenHan().getTenQuyenHan()).toUpperCase();
+                if (roleId == 1 || roleName.contains("ADMIN") || roleName.contains("QUẢN TRỊ")) {
+                    role = "ADMIN";
+                }
+            }
+
+            String token = jwtUtil.generateToken(
+                    employee.getId(), employee.getTenTaiKhoan(), role, null);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("authenticated", true);
+            response.put("token", token);
+            response.put("employee", employee);
+            return ResponseEntity.ok(response);
         }
         return ResponseEntity.ok(Map.of("authenticated", false));
     }

@@ -15,6 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.example.yourchoiceshop.dto.request.LoginRequest;
+import org.example.yourchoiceshop.security.JwtUtil;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -30,6 +32,7 @@ public class KhachHangController {
     private final KhachHangService khachHangService;
     private final KhachHangRepository khachHangRepository;
     private final ObjectMapper objectMapper;
+    private final JwtUtil jwtUtil;
 
     // 1) Lấy danh sách
     @GetMapping
@@ -91,17 +94,18 @@ public class KhachHangController {
         }
     }
 
-    // 5) Authenticate (đăng nhập)
-    @GetMapping("/authenticate")
-    public ResponseEntity<?> authenticate(
-            @RequestParam String username,
-            @RequestParam String password
-    ) {
+    // 5) Authenticate (đăng nhập) — POST để tránh lộ password trong URL
+    @PostMapping("/authenticate")
+    public ResponseEntity<?> authenticate(@RequestBody LoginRequest loginRequest) {
         try {
-            var customer = khachHangService.getCustomerByCredentials(username, password);
+            var customer = khachHangService.getCustomerByCredentials(
+                    loginRequest.getUsername(), loginRequest.getPassword());
             if (customer == null) {
                 return ResponseEntity.ok(Map.of("authenticated", false));
             }
+
+                String token = jwtUtil.generateToken(
+                        customer.getId(), customer.getTenTaiKhoan(), "CUSTOMER", null);
 
                 Map<String, Object> customerData = new LinkedHashMap<>();
                 customerData.put("id", customer.getId());
@@ -114,6 +118,7 @@ public class KhachHangController {
 
                 Map<String, Object> response = new LinkedHashMap<>();
                 response.put("authenticated", true);
+                response.put("token", token);
                 response.put("customer", customerData);
 
                 return ResponseEntity.ok(response);
