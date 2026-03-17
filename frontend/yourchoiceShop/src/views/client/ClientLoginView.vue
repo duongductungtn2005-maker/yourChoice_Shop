@@ -93,15 +93,14 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    const response = await request.get('/khach-hang/authenticate', {
-      params: {
-        username: username.value.trim(),
-        password: password.value.trim()
-      }
+    const response = await request.post('/khach-hang/authenticate', {
+      username: username.value.trim(),
+      password: password.value.trim()
     })
     if (response?.data?.authenticated === true && response?.data?.customer) {
       const customerData = response.data.customer
-      authLogin({ role: 'CUSTOMER', user: customerData })
+      const token = response.data.token
+      authLogin({ token, role: 'CUSTOMER', user: customerData })
       useCartStore().reloadCart()
       window.dispatchEvent(new Event('auth-user-updated'))
       toastSuccess(`Đăng nhập thành công! Xin chào ${customerData.tenTaiKhoan || customerData.username || customerData.tenKhachHang || 'quý khách'}`)

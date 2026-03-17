@@ -7,10 +7,8 @@ export const getNhanVien = (params) => {
 }
 
 export const authenticateEmployee = (username, password) => {
-  return axios.get(`${API_URL}/authenticate`, {
-    params: {
-      username,
-      password
-    }
+  return axios.post(`${API_URL}/authenticate`, {
+    username,
+    password
   })
 }

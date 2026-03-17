@@ -265,7 +265,13 @@ public class NhanVienServiceImpl implements NhanVienService {
         if (usernameValue.isEmpty() || passwordValue.isEmpty()) {
             return null;
         }
-        return nhanVienRepo.findByTenTaiKhoanAndMatKhau(usernameValue, passwordValue).orElse(null);
+        NhanVien employee = nhanVienRepo.findByTenTaiKhoanAndMatKhau(usernameValue, passwordValue).orElse(null);
+
+        // Kiểm tra tài khoản còn hoạt động không (trangThai = 1)
+        if (employee != null && employee.getTrangThai() != null && employee.getTrangThai() != 1) {
+            return null;
+        }
+        return employee;
     }
 
     private String generateRandomPassword() {

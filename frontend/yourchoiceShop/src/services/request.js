@@ -31,9 +31,14 @@ request.interceptors.response.use(
     },
     (error) => {
         if (error.response && error.response.status === 401) {
-            // Xoá toàn bộ auth state (token + role + user + loginTime)
+            // Xác định role để redirect về đúng trang login
+            const role = sessionStorage.getItem('userRole');
             logout();
-            window.location.href = '/client/login';
+            if (role === 'ADMIN' || role === 'STAFF') {
+                window.location.href = '/admin/login';
+            } else {
+                window.location.href = '/client/login';
+            }
         }
         return Promise.reject(error);
     }

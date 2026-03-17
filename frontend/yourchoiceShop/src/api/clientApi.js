@@ -51,8 +51,8 @@ export function getKichThuoc(params) {
 
 /** Đăng nhập khách hàng */
 export function loginCustomer(username, password) {
-  return axios.get(`${API_URL}/khach-hang/authenticate`, {
-    params: { username, password }
+  return axios.post(`${API_URL}/khach-hang/authenticate`, {
+    username, password
   })
 }
 

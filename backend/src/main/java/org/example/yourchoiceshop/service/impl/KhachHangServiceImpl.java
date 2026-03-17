@@ -258,9 +258,15 @@ public class KhachHangServiceImpl implements KhachHangService {
         String passwordValue = password != null ? password.trim() : "";
         if (usernameValue.isEmpty() || passwordValue.isEmpty()) return null;
 
-        return khachHangRepository
+        KhachHang customer = khachHangRepository
                 .findByTenTaiKhoanIgnoreCaseAndMatKhau(usernameValue, passwordValue)
                 .orElse(null);
+
+        // Kiểm tra tài khoản còn hoạt động không (trangThai = 1)
+        if (customer != null && customer.getTrangThai() != null && customer.getTrangThai() != 1) {
+            return null;
+        }
+        return customer;
     }
 
     // =========================
