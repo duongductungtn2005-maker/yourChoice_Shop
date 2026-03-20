@@ -273,16 +273,26 @@ const handleLogin = async () => {
   const employeeData = await authenticateEmployee(username.value, password.value);
   if (employeeData) {
     const role = determineRole(employeeData);
+    
+    // Lưu vào hệ thống auth chung
     authLogin({ 
       role: role, 
       user: employeeData 
     });
+
+    // --- LƯU THÔNG TIN ĐỂ TRỰC CA SỬ DỤNG ---
+    localStorage.setItem('username', username.value);
+    localStorage.setItem('password', password.value);
+    // Lưu tên hiển thị (Rất quan trọng để hiển thị "Chào nhân viên...")
+    localStorage.setItem('tenNhanVien', employeeData.tenNhanVien || employeeData.hoTen || 'Nhân viên');
+    // ----------------------------------------
+
     toastSuccess(`Đăng nhập thành công! Xin chào ${employeeData.tenNhanVien}`);
     
     if (role === 'ADMIN') {
       router.push('/admin/dashboard');
     } else {
-      router.push('/staff/pos');
+      router.push('/staff/pos'); // Sau khi đăng nhập sẽ vào đây
     }
     return;
   }

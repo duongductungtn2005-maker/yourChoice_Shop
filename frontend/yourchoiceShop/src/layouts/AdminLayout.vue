@@ -9,7 +9,6 @@
       </div>
 
       <nav class="menu">
-        <!-- Admin only -->
         <router-link
           v-if="isAdmin"
           to="/admin/dashboard"
@@ -19,34 +18,43 @@
           <i class="fa-solid fa-gauge icon"></i> Thống kê
         </router-link>
 
-        <!-- Admin + Staff -->
-        <router-link
-          :to="`${basePath}/pos`"
-          class="menu-item"
+        <router-link 
+          v-if="isStaff" 
+          to="/staff/giao-ca" 
+          class="menu-item" 
           active-class="active-link"
         >
-          <i class="fa-solid fa-shop icon"></i> Bán hàng tại quầy
+          <i class="fas fa-clock icon"></i> Trực ca làm việc
         </router-link>
 
-        <router-link
-          :to="`${basePath}/orders`"
-          class="menu-item"
-          active-class="active-link"
-        >
-          <i class="fa-solid fa-file-lines icon"></i> Quản lý hóa đơn
-        </router-link>
+        <template v-if="isAdmin || (isStaff && hasActiveShift)">
+          <router-link
+            :to="`${basePath}/pos`"
+            class="menu-item"
+            active-class="active-link"
+          >
+            <i class="fa-solid fa-shop icon"></i> Bán hàng tại quầy
+          </router-link>
 
-        <!-- Staff only -->
-        <router-link
-          v-if="isStaff"
-          :to="`${basePath}/customers`"
-          class="menu-item"
-          active-class="active-link"
-        >
-          <i class="fa-solid fa-users icon"></i> Khách hàng
-        </router-link>
+          <router-link
+            :to="`${basePath}/orders`"
+            class="menu-item"
+            active-class="active-link"
+          >
+            <i class="fa-solid fa-file-lines icon"></i> Quản lý hóa đơn
+          </router-link>
 
-        <!-- Admin only: Product -->
+          <router-link
+            v-if="isStaff"
+            :to="`${basePath}/customers`"
+            class="menu-item"
+            active-class="active-link"
+          >
+            <i class="fa-solid fa-users icon"></i> Khách hàng
+          </router-link>
+        </template>
+
+
         <div v-if="isAdmin" class="menu-group">
           <div
             class="menu-item parent"
@@ -87,7 +95,6 @@
           </div>
         </div>
 
-        <!-- Admin only: Discounts -->
         <div v-if="isAdmin" class="menu-group">
           <div
             class="menu-item parent"
@@ -110,7 +117,6 @@
           </div>
         </div>
 
-        <!-- Admin only: Work schedule -->
         <div v-if="isAdmin" class="menu-group">
           <div
             class="menu-item parent"
@@ -118,7 +124,7 @@
             @click="toggleMenu('workSchedules')"
           >
             <span>
-              <i class="fa-solid fa-user-secret icon"></i> Quản lý lịch làm việc
+              <i class="fa-solid fa-calendar-days icon"></i> Quản lý lịch làm việc
             </span>
             <span class="arrow">{{ openMenus.workSchedules ? '▲' : '▼' }}</span>
           </div>
@@ -136,7 +142,6 @@
           </div>
         </div>
 
-        <!-- Admin only: Accounts -->
         <div v-if="isAdmin" class="menu-group">
           <div
             class="menu-item parent"
@@ -144,7 +149,7 @@
             @click="toggleMenu('accounts')"
           >
             <span>
-              <i class="fa-solid fa-user-secret icon"></i> Quản lý tài khoản
+              <i class="fa-solid fa-user-shield icon"></i> Quản lý tài khoản
             </span>
             <span class="arrow">{{ openMenus.accounts ? '▲' : '▼' }}</span>
           </div>
@@ -200,16 +205,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { toastSuccess } from '@/utils/toast'; // Nếu chưa có util này, bạn có thể xóa dòng import + dòng toastSuccess(...)
+import { toastSuccess } from '@/utils/toast'; 
 import { logout as authLogout, getRole, getCurrentUser, getCurrentUserName } from '@/services/auth';
 
 const route = useRoute();
 const router = useRouter();
 
 /* =========================
-   PHÂN QUYỀN (gộp từ File 2)
+   PHÂN QUYỀN VÀ CA LÀM VIỆC
 ========================= */
 const normalizeRole = (value) => {
   const role = String(value || '').toUpperCase();
@@ -256,6 +261,19 @@ const userRoleLabel = computed(() => {
   return 'Nhân viên';
 });
 
+// TRẠNG THÁI CA LÀM VIỆC CỦA STAFF
+// Lưu ý: Sau khi bạn gọi API mở ca làm việc thành công ở file GiaoCa.vue,
+// nhớ set 'hasActiveShift' vào sessionStorage hoặc store nhé!
+const hasActiveShift = ref(false);
+
+onMounted(() => {
+  // Kiểm tra xem trong session/local storage đã có cờ mở ca chưa
+  const shiftStatus = sessionStorage.getItem('hasActiveShift');
+  if (shiftStatus === 'true') {
+    hasActiveShift.value = true;
+  }
+});
+
 /* =========================
    USER DROPDOWN
 ========================= */
@@ -266,6 +284,9 @@ const toggleUserDropdown = () => {
 };
 
 const handleLogout = () => {
+  // Xóa luôn trạng thái ca làm việc khi đăng xuất cho an toàn
+  sessionStorage.removeItem('hasActiveShift');
+  
   authLogout();
   isUserDropdownOpen.value = false;
 
@@ -293,7 +314,7 @@ const toggleMenu = (key) => {
 };
 
 /* =========================
-   ROUTE ACTIVE (gộp + bổ sung)
+   ROUTE ACTIVE
 ========================= */
 const isProductRoute = computed(() => {
   const p = route.path;
@@ -333,7 +354,7 @@ const isAccountRoute = computed(() => {
 ========================= */
 const handleImageError = (e) => {
   e.target.style.display = 'none';
-};
+}; 
 </script>
 
 <style scoped>

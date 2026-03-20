@@ -29,7 +29,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/nhan-vien")
-@CrossOrigin("*")
 public class NhanVienController {
 
     private static final Logger logger = LoggerFactory.getLogger(NhanVienController.class);

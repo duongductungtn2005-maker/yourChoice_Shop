@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 
 import org.example.yourchoiceshop.dto.request.LichLamViecRequest;
+import org.example.yourchoiceshop.entity.LichLamViec;
 import org.example.yourchoiceshop.service.LichLamViecService; 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -17,8 +18,6 @@ import org.springframework.http.MediaType;
 @RestController
 @RequestMapping("/api/v1/lich-lam-viec")
 @RequiredArgsConstructor
-// MỞ RỘNG CORS: Cho phép tất cả các phương thức, đặc biệt là PUT, DELETE và OPTIONS
-@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS}) 
 public class LichLamViecController {
 
     private final LichLamViecService lichLamViecService;
@@ -89,6 +88,22 @@ public class LichLamViecController {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+    @GetMapping("/hom-nay")
+    public ResponseEntity<?> getLichHomNay() {
+        try {
+            LichLamViec lich = lichLamViecService.layLichLamViecHomNayCuaNhanVien();
+            
+            if (lich == null) {
+                // Trả về rỗng kèm mã 200 (vì không có lỗi gì, chỉ là họ được nghỉ thôi)
+                return ResponseEntity.ok().build(); 
+            }
+            
+            // Trả về thông tin lịch
+            return ResponseEntity.ok(lich);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi lấy lịch hôm nay: " + e.getMessage());
         }
     }
 }

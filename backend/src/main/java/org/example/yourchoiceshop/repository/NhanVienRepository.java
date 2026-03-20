@@ -37,4 +37,5 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
         boolean existsBySoDienThoai(String soDienThoai);
         boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);
         Optional<NhanVien> findByMaNhanVien(String maNhanVien);
+        Optional<NhanVien> findByTenTaiKhoan(String tenTaiKhoan);
 }

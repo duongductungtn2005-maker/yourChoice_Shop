@@ -54,7 +54,12 @@
               <td>{{ index + 1 }}</td>
               <td class="font-medium">{{ shift.tenCa }}</td>
               <td>{{ shift.thoiGianBatDau }}</td>
-              <td>{{ shift.thoiGianKetThuc }}</td>
+              <td>
+                {{ shift.thoiGianKetThuc }}
+                <span v-if="shift.laCaQuaDem" title="Ca qua đêm" style="color: #6366f1; font-size: 0.8rem; margin-left: 4px;">
+                  <i class="fas fa-moon"></i> (+1)
+                </span>
+              </td>
               <td class="text-center">
               <span class="badge" :class="shift.trangThai === 1 ? 'badge-active' : 'badge-stopped'">
                 {{ shift.trangThai === 1 ? 'Hoạt động' : 'Ngừng' }}
@@ -160,11 +165,20 @@ const fetchShifts = async () => {
 };
 
 // === Lắng nghe sự thay đổi của bộ lọc để tự động gọi API ===
-watch([keyword, status, startTime, endTime], () => {
-  currentPage.value = 0; // Khi đổi điều kiện lọc, luôn quay về trang đầu tiên
-  fetchShifts();
-});
+// Thêm 1 biến để lưu trạng thái chờ
+let searchTimeout = null;
 
+// === Lắng nghe sự thay đổi của bộ lọc để tự động gọi API ===
+watch([keyword, status, startTime, endTime], () => {
+  // Xóa bộ đếm cũ nếu người dùng vẫn đang gõ liên tục
+  if (searchTimeout) clearTimeout(searchTimeout);
+  
+  // Đặt bộ đếm mới: Chờ 500ms (0.5 giây) sau khi ngừng gõ/chọn thì mới gọi API
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 0; 
+    fetchShifts();
+  }, 500);
+});
 // === Logic Phân trang ===
 const visiblePages = computed(() => {
     const pages = [];

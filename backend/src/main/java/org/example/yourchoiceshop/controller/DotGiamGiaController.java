@@ -21,7 +21,6 @@
     @RestController
     @RequestMapping("/api/v1/dot-giam-gia")
     @RequiredArgsConstructor
-    @CrossOrigin("*")
     public class DotGiamGiaController {
         private final DotGiamGiaServiceImpl service;
         private final ChiTietDotGiamGiaRepository chiTietDotGiamGiaRepository;

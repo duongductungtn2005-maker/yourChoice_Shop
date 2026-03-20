@@ -17,7 +17,6 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api/v1/tay-ao")
 @RequiredArgsConstructor
-@CrossOrigin("*")
 public class TayAoController {
     private final TayAoServiceImpl service;
 

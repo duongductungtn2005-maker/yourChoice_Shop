@@ -18,7 +18,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/chi-tiet-san-pham")
-@CrossOrigin("*")
+
 public class ChiTietSanPhamController {
 
     @Autowired

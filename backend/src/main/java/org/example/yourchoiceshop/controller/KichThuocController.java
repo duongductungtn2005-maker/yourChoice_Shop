@@ -17,7 +17,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/kich-thuoc")
 @RequiredArgsConstructor
-@CrossOrigin("*")
 public class KichThuocController {
     private final KichThuocServiceImpl service;
     private final KichThuocRepository repository; // 1. Tiêm thêm Repository

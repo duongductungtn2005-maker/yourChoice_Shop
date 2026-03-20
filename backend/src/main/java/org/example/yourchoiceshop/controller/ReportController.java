@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/reports")
-// @CrossOrigin("*") // Mở comment nếu bị lỗi CORS
 public class ReportController {
 
     @Autowired

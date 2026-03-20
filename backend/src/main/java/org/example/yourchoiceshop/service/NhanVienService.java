@@ -1,6 +1,7 @@
 package org.example.yourchoiceshop.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.example.yourchoiceshop.dto.request.EmployeeRequest;
 import org.example.yourchoiceshop.entity.NhanVien;
@@ -19,4 +20,5 @@ public interface NhanVienService {
     boolean checkTrungSoDienThoai(String soDienThoai, Integer id);
     boolean authenticateEmployee(String username, String password);
     NhanVien getEmployeeByCredentials(String username, String password);
+    Optional<NhanVien> findByTenDangNhap(String tenDangNhap);
 }

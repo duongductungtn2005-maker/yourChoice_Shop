@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/statistics")
 @RequiredArgsConstructor
-@CrossOrigin("*") // Cho phép VueJS gọi
 public class StatisticController {
 
     private final StatisticService statisticService;

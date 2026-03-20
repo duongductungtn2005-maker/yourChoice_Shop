@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/phieu-giam-gia")
-@CrossOrigin("*")
 public class PhieuGiamGiaController {
     @Autowired
     private PhieuGiamGiaCaNhanRepository pggCaNhanRepo; // Inject Repository vừa tạo

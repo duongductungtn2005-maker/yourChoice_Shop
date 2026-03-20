@@ -287,4 +287,16 @@ public class LichLamViecService {
         
         return "Đã sao chép thành công " + soLuongCopyThanhCong + " ca làm việc từ tuần trước!";
     }
+    public LichLamViec layLichLamViecHomNayCuaNhanVien() {
+        // 1. Lấy username từ Token của người đang đăng nhập
+        String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        
+        // 2. Lấy ngày hôm nay
+        LocalDate today = LocalDate.now();
+
+        // 3. Tìm lịch
+        java.util.Optional<LichLamViec> lichOpt = lichLamViecRepository.findLichCuaNhanVienTrongNgay(username, today);
+        
+        return lichOpt.orElse(null); // Trả về null nếu hôm nay không có lịch
+    }
 }

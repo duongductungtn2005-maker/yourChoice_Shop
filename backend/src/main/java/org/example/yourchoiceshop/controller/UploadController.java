@@ -12,7 +12,6 @@ import java.util.UUID;
 import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/upload")
-@CrossOrigin("*") // Giữ nguyên
 public class UploadController {
 
     // Thư mục lưu file upload (tạo tự động nếu chưa có)

@@ -17,7 +17,6 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api/v1/xuat-xu")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class XuatXuController {
 
     private final XuatXuServiceImpl service;

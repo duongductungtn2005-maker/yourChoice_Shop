@@ -13,6 +13,7 @@ import CustomerCreate from "@/views/admin/customer/CustomerCreate.vue"
 import CustomerDetail from "@/views/admin/customer/CustomerDetail.vue"
 
 import ThongKeView from "@/views/admin/dashboard/ThongKeView.vue"
+import ShiftTracking from "@/views/admin/employee/schedule/ShiftTracking.vue";
 
 /* ================= ROLE HELPER ================= */
 const getUserRole = () => {
@@ -106,7 +107,7 @@ const router = createRouter({
         { path: "employees/edit/:id", name: "admin-employee-edit", component: () => import("../views/admin/employee/EditEmployee.vue") },
 
         /* Shifts & Schedule */
-        { path: "shifts", name: "admin-shift", component: () => import("../views/admin/employee/schedule/ShiftList.vue") },
+        { path: "shifts", name: "admin-shift-list", component: () => import("../views/admin/employee/schedule/ShiftList.vue") },
         { path: "shifts/create", name: "admin-shift-create", component: () => import("../views/admin/employee/schedule/ShiftCreate.vue") },
         { path: "shifts/edit/:id", name: "admin-shift-edit", component: () => import("../views/admin/employee/schedule/ShiftEdit.vue") },
         { path: "schedules", name: "admin-schedule", component: () => import("../views/admin/employee/schedule/ScheduleManager.vue") },
@@ -157,12 +158,19 @@ const router = createRouter({
       children: [
         { path: "", redirect: "/staff/pos" },
 
-        { path: "pos", name: "staff-pos", component: () => import("../views/admin/pos/BanHangTaiQuay.vue"), meta: { layout: "full" } },
+        { path: "pos", name: "staff-pos", component: () => import("../views/admin/pos/PosWrapper.vue"), meta: { layout: "full" } },
+
+        /* --- THÊM ROUTE GIAO CA VÀO ĐÂY --- */
+        { 
+          path: "giao-ca", // <-- Sửa ở đây
+          name: "staff-shift-tracking", 
+          component: () => import("../views/admin/employee/schedule/ShiftTracking.vue") 
+        },
 
         /* Orders (theo File 1) */
         { path: "orders", name: "staff-order-list", component: () => import("../views/admin/DonHang/QuanLyHoaDon.vue") },
         { path: "orders/:id", name: "staff-order-detail", component: () => import("../views/admin/DonHang/ChiTietHoaDon.vue") },
-
+        
         /* Customers */
         { path: "customers", name: "staff-customer-list", component: () => import("../views/admin/customer/CustomerList.vue") },
         { path: "customers/create", name: "staff-customer-create", component: CustomerCreate },

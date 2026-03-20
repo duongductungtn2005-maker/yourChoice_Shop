@@ -17,7 +17,6 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api/v1/thuong-hieu")
 @RequiredArgsConstructor
-@CrossOrigin("*")
 public class ThuongHieuController {
     private final ThuongHieuServiceImpl service;
 

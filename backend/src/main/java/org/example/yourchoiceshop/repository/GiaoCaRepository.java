@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 public interface GiaoCaRepository extends JpaRepository<GiaoCa, Integer> {
 
@@ -41,4 +42,6 @@ public interface GiaoCaRepository extends JpaRepository<GiaoCa, Integer> {
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             Pageable pageable);
+            // Tìm ca đang làm việc (trạng thái = 1) của nhân viên hiện tại
+    Optional<GiaoCa> findByNhanVienTrongCa_IdAndTrangThai(Integer idNhanVien, Integer trangThai);
 }

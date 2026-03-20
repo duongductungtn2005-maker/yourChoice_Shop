@@ -26,7 +26,6 @@ import org.example.yourchoiceshop.dto.request.BulkUpdateVariantRequest;
 @RestController
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ProductController {
 
     private final ProductServiceImpl productService;

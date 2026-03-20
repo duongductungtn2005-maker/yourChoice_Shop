@@ -13,7 +13,6 @@ import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/lich-su-hoat-dong")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class LichSuHoatDongController {
 

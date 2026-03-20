@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/dia-chi")
 @RequiredArgsConstructor
-@CrossOrigin("*") // Cho phép Frontend VueJS gọi API
+
 public class DiaChiKhachHangController {
 
     private final DiaChiService diaChiService;

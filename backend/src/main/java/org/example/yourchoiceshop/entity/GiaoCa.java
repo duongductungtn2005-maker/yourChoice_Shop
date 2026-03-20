@@ -2,6 +2,9 @@ package org.example.yourchoiceshop.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+// THÊM DÒNG IMPORT NÀY:
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -16,16 +19,19 @@ public class GiaoCa extends BaseStatusEntity {
     // Người trực ca hiện tại (người mở ca)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_nhan_vien_trong_ca")
+    @JsonIgnore // <--- THÊM DÒNG NÀY ĐỂ TRÁNH LỖI 500
     private NhanVien nhanVienTrongCa;
 
     // Người nhận ca tiếp theo (người được bàn giao khi đóng ca)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_nhan_vien_nhan_ca")
+    @JsonIgnore // <--- THÊM DÒNG NÀY ĐỂ TRÁNH LỖI 500
     private NhanVien nhanVienNhanCa;
 
     // THÊM ĐOẠN NÀY VÀO ĐỂ KẾT NỐI VỚI LỊCH LÀM VIỆC
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_lich_lam_viec")
+    @JsonIgnore // <--- THÊM DÒNG NÀY ĐỂ TRÁNH LỖI 500
     private LichLamViec lichLamViec;
 
     @Column(name = "thoi_gian_nhan_ca")

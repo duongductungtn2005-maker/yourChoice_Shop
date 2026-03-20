@@ -18,7 +18,6 @@ import org.example.yourchoiceshop.repository.MauSacRepository; // Import Repo
 @RestController
 @RequestMapping("/api/v1/mau-sac")
 @RequiredArgsConstructor
-@CrossOrigin("*")
 public class MauSacController {
     private final MauSacRepository repository; // 1. Tiêm thêm Repository
     private final MauSacServiceImpl service;

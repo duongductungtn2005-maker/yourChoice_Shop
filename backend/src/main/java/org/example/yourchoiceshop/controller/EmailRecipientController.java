@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/email-recipients")
-// @CrossOrigin("*") // Mở comment dòng này nếu mày bị lỗi CORS ở Frontend nhé
 public class EmailRecipientController {
 
     @Autowired

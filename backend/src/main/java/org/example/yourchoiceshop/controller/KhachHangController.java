@@ -23,7 +23,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/khach-hang")
 @RequiredArgsConstructor
-@CrossOrigin("*")
 public class KhachHangController {
 
     private final KhachHangService khachHangService;

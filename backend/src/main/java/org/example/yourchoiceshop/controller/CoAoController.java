@@ -17,7 +17,6 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api/v1/co-ao")
 @RequiredArgsConstructor
-@CrossOrigin("*")
 public class CoAoController {
     private final CoAoServiceImpl service;
 
