@@ -180,40 +180,41 @@ const router = createRouter({
   ],
 })
 
-/* ================= NAVIGATION GUARD ================= */
+/* ================= NAVIGATION GUARD CẢI TIẾN ================= */
 router.beforeEach((to, from, next) => {
-  // Ưa tiên service auth, fallback qua sessionStorage
   const authenticated = isAuthenticated ? isAuthenticated() : !!sessionStorage.getItem("token")
-  const roleFromService = authenticated && getRole ? getRole() : null
-  const role = normalizeRole(roleFromService || getUserRole())
+  const role = normalizeRole(getRole ? getRole() : getUserRole())
+  
+  // Trạng thái ca làm việc (Lấy từ sessionStorage mà PosWrapper đã lưu)
+  const hasActiveShift = sessionStorage.getItem('hasActiveShift') === 'true'
 
-  const requiresAuth = to.matched.some((r) => r.meta.requiresAuth)
-
-  // Đã đăng nhập mà vào /login → chuyển về trang mặc định theo role
-  if (to.path === "/login" && authenticated && role) {
+  if (to.path === "/login" && authenticated) {
     next(getDefaultPathByRole(role))
     return
   }
 
-  // Route không yêu cầu auth → cho qua
-  if (!requiresAuth) {
+  if (!to.matched.some(r => r.meta.requiresAuth)) {
     next()
     return
   }
 
-  // Chưa đăng nhập hoặc không có role → về login
   if (!authenticated || !role) {
     next("/login")
     return
   }
 
-  // Kiểm tra role
-  const allowedRoles = to.matched
-    .flatMap((r) => (r.meta?.roles ? r.meta.roles : []))
-    .map((r) => normalizeRole(r))
-
-  if (allowedRoles.length && !allowedRoles.includes(role)) {
-    next(getDefaultPathByRole(role))
+  // --- LOGIC CHẶN CA LÀM VIỆC ---
+  // Các trang yêu cầu phải có ca mới được vào
+  const shiftRequiredRoutes = ['pos', 'bills-management', 'customers-management']
+  
+  if (shiftRequiredRoutes.includes(to.name) && !hasActiveShift && role === 'STAFF') {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Yêu cầu mở ca!',
+      text: 'Bạn phải mở ca làm việc mới có thể sử dụng chức năng này.',
+      confirmButtonText: 'Đi tới màn trực ca'
+    })
+    next({ name: 'staff-shift-tracking' })
     return
   }
 

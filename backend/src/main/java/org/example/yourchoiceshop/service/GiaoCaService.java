@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Optional;
 
 @Service
@@ -80,18 +81,29 @@ public class GiaoCaService {
      * ĐÓNG CA LÀM VIỆC (Đã bỏ phần kiểm đếm tiền)
      */
     public GiaoCa closeShift(Integer idGiaoCa) {
-        GiaoCa giaoCa = repo.findById(idGiaoCa)
+    GiaoCa giaoCa = repo.findById(idGiaoCa)
             .orElseThrow(() -> new RuntimeException("Không tìm thấy ca làm việc này!"));
 
-        if (giaoCa.getTrangThai() == 0) { 
-            throw new RuntimeException("Ca làm việc này đã được kết thúc từ trước!");
-        }
-
-        // Chỉ cần cập nhật giờ đóng ca và đổi trạng thái
-        giaoCa.setThoiGianGiaoCa(LocalDateTime.now());
-        giaoCa.setTrangThai(0); // 0 = Đã kết thúc
-
-        return repo.save(giaoCa);
+    if (giaoCa.getTrangThai() == 0) { 
+        throw new RuntimeException("Ca làm việc này đã được kết thúc từ trước!");
     }
+
+    // --- THÊM VALIDATE GIỜ KẾT THÚC ---
+    LocalDateTime bayGio = LocalDateTime.now();
+    // Lấy giờ kết thúc từ lịch trực (Ca làm việc)
+    LocalTime gioKetThucLich = giaoCa.getLichLamViec().getCaLamViec().getThoiGianKetThuc();
+    // Chuyển thành LocalDateTime của ngày hôm nay
+    LocalDateTime thoiDiemKetThucDuKien = LocalDateTime.of(LocalDate.now(), gioKetThucLich);
+
+    if (bayGio.isBefore(thoiDiemKetThucDuKien)) {
+        throw new RuntimeException("Chưa đến giờ kết thúc ca (" + gioKetThucLich + "). Bạn không thể đóng ca sớm!");
+    }
+    // ---------------------------------
+
+    giaoCa.setThoiGianGiaoCa(bayGio);
+    giaoCa.setTrangThai(0); 
+
+    return repo.save(giaoCa);
+}
     
 }

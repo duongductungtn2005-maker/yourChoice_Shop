@@ -1,4 +1,63 @@
+<template>
+  <h1 style="color: red; background: yellow; padding: 20px;">ĐANG NẰM Ở TRANG SHIFT TRACKING</h1>
+  <div class="shift-tracking-container">
+    <div class="user-header">
+      <i class="fas fa-user-circle"></i> Xin chào, <strong>{{ employeeName }}</strong>
+    </div>
+
+    <div v-if="isLoading" class="alert-card status-no-shift">
+      <p>Đang tải dữ liệu ca làm việc...</p>
+    </div>
+
+    <div v-else>
+      <div v-if="activeShift" class="alert-card status-active">
+        <h2 class="text-success"><i class="fas fa-check-circle"></i> Ca làm việc đang mở</h2>
+        
+        <div class="shift-details">
+          <p><strong>Giờ vào ca:</strong> {{ formatTime(activeShift.thoiGianBatDau) || 'Đang cập nhật' }}</p>
+          <p><strong>Dự kiến kết thúc:</strong> {{ formatTime(activeShift.thoiGianKetThucDuKien) }}</p>
+        </div>
+
+        <div v-if="isTimeToEndShift" class="wait-message">
+          <i class="fas fa-exclamation-triangle"></i> Đã đến giờ kết thúc ca. Vui lòng hoàn tất đơn hàng và đóng ca!
+        </div>
+
+        <div class="action-buttons">
+          <router-link :to="{ name: 'staff-pos' }" class="btn btn-pos">
+            ĐI ĐẾN MÀN HÌNH BÁN HÀNG
+          </router-link>
+          <button @click="handleCloseShift" class="btn btn-close">
+            KẾT THÚC CA
+          </button>
+        </div>
+      </div>
+
+      <div v-else-if="todaySchedule" class="alert-card status-empty">
+        <h2><i class="fas fa-clock"></i> Chưa mở ca làm việc</h2>
+        
+        <div class="shift-details">
+          <p>Bạn có lịch làm việc hôm nay:</p>
+          <p><strong>Ca:</strong> {{ todaySchedule.caLamViec?.tenCa || 'Đang cập nhật' }}</p>
+          <p><strong>Thời gian:</strong> 
+            {{ formatTime(todaySchedule.caLamViec?.thoiGianBatDau || todaySchedule.thoiGianBatDau) }} - 
+            {{ formatTime(todaySchedule.caLamViec?.thoiGianKetThuc || todaySchedule.thoiGianKetThuc) }}
+          </p>
+        </div>
+
+        <button @click="handleOpenShift" class="btn btn-open">
+          BẮT ĐẦU CA LÀM VIỆC
+        </button>
+      </div>
+
+      <div v-else class="alert-card status-no-shift">
+        <h2><i class="fas fa-calendar-times"></i> Không có lịch làm việc</h2>
+        <p>Hôm nay bạn không có lịch được phân công hoặc ca làm việc đã kết thúc.</p>
+      </div>
+    </div>
+  </div>
+</template>
 <script setup>
+
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2'; 
@@ -6,8 +65,9 @@ import request from '@/services/request';
 import { getCurrentUser } from '@/services/auth'; 
 
 const router = useRouter(); 
-const user = getCurrentUser();
-const employeeName = user?.tenNhanVien || user?.username || 'Nhân viên';
+// ĐÃ FIX: Thêm || {} để nếu user null thì gán bằng object rỗng, code không bị sập ngang
+const user = getCurrentUser() || {}; 
+const employeeName = user.tenNhanVien || user.username || 'Nhân viên';
 
 const activeShift = ref(null);    
 const todaySchedule = ref(null);  
@@ -19,6 +79,12 @@ let timeChecker = null;
 // 1. LẤY DỮ LIỆU LẦN ĐẦU (CÓ LOADING)
 // ==========================================
 const fetchCurrentShift = async () => {
+  // ĐÃ FIX: Chặn gọi API nếu không có username, đồng thời đẩy về login
+  if (!user || !user.username) {
+    router.push('/login');
+    return;
+  }
+
   isLoading.value = true;
   try {
     const scheduleRes = await request.get(`/lich-lam-viec/hom-nay?username=${user.username}`); 
@@ -26,7 +92,6 @@ const fetchCurrentShift = async () => {
       todaySchedule.value = scheduleRes.data;
     }
 
-    // ĐÃ FIX: Truyền username vào API hiện tại
     const res = await request.get(`/giao-ca/hien-tai?username=${user.username}`);
     
     if (res.data && res.data.id) {
@@ -49,8 +114,13 @@ const fetchCurrentShift = async () => {
 // 2. ĐỒNG BỘ NGẦM (KHÔNG LOADING)
 // ==========================================
 const backgroundSync = async () => {
+  // ĐÃ FIX: Chặn đồng bộ ngầm nếu tự nhiên mất thông tin user
+  if (!user || !user.username) {
+    if (timeChecker) clearInterval(timeChecker);
+    return;
+  }
+
   try {
-    // ĐÃ FIX: Truyền username vào API hiện tại
     const res = await request.get(`/giao-ca/hien-tai?username=${user.username}`);
     
     if (res.data && res.data.id) {
@@ -110,7 +180,11 @@ const checkTimeToEndShift = () => {
 const handleOpenShift = async () => {
   try {
     const idLich = todaySchedule.value.id; 
-    const res = await request.post('/giao-ca/mo-ca', { idLichLamViec: idLich }); 
+    
+    // ✅ ĐÃ FIX: Truyền thêm param username để khớp với Controller Backend
+    const res = await request.post(`/giao-ca/mo-ca?username=${user.username}`, { 
+        idLichLamViec: idLich 
+    }); 
     
     Swal.fire({
       icon: 'success',
@@ -123,7 +197,7 @@ const handleOpenShift = async () => {
     activeShift.value = res.data;
     checkTimeToEndShift(); 
     
-  } catch (e) { 
+  } catch (e) {
     Swal.fire({
       icon: 'error',
       title: 'Không thể mở ca',
@@ -173,6 +247,42 @@ const formatTime = (dateString) => {
   const d = new Date(dateString);
   return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 };
+const handleRequestCloseShift = async (shift) => {
+  const now = new Date();
+  const endTime = new Date(shift.thoiGianKetThucDuKien);
+
+  // 1. Kiểm tra thời gian: Chưa tới giờ không cho đóng
+  if (now < endTime) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Chưa thể đóng ca!',
+      text: `Ca làm việc của bạn dự kiến kết thúc lúc ${endTime.toLocaleTimeString('vi-VN')}. Bạn phải làm đủ thời gian quy định mới được đóng ca.`,
+      confirmButtonColor: '#3085d6'
+    });
+    return;
+  }
+
+  // 2. Nếu đã đủ giờ, yêu cầu xác nhận
+  const confirm = await Swal.fire({
+    title: 'Xác nhận đóng ca?',
+    text: "Mọi giao dịch sau khi đóng ca sẽ không được tính vào phiên này!",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Đóng ca ngay',
+    cancelButtonText: 'Tiếp tục làm việc'
+  });
+
+  if (confirm.isConfirmed) {
+    try {
+      await request.post(`/giao-ca/ket-thuc/${shift.id}`);
+      sessionStorage.setItem('hasActiveShift', 'false'); // Cập nhật trạng thái ngay
+      Swal.fire('Thành công!', 'Ca làm việc đã được đóng.', 'success');
+      window.location.reload(); // Refresh để router guard chặn truy cập lại
+    } catch (error) {
+      Swal.fire('Lỗi', 'Không thể đóng ca, vui lòng liên hệ Admin.', 'error');
+    }
+  }
+};
 
 onMounted(() => {
   fetchCurrentShift();
@@ -189,9 +299,9 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* CSS giữ nguyên, thêm 1 chút cho đẹp */
+.shift-tracking-container { max-width: 600px; margin: 0 auto; padding: 20px; }
 .user-header { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 16px; border-left: 5px solid #007bff;}
-.alert-card { padding: 30px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+.alert-card { padding: 30px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px;}
 .status-active { border: 2px solid #28a745; background: #f8fff9; }
 .status-empty { border: 2px solid #ffc107; background: #fffdf5; }
 .status-no-shift { border: 2px solid #6c757d; background: #f8f9fa; color: #6c757d;}

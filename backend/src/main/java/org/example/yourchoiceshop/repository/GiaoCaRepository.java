@@ -44,4 +44,6 @@ public interface GiaoCaRepository extends JpaRepository<GiaoCa, Integer> {
             Pageable pageable);
             // Tìm ca đang làm việc (trạng thái = 1) của nhân viên hiện tại
     Optional<GiaoCa> findByNhanVienTrongCa_IdAndTrangThai(Integer idNhanVien, Integer trangThai);
+    // Tìm ca đang mở của một lịch cụ thể
+Optional<GiaoCa> findByLichLamViec_IdAndTrangThai(Integer idLich, Integer trangThai);
 }

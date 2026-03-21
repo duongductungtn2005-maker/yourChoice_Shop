@@ -1,9 +1,17 @@
 <template>
-  <div class="pos-wrapper" style="position: relative; min-height: 80vh;">
+  
+  <div class="pos-wrapper">
     
-    <div v-if="!isLoading && !hasActiveShift" class="lock-overlay">
+    <div v-if="isLoading" class="loading-box">
+      <h3><i class="fas fa-spinner fa-spin"></i> Đang kiểm tra trạng thái ca làm việc...</h3>
+    </div>
+
+    <div v-else-if="!hasActiveShift" class="lock-overlay">
       <div class="lock-box">
-        <div class="icon-wrapper"><i class="fas fa-lock"></i></div>
+        
+        <div class="icon-wrapper">
+          <i class="fas fa-lock"></i>
+        </div>
         
         <template v-if="todaySchedule">
           <h2>Chưa mở ca làm việc!</h2>
@@ -15,7 +23,7 @@
 
         <template v-else>
           <h2>Không có quyền truy cập!</h2>
-          <p style="color: #dc3545; font-weight: bold;">Hôm nay bạn không có lịch làm việc được phân công.</p>
+          <p class="error-text">Hôm nay bạn không có lịch làm việc được phân công.</p>
           <p>Bạn không thể sử dụng chức năng bán hàng hoặc quản lý trong lúc hệ thống đang đóng ca của bạn.</p>
           <router-link :to="{ name: 'staff-shift-tracking' }" class="btn-unlock btn-disabled">
             <i class="fas fa-info-circle"></i> XEM LỊCH CỦA TÔI
@@ -24,52 +32,59 @@
       </div>
     </div>
 
-    <BanHangTaiQuay v-if="hasActiveShift" />
+    <BanHangTaiQuay v-else />
 
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2'; 
-
 import request from '@/services/request'; 
-import { isAuthenticated, getCurrentUser } from '@/services/auth'; 
+import { isAuthenticated, getCurrentUser, getCurrentUserName } from '@/services/auth';
 import BanHangTaiQuay from './BanHangTaiQuay.vue'; 
 
 const router = useRouter(); 
-const user = getCurrentUser(); 
-
 const isLoading = ref(true);
 const hasActiveShift = ref(false); 
 const todaySchedule = ref(null); 
-
 let posInterval = null; 
 
 const checkShiftStatus = async (isBackground = false) => {
-  if (!isAuthenticated()) {
+  const user = getCurrentUser(); 
+
+  // 1. Kiểm tra đăng nhập trước tiên
+  if (!isAuthenticated() || !user) {
     if (!isBackground) router.push('/login');
     return;
   }
 
+  // 2. Bật Loading
   if (!isBackground) isLoading.value = true;
 
   try {
-    // ĐÃ FIX: Truyền username vào để Backend biết là ai đang hỏi
-    const response = await request.get(`/giao-ca/hien-tai?username=${user.username}`);
+    // 3. ÁP DỤNG PRO TIP Ở ĐÂY LÀ CHUẨN BÀI NHẤT:
+    // Ưu tiên lấy id (86) hoặc mã nhân viên/tài khoản viết liền, TUYỆT ĐỐI không lấy tên có dấu!
+const usernameQuery = user.tenTaiKhoan || user.maNhanVien || user.username || user.id;
+    
+    // 4. Gọi API
+    const response = await request.get(`/giao-ca/hien-tai?username=${usernameQuery}`);
     
     if (response.data && response.data.id) {
       hasActiveShift.value = true; 
+      sessionStorage.setItem('hasActiveShift', 'true');
     } else {
-      const scheduleRes = await request.get(`/lich-lam-viec/hom-nay?username=${user.username}`);
+      hasActiveShift.value = false;
+      sessionStorage.setItem('hasActiveShift', 'false');
+
+      const scheduleRes = await request.get(`/lich-lam-viec/hom-nay?username=${usernameQuery}`);
       if (scheduleRes.data) {
         todaySchedule.value = scheduleRes.data; 
       } else {
         todaySchedule.value = null; 
       }
 
-      if (hasActiveShift.value && isBackground) {
+      if (isBackground && !hasActiveShift.value) { 
         Swal.fire({
           icon: 'error',
           title: 'Ca làm việc đã bị đóng!',
@@ -77,25 +92,86 @@ const checkShiftStatus = async (isBackground = false) => {
           confirmButtonColor: '#d33',
           allowOutsideClick: false 
         }).then(() => {
-          router.push({ name: 'staff-shift-tracking' }); 
+          router.push('/staff/giao-ca'); 
         });
       }
-      hasActiveShift.value = false; 
     }
   } catch (error) {
-    if (error.response?.status === 400 && !isBackground) {
-      Swal.fire({ icon: 'error', title: 'Lỗi phiên', text: 'Vui lòng đăng nhập lại!'});
-      router.push('/login');
-    }
+    console.error("Lỗi khi gọi API kiểm tra ca:", error);
     hasActiveShift.value = false;
   } finally {
+    // 5. Luôn luôn tắt Loading
     if (!isBackground) isLoading.value = false;
+  }
+};
+const deleteStaff = async (staffId) => {
+  const result = await Swal.fire({
+    title: 'Bạn có chắc chắn?',
+    text: "Nhân viên này sẽ bị xóa. Nếu đang trong ca, ca làm việc sẽ tự động bị đóng!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    confirmButtonText: 'Xóa ngay',
+    cancelButtonText: 'Hủy'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      // Gọi API xóa (Backend xử lý: nếu có ca active -> close ca -> delete staff)
+      await request.delete(`/nhan-vien/${staffId}`);
+      
+      Swal.fire(
+        'Đã xóa!',
+        'Nhân viên đã được xóa và ca làm việc (nếu có) đã được đóng.',
+        'success'
+      );
+      // Refresh danh sách nhân viên
+      loadStaffList();
+    } catch (error) {
+      Swal.fire('Lỗi!', 'Có lỗi xảy ra khi xóa nhân viên.', 'error');
+    }
+  }
+};
+
+const handleCloseShift = async (shiftData) => {
+  const now = new Date();
+  const endTime = new Date(shiftData.thoiGianKetThucDuKien);
+
+  // VALIDATE: Nếu chưa đến giờ kết ca
+  if (now < endTime) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Chưa được đóng ca!',
+      text: `Ca làm việc của bạn kết thúc vào lúc ${endTime.toLocaleTimeString()}. Vui lòng quay lại sau!`,
+    });
+    return;
+  }
+
+  // Nếu hợp lệ, tiến hành đóng ca
+  const { isConfirmed } = await Swal.fire({
+    title: 'Xác nhận đóng ca?',
+    text: "Bạn sẽ không thể bán hàng sau khi đóng ca!",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Đồng ý',
+    cancelButtonText: 'Hủy'
+  });
+
+  if (isConfirmed) {
+    try {
+      await request.post('/giao-ca/ket-thuc', { id: shiftData.id });
+      sessionStorage.setItem('hasActiveShift', 'false');
+      Swal.fire('Thành công!', 'Ca làm việc đã được đóng.', 'success');
+      router.push('/staff/giao-ca');
+    } catch (error) {
+      Swal.fire('Lỗi!', 'Không thể đóng ca, vui lòng thử lại.', 'error');
+    }
   }
 };
 
 onMounted(() => {
   checkShiftStatus(false); 
-  
+  // Lặp lại việc check mỗi 10 giây chạy ngầm
   posInterval = setInterval(() => {
     checkShiftStatus(true); 
   }, 10000);
@@ -105,22 +181,89 @@ onUnmounted(() => {
   if (posInterval) clearInterval(posInterval);
 });
 </script>
-
 <style scoped>
-/* CSS giữ nguyên, thêm style cho nút bị vô hiệu hóa */
-.lock-overlay {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(235, 240, 245, 0.85); backdrop-filter: blur(4px);
-  display: flex; justify-content: center; align-items: center; z-index: 1000; border-radius: 8px;
+/* Định dạng khung bao ngoài */
+.pos-wrapper {
+  position: relative; 
+  min-height: 80vh; 
+  background-color: #f4f6f8;
 }
-.lock-box { background: white; padding: 40px; border-radius: 16px; text-align: center; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #e0e0e0; }
-.icon-wrapper { background-color: #f8d7da; color: #dc3545; width: 80px; height: 80px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; margin: 0 auto 20px auto; }
-.lock-box h2 { color: #2c3e50; margin-bottom: 12px; font-weight: 700; }
-.lock-box p { color: #6c757d; margin-bottom: 30px; line-height: 1.5; }
-.btn-unlock { display: inline-block; background-color: #1e3a5f; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.3s ease; }
-.btn-unlock:hover { background-color: #152b47; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(30,58,95,0.3); }
 
-/* Thêm nút màu xám cho trường hợp không có lịch */
-.btn-disabled { background-color: #6c757d; }
-.btn-disabled:hover { background-color: #5a6268; box-shadow: none; }
+/* Định dạng màn hình Loading */
+.loading-box {
+  padding: 50px; 
+  text-align: center;
+  color: #666;
+}
+
+/* --- ĐỊNH DẠNG MÀN HÌNH KHÓA --- */
+.lock-overlay {
+  position: absolute; 
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%; 
+  background: rgba(0, 0, 0, 0.6); 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  z-index: 9999;
+}
+
+.lock-box {
+  background: white; 
+  padding: 40px; 
+  border-radius: 12px; 
+  text-align: center; 
+  max-width: 500px; 
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.icon-wrapper {
+  font-size: 50px; 
+  color: #dc3545; 
+  margin-bottom: 20px;
+}
+
+.lock-box h2 {
+  margin-bottom: 15px; 
+  color: #333;
+}
+
+.lock-box p {
+  color: #666; 
+  margin-bottom: 25px; 
+  line-height: 1.5;
+}
+
+.lock-box p.error-text {
+  color: #dc3545; 
+  font-weight: bold; 
+  margin-bottom: 10px;
+}
+
+/* Nút bấm */
+.btn-unlock {
+  display: inline-block; 
+  padding: 12px 24px; 
+  background-color: #0d6efd; 
+  color: white; 
+  text-decoration: none; 
+  border-radius: 6px; 
+  font-weight: bold; 
+  transition: background-color 0.3s;
+}
+
+.btn-unlock:hover {
+  background-color: #0b5ed7;
+  color: white;
+}
+
+.btn-disabled {
+  background-color: #6c757d;
+}
+
+.btn-disabled:hover {
+  background-color: #5c636a;
+}
 </style>

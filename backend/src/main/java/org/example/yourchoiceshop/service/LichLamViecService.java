@@ -7,12 +7,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.example.yourchoiceshop.entity.CaLamViec;
+import org.example.yourchoiceshop.entity.GiaoCa;
 import org.example.yourchoiceshop.entity.LichLamViec;
 import org.example.yourchoiceshop.entity.NhanVien;
 import org.apache.poi.ss.usermodel.Cell;
@@ -36,6 +39,7 @@ import org.example.yourchoiceshop.dto.request.LichLamViecRequest;
 // THÊM CÁC DÒNG IMPORT REPOSITORY NÀY
 import org.example.yourchoiceshop.repository.LichLamViecRepository; 
 import org.example.yourchoiceshop.repository.CaLamViecRepository; 
+import org.example.yourchoiceshop.repository.GiaoCaRepository;
 import org.example.yourchoiceshop.repository.NhanVienRepository; 
 
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +52,7 @@ public class LichLamViecService {
     private final LichLamViecRepository lichLamViecRepository;
     private final CaLamViecRepository caLamViecRepository; 
     private final NhanVienRepository nhanVienRepository;   
+    private final GiaoCaRepository giaoCaRepo; // Repository để quản lý GiaoCa
 
     public List<LichLamViec> getLichLamViec(LocalDate startDate, LocalDate endDate) {
         if (startDate != null && endDate != null) {
@@ -287,16 +292,42 @@ public class LichLamViecService {
         
         return "Đã sao chép thành công " + soLuongCopyThanhCong + " ca làm việc từ tuần trước!";
     }
-    public LichLamViec layLichLamViecHomNayCuaNhanVien() {
-        // 1. Lấy username từ Token của người đang đăng nhập
-        String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
-        
-        // 2. Lấy ngày hôm nay
+    public LichLamViec layLichLamViecHomNayCuaNhanVien(String username) {
+        // Không dùng SecurityContextHolder nữa, nhận trực tiếp từ Controller truyền vào
         LocalDate today = LocalDate.now();
-
-        // 3. Tìm lịch
-        java.util.Optional<LichLamViec> lichOpt = lichLamViecRepository.findLichCuaNhanVienTrongNgay(username, today);
-        
-        return lichOpt.orElse(null); // Trả về null nếu hôm nay không có lịch
+        return lichLamViecRepository.findLichCuaNhanVienTrongNgay(username, today).orElse(null);
     }
+    @Transactional
+    public void deleteLich(Long idLich) {
+        // 1. Tìm xem có ca nào đang OPEN liên quan đến lịch này không
+        // Giả sử quan hệ GiaoCa - LichLamViec là 1-1 hoặc N-1
+        List<GiaoCa> activeShifts = GiaoCaRepository.findAllByLichLamViecIdAndTrangThai(idLich, "OPEN");
+
+        // 2. Nếu có, đóng ca cưỡng bức trước khi xóa lịch
+        for (GiaoCa ca : activeShifts) {
+            ca.setTrangThai("CLOSED");
+            ca.setThoiGianKetThuc(LocalDateTime.now());
+            ca.setGhiChu("Hệ thống tự động đóng do quản lý xóa lịch trực.");
+            GiaoCaRepository.save(ca);
+        }
+
+        // 3. Cuối cùng mới xóa lịch
+        lichLamViecRepository.deleteById(idLich);
+    }
+    @Transactional
+public void xoaLichLamViec(Integer idLich) {
+    // 1. Kiểm tra xem lịch này có đang được mở ca (Check-in) không
+    Optional<GiaoCa> caDangMo = giaoCaRepo.findByLichLamViec_IdAndTrangThai(idLich, 1);
+
+    // 2. Nếu có ca đang mở, đóng nó lại trước khi xóa lịch
+    caDangMo.ifPresent(ca -> {
+        ca.setThoiGianGiaoCa(LocalDateTime.now());
+        ca.setTrangThai(0); // Đóng ca
+        ca.setGhiChu("Hệ thống tự động đóng ca do lịch làm việc bị xóa.");
+        giaoCaRepo.save(ca);
+    });
+
+    // 3. Tiến hành xóa lịch
+    lichLamViecRepository.deleteById(idLich);
+}
 }

@@ -8,12 +8,16 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import org.example.yourchoiceshop.dto.request.LichLamViecRequest;
+import org.example.yourchoiceshop.entity.GiaoCa;
 import org.example.yourchoiceshop.entity.LichLamViec;
 import org.example.yourchoiceshop.service.LichLamViecService; 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+
+import jakarta.transaction.Transactional;
 
 @RestController
 @RequestMapping("/api/v1/lich-lam-viec")
@@ -21,6 +25,7 @@ import org.springframework.http.MediaType;
 public class LichLamViecController {
 
     private final LichLamViecService lichLamViecService;
+    private final GiaoCaRepository giaoCaRepo; // Repository để quản lý GiaoCa
 
     @GetMapping
     public ResponseEntity<?> getAll(
@@ -105,5 +110,24 @@ public class LichLamViecController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Lỗi lấy lịch hôm nay: " + e.getMessage());
         }
+    }
+    @Transactional
+    public void deleteSchedule(Long scheduleId) {
+        // 1. Lấy thông tin lịch trước khi xóa để biết là của ai
+        LichLamViec schedule = lichLamViecService.findById(scheduleId).orElseThrow();
+        String username = schedule.getNhanVien().getUsername();
+
+        // 2. Tìm ca làm việc (GiaoCa) đang mở của nhân viên này
+        GiaoCa activeShift = giaoCaRepo.findActiveByUsername(username);
+        
+        // 3. Nếu có ca đang mở, đóng nó lại trước
+        if (activeShift != null) {
+            activeShift.setTrangThai("CLOSED");
+            activeShift.setThoiGianKetThuc(LocalDateTime.now());
+            giaoCaRepo.save(activeShift);
+        }
+
+        // 4. Cuối cùng mới xóa lịch làm việc
+        lichLamViecService.delete(schedule);
     }
 }
