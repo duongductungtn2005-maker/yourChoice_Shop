@@ -16,6 +16,7 @@ import org.example.yourchoiceshop.entity.LichLamViec;
 import org.example.yourchoiceshop.service.LichLamViecService; 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.example.yourchoiceshop.repository.GiaoCaRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -96,9 +97,14 @@ public class LichLamViecController {
         }
     }
     @GetMapping("/hom-nay")
-    public ResponseEntity<?> getLichHomNay() {
+    public ResponseEntity<?> getLichHomNay(@RequestParam(value = "username", required = false) String username) {
         try {
-            LichLamViec lich = lichLamViecService.layLichLamViecHomNayCuaNhanVien();
+            if (username == null || username.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.");
+            }
+            
+            String decodedUsername = java.net.URLDecoder.decode(username, java.nio.charset.StandardCharsets.UTF_8);
+            LichLamViec lich = lichLamViecService.layLichLamViecHomNayCuaNhanVien(decodedUsername);
             
             if (lich == null) {
                 // Trả về rỗng kèm mã 200 (vì không có lỗi gì, chỉ là họ được nghỉ thôi)
@@ -112,22 +118,22 @@ public class LichLamViecController {
         }
     }
     @Transactional
-    public void deleteSchedule(Long scheduleId) {
+    public void deleteSchedule(Integer scheduleId) {
         // 1. Lấy thông tin lịch trước khi xóa để biết là của ai
         LichLamViec schedule = lichLamViecService.findById(scheduleId).orElseThrow();
-        String username = schedule.getNhanVien().getUsername();
+        String username = schedule.getNhanVien().getTenTaiKhoan();
 
         // 2. Tìm ca làm việc (GiaoCa) đang mở của nhân viên này
-        GiaoCa activeShift = giaoCaRepo.findActiveByUsername(username);
+        GiaoCa activeShift = giaoCaRepo.findByNhanVienTrongCa_TenTaiKhoanAndTrangThai(username, 1).orElse(null);
         
         // 3. Nếu có ca đang mở, đóng nó lại trước
         if (activeShift != null) {
-            activeShift.setTrangThai("CLOSED");
-            activeShift.setThoiGianKetThuc(LocalDateTime.now());
+            activeShift.setTrangThai(0);
+            activeShift.setThoiGianGiaoCa(LocalDateTime.now());
             giaoCaRepo.save(activeShift);
         }
 
         // 4. Cuối cùng mới xóa lịch làm việc
-        lichLamViecService.delete(schedule);
+        lichLamViecService.delete(scheduleId);
     }
 }

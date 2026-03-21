@@ -20,17 +20,14 @@ public class GiaoCaController {
     private final NhanVienRepository nhanVienRepo;
     private final GiaoCaService giaoCaService;
 
-    // Mình đổi tên hàm một chút vì giờ không lấy từ Header nữa
     private Integer getUserId(String username) {
-        if (username == null || username.trim().isEmpty()) {
-            throw new RuntimeException("Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.");
-        }
-        
-        String decodedUsername = URLDecoder.decode(username, StandardCharsets.UTF_8);
+    if (username == null || username.trim().isEmpty()) {
+        throw new RuntimeException("Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.");
+    }
 
-        NhanVien nv = nhanVienRepo.findByTenTaiKhoan(decodedUsername)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên: " + decodedUsername));
-        return nv.getId();
+    NhanVien nv = nhanVienRepo.findByTenTaiKhoan(username)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên: " + username));
+    return nv.getId();
     }
 
     /**
@@ -38,7 +35,6 @@ public class GiaoCaController {
      */
     @GetMapping("/hien-tai")
     public ResponseEntity<?> getCurrentActiveShift(
-            // SỬA Ở ĐÂY: Dùng @RequestParam thay vì @RequestHeader
             @RequestParam(value = "username", required = false) String username) { 
         try {
             Integer currentUserId = getUserId(username);
@@ -47,7 +43,7 @@ public class GiaoCaController {
             if (activeShift.isPresent()) {
                 return ResponseEntity.ok(activeShift.get());
             } else {
-                return ResponseEntity.ok().build(); 
+                return ResponseEntity.ok(null);
             }
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
@@ -60,7 +56,6 @@ public class GiaoCaController {
     @PostMapping("/mo-ca")
     public ResponseEntity<?> openShift(
             @RequestBody Map<String, Integer> payload, 
-            // SỬA Ở ĐÂY: Dùng @RequestParam thay vì @RequestHeader
             @RequestParam(value = "username", required = false) String username) { 
         try {
             Integer idLichLamViec = payload.get("idLichLamViec");
@@ -93,4 +88,4 @@ public class GiaoCaController {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống khi đóng ca: " + e.getMessage());
         }
     }
-}
+} 

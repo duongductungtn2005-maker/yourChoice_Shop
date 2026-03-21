@@ -25,4 +25,7 @@ Optional<LichLamViec> findLichCuaNhanVienTrongNgay(
         @Param("username") String username, 
         @Param("ngayLamViec") LocalDate ngayLamViec
 );
+
+    // Thêm phương thức findById
+    Optional<LichLamViec> findById(Integer id);
 }

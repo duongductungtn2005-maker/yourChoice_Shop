@@ -155,19 +155,26 @@ public class NhanVienController {
         return ResponseEntity.ok(isExist);
     }
 
-    // Authenticate (đăng nhập)
     @GetMapping("/authenticate")
     public ResponseEntity<?> authenticate(
             @RequestParam String username,
             @RequestParam String password
     ) {
         NhanVien employee = nhanVienService.getEmployeeByCredentials(username, password);
+
         if (employee != null) {
             return ResponseEntity.ok(Map.of(
                 "authenticated", true,
-                "employee", employee
+                "employee", Map.of(
+                    "id", employee.getId(),
+                    "tenTaiKhoan", employee.getTenTaiKhoan(),   // 🔥 QUAN TRỌNG
+                    "tenNhanVien", employee.getTenNhanVien(),
+                    "quyenHan", employee.getQuyenHan()
+                )
             ));
         }
+
         return ResponseEntity.ok(Map.of("authenticated", false));
     }
+    
 }

@@ -54,6 +54,15 @@
           </router-link>
         </template>
 
+        <!-- Thông báo cho nhân viên khi chưa có ca -->
+        <div v-if="isStaff && !hasActiveShift" class="shift-notice">
+          <i class="fa-solid fa-clock icon"></i>
+          <span>Chưa mở ca làm việc</span>
+          <router-link to="/staff/giao-ca" class="shift-link">
+            Mở ca ngay
+          </router-link>
+        </div>
+
 
         <div v-if="isAdmin" class="menu-group">
           <div
@@ -209,7 +218,9 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toastSuccess } from '@/utils/toast'; 
 import { logout as authLogout, getRole, getCurrentUser, getCurrentUserName } from '@/services/auth';
+import { useShiftStore } from '@/stores/shiftStore'
 
+const shiftStore = useShiftStore()
 const route = useRoute();
 const router = useRouter();
 
@@ -223,20 +234,8 @@ const normalizeRole = (value) => {
 };
 
 const userRole = computed(() => {
-  const directRole = sessionStorage.getItem('userRole');
-  if (directRole) return normalizeRole(directRole);
-
-  const rawUser = sessionStorage.getItem('user');
-  if (!rawUser) return 'ADMIN';
-
-  try {
-    const user = JSON.parse(rawUser);
-    return normalizeRole(
-      user?.role || user?.quyenHan?.maQuyen || user?.quyenHan?.tenQuyen || 'ADMIN'
-    );
-  } catch {
-    return 'ADMIN';
-  }
+  const role = getRole();
+  return normalizeRole(role);
 });
 
 const isAdmin = computed(() => userRole.value === 'ADMIN');
@@ -261,19 +260,11 @@ const userRoleLabel = computed(() => {
   return 'Nhân viên';
 });
 
-// TRẠNG THÁI CA LÀM VIỆC CỦA STAFF
-// Lưu ý: Sau khi bạn gọi API mở ca làm việc thành công ở file GiaoCa.vue,
-// nhớ set 'hasActiveShift' vào sessionStorage hoặc store nhé!
-const hasActiveShift = ref(false);
+const hasActiveShift = computed(() => shiftStore.hasActiveShift);
 
 onMounted(() => {
-  // Kiểm tra xem trong session/local storage đã có cờ mở ca chưa
-  const shiftStatus = sessionStorage.getItem('hasActiveShift');
-  if (shiftStatus === 'true') {
-    hasActiveShift.value = true;
-  }
+  shiftStore.fetchShift();
 });
-
 /* =========================
    USER DROPDOWN
 ========================= */
@@ -284,8 +275,7 @@ const toggleUserDropdown = () => {
 };
 
 const handleLogout = () => {
-  // Xóa luôn trạng thái ca làm việc khi đăng xuất cho an toàn
-  sessionStorage.removeItem('hasActiveShift');
+  shiftStore.clearShift();
   
   authLogout();
   isUserDropdownOpen.value = false;
@@ -648,5 +638,39 @@ const handleImageError = (e) => {
   padding: 24px;
   flex: 1;
   background-color: #ebecee;
+}
+
+/* --- 9. SHIFT NOTICE STYLES --- */
+.shift-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  margin-top: 10px;
+  color: #856404;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.shift-notice .icon {
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.shift-link {
+  color: #0284c7;
+  text-decoration: none;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: 0.2s;
+}
+
+.shift-link:hover {
+  background-color: #e0f2fe;
+  color: #0284c7;
 }
 </style>

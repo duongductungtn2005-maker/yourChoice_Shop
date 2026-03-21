@@ -1,5 +1,8 @@
 import { createRouter, createWebHistory } from "vue-router"
 import { isAuthenticated, getRole } from "@/services/auth"
+import request from "@/services/request"
+import { getCurrentUser } from "@/services/auth"
+import Swal from "sweetalert2"
 // import { initCrossTabSync } from "@/services/auth" // Đã vô hiệu hóa cross-tab sync
 
 /* ================= STATIC IMPORT ================= */
@@ -158,23 +161,85 @@ const router = createRouter({
       children: [
         { path: "", redirect: "/staff/pos" },
 
-        { path: "pos", name: "staff-pos", component: () => import("../views/admin/pos/PosWrapper.vue"), meta: { layout: "full" } },
+        { 
+          path: "pos", 
+          name: "staff-pos", 
+          component: () => import("../views/admin/pos/PosWrapper.vue"), 
+          meta: { requiresShift: true },
+          beforeEnter: async (to, from, next) => {
+          const user = getCurrentUser();
+
+          if (!user || !user.tenTaiKhoan) {
+            next('/login');
+            return;
+          }
+
+          const username = user.tenTaiKhoan;
+
+          if (!username) {
+            console.error("User không hợp lệ:", user);
+            next('/login');
+            return;
+          }
+
+          try {
+            const res = await request.get(`/giao-ca/hien-tai?username=${username}`);
+
+            if (res.data && res.data.id) {
+              sessionStorage.setItem('hasActiveShift', 'true');
+              next();
+            } else {
+              sessionStorage.setItem('hasActiveShift', 'false');
+              next('/staff/giao-ca');
+            }
+          } catch (error) {
+            console.error("Lỗi kiểm tra ca làm việc:", error);
+            sessionStorage.setItem('hasActiveShift', 'false');
+            next('/staff/giao-ca');
+          }
+        }
+        },
 
         /* --- THÊM ROUTE GIAO CA VÀO ĐÂY --- */
         { 
-          path: "giao-ca", // <-- Sửa ở đây
+          path: "giao-ca", 
           name: "staff-shift-tracking", 
           component: () => import("../views/admin/employee/schedule/ShiftTracking.vue") 
         },
 
         /* Orders (theo File 1) */
-        { path: "orders", name: "staff-order-list", component: () => import("../views/admin/DonHang/QuanLyHoaDon.vue") },
-        { path: "orders/:id", name: "staff-order-detail", component: () => import("../views/admin/DonHang/ChiTietHoaDon.vue") },
+        { 
+          path: "orders", 
+          name: "staff-order-list", 
+          component: () => import("../views/admin/DonHang/QuanLyHoaDon.vue"),
+          meta: { requiresShift: true }
+        },
+        { 
+          path: "orders/:id", 
+          name: "staff-order-detail", 
+          component: () => import("../views/admin/DonHang/ChiTietHoaDon.vue"),
+          meta: { requiresShift: true }
+        },
         
         /* Customers */
-        { path: "customers", name: "staff-customer-list", component: () => import("../views/admin/customer/CustomerList.vue") },
-        { path: "customers/create", name: "staff-customer-create", component: CustomerCreate },
-        { path: "customers/detail/:id", name: "staff-customer-detail", component: CustomerDetail },
+        { 
+          path: "customers", 
+          name: "staff-customer-list", 
+          component: () => import("../views/admin/customer/CustomerList.vue"),
+          meta: { requiresShift: true }
+        },
+        { 
+          path: "customers/create", 
+          name: "staff-customer-create", 
+          component: CustomerCreate,
+          meta: { requiresShift: true }
+        },
+        { 
+          path: "customers/detail/:id", 
+          name: "staff-customer-detail", 
+          component: CustomerDetail,
+          meta: { requiresShift: true }
+        },
       ],
     },
   ],
@@ -185,29 +250,51 @@ router.beforeEach((to, from, next) => {
   const authenticated = isAuthenticated ? isAuthenticated() : !!sessionStorage.getItem("token")
   const role = normalizeRole(getRole ? getRole() : getUserRole())
   
-  // Trạng thái ca làm việc (Lấy từ sessionStorage mà PosWrapper đã lưu)
   const hasActiveShift = sessionStorage.getItem('hasActiveShift') === 'true'
 
+  // Nếu đã login mà vào /login → redirect
   if (to.path === "/login" && authenticated) {
     next(getDefaultPathByRole(role))
     return
   }
 
+  // Route không cần login
   if (!to.matched.some(r => r.meta.requiresAuth)) {
     next()
     return
   }
 
+  // Chưa login
   if (!authenticated || !role) {
-    next("/login")
+  next("/login")
+  return
+}
+
+  // ================== 🔥 THÊM ĐOẠN NÀY ==================
+  const requiredRoles = to.meta.roles
+
+  if (requiredRoles && !requiredRoles.includes(role)) {
+    console.warn("Không có quyền truy cập:", role)
+
+    if (role === 'STAFF') {
+      next('/staff/giao-ca')
+    } else if (role === 'ADMIN') {
+      next('/admin/dashboard')
+    } else {
+      next('/login')
+    }
+
     return
   }
+  // ================================================================
 
-  // --- LOGIC CHẶN CA LÀM VIỆC ---
-  // Các trang yêu cầu phải có ca mới được vào
-  const shiftRequiredRoutes = ['pos', 'bills-management', 'customers-management']
+  // --- LOGIC CA LÀM VIỆC ---
+  const requiresShift = to.meta.requiresShift || 
+    ['staff-order-list', 'staff-order-detail', 
+     'staff-customer-list', 'staff-customer-create', 'staff-customer-detail']
+    .includes(to.name);
   
-  if (shiftRequiredRoutes.includes(to.name) && !hasActiveShift && role === 'STAFF') {
+  if (requiresShift && !hasActiveShift && role === 'STAFF') {
     Swal.fire({
       icon: 'warning',
       title: 'Yêu cầu mở ca!',

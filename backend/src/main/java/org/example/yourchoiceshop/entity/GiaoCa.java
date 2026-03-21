@@ -2,7 +2,6 @@ package org.example.yourchoiceshop.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-// THÊM DÒNG IMPORT NÀY:
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.math.BigDecimal;
@@ -19,19 +18,19 @@ public class GiaoCa extends BaseStatusEntity {
     // Người trực ca hiện tại (người mở ca)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_nhan_vien_trong_ca")
-    @JsonIgnore // <--- THÊM DÒNG NÀY ĐỂ TRÁNH LỖI 500
+    @JsonIgnore
     private NhanVien nhanVienTrongCa;
 
     // Người nhận ca tiếp theo (người được bàn giao khi đóng ca)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_nhan_vien_nhan_ca")
-    @JsonIgnore // <--- THÊM DÒNG NÀY ĐỂ TRÁNH LỖI 500
+    @JsonIgnore
     private NhanVien nhanVienNhanCa;
 
-    // THÊM ĐOẠN NÀY VÀO ĐỂ KẾT NỐI VỚI LỊCH LÀM VIỆC
+    // Kết nối với lịch làm việc
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_lich_lam_viec")
-    @JsonIgnore // <--- THÊM DÒNG NÀY ĐỂ TRÁNH LỖI 500
+    @JsonIgnore
     private LichLamViec lichLamViec;
 
     @Column(name = "thoi_gian_nhan_ca")
@@ -39,6 +38,14 @@ public class GiaoCa extends BaseStatusEntity {
 
     @Column(name = "thoi_gian_giao_ca")
     private LocalDateTime thoiGianGiaoCa;
+
+    @Column(name = "trang_thai")
+    private Integer trangThai;
+
+    // Thêm getter cho tenTaiKhoan để dùng trong query
+    public String getNhanVienTrongCaTenTaiKhoan() {
+        return nhanVienTrongCa != null ? nhanVienTrongCa.getTenTaiKhoan() : null;
+    }
 
     @Column(name = "tien_ban_dau")
     private BigDecimal tienBanDau;

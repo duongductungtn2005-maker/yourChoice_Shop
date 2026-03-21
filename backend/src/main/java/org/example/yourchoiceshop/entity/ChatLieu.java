@@ -22,7 +22,4 @@ public class ChatLieu extends BaseStatusEntity {
     @OneToMany(mappedBy = "chatLieu", fetch = FetchType.LAZY)
     @JsonIgnore // <--- BẮT BUỘC
     private List<ChiTietSanPham> chiTietSanPhams;
-    @ManyToOne
-    @JoinColumn(name = "id_chat_lieu")
-    private ChatLieu chatLieu;
 }

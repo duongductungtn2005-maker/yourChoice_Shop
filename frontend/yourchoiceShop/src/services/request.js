@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getToken, getCurrentUser } from './auth'; // IMPORT THÊM getCurrentUserName
+import { getToken, getCurrentUser } from './auth'; 
 
 const request = axios.create({
     baseURL: 'http://localhost:8080/api/v1',
@@ -14,17 +14,13 @@ request.interceptors.request.use(
             config.headers['Authorization'] = `Bearer ${token}`; 
         }
         
-        // --- SỬA ĐOẠN LẤY USERNAME Ở ĐÂY ---
         const user = getCurrentUser();
         if (user) {
-            // Chỉ lấy tên tài khoản (thường là username hoặc tenTaiKhoan tùy Backend của bạn trả về)
-            // Dùng encodeURIComponent để phòng hờ trường hợp có ký tự lạ
             const accountName = user.username || user.tenTaiKhoan || user.id; 
             if (accountName) {
                 config.headers['X-Username'] = encodeURIComponent(accountName);
             }
         }
-        // -----------------------------------
 
         if (config.data instanceof FormData) {
             delete config.headers['Content-Type'];
@@ -41,9 +37,7 @@ request.interceptors.response.use(
         return response;
     },
     (error) => {
-        // Xử lý khi bị lỗi 401 (Hết hạn token hoặc token sai)
         if (error.response && error.response.status === 401) {
-            // Sửa lại thành sessionStorage cho đồng bộ với auth.js của bạn
             sessionStorage.clear(); 
             window.location.href = '/login';
         }
@@ -51,4 +45,4 @@ request.interceptors.response.use(
     }
 );
 
-export default request;
+export default request; 

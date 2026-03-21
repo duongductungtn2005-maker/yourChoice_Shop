@@ -1,16 +1,8 @@
 package org.example.yourchoiceshop.entity;
 import jakarta.persistence.*;
-
 import lombok.*;
-
-import lombok.Data;
 import java.time.LocalDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-import java.time.LocalDateTime;
 @Entity 
 @Table(name = "lich_su_hoa_don") 
 @Getter
@@ -25,10 +17,6 @@ public class LichSuHoaDon extends PrimaryEntity {
     // id_hoa_don INT FOREIGN KEY REFERENCES hoa_don(id),
     // id_nhan_vien INT FOREIGN KEY REFERENCES nhan_vien(id),
     // trang_thai INT
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Integer id;
     @Column(name = "hanh_dong")
     private String hanhDong;
     @Column(name = "thoi_gian")

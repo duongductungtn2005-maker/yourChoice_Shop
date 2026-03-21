@@ -42,8 +42,18 @@ public interface GiaoCaRepository extends JpaRepository<GiaoCa, Integer> {
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             Pageable pageable);
-            // Tìm ca đang làm việc (trạng thái = 1) của nhân viên hiện tại
+            
+    // Tìm ca đang làm việc (trạng thái = 1) của nhân viên hiện tại
     Optional<GiaoCa> findByNhanVienTrongCa_IdAndTrangThai(Integer idNhanVien, Integer trangThai);
+    
     // Tìm ca đang mở của một lịch cụ thể
-Optional<GiaoCa> findByLichLamViec_IdAndTrangThai(Integer idLich, Integer trangThai);
+    Optional<GiaoCa> findByLichLamViec_IdAndTrangThai(Integer idLich, Integer trangThai);
+
+    // Tìm ca đang mở theo tên tài khoản
+    Optional<GiaoCa> findByNhanVienTrongCa_TenTaiKhoanAndTrangThai(String tenTaiKhoan, Integer trangThai);
+    Optional<GiaoCa> findByLichLamViecId(Integer idLichLamViec);
+    boolean existsByNhanVienTrongCa_IdAndLichLamViec_Id(Integer nhanVienId, Integer lichId);
+    Optional<GiaoCa> findFirstByNhanVienTrongCa_IdAndTrangThaiOrderByThoiGianNhanCaDesc(
+    Integer idNhanVien, Integer trangThai
+);
 }
