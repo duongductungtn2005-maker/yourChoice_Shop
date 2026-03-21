@@ -17,11 +17,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.example.yourchoiceshop.dto.response.VariantResponse; // Thêm import này
+import org.example.yourchoiceshop.dto.response.VariantResponse; 
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.List; // <--- BẠN ĐANG THIẾU DÒNG NÀY
+import java.util.List;
 import org.example.yourchoiceshop.dto.request.BulkUpdateVariantRequest;
 @RestController
 @RequestMapping("/api/v1/products")

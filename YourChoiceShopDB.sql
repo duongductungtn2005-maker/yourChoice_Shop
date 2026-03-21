@@ -291,3 +291,34 @@ INSERT INTO quyen_han (ten_quyen_han, trang_thai) VALUES (N'Nhân viên', 1);
 select * from quyen_han;
 ALTER TABLE nhan_vien ADD anh_dai_dien VARCHAR(255);
 ALTER TABLE nhan_vien ADD cccd VARCHAR(20);
+
+-- Thêm quyền Admin
+INSERT INTO quyen_han (ten_quyen_han, trang_thai) VALUES (N'Admin', 1);
+
+INSERT INTO nhan_vien (
+    ma_nhan_vien, 
+    ten_nhan_vien, 
+    ten_tai_khoan,
+    mat_khau, 
+    email, 
+    so_dien_thoai, 
+    gioi_tinh, 
+    ngay_sinh, 
+    dia_chi, 
+    id_quyen_han, 
+    ngay_tao, 
+    trang_thai
+) VALUES (
+    'NV001', 
+    N'Quản trị viên', 
+    'admin',
+    'admin123', 
+    'admin@yourchoice.com', 
+    '0123456789', 
+    1, 
+    '1990-01-01', 
+    N'Hà Nội', 
+    (SELECT id FROM quyen_han WHERE ten_quyen_han = N'Admin'), 
+    GETDATE(), 
+    1
+);
