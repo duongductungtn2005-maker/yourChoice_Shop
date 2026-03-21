@@ -157,6 +157,9 @@ public class NhanVienServiceImpl implements NhanVienService {
         nv.setSoDienThoai(req.getSoDienThoai());
         nv.setGioiTinh(req.getGioiTinh());
         nv.setNgaySinh(req.getNgaySinh());
+        if (req.getMatKhau() != null && !req.getMatKhau().trim().isEmpty()) {
+            nv.setMatKhau(req.getMatKhau().trim());
+        }
 
         if (req.getDiaChi() != null && !req.getDiaChi().isEmpty()) {
             nv.setDiaChi(req.getDiaChi());
@@ -262,7 +265,13 @@ public class NhanVienServiceImpl implements NhanVienService {
         if (usernameValue.isEmpty() || passwordValue.isEmpty()) {
             return null;
         }
-        return nhanVienRepo.findByTenTaiKhoanAndMatKhau(usernameValue, passwordValue).orElse(null);
+        NhanVien employee = nhanVienRepo.findByTenTaiKhoanAndMatKhau(usernameValue, passwordValue).orElse(null);
+
+        // Kiểm tra tài khoản còn hoạt động không (trangThai = 1)
+        if (employee != null && employee.getTrangThai() != null && employee.getTrangThai() != 1) {
+            return null;
+        }
+        return employee;
     }
 
     private String generateRandomPassword() {

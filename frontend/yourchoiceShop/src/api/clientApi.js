@@ -51,8 +51,8 @@ export function getKichThuoc(params) {
 
 /** Đăng nhập khách hàng */
 export function loginCustomer(username, password) {
-  return axios.get(`${API_URL}/khach-hang/authenticate`, {
-    params: { username, password }
+  return axios.post(`${API_URL}/khach-hang/authenticate`, {
+    username, password
   })
 }
 
@@ -133,6 +133,11 @@ export function updateOrderStatus(maHoaDon, newStatus) {
   return request.put(`/hoa-don/${maHoaDon}/status`, null, {
     params: { newStatus }
   })
+}
+
+/** Tra cứu đơn hàng theo SĐT (khách vãng lai, không cần đăng nhập) */
+export function trackOrderByPhone(params) {
+  return axios.get(`${API_URL}/hoa-don/tra-cuu`, { params })
 }
 
 // ===================== PHIẾU GIẢM GIÁ =====================

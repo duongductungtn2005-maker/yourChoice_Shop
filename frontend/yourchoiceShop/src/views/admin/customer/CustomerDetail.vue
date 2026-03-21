@@ -143,6 +143,7 @@ import { useRoute, useRouter } from 'vue-router';
 import request from '@/services/request';
 import Swal from 'sweetalert2';
 import axios from 'axios';
+import { fetchProvinces as apiFetchProvinces, fetchDistricts as apiFetchDistricts, fetchWards as apiFetchWards } from '@/api/locationApi';
 
 const route = useRoute();
 const router = useRouter();
@@ -194,21 +195,18 @@ const fetchAddresses = async () => {
 
 // 3. API HÀNH CHÍNH CÔNG
 const fetchCities = async () => {
-    const res = await axios.get('https://provinces.open-api.vn/api/?depth=1');
-    locationData.cities = res.data;
+    locationData.cities = await apiFetchProvinces();
 };
 const onCityChange = async () => {
     selectedDistrict.value = null; selectedWard.value = null; locationData.districts = []; locationData.wards = [];
     if (selectedCity.value) {
-        const res = await axios.get(`https://provinces.open-api.vn/api/p/${selectedCity.value.code}?depth=2`);
-        locationData.districts = res.data.districts;
+        locationData.districts = await apiFetchDistricts(selectedCity.value.code);
     }
 };
 const onDistrictChange = async () => {
     selectedWard.value = null; locationData.wards = [];
     if (selectedDistrict.value) {
-        const res = await axios.get(`https://provinces.open-api.vn/api/d/${selectedDistrict.value.code}?depth=2`);
-        locationData.wards = res.data.wards;
+        locationData.wards = await apiFetchWards(selectedDistrict.value.code);
     }
 };
 

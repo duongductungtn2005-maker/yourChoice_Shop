@@ -10,7 +10,9 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class RevenueSummaryDTO {
     private BigDecimal totalRevenue;
+    private BigDecimal expectedRevenue;
     private Long totalOrders;
+    
     private Long totalProducts;
     private Long successOrders;
     private Long processingOrders;

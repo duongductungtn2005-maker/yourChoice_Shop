@@ -75,9 +75,11 @@
               <i class="fas fa-plus"></i> Thêm chi tiết sản phẩm
             </button>
 
-            <button class="btn btn-orange" @click="openQrScanner">
-              <i class="fas fa-qrcode"></i> Quét QR
+            <button class="btn btn-teal" @click="$router.push('/admin/products/variants')">
+              <i class="fas fa-th-list"></i> Xem toàn bộ biến thể
             </button>
+
+            
 
             <button class="btn btn-dark" @click="resetFilter">
               <i class="fas fa-sync-alt"></i> Đặt lại bộ lọc
@@ -370,6 +372,8 @@ onMounted(() => {
 
 .btn-orange { background: #161af9; color: white; }
 .btn-orange:hover { background: #220cea; }
+.btn-teal { background: linear-gradient(135deg, #0d9488 0%, #065f46 100%); color: white; box-shadow: 0 4px 10px rgba(6,95,70,0.2); }
+.btn-teal:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(6,95,70,0.3); }
 .btn-dark { background: #334155; color: white; }
 .btn-dark:hover { background: #1e293b; }
 .btn-icon-gray { color: #64748b !important; margin-right: 6px; font-size: 16px; }

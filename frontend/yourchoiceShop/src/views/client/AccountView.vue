@@ -15,11 +15,15 @@
         <!-- Sidebar -->
         <aside class="account-sidebar">
           <div class="sidebar-user">
-            <div class="user-avatar">
-              <img v-if="customer.anhDaiDien" :src="'http://localhost:8080/images/' + customer.anhDaiDien" alt="" @error="(e) => e.target.src = 'https://placehold.co/80?text=User'" />
-              <i v-else class="fas fa-user-circle"></i>
+            <div class="avatar-upload-area" @click="triggerAvatarInput">
+              <div class="user-avatar">
+                <img v-if="previewAvatar" :src="previewAvatar" alt="Avatar" />
+                <span v-else class="avatar-letter">{{ avatarLetter }}</span>
+              </div>
+              <div class="camera-badge"><i class="fas fa-camera"></i></div>
             </div>
-            <h4>{{ customer.hoTen || 'Khách hàng' }}</h4>
+            <input type="file" ref="avatarInput" class="hidden-file" accept="image/*" @change="handleAvatarChange" />
+            <h4>{{ customer.tenTaiKhoan || customer.username || customer.tenKhachHang || customer.hoTen || 'Khách hàng' }}</h4>
             <p class="text-muted">{{ customer.email }}</p>
           </div>
 
@@ -30,11 +34,8 @@
             <button :class="{ active: activeTab === 'addresses' }" @click="activeTab = 'addresses'">
               <i class="fas fa-map-marker-alt"></i> Sổ địa chỉ
             </button>
-            <button @click="$router.push('/orders')">
+            <button @click="goToOrders">
               <i class="fas fa-clipboard-list"></i> Đơn hàng
-            </button>
-            <button class="btn-logout" @click="handleLogout">
-              <i class="fas fa-sign-out-alt"></i> Đăng xuất
             </button>
           </nav>
         </aside>
@@ -48,17 +49,33 @@
             <form class="profile-form" @submit.prevent="saveProfile">
               <div class="form-row">
                 <div class="form-group">
+                  <label>Tên tài khoản <span class="required">*</span></label>
+                  <input v-model="form.username" type="text" maxlength="50" autocomplete="username" />
+                  <span class="error" v-if="errors.username">{{ errors.username }}</span>
+                </div>
+                <div class="form-group">
+                  <label>Mật khẩu</label>
+                  <div class="password-wrapper">
+                    <input :type="showPassword ? 'text' : 'password'" v-model="form.matKhau" placeholder="Nhập mật khẩu mới (để trống nếu không đổi)" autocomplete="new-password" />
+                    <button type="button" class="toggle-pw" @click="showPassword = !showPassword">
+                      <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
                   <label>Họ tên <span class="required">*</span></label>
                   <input v-model="form.hoTen" type="text" maxlength="100" />
                   <span class="error" v-if="errors.hoTen">{{ errors.hoTen }}</span>
                 </div>
+              </div>
+              <div class="form-row">
                 <div class="form-group">
                   <label>Email <span class="required">*</span></label>
                   <input v-model="form.email" type="email" />
                   <span class="error" v-if="errors.email">{{ errors.email }}</span>
                 </div>
-              </div>
-              <div class="form-row">
                 <div class="form-group">
                   <label>Số điện thoại <span class="required">*</span></label>
                   <input v-model="form.soDienThoai" type="text" maxlength="15" />
@@ -175,20 +192,36 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { isAuthenticated, getCurrentUser, logout } from '@/services/auth'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { isAuthenticated, getCurrentUser, getCurrentUserId, getCustomerOrdersPath, logout } from '@/services/auth'
 import { getCustomerDetail, updateCustomer, getAddresses, createAddress, updateAddress, deleteAddress, setDefaultAddress, getProvinces, getDistricts, getWards } from '@/api/clientApi'
 import { toastSuccess } from '@/utils/toast'
 import Swal from 'sweetalert2'
 
 const router = useRouter()
+const route = useRoute()
 const activeTab = ref('profile')
 const saving = ref(false)
+const showPassword = ref(false)
 
 const customer = ref({})
-const form = reactive({ hoTen: '', email: '', soDienThoai: '', ngaySinh: '', gioiTinh: null })
+const form = reactive({ username: '', hoTen: '', email: '', soDienThoai: '', ngaySinh: '', gioiTinh: null, matKhau: '' })
 const errors = reactive({})
+
+// Avatar
+const avatarInput = ref(null)
+const selectedAvatarFile = ref(null)
+const previewAvatar = ref(null)
+const avatarLetter = computed(() => {
+  const name = customer.value.tenKhachHang || customer.value.hoTen || ''
+  return name.charAt(0).toUpperCase() || 'K'
+})
+const triggerAvatarInput = () => avatarInput.value.click()
+const handleAvatarChange = (e) => {
+  const file = e.target.files[0]
+  if (file) { selectedAvatarFile.value = file; previewAvatar.value = URL.createObjectURL(file) }
+}
 
 // Addresses
 const addresses = ref([])
@@ -200,7 +233,16 @@ const districts = ref([])
 const wards = ref([])
 
 onMounted(async () => {
-  if (!isAuthenticated()) { router.push('/login'); return }
+  if (!isAuthenticated()) { router.push('/client/login'); return }
+
+  const currentUserId = getCurrentUserId()
+  const routeCustomerId = Number(route.params.id)
+  if (!currentUserId) { router.push('/client/login'); return }
+  if (Number.isNaN(routeCustomerId) || routeCustomerId !== currentUserId) {
+    router.replace(`/customer/${currentUserId}/account`)
+    return
+  }
+
   const user = getCurrentUser()
   if (user?.id) {
     await loadCustomer(user.id)
@@ -209,16 +251,31 @@ onMounted(async () => {
   try { const res = await getProvinces(); provinces.value = res.data?.data || res.data || [] } catch {}
 })
 
+const goToOrders = () => {
+  router.push(getCustomerOrdersPath())
+}
+
 const loadCustomer = async (id) => {
   try {
     const res = await getCustomerDetail(id)
     const c = res.data
     customer.value = c
-    form.hoTen = c.hoTen || ''
+    form.username = c.tenTaiKhoan || c.username || ''
+    form.hoTen = c.tenKhachHang || c.hoTen || ''
     form.email = c.email || ''
     form.soDienThoai = c.soDienThoai || ''
     form.ngaySinh = c.ngaySinh || ''
     form.gioiTinh = c.gioiTinh ?? null
+    form.matKhau = ''
+
+    // Avatar
+    if (!selectedAvatarFile.value) {
+      if (c.avatar) {
+        previewAvatar.value = `http://localhost:8080/images/images/khach-hang/${c.avatar}`
+      } else {
+        previewAvatar.value = null
+      }
+    }
   } catch (e) { console.error('Lỗi tải thông tin:', e) }
 }
 
@@ -231,25 +288,98 @@ const loadAddresses = async (id) => {
 
 const saveProfile = async () => {
   Object.keys(errors).forEach(k => delete errors[k])
+  const normalizedUsername = form.username.trim()
+  if (!normalizedUsername) { errors.username = 'Vui lòng nhập tên tài khoản'; return }
+  if (!/^[A-Za-z0-9._-]{3,50}$/.test(normalizedUsername)) {
+    errors.username = 'Tên tài khoản chỉ gồm chữ, số, dấu chấm, gạch dưới, gạch ngang (3-50 ký tự)'
+    return
+  }
   if (!form.hoTen.trim()) { errors.hoTen = 'Vui lòng nhập họ tên'; return }
   if (!form.email.trim()) { errors.email = 'Vui lòng nhập email'; return }
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+    errors.email = 'Email không hợp lệ'
+    return
+  }
   if (!form.soDienThoai.trim()) { errors.soDienThoai = 'Vui lòng nhập SĐT'; return }
+  const normalizedPhone = form.soDienThoai.replace(/\s/g, '')
+  if (!/^0\d{9}$/.test(normalizedPhone)) {
+    errors.soDienThoai = 'SĐT không hợp lệ (phải gồm 10 số và bắt đầu bằng 0)'
+    return
+  }
 
   saving.value = true
+  const newPassword = String(form.matKhau || '').trim()
   try {
     const fd = new FormData()
-    fd.append('hoTen', form.hoTen)
+    fd.append('tenKhachHang', form.hoTen)
     fd.append('email', form.email)
-    fd.append('soDienThoai', form.soDienThoai)
+    fd.append('soDienThoai', normalizedPhone)
+    fd.append('username', normalizedUsername)
     if (form.ngaySinh) fd.append('ngaySinh', form.ngaySinh)
     if (form.gioiTinh !== null) fd.append('gioiTinh', form.gioiTinh)
+    if (newPassword) fd.append('password', newPassword)
+    if (selectedAvatarFile.value) fd.append('avatarFile', selectedAvatarFile.value)
 
     await updateCustomer(customer.value.id, fd)
-    toastSuccess('Cập nhật thành công!')
+
+    // Reload dữ liệu mới nhất
+    selectedAvatarFile.value = null
     await loadCustomer(customer.value.id)
+
+    // Gọi trình quản lý mật khẩu trình duyệt (nếu có đổi mật khẩu)
+    if (newPassword) {
+      await syncBrowserPasswordManager(
+        customer.value.tenTaiKhoan || form.username,
+        newPassword,
+        customer.value.tenKhachHang || form.hoTen
+      )
+    }
+
+    // Đồng bộ lại user trong session
+    try {
+      const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}')
+      const nextUser = {
+        ...currentUser,
+        id: customer.value.id,
+        tenTaiKhoan: customer.value.tenTaiKhoan || form.username,
+        username: customer.value.tenTaiKhoan || form.username,
+        tenKhachHang: customer.value.tenKhachHang || form.hoTen,
+        email: customer.value.email || form.email,
+        soDienThoai: customer.value.soDienThoai || form.soDienThoai,
+      }
+      sessionStorage.setItem('user', JSON.stringify(nextUser))
+      window.dispatchEvent(new Event('auth-user-updated'))
+    } catch {}
+
+    await Swal.fire({
+      icon: 'success',
+      title: 'Lưu thành công',
+      text: 'Thông tin cá nhân đã được cập nhật.',
+      confirmButtonText: 'OK',
+      confirmButtonColor: '#0f172a'
+    })
   } catch (e) {
-    Swal.fire('Lỗi', e.response?.data?.message || 'Không thể cập nhật', 'error')
+    const backendMessage = typeof e?.response?.data === 'string'
+      ? e.response.data
+      : (e?.response?.data?.message || 'Không thể cập nhật')
+    Swal.fire('Lỗi', backendMessage, 'error')
   } finally { saving.value = false }
+}
+
+// Credential Management API — popup lưu mật khẩu trình duyệt
+const syncBrowserPasswordManager = async (username, password, fullName) => {
+  if (!username || !password) return
+  try {
+    if (!window.PasswordCredential || !navigator.credentials?.store) return
+    const credential = new window.PasswordCredential({
+      id: username,
+      password,
+      name: fullName || username
+    })
+    await navigator.credentials.store(credential)
+  } catch (err) {
+    console.warn('Không thể đồng bộ trình quản lý mật khẩu:', err)
+  }
 }
 
 // Address management
@@ -328,9 +458,12 @@ const handleLogout = () => {
 /* Sidebar */
 .account-sidebar { width: 260px; flex-shrink: 0; }
 .sidebar-user { text-align: center; padding: 25px 15px; border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 15px; }
-.user-avatar { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin: 0 auto 12px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; }
+.avatar-upload-area { position: relative; display: inline-block; cursor: pointer; margin-bottom: 12px; }
+.user-avatar { width: 100px; height: 100px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; }
 .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.user-avatar i { font-size: 50px; color: #cbd5e1; }
+.avatar-letter { font-size: 42px; font-weight: 700; color: #fff; }
+.camera-badge { position: absolute; bottom: 2px; right: 2px; width: 30px; height: 30px; background: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; border: 2px solid #fff; }
+.hidden-file { display: none; }
 .sidebar-user h4 { font-size: 16px; margin: 0 0 4px; color: #0f172a; }
 .text-muted { font-size: 13px; color: #94a3b8; margin: 0; }
 
@@ -355,6 +488,10 @@ const handleLogout = () => {
 .required { color: #ef4444; }
 .form-group input, .form-group select { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
 .form-group input:focus, .form-group select:focus { border-color: #1e3a8a; }
+.password-wrapper { position: relative; }
+.password-wrapper input { width: 100%; padding: 10px 40px 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
+.password-wrapper input:focus { border-color: #1e3a8a; }
+.toggle-pw { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #64748b; cursor: pointer; font-size: 14px; }
 .error { font-size: 12px; color: #ef4444; margin-top: 4px; display: block; }
 
 .form-actions { display: flex; gap: 12px; margin-top: 10px; }

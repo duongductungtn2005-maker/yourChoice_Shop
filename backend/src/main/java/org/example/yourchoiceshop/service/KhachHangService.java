@@ -35,6 +35,9 @@ public interface KhachHangService {
     // Authenticate đăng nhập (true/false)
     boolean authenticateCustomer(String username, String password);
 
+    // Lấy khách hàng theo thông tin đăng nhập
+    KhachHang getCustomerByCredentials(String username, String password);
+
     // Export excel
     ByteArrayInputStream exportToExcel(String keyword, Boolean gender, Integer status) throws IOException;
 

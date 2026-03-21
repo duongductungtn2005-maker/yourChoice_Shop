@@ -449,7 +449,7 @@ onMounted(() => { fetchAllAttributes(); fetchData(); });
 .btn { height: 38px; padding: 0 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; border: 1px solid transparent; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
 .btn-outline { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
 .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
-.btn-orange { background-color: #f97316; color: #fff; }
+.btn-orange { background: linear-gradient(135deg, #0d9488 0%, #065f46 100%); color: #fff; }
 .btn-orange:hover { background-color: #ea580c; box-shadow: 0 2px 5px rgba(234, 88, 12, 0.3); }
 .btn-navy { background-color: #0f172a; color: #fff; }
 .btn-navy:hover { background-color: #1e293b; }

@@ -9,26 +9,36 @@
         <div class="spinner"></div>
     </div>
 
+    <div v-else-if="vouchers.length === 0" class="empty-state">
+       <i class="fas fa-ticket-alt"></i>
+       <h3>Chưa có voucher nào</h3>
+       <p>Hiện tại chưa có mã giảm giá khả dụng. Hãy quay lại sau nhé!</p>
+    </div>
+
     <div v-else class="coupon-grid">
        <div v-for="vc in vouchers" :key="vc.id" class="coupon-ticket">
           
-          <div class="coupon-left">
+          <div class="coupon-left" :class="{ 'freeship': vc.loaiPhieu === 'FreeShip' }">
              <div class="c-logo">YC</div>
-             <div class="c-type">VOUCHER</div>
+             <div class="c-type">{{ vc.loaiPhieu === 'FreeShip' ? 'FREESHIP' : 'VOUCHER' }}</div>
           </div>
 
           <div class="coupon-right">
-             <h3 class="discount-text">{{ vc.tieuDe }}</h3>
-             <p class="condition">Đơn tối thiểu {{ formatMoney(vc.donToiThieu) }}</p>
+             <h3 class="discount-text">{{ getDiscountLabel(vc) }}</h3>
+             <p class="voucher-name">{{ vc.tenPhieuGiamGia }}</p>
+             <p class="condition">Đơn tối thiểu {{ formatMoney(vc.donHangToiThieu) }}</p>
              
              <div class="c-code-row">
                 <span>Mã:</span>
-                <strong class="code-text">{{ vc.maVoucher }}</strong>
+                <strong class="code-text">{{ vc.maPhieuGiamGia }}</strong>
              </div>
              
-             <div class="c-expiry">HSD: {{ formatDate(vc.ngayKetThuc) }}</div>
+             <div class="c-meta">
+                <span class="c-expiry">HSD: {{ formatDate(vc.ngayKetThuc) }}</span>
+                <span class="c-qty">Còn {{ vc.soLuong }} mã</span>
+             </div>
              
-             <button class="btn-save" @click="copyCode(vc.maVoucher)">
+             <button class="btn-save" @click="copyCode(vc.maPhieuGiamGia)">
                 <i class="fas fa-copy"></i> Lưu mã
              </button>
           </div>
@@ -43,35 +53,41 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { getVouchers } from '@/api/clientApi';
 import Swal from 'sweetalert2';
 
 const loading = ref(false);
 const vouchers = ref([]);
 
-// --- MOCK DATA (Thay bằng API call nếu có) ---
 const fetchVouchers = async () => {
     loading.value = true;
     try {
-        // Giả lập API trả về
-        setTimeout(() => {
-            vouchers.value = [
-                { id: 1, maVoucher: 'WELCOME2026', tieuDe: 'Giảm 50K', donToiThieu: 0, ngayKetThuc: '2026-12-31' },
-                { id: 2, maVoucher: 'FREESHIP', tieuDe: 'Miễn Phí Vận Chuyển', donToiThieu: 300000, ngayKetThuc: '2026-06-30' },
-                { id: 3, maVoucher: 'SALE20', tieuDe: 'Giảm 20%', donToiThieu: 500000, ngayKetThuc: '2026-05-01' },
-                { id: 4, maVoucher: 'VIPMEMBER', tieuDe: 'Giảm 100K', donToiThieu: 1000000, ngayKetThuc: '2026-12-31' },
-                { id: 5, maVoucher: 'TET2026', tieuDe: 'Lì Xì 200K', donToiThieu: 2000000, ngayKetThuc: '2026-02-28' },
-                { id: 6, maVoucher: 'HOANXU', tieuDe: 'Hoàn 10% Xu', donToiThieu: 150000, ngayKetThuc: '2026-03-15' }
-            ];
-            loading.value = false;
-        }, 500);
+        const res = await getVouchers({ status: 1, scope: 'CongKhai', size: 50 });
+        const list = res.data?.content || [];
+        const now = new Date();
+        vouchers.value = list.filter(v =>
+            v.soLuong > 0 &&
+            (!v.ngayKetThuc || new Date(v.ngayKetThuc) >= now) &&
+            (!v.ngayBatDau || new Date(v.ngayBatDau) <= now)
+        );
     } catch (e) {
+        console.error('Lỗi tải voucher:', e);
+        vouchers.value = [];
+    } finally {
         loading.value = false;
     }
 };
 
 // --- UTILS ---
-const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+const getDiscountLabel = (v) => {
+    if (v.loaiPhieu === 'PhanTram') return `Giảm ${v.giaTriGiam}%`;
+    if (v.loaiPhieu === 'FreeShip') return 'Miễn phí vận chuyển';
+    return `Giảm ${formatMoney(v.giaTriGiam)}`;
+};
+
+const formatMoney = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 const formatDate = (dateStr) => {
+    if (!dateStr) return 'Không giới hạn';
     const d = new Date(dateStr);
     return d.toLocaleDateString('vi-VN');
 };
@@ -109,6 +125,12 @@ onMounted(() => {
 .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #1e3a8a; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 80px 20px; }
+.empty-state i { font-size: 50px; color: #cbd5e1; margin-bottom: 15px; display: block; }
+.empty-state h3 { color: #0f172a; margin-bottom: 8px; }
+.empty-state p { color: #64748b; }
+
 /* GRID LAYOUT */
 .coupon-grid { 
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; 
@@ -118,7 +140,7 @@ onMounted(() => {
 .coupon-ticket { 
     display: flex; background: white; border-radius: 12px; 
     position: relative; overflow: hidden; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: 160px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: 180px;
     border: 1px solid #e2e8f0; transition: 0.3s;
 }
 .coupon-ticket:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
@@ -134,14 +156,20 @@ onMounted(() => {
 .c-type { font-size: 10px; letter-spacing: 1px; opacity: 0.8; }
 
 /* Right Side (Info) */
-.coupon-right { flex: 1; padding: 20px 20px 20px 30px; position: relative; display: flex; flex-direction: column; justify-content: center; }
-.discount-text { font-size: 22px; color: #ef4444; margin: 0 0 5px; font-weight: 700; }
-.condition { font-size: 13px; color: #64748b; margin-bottom: 10px; }
+.coupon-right { flex: 1; padding: 15px 20px 15px 30px; position: relative; display: flex; flex-direction: column; justify-content: center; }
+.discount-text { font-size: 20px; color: #ef4444; margin: 0 0 2px; font-weight: 700; }
+.voucher-name { font-size: 13px; color: #334155; margin-bottom: 3px; font-weight: 600; }
+.condition { font-size: 12px; color: #64748b; margin-bottom: 6px; }
 
-.c-code-row { font-size: 14px; margin-bottom: 5px; color: #334155; }
+.c-code-row { font-size: 13px; margin-bottom: 4px; color: #334155; }
 .code-text { background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-family: monospace; color: #0f172a; }
 
-.c-expiry { font-size: 12px; color: #94a3b8; }
+.c-meta { display: flex; gap: 12px; align-items: center; }
+.c-expiry { font-size: 11px; color: #94a3b8; }
+.c-qty { font-size: 11px; color: #059669; font-weight: 600; }
+
+/* FreeShip Left */
+.coupon-left.freeship { background: linear-gradient(135deg, #059669 0%, #065f46 100%); }
 
 /* Button Save */
 .btn-save { 

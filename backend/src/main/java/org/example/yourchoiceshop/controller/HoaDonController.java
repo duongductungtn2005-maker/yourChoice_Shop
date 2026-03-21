@@ -39,6 +39,7 @@ public class HoaDonController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String type,
+            @RequestParam(required = false) Integer khachHangId,
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate) {
         LocalDateTime from = (fromDate != null) ? fromDate.atStartOfDay() : null;
@@ -52,7 +53,7 @@ public class HoaDonController {
             typeDb = "GIAO_HANG";
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("ngayTao").ascending());
 
-        return ResponseEntity.ok(hoaDonService.getOrders(keyword, status, typeDb, from, to, pageable));
+        return ResponseEntity.ok(hoaDonService.getOrders(keyword, status, typeDb, khachHangId, from, to, pageable));
     }
 
     // API chi tiết
@@ -167,6 +168,18 @@ public class HoaDonController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    // Tra cứu đơn hàng theo SĐT (cho khách vãng lai, không cần đăng nhập)
+    @GetMapping("/tra-cuu")
+    public ResponseEntity<Page<HoaDonResponse>> trackOrderByPhone(
+            @RequestParam String soDienThoai,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status) {
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("ngayTao").descending());
+        return ResponseEntity.ok(hoaDonService.getOrdersByPhone(soDienThoai, keyword, status, pageable));
     }
 
     

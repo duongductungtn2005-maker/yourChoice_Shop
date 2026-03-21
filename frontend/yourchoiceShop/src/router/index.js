@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router"
-import { isAuthenticated, getRole } from "@/services/auth"
+import { isAuthenticated, getRole, getCurrentUserId } from "@/services/auth"
 // import { initCrossTabSync } from "@/services/auth" // Đã vô hiệu hóa cross-tab sync
 
 /* ================= STATIC IMPORT ================= */
@@ -39,7 +39,10 @@ const normalizeRole = (role) => {
 
 const getDefaultPathByRole = (role) => {
   const normalized = normalizeRole(role)
-  if (normalized === "CUSTOMER") return "/"
+  if (normalized === "CUSTOMER") {
+    const currentUserId = getCurrentUserId()
+    return currentUserId ? `/customer/${currentUserId}/account` : "/"
+  }
   if (normalized === "STAFF") return "/staff/pos"
   return "/admin/dashboard"
 }
@@ -54,7 +57,11 @@ const router = createRouter({
     /* ================= LOGIN ================= */
     {
       path: "/login",
-      name: "login",
+      redirect: "/client/login",
+    },
+    {
+      path: "/admin/login",
+      name: "admin-login",
       component: () => import("../views/LoginView.vue"),
     },
 
@@ -71,6 +78,8 @@ const router = createRouter({
       component: () => import("../layouts/ClientLayout.vue"),
       children: [
         { path: "", name: "home", component: () => import("../views/client/HomeView.vue") },
+        { path: "client/login", name: "client-login", component: () => import("../views/client/ClientLoginView.vue") },
+        { path: "client/register", name: "client-register", component: () => import("../views/client/ClientRegisterView.vue") },
         { path: "products", name: "products", component: () => import("../views/client/ProductView.vue") },
         { path: "product/:id", name: "product-detail", component: () => import("../views/client/ProductDetailView.vue") },
         { path: "coupons", name: "coupons", component: () => import("../views/client/CouponView.vue") },
@@ -79,8 +88,33 @@ const router = createRouter({
         { path: "cart", name: "cart", component: () => import("../views/client/CartView.vue") },
         { path: "checkout", name: "checkout", component: () => import("../views/client/CheckoutView.vue") },
         { path: "vnpay-return", name: "vnpay-return", component: () => import("../views/client/VnPayReturnView.vue") },
-        { path: "orders", name: "orders", component: () => import("../views/client/OrderHistoryView.vue"), meta: { requiresAuth: true, roles: ["CUSTOMER"] } },
-        { path: "account", name: "account", component: () => import("../views/client/AccountView.vue"), meta: { requiresAuth: true, roles: ["CUSTOMER"] } },
+        { path: "order-tracking", name: "order-tracking", component: () => import("../views/client/OrderTrackingView.vue") },
+        {
+          path: "customer/:id/orders",
+          name: "orders",
+          component: () => import("../views/client/OrderHistoryView.vue"),
+          meta: { requiresAuth: true, roles: ["CUSTOMER"], customerOwned: true },
+        },
+        {
+          path: "customer/:id/account",
+          name: "account",
+          component: () => import("../views/client/AccountView.vue"),
+          meta: { requiresAuth: true, roles: ["CUSTOMER"], customerOwned: true },
+        },
+        {
+          path: "orders",
+          redirect: () => {
+            const currentUserId = getCurrentUserId()
+            return currentUserId ? `/customer/${currentUserId}/orders` : "/client/login"
+          },
+        },
+        {
+          path: "account",
+          redirect: () => {
+            const currentUserId = getCurrentUserId()
+            return currentUserId ? `/customer/${currentUserId}/account` : "/client/login"
+          },
+        },
       ],
     },
 
@@ -90,7 +124,10 @@ const router = createRouter({
       component: () => import("../layouts/AdminLayout.vue"),
       meta: { requiresAuth: true, roles: ["ADMIN"] },
       children: [
-        { path: "", redirect: "/admin/dashboard" },
+        { path: "", redirect: "/admin/home" },
+
+        /* Trang chủ Admin */
+        { path: "home", name: "admin-home", component: () => import("../views/admin/AdminHome.vue") },
 
         /* Dashboard */
         { path: "dashboard", name: "admin-dashboard", component: ThongKeView },
@@ -114,6 +151,7 @@ const router = createRouter({
 
         /* Products */
         { path: "products", name: "admin-product-list", component: () => import("../views/admin/product/ProductIndex.vue") },
+        { path: "products/variants", name: "admin-all-variants", component: () => import("../views/admin/product/AllVariantsView.vue") },
         { path: "products/create", name: "admin-product-create", component: () => import("../views/admin/product/ProductCreate.vue") },
         { path: "products/:id", name: "admin-product-detail", component: () => import("../views/admin/product/ProductDetail.vue") },
 
@@ -146,6 +184,12 @@ const router = createRouter({
 
         /* Thống kê riêng */
         { path: "thong-ke", name: "admin-thong-ke", component: ThongKeView },
+
+        /* Thông tin cá nhân */
+        { path: "thong-tin-ca-nhan", name: "admin-profile", component: () => import("../views/admin/employee/ProfileView.vue") },
+
+        /* Chat Management */
+        { path: "chat", name: "admin-chat", component: () => import("../views/admin/chat/ChatManagement.vue") },
       ],
     },
 
@@ -167,6 +211,12 @@ const router = createRouter({
         { path: "customers", name: "staff-customer-list", component: () => import("../views/admin/customer/CustomerList.vue") },
         { path: "customers/create", name: "staff-customer-create", component: CustomerCreate },
         { path: "customers/detail/:id", name: "staff-customer-detail", component: CustomerDetail },
+
+        /* Thông tin cá nhân */
+        { path: "thong-tin-ca-nhan", name: "staff-profile", component: () => import("../views/admin/employee/ProfileView.vue") },
+
+        /* Chat Management */
+        { path: "chat", name: "staff-chat", component: () => import("../views/admin/chat/ChatManagement.vue") },
       ],
     },
   ],
@@ -181,8 +231,8 @@ router.beforeEach((to, from, next) => {
 
   const requiresAuth = to.matched.some((r) => r.meta.requiresAuth)
 
-  // Đã đăng nhập mà vào /login → chuyển về trang mặc định theo role
-  if (to.path === "/login" && authenticated && role) {
+  // Đã đăng nhập mà vào trang login → chuyển về trang mặc định theo role
+  if ((to.path === "/login" || to.path === "/client/login" || to.path === "/admin/login") && authenticated && role) {
     next(getDefaultPathByRole(role))
     return
   }
@@ -193,9 +243,13 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  // Chưa đăng nhập hoặc không có role → về login
+  // Chưa đăng nhập hoặc không có role → về đúng trang login theo loại route
   if (!authenticated || !role) {
-    next("/login")
+    const needsAdminLogin = to.matched.some((r) => {
+      const roles = (r.meta?.roles || []).map((x) => normalizeRole(x))
+      return roles.includes("ADMIN") || roles.includes("STAFF")
+    })
+    next(needsAdminLogin ? "/admin/login" : "/client/login")
     return
   }
 
@@ -207,6 +261,17 @@ router.beforeEach((to, from, next) => {
   if (allowedRoles.length && !allowedRoles.includes(role)) {
     next(getDefaultPathByRole(role))
     return
+  }
+
+  // Khách hàng chỉ được truy cập route có id trùng với tài khoản hiện tại
+  const requiresCustomerOwnership = to.matched.some((r) => r.meta?.customerOwned)
+  if (requiresCustomerOwnership && role === "CUSTOMER") {
+    const routeCustomerId = Number(to.params?.id)
+    const currentUserId = getCurrentUserId()
+    if (!currentUserId || Number.isNaN(routeCustomerId) || routeCustomerId !== currentUserId) {
+      next(getDefaultPathByRole(role))
+      return
+    }
   }
 
   next()

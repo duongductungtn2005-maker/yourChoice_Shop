@@ -170,6 +170,11 @@ public class KhachHangServiceImpl implements KhachHangService {
         if (request.getTrangThai() != null) kh.setTrangThai(request.getTrangThai());
         kh.setTenTaiKhoan(username);
 
+        // Password update (chỉ khi có giá trị mới)
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            kh.setMatKhau(request.getPassword().trim());
+        }
+
         // Avatar update
         if (request.getAvatarFile() != null && !request.getAvatarFile().isEmpty()) {
             kh.setAvatar(saveFile(request.getAvatarFile()));
@@ -245,6 +250,23 @@ public class KhachHangServiceImpl implements KhachHangService {
 
         // NOTE: đang check plain-text theo DB hiện tại
         return khachHangRepository.existsByTenTaiKhoanIgnoreCaseAndMatKhau(usernameValue, passwordValue);
+    }
+
+    @Override
+    public KhachHang getCustomerByCredentials(String username, String password) {
+        String usernameValue = username != null ? username.trim() : "";
+        String passwordValue = password != null ? password.trim() : "";
+        if (usernameValue.isEmpty() || passwordValue.isEmpty()) return null;
+
+        KhachHang customer = khachHangRepository
+                .findByTenTaiKhoanIgnoreCaseAndMatKhau(usernameValue, passwordValue)
+                .orElse(null);
+
+        // Kiểm tra tài khoản còn hoạt động không (trangThai = 1)
+        if (customer != null && customer.getTrangThai() != null && customer.getTrangThai() != 1) {
+            return null;
+        }
+        return customer;
     }
 
     // =========================

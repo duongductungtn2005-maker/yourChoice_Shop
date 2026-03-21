@@ -127,6 +127,7 @@ import { useRouter, useRoute } from 'vue-router';
 import request from '@/services/request'; 
 import axios from 'axios'; 
 import { toastSuccess, toastError, Toast } from '@/utils/toast';
+import { fetchProvinces as apiFetchProvinces, fetchDistricts as apiFetchDistricts, fetchWards as apiFetchWards } from '@/api/locationApi';
 
 const router = useRouter();
 const route = useRoute();
@@ -153,8 +154,7 @@ const previewImage = ref(null);
 
 const loadData = async () => {
     try {
-        const resP = await axios.get('https://provinces.open-api.vn/api/?depth=1');
-        locationData.provinces = resP.data;
+        locationData.provinces = await apiFetchProvinces();
 
         const res = await request.get(`/nhan-vien/${id}`); 
         const data = res.data; 
@@ -250,8 +250,8 @@ const parseAddressString = async (fullAddr) => {
         try {
             // --- BƯỚC 2: XỬ LÝ HUYỆN ---
             // Gọi API lấy danh sách Huyện của Tỉnh này
-            const resD = await axios.get(`https://provinces.open-api.vn/api/p/${pCode}?depth=2`);
-            locationData.districts = resD.data.districts;
+            const districts = await apiFetchDistricts(pCode);
+            locationData.districts = districts;
             
             // Tìm ID Huyện trong danh sách vừa tải về
             const dCode = findLocationCode(dName, locationData.districts);
@@ -261,8 +261,8 @@ const parseAddressString = async (fullAddr) => {
                 
                 // --- BƯỚC 3: XỬ LÝ XÃ ---
                 // Gọi API lấy danh sách Xã của Huyện này
-                const resW = await axios.get(`https://provinces.open-api.vn/api/d/${dCode}?depth=2`);
-                locationData.wards = resW.data.wards;
+                const wards = await apiFetchWards(dCode);
+                locationData.wards = wards;
 
                 // Tìm ID Xã trong danh sách vừa tải về
                 const wCode = findLocationCode(wName, locationData.wards);
@@ -289,13 +289,13 @@ const getNameFromId = (id, list) => { const item = list.find(x => x.code == id);
 const onProvinceChange = async () => {
     address.districtId = ''; address.wardCode = ''; locationData.districts = []; locationData.wards = [];
     if(address.provinceId) { 
-        try { const res = await axios.get(`https://provinces.open-api.vn/api/p/${address.provinceId}?depth=2`); locationData.districts = res.data.districts; } catch (e) {}
+        try { locationData.districts = await apiFetchDistricts(address.provinceId); } catch (e) {}
     }
 };
 const onDistrictChange = async () => {
     address.wardCode = ''; locationData.wards = [];
     if(address.districtId) { 
-        try { const res = await axios.get(`https://provinces.open-api.vn/api/d/${address.districtId}?depth=2`); locationData.wards = res.data.wards; } catch (e) {}
+        try { locationData.wards = await apiFetchWards(address.districtId); } catch (e) {}
     }
 };
 
