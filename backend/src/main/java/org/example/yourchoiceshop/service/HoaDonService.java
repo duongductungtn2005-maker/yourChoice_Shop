@@ -23,4 +23,5 @@ public interface HoaDonService {
     void createOrderAtCounter(CreateOrderRequest req);
     byte[] exportExcel(String keyword, Integer status, String type, LocalDateTime from, LocalDateTime to);
     String createOrderDelivery(CreateOrderRequest req);
+    Page<HoaDonResponse> getOrdersByPhone(String soDienThoai, String keyword, Integer status, Pageable pageable);
 }

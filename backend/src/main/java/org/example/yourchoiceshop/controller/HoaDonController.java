@@ -170,5 +170,17 @@ public class HoaDonController {
         }
     }
 
+    // Tra cứu đơn hàng theo SĐT (cho khách vãng lai, không cần đăng nhập)
+    @GetMapping("/tra-cuu")
+    public ResponseEntity<Page<HoaDonResponse>> trackOrderByPhone(
+            @RequestParam String soDienThoai,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status) {
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("ngayTao").descending());
+        return ResponseEntity.ok(hoaDonService.getOrdersByPhone(soDienThoai, keyword, status, pageable));
+    }
+
     
 }

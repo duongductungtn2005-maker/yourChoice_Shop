@@ -174,6 +174,40 @@
               <span><i class="fas fa-tag"></i> {{ appliedVoucher.maPhieuGiamGia }} - Giảm {{ formatDiscount(appliedVoucher) }}</span>
               <button @click="removeVoucher" class="btn-remove-voucher"><i class="fas fa-times"></i></button>
             </div>
+            <!-- Gợi ý voucher tốt nhất -->
+            <div v-if="!appliedVoucher && bestVoucher" class="voucher-suggestion">
+              <div class="suggestion-header">
+                <i class="fas fa-lightbulb"></i> Gợi ý voucher tốt nhất
+              </div>
+              <div class="suggestion-body">
+                <div class="suggestion-info">
+                  <strong>{{ bestVoucher.maPhieuGiamGia }}</strong>
+                  <span class="suggestion-discount">{{ formatDiscount(bestVoucher) }}</span>
+                  <span class="suggestion-desc">{{ bestVoucher.tenPhieuGiamGia }}</span>
+                </div>
+                <button class="btn-apply-suggestion" @click="applySuggestedVoucher">Áp dụng</button>
+              </div>
+            </div>
+            <!-- Danh sách voucher khả dụng -->
+            <div v-if="!appliedVoucher && availableVouchers.length > 0" class="available-vouchers">
+              <div class="avail-header" @click="showVoucherList = !showVoucherList">
+                <span><i class="fas fa-ticket-alt"></i> {{ availableVouchers.length }} voucher khả dụng</span>
+                <i :class="showVoucherList ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+              </div>
+              <div v-if="showVoucherList" class="avail-list">
+                <div class="avail-item" v-for="v in availableVouchers" :key="v.id" @click="applyVoucherDirect(v)">
+                  <div class="avail-left">
+                    <strong>{{ v.maPhieuGiamGia }}</strong>
+                    <span>{{ v.tenPhieuGiamGia }}</span>
+                    <span class="avail-cond">Đơn tối thiểu {{ formatMoney(v.donHangToiThieu) }}</span>
+                  </div>
+                  <div class="avail-right">
+                    <span class="avail-discount">-{{ formatDiscount(v) }}</span>
+                    <button class="btn-use">Dùng</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="summary-calculations">
@@ -229,6 +263,9 @@ const selectedAddressId = ref('new')
 // Voucher
 const voucherCode = ref('')
 const appliedVoucher = ref(null)
+const availableVouchers = ref([])
+const bestVoucher = ref(null)
+const showVoucherList = ref(false)
 
 // Form
 const form = reactive({
@@ -294,6 +331,9 @@ onMounted(async () => {
       }
     } catch (e) { console.error('Lỗi tải địa chỉ:', e) }
   }
+
+  // Load available vouchers for suggestion
+  await loadAvailableVouchers()
 })
 
 const onProvinceChange = async () => {
@@ -365,6 +405,55 @@ const applyVoucher = async () => {
 }
 
 const removeVoucher = () => { appliedVoucher.value = null; voucherCode.value = '' }
+
+// --- Voucher suggestion ---
+const calcVoucherDiscount = (v, orderTotal) => {
+  if (v.donHangToiThieu && orderTotal < v.donHangToiThieu) return 0
+  if (v.loaiPhieu === 'FreeShip') return 0
+  if (v.loaiPhieu === 'PhanTram') {
+    const d = orderTotal * v.giaTriGiam / 100
+    return v.giaTriGiamToiDa ? Math.min(d, v.giaTriGiamToiDa) : d
+  }
+  return v.giaTriGiam || 0
+}
+
+const loadAvailableVouchers = async () => {
+  try {
+    const res = await getVouchers({ status: 1, scope: 'CongKhai', size: 50 })
+    const list = res.data?.content || []
+    const now = new Date()
+    const orderTotal = cartStore.totalMoney
+
+    const valid = list.filter(v =>
+      v.soLuong > 0 &&
+      (!v.ngayKetThuc || new Date(v.ngayKetThuc) >= now) &&
+      (!v.ngayBatDau || new Date(v.ngayBatDau) <= now) &&
+      (!v.donHangToiThieu || orderTotal >= v.donHangToiThieu) &&
+      v.loaiPhieu !== 'FreeShip'
+    )
+
+    // Sort by discount amount descending
+    valid.sort((a, b) => calcVoucherDiscount(b, orderTotal) - calcVoucherDiscount(a, orderTotal))
+    availableVouchers.value = valid
+    bestVoucher.value = valid.length > 0 ? valid[0] : null
+  } catch (e) {
+    console.error('Lỗi tải voucher gợi ý:', e)
+  }
+}
+
+const applySuggestedVoucher = () => {
+  if (!bestVoucher.value) return
+  appliedVoucher.value = bestVoucher.value
+  voucherCode.value = bestVoucher.value.maPhieuGiamGia
+  Swal.fire({ icon: 'success', title: 'Đã áp dụng voucher!', timer: 1000, showConfirmButton: false })
+}
+
+const applyVoucherDirect = (v) => {
+  appliedVoucher.value = v
+  voucherCode.value = v.maPhieuGiamGia
+  showVoucherList.value = false
+  Swal.fire({ icon: 'success', title: 'Đã áp dụng voucher!', timer: 1000, showConfirmButton: false })
+}
 
 const formatDiscount = (v) => {
   if (v.loaiPhieu === 'PhanTram') return `${v.giaTriGiam}%`
@@ -454,7 +543,7 @@ const placeOrder = async () => {
       confirmButtonColor: '#1e3a8a',
     })
 
-    router.push(isAuthenticated() ? getCustomerOrdersPath() : '/')
+    router.push(isAuthenticated() ? getCustomerOrdersPath() : '/order-tracking')
   } catch (e) {
     console.error('Lỗi đặt hàng:', e)
     Swal.fire('Lỗi', e.response?.data?.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.', 'error')
@@ -551,6 +640,32 @@ textarea:focus { border-color: #1e3a8a; }
 .voucher-input button:hover:not(:disabled) { background: #1e3a8a; }
 .voucher-applied { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 10px 14px; background: #ecfdf5; border-radius: 8px; font-size: 13px; color: #065f46; font-weight: 600; }
 .btn-remove-voucher { background: none; border: none; color: #dc2626; cursor: pointer; font-size: 14px; }
+
+/* Voucher suggestion */
+.voucher-suggestion { margin-top: 12px; border: 1px solid #fbbf24; border-radius: 8px; overflow: hidden; background: #fffbeb; }
+.suggestion-header { padding: 8px 14px; background: #fef3c7; font-size: 13px; font-weight: 700; color: #92400e; display: flex; align-items: center; gap: 6px; }
+.suggestion-body { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; }
+.suggestion-info { display: flex; flex-direction: column; gap: 2px; }
+.suggestion-info strong { font-size: 14px; color: #0f172a; }
+.suggestion-discount { font-size: 13px; color: #ef4444; font-weight: 700; }
+.suggestion-desc { font-size: 12px; color: #64748b; }
+.btn-apply-suggestion { padding: 6px 14px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.btn-apply-suggestion:hover { background: #0f172a; }
+
+/* Available vouchers */
+.available-vouchers { margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.avail-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer; background: #f8fafc; }
+.avail-header:hover { background: #f1f5f9; }
+.avail-list { max-height: 200px; overflow-y: auto; }
+.avail-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid #f1f5f9; cursor: pointer; transition: 0.15s; }
+.avail-item:hover { background: #eff6ff; }
+.avail-left { display: flex; flex-direction: column; gap: 2px; }
+.avail-left strong { font-size: 13px; color: #0f172a; }
+.avail-left span { font-size: 12px; color: #64748b; }
+.avail-cond { font-size: 11px !important; color: #94a3b8 !important; }
+.avail-right { display: flex; align-items: center; gap: 8px; }
+.avail-discount { font-size: 13px; color: #ef4444; font-weight: 700; }
+.btn-use { padding: 4px 10px; background: #0f172a; color: #fff; border: none; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; }
 
 /* Calculations */
 .summary-calculations { margin-bottom: 20px; }

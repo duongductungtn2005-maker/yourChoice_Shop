@@ -88,6 +88,7 @@ const router = createRouter({
         { path: "cart", name: "cart", component: () => import("../views/client/CartView.vue") },
         { path: "checkout", name: "checkout", component: () => import("../views/client/CheckoutView.vue") },
         { path: "vnpay-return", name: "vnpay-return", component: () => import("../views/client/VnPayReturnView.vue") },
+        { path: "order-tracking", name: "order-tracking", component: () => import("../views/client/OrderTrackingView.vue") },
         {
           path: "customer/:id/orders",
           name: "orders",
@@ -123,7 +124,10 @@ const router = createRouter({
       component: () => import("../layouts/AdminLayout.vue"),
       meta: { requiresAuth: true, roles: ["ADMIN"] },
       children: [
-        { path: "", redirect: "/admin/dashboard" },
+        { path: "", redirect: "/admin/home" },
+
+        /* Trang chủ Admin */
+        { path: "home", name: "admin-home", component: () => import("../views/admin/AdminHome.vue") },
 
         /* Dashboard */
         { path: "dashboard", name: "admin-dashboard", component: ThongKeView },
@@ -147,6 +151,7 @@ const router = createRouter({
 
         /* Products */
         { path: "products", name: "admin-product-list", component: () => import("../views/admin/product/ProductIndex.vue") },
+        { path: "products/variants", name: "admin-all-variants", component: () => import("../views/admin/product/AllVariantsView.vue") },
         { path: "products/create", name: "admin-product-create", component: () => import("../views/admin/product/ProductCreate.vue") },
         { path: "products/:id", name: "admin-product-detail", component: () => import("../views/admin/product/ProductDetail.vue") },
 
@@ -182,6 +187,9 @@ const router = createRouter({
 
         /* Thông tin cá nhân */
         { path: "thong-tin-ca-nhan", name: "admin-profile", component: () => import("../views/admin/employee/ProfileView.vue") },
+
+        /* Chat Management */
+        { path: "chat", name: "admin-chat", component: () => import("../views/admin/chat/ChatManagement.vue") },
       ],
     },
 
@@ -206,6 +214,9 @@ const router = createRouter({
 
         /* Thông tin cá nhân */
         { path: "thong-tin-ca-nhan", name: "staff-profile", component: () => import("../views/admin/employee/ProfileView.vue") },
+
+        /* Chat Management */
+        { path: "chat", name: "staff-chat", component: () => import("../views/admin/chat/ChatManagement.vue") },
       ],
     },
   ],

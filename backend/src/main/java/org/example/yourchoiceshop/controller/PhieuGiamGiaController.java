@@ -1,4 +1,5 @@
 package org.example.yourchoiceshop.controller;
+
 import org.example.yourchoiceshop.dto.request.PhieuGiamGiaRequest;
 import org.example.yourchoiceshop.dto.request.SendMailRequest;
 import org.example.yourchoiceshop.entity.PhieuGiamGia;
@@ -43,8 +44,7 @@ public class PhieuGiamGiaController {
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String scope
-    ) {
+            @RequestParam(required = false) String scope) {
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(service.getAll(keyword, status, scope, pageable));
     }
@@ -62,7 +62,8 @@ public class PhieuGiamGiaController {
     // 3. API Bật/Tắt & Gia hạn
     // 3. API Bật/Tắt & Gia hạn (ĐÃ SỬA ĐỂ NHẬN ĐƯỢC CỜ GỬI MAIL)
     @PutMapping("/{id}/toggle")
-    public ResponseEntity<?> toggleStatus(@PathVariable Integer id, @RequestBody(required = false) Map<String, Object> body) {
+    public ResponseEntity<?> toggleStatus(@PathVariable Integer id,
+            @RequestBody(required = false) Map<String, Object> body) {
         try {
             // Nếu Frontend không gửi body lên thì tạo map rỗng để tránh lỗi Null
             if (body == null) {
@@ -87,78 +88,93 @@ public class PhieuGiamGiaController {
 
     // 5. API Gửi Mail
     // 5. API Gửi Mail
+    // 5. API Gửi Mail (Đã sửa lại cách nhận Payload)
     @PostMapping("/{id}/send-mail")
-    public ResponseEntity<?> sendVoucherEmail(@PathVariable Integer id, @RequestBody SendMailRequest req) {
-        PhieuGiamGia voucher = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu giảm giá"));
+    public ResponseEntity<?> sendVoucherEmail(@PathVariable Integer id, @RequestBody Map<String, List<String>> payload) {
+        try {
+            // 1. Lấy mảng emails từ Payload Map
+            List<String> emails = payload.get("emails");
+            if (emails == null || emails.isEmpty()) {
+                return ResponseEntity.badRequest().body("Không có email nào để gửi!");
+            }
 
-        String subject = "🎁 Quà tặng từ YourChoice: " + voucher.getTenPhieuGiamGia();
-        String senderName = "YourChoice Shop - Khuyến mãi";
+            // 2. Tìm phiếu giảm giá
+            PhieuGiamGia voucher = repository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu giảm giá"));
 
-        String htmlBody = """
-        <div style="font-family: 'Arial', sans-serif; background:#f1f5f9; padding:30px;">
-            <div style="max-width:700px; margin:0 auto; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(2,6,23,0.06);">
-                
-                <!-- Header -->
-                <div style="background: linear-gradient(90deg,#0b3b8c,#1e40af); padding:28px 24px; text-align:center; color:#fff;">
-                    <h1 style="font-size:22px; margin:6px 0 0; letter-spacing:1px;">
-                        🎁 BẠN NHẬN ĐƯỢC MÃ GIẢM GIÁ
-                    </h1>
-                </div>
+            String subject = "🎁 Quà tặng từ YourChoice: " + voucher.getTenPhieuGiamGia();
+            String senderName = "YourChoice Shop - Khuyến mãi";
 
-                <!-- Body -->
-                <div style="padding:28px 36px; color:#111827;">
-                    <p style="margin:0 0 12px;"><strong>Xin chào bạn,</strong></p>
+            // 3. Chuẩn bị Template HTML
+            String htmlBody = """
+            <div style="font-family: 'Arial', sans-serif; background:#f1f5f9; padding:30px;">
+                <div style="max-width:700px; margin:0 auto; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(2,6,23,0.06);">
+                    
+                    <div style="background: linear-gradient(90deg,#0b3b8c,#1e40af); padding:28px 24px; text-align:center; color:#fff;">
+                        <h1 style="font-size:22px; margin:6px 0 0; letter-spacing:1px;">
+                            🎁 BẠN NHẬN ĐƯỢC MÃ GIẢM GIÁ
+                        </h1>
+                    </div>
 
-                    <p style="margin:0 0 18px; color:#374151;">
-                        Cảm ơn bạn đã đồng hành cùng <strong>YourChoice Shop</strong>.
-                        Bạn vừa nhận được một mã giảm giá đặc biệt:
-                    </p>
+                    <div style="padding:28px 36px; color:#111827;">
+                        <p style="margin:0 0 12px;"><strong>Xin chào bạn,</strong></p>
 
-                    <!-- Voucher box -->
-                    <div style="border:2px dashed #0b3b8c; border-radius:10px; padding:20px; text-align:center;">
-                        <div style="margin-bottom:15px;">
-                            <div style="color:#6b7280; font-size:16px;">Mã voucher của bạn</div>
-                            <div style="color:#0b3b8c; font-size:24px; font-weight:700; letter-spacing:2px;">
-                                %s
+                        <p style="margin:0 0 18px; color:#374151;">
+                            Cảm ơn bạn đã đồng hành cùng <strong>YourChoice Shop</strong>.
+                            Bạn vừa nhận được một mã giảm giá đặc biệt:
+                        </p>
+
+                        <div style="border:2px dashed #0b3b8c; border-radius:10px; padding:20px; text-align:center;">
+                            <div style="margin-bottom:15px;">
+                                <div style="color:#6b7280; font-size:16px;">Mã voucher của bạn</div>
+                                <div style="color:#0b3b8c; font-size:24px; font-weight:700; letter-spacing:2px;">
+                                    %s
+                                </div>
+                            </div>
+
+                            <div style="color:#ef4444; font-size:16px;">
+                                Hạn sử dụng đến: <strong>%s</strong>
                             </div>
                         </div>
 
-                        <div style="color:#ef4444; font-size:16px;">
-                            Hạn sử dụng đến: <strong>%s</strong>
+                        <p style="margin:20px 0 10px; color:#374151;">
+                            Hãy đăng nhập và sử dụng ngay để không bỏ lỡ ưu đãi hấp dẫn này!
+                        </p>
+
+                        <div style="text-align:center; margin-top:18px;">
+                            <a href="http://localhost:5173"
+                               style="display:inline-block; background: linear-gradient(90deg,#0b3b8c,#1e40af); color:#fff; padding:12px 26px; border-radius:30px; text-decoration:none; font-weight:600;">
+                               MUA SẮM NGAY
+                            </a>
                         </div>
+
+                        <p style="margin:20px 0 0; color:#6b7280; font-size:13px;">
+                            Trân trọng,<br/>
+                            <strong>YourChoice Shop</strong>
+                        </p>
                     </div>
-
-                    <p style="margin:20px 0 10px; color:#374151;">
-                        Hãy đăng nhập và sử dụng ngay để không bỏ lỡ ưu đãi hấp dẫn này!
-                    </p>
-
-                    <div style="text-align:center; margin-top:18px;">
-                        <a href="http://localhost:5173"
-                           style="display:inline-block; background: linear-gradient(90deg,#0b3b8c,#1e40af); color:#fff; padding:12px 26px; border-radius:30px; text-decoration:none; font-weight:600;">
-                           MUA SẮM NGAY
-                        </a>
-                    </div>
-
-                    <p style="margin:20px 0 0; color:#6b7280; font-size:13px;">
-                        Trân trọng,<br/>
-                        <strong>YourChoice Shop</strong>
-                    </p>
                 </div>
             </div>
-        </div>
-        """.formatted(
-                voucher.getMaPhieuGiamGia(),
-                voucher.getNgayKetThuc()
-        );
+            """.formatted(
+                    voucher.getMaPhieuGiamGia(),
+                    voucher.getNgayKetThuc() != null ? voucher.getNgayKetThuc().toString() : "Vô thời hạn"
+            );
 
-        for (String email : req.getEmails()) {
-            emailService.sendEmail(email, subject, htmlBody, senderName);
+            // 4. Lặp để gửi mail (tao bỏ cái .formatted() bị lỗi Null Pointer của m rồi)
+            for (String email : emails) {
+                if(email != null && !email.trim().isEmpty()){
+                     emailService.sendEmail(email, subject, htmlBody, senderName);
+                }
+            }
+
+            return ResponseEntity.ok("Đã gửi mail thành công!");
+
+        } catch (Exception e) {
+            e.printStackTrace(); // In lỗi ra màn hình đen để dễ fix nếu còn tịt
+            return ResponseEntity.status(500).body("Lỗi hệ thống khi gửi mail: " + e.getMessage());
         }
-
-        return ResponseEntity.ok("Đang gửi mail...");
-
     }
+
     @GetMapping("/{id}/customers")
     public ResponseEntity<?> getCustomersByVoucher(@PathVariable Integer id) {
         // 1. Lấy danh sách từ bảng trung gian
@@ -171,12 +187,12 @@ public class PhieuGiamGiaController {
             return Map.of(
                     "id", kh.getId(),
                     "hoTen", kh.getTenKhachHang(),
-                    "email", kh.getEmail()
-            );
+                    "email", kh.getEmail());
         }).collect(Collectors.toList());
 
         return ResponseEntity.ok(result);
     }
+
     // 6. API Lấy chi tiết 1 phiếu giảm giá (Dùng cho màn hình chỉnh sửa)
     @GetMapping("/{id}")
     public ResponseEntity<?> getChiTietPhieu(@PathVariable Integer id) {
@@ -197,8 +213,11 @@ public class PhieuGiamGiaController {
         response.put("trangThai", voucher.getTrangThai());
         response.put("ngayBatDau", voucher.getNgayBatDau());
         response.put("ngayKetThuc", voucher.getNgayKetThuc());
-response.put("moTa", voucher.getMoTa());
-        // NẾU là phiếu cá nhân -> Lấy thêm danh sách ID khách hàng để Frontend tích sẵn checkbox
+        response.put("moTa", voucher.getMoTa());
+        response.put("giaTriGiamToiDa", voucher.getGiaTriGiamToiDa());
+        response.put("gioiHanMoiKhach", voucher.getGioiHanMoiKhach());
+        // NẾU là phiếu cá nhân -> Lấy thêm danh sách ID khách hàng để Frontend tích sẵn
+        // checkbox
         if ("CaNhan".equals(voucher.getKieu()) || "1".equals(voucher.getKieu())) {
             List<PhieuGiamGiaCaNhan> listKhachHang = pggCaNhanRepo.findByPhieuGiamGiaId(id);
             List<Integer> customerIds = listKhachHang.stream()
@@ -209,6 +228,7 @@ response.put("moTa", voucher.getMoTa());
 
         return ResponseEntity.ok(response);
     }
+
     // 7. API Cập nhật phiếu giảm giá
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody PhieuGiamGiaRequest req) {

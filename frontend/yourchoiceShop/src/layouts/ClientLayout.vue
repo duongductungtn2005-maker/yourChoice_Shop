@@ -58,6 +58,10 @@
             <i class="fas fa-shopping-bag"></i>
             <span class="cart-badge">{{ cartCount }}</span>
           </div>
+
+          <div class="icon-item order-history-icon" @click="goToOrderHistory" style="cursor: pointer;" title="Lịch sử đơn hàng">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
         </div>
       </div>
     </header>
@@ -98,11 +102,15 @@
         © 2026 YourChoice Shop. All rights reserved.
       </div>
     </footer>
+
+    <!-- Chat Widget -->
+    <ChatWidget />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import ChatWidget from '@/components/ChatWidget.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
 import { useCartStore } from '@/stores/cart';
@@ -134,6 +142,14 @@ const handleScroll = () => {
 
 const toggleUserDropdown = () => {
   isUserDropdownOpen.value = !isUserDropdownOpen.value;
+};
+
+const goToOrderHistory = () => {
+  if (isCustomerLoggedIn.value) {
+    router.push(customerOrdersPath.value);
+  } else {
+    router.push('/order-tracking');
+  }
 };
 
 const handleClickOutside = (e) => {

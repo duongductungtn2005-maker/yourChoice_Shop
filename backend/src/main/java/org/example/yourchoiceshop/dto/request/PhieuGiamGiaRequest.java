@@ -27,5 +27,6 @@ public class PhieuGiamGiaRequest {
     private Integer trangThai;
     private String kieu;
     private String moTa;
-    private List<Integer> customerIds; // Danh sách ID khách hàng
+    private List<Integer> customerIds;
+    private Integer gioiHanMoiKhach; // Danh sách ID khách hàng
 }

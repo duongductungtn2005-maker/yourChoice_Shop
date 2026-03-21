@@ -9,6 +9,15 @@
       </div>
 
       <nav class="menu">
+        <!-- Trang chủ -->
+        <router-link
+          to="/admin/home"
+          class="menu-item"
+          active-class="active-link"
+        >
+          <i class="fa-solid fa-house icon"></i> Trang chủ
+        </router-link>
+
         <!-- Admin only -->
         <router-link
           v-if="isAdmin"
@@ -158,6 +167,15 @@
             </router-link>
           </div>
         </div>
+
+        <!-- Chat Management -->
+        <router-link
+          :to="`${basePath}/chat`"
+          class="menu-item"
+          active-class="active-link"
+        >
+          <i class="fa-regular fa-comment-dots icon"></i> Quản lý Chat
+        </router-link>
       </nav>
     </aside>
 
@@ -167,10 +185,38 @@
           <button class="icon-btn" title="Lịch">
             <i class="fa-regular fa-calendar"></i>
           </button>
-          <button class="icon-btn" title="Thông báo">
-            <i class="fa-regular fa-bell"></i>
-            <span class="badge-count">3</span>
-          </button>
+          <div class="notification-wrapper" ref="notifWrapperRef">
+            <button class="icon-btn" :class="{ 'bell-ring': bellRinging }" title="Thông báo" @click="toggleNotifDropdown">
+              <i class="fa-regular fa-bell"></i>
+              <span class="badge-count" v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+            </button>
+            <div v-if="isNotifOpen" class="notif-dropdown">
+              <div class="notif-header">
+                <span class="notif-title">Thông báo</span>
+                <button v-if="unreadCount > 0" class="mark-all-btn" @click.stop="markAllAsRead">Đánh dấu đã đọc tất cả</button>
+              </div>
+              <div class="notif-body" v-if="notifications.length > 0">
+                <div
+                  v-for="item in notifications"
+                  :key="item.id"
+                  class="notif-item"
+                  :class="{ unread: !item.daDoc }"
+                  @click="handleNotifClick(item)"
+                >
+                  <div class="notif-icon-box">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                  </div>
+                  <div class="notif-content">
+                    <div class="notif-item-title">{{ item.tieuDe }}</div>
+                    <div class="notif-item-desc">{{ item.noiDung }}</div>
+                    <div class="notif-item-time">{{ timeAgo(item.ngayTao) }}</div>
+                  </div>
+                  <div v-if="!item.daDoc" class="notif-dot"></div>
+                </div>
+              </div>
+              <div v-else class="notif-empty">Không có thông báo</div>
+            </div>
+          </div>
         </div>
 
         <div
@@ -205,8 +251,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { toastSuccess } from '@/utils/toast'; // Nếu chưa có util này, bạn có thể xóa dòng import + dòng toastSuccess(...)
+import { toastSuccess } from '@/utils/toast';
 import { logout as authLogout, getRole, getCurrentUser, getCurrentUserName } from '@/services/auth';
+import axios from 'axios';
+import SockJS from 'sockjs-client/dist/sockjs';
+import { Client } from '@stomp/stompjs';
+
+const API_URL = 'http://localhost:8080/api/v1';
 
 const route = useRoute();
 const router = useRouter();
@@ -273,6 +324,10 @@ const handleClickOutside = (e) => {
   if (userInfoEl && !userInfoEl.contains(e.target)) {
     isUserDropdownOpen.value = false;
   }
+  // Đóng dropdown thông báo khi click ra ngoài
+  if (notifWrapperRef.value && !notifWrapperRef.value.contains(e.target)) {
+    isNotifOpen.value = false;
+  }
 };
 
 watch(() => route.path, () => {
@@ -281,9 +336,12 @@ watch(() => route.path, () => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  fetchNotifications();
+  connectWebSocket();
 });
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  disconnectWebSocket();
 });
 
 const goToProfile = () => {
@@ -303,6 +361,105 @@ const handleLogout = () => {
   }
 
   router.push('/admin/login');
+};
+
+/* =========================
+   THÔNG BÁO REALTIME
+========================= */
+const isNotifOpen = ref(false);
+const notifications = ref([]);
+const unreadCount = ref(0);
+const bellRinging = ref(false);
+const notifWrapperRef = ref(null);
+let stompClient = null;
+
+const toggleNotifDropdown = () => {
+  isNotifOpen.value = !isNotifOpen.value;
+  if (isNotifOpen.value) fetchNotifications();
+};
+
+const fetchNotifications = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/thong-bao`);
+    notifications.value = res.data.items || [];
+    unreadCount.value = res.data.unreadCount || 0;
+  } catch (e) {
+    console.error('Lỗi tải thông báo:', e);
+  }
+};
+
+const markAsRead = async (id) => {
+  try {
+    await axios.put(`${API_URL}/thong-bao/${id}/read`);
+    const item = notifications.value.find((n) => n.id === id);
+    if (item && !item.daDoc) {
+      item.daDoc = true;
+      unreadCount.value = Math.max(0, unreadCount.value - 1);
+    }
+  } catch (e) {
+    console.error('Lỗi đánh dấu đã đọc:', e);
+  }
+};
+
+const markAllAsRead = async () => {
+  try {
+    await axios.put(`${API_URL}/thong-bao/read-all`);
+    notifications.value.forEach((n) => (n.daDoc = true));
+    unreadCount.value = 0;
+  } catch (e) {
+    console.error('Lỗi đánh dấu tất cả:', e);
+  }
+};
+
+const handleNotifClick = (item) => {
+  if (!item.daDoc) markAsRead(item.id);
+  if (item.maHoaDon) {
+    isNotifOpen.value = false;
+    router.push(`${basePath.value}/orders`);
+  }
+};
+
+const triggerBellAnimation = () => {
+  bellRinging.value = true;
+  setTimeout(() => { bellRinging.value = false; }, 1500);
+};
+
+const connectWebSocket = () => {
+  stompClient = new Client({
+    webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+    reconnectDelay: 5000,
+    onConnect: () => {
+      stompClient.subscribe('/topic/notifications', (message) => {
+        const newNotif = JSON.parse(message.body);
+        notifications.value.unshift(newNotif);
+        unreadCount.value++;
+        triggerBellAnimation();
+      });
+    },
+    onStompError: (frame) => {
+      console.error('WebSocket STOMP error:', frame.headers?.message);
+    },
+  });
+  stompClient.activate();
+};
+
+const disconnectWebSocket = () => {
+  if (stompClient) {
+    stompClient.deactivate();
+    stompClient = null;
+  }
+};
+
+const timeAgo = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return 'Vừa xong';
+  if (diff < 3600) return Math.floor(diff / 60) + ' phút trước';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' giờ trước';
+  if (diff < 604800) return Math.floor(diff / 86400) + ' ngày trước';
+  return date.toLocaleDateString('vi-VN');
 };
 
 /* =========================
@@ -566,6 +723,136 @@ const handleImageError = (e) => {
   padding: 2px 5px;
   border-radius: 10px;
 }
+
+/* --- NOTIFICATION DROPDOWN --- */
+.notification-wrapper {
+  position: relative;
+}
+.bell-ring i {
+  animation: bellShake 0.6s ease-in-out 2;
+  color: #f59e0b;
+}
+@keyframes bellShake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(15deg); }
+  40% { transform: rotate(-15deg); }
+  60% { transform: rotate(10deg); }
+  80% { transform: rotate(-10deg); }
+}
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -40px;
+  width: 380px;
+  max-height: 480px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.notif-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1e293b;
+}
+.mark-all-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.mark-all-btn:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.notif-body {
+  overflow-y: auto;
+  flex: 1;
+  max-height: 400px;
+}
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid #f8fafc;
+  position: relative;
+}
+.notif-item:hover {
+  background: #f8fafc;
+}
+.notif-item.unread {
+  background: #eff6ff;
+}
+.notif-item.unread:hover {
+  background: #dbeafe;
+}
+.notif-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.notif-content {
+  flex: 1;
+  min-width: 0;
+}
+.notif-item-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+.notif-item-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.notif-item-time {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+.notif-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.notif-empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
 .user-info {
   display: flex;
   align-items: center;

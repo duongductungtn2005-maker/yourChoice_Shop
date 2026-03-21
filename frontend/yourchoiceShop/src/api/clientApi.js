@@ -135,6 +135,11 @@ export function updateOrderStatus(maHoaDon, newStatus) {
   })
 }
 
+/** Tra cứu đơn hàng theo SĐT (khách vãng lai, không cần đăng nhập) */
+export function trackOrderByPhone(params) {
+  return axios.get(`${API_URL}/hoa-don/tra-cuu`, { params })
+}
+
 // ===================== PHIẾU GIẢM GIÁ =====================
 
 export function getVouchers(params) {
