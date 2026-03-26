@@ -389,7 +389,13 @@
           <span>Tiền thiếu</span>
           <span class="text-danger fw-bold">{{ formatMoney(calculateRemaining) }}</span>
         </div>
-        <button type="button" class="btn-submit-payment" @click="confirmPayment">
+        <div v-if="calculateChange > 0" class="remaining-row">
+          <span>Tiền thừa</span>
+          <span class="text-success fw-bold">{{ formatMoney(calculateChange) }}</span>
+        </div>
+        <button type="button" class="btn-submit-payment"
+          :disabled="paymentMethod === 'CASH' && customerCash < (order?.tongTienSauGiam || 0)"
+          @click="confirmPayment">
   Xác nhận thanh toán
 </button>
       </div>
@@ -534,6 +540,10 @@ const paymentMethod = ref('TRANSFER'); // 'TRANSFER' hoặc 'CASH'
 const customerCash = ref(0);
 const showStatusHistoryModal = ref(false);
 const confirmPayment = async () => {
+  if (paymentMethod.value === 'CASH' && customerCash.value < (order.value?.tongTienSauGiam || 0)) {
+    toastError('Tiền khách đưa chưa đủ!');
+    return;
+  }
   try {
     const paymentData = {
       hinhThucThanhToan: paymentMethod.value === 'CASH'
@@ -812,6 +822,15 @@ const calculateRemaining = computed(() => {
     return Math.max(0, total - customerCash.value);
   }
   return 0; // Chuyển khoản mặc định là quét đủ
+});
+
+const calculateChange = computed(() => {
+  if (!order.value) return 0;
+  const total = order.value.tongTienSauGiam || 0;
+  if (paymentMethod.value === 'CASH' && customerCash.value > total) {
+    return customerCash.value - total;
+  }
+  return 0;
 });
 
 const printOrder = () => {
@@ -1593,6 +1612,14 @@ onMounted(() => {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
   box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+}
+
+.btn-submit-payment:disabled {
+  background: #9ca3af !important;
+  border-color: #9ca3af !important;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .qr-section {

@@ -524,42 +524,59 @@
 
 
     <!-- ===== MODAL THANH TOÁN ===== -->
-    <div v-if="showPaymentModal" class="modal-overlay">
-      <div class="payment-modal">
+    <div v-if="showPaymentModal" class="modal-overlay" @click.self="showPaymentModal = false">
+      <div class="modal payment-modal">
         <div class="modal-header-flex">
-          <h3>Thanh toán</h3>
+          <h3>THANH TOÁN</h3>
           <button class="close-btn" @click="showPaymentModal = false">×</button>
         </div>
 
+        <div class="payment-summary">
+          <div class="summary-item">
+            <span>Tổng tiền hàng</span>
+            <span class="text-danger fw-bold">{{ formatMoney(totalPrice) }}</span>
+          </div>
+        </div>
+
         <div class="payment-tabs">
-          <div class="tab-item" :class="{ active: paymentMethod === 'TRANSFER' }" @click="paymentMethod = 'TRANSFER'">
-            Chuyển khoản
-          </div>
-
-          <div class="tab-item" :class="{ active: paymentMethod === 'CASH' }" @click="paymentMethod = 'CASH'">
-            Tiền mặt
-          </div>
+          <button type="button" :class="['tab-item', { active: paymentMethod === 'TRANSFER' }]" @click="paymentMethod = 'TRANSFER'">
+            CHUYỂN KHOẢN
+          </button>
+          <button type="button" :class="['tab-item', { active: paymentMethod === 'CASH' }]" @click="paymentMethod = 'CASH'">
+            TIỀN MẶT
+          </button>
         </div>
 
-        <div v-if="paymentMethod === 'CASH'">
-          <input v-model.number="customerCash" type="number" class="search-input" placeholder="Tiền khách đưa" />
-          <div class="p-price">Còn lại: {{ formatMoney(calculateRemaining) }}</div>
-        </div>
-
-        <div v-if="paymentMethod === 'TRANSFER'" class="qr-section">
+        <div v-if="paymentMethod === 'TRANSFER'" class="payment-content qr-section">
+          <div class="bank-info">
+            <p>Ngân hàng: <b>MB Bank</b></p>
+            <p>Số tài khoản: <b>0876524519</b></p>
+          </div>
           <div class="qr-code">
             <img :src="qrImageUrl" alt="QR chuyển khoản" />
+            <p class="qr-hint">Quét mã để thanh toán đúng số tiền</p>
           </div>
+        </div>
 
-          <div class="p-price">Số tiền: {{ formatMoney(totalPrice) }}</div>
-
-          <div style="font-size: 13px; color: #6b7280">
-            Nội dung: THANH TOAN HOA DON
+        <div v-if="paymentMethod === 'CASH'" class="payment-content cash-section">
+          <div class="form-group">
+            <label>Tiền khách đưa</label>
+            <input type="number" v-model.number="customerCash" placeholder="Nhập số tiền..." class="payment-input" />
           </div>
         </div>
 
         <div class="payment-footer">
-          <button class="btn-pay" @click="confirmCreateOrder">
+          <div class="remaining-row">
+            <span>Tiền thiếu</span>
+            <span class="text-danger fw-bold">{{ formatMoney(calculateRemaining) }}</span>
+          </div>
+          <div v-if="calculateChange > 0" class="remaining-row">
+            <span>Tiền thừa</span>
+            <span class="text-success fw-bold">{{ formatMoney(calculateChange) }}</span>
+          </div>
+          <button type="button" class="btn-submit-payment"
+            :disabled="paymentMethod === 'CASH' && customerCash < totalPrice"
+            @click="confirmCreateOrder">
             {{ orderType === 'TAI_QUAY' ? 'THANH TOÁN' : 'TẠO ĐƠN GIAO HÀNG' }}
           </button>
         </div>
@@ -734,14 +751,16 @@ const openCustomerModal = async () => {
   showCustomerModal.value = true
 }
 
-const selectCustomer = (c) => {
+const selectCustomer = async (c) => {
   customer.value = {
+    id: c.id,
     name: c.name,
     phone: c.phone,
     email: c.email,
     address: ''
   }
   showCustomerModal.value = false
+  await fillDefaultAddress(c.id)
 }
 
 const setGuestCustomer = () => {
@@ -750,6 +769,77 @@ const setGuestCustomer = () => {
     phone: '',
     email: '',
     address: ''
+  }
+  // Xóa thông tin giao hàng khi chọn khách lẻ
+  selectedProvince.value = ''
+  selectedDistrict.value = ''
+  selectedWard.value = ''
+  districts.value = []
+  wards.value = []
+  shippingFee.value = 0
+}
+
+const fillDefaultAddress = async (customerId) => {
+  try {
+    const res = await axios.get('http://localhost:8080/api/v1/dia-chi', { params: { khachHangId: customerId } })
+    const addresses = res.data || []
+    const defaultAddr = addresses.find(a => a.macDinh) || addresses[0]
+    if (!defaultAddr) return
+
+    // Điền SĐT người nhận và địa chỉ cụ thể
+    recipient.value = {
+      name: defaultAddr.tenNguoiNhan || customer.value?.name || '',
+      phone: defaultAddr.soDienThoai || customer.value?.phone || ''
+    }
+    customer.value = {
+      ...customer.value,
+      address: defaultAddr.diaChiCuThe || ''
+    }
+
+    // Tự động chọn tỉnh/huyện/xã theo tên
+    const provName = defaultAddr.thanhPho
+    if (!provName) return
+
+    if (!provinces.value.length) await fetchProvinces()
+
+    const normalize = (s) => (s || '').trim().toLowerCase()
+    const prov = provinces.value.find(p => normalize(p.provinceName) === normalize(provName))
+      || provinces.value.find(p => normalize(p.provinceName).includes(normalize(provName)))
+      || provinces.value.find(p => normalize(provName).includes(normalize(p.provinceName)))
+    if (!prov) return
+
+    selectedProvince.value = prov.provinceId
+    try {
+      const distRes = await ghnApi.getDistricts(prov.provinceId)
+      districts.value = distRes.data
+
+      const distName = defaultAddr.quan
+      if (!distName) return
+
+      const dist = districts.value.find(d => normalize(d.districtName) === normalize(distName))
+        || districts.value.find(d => normalize(d.districtName).includes(normalize(distName)))
+        || districts.value.find(d => normalize(distName).includes(normalize(d.districtName)))
+      if (!dist) return
+
+      selectedDistrict.value = dist.districtId
+      try {
+        const wardRes = await ghnApi.getWards(dist.districtId)
+        wards.value = wardRes.data
+
+        const wardName = defaultAddr.phuong
+        if (!wardName) return
+
+        const ward = wards.value.find(w => normalize(w.wardName) === normalize(wardName))
+          || wards.value.find(w => normalize(w.wardName).includes(normalize(wardName)))
+          || wards.value.find(w => normalize(wardName).includes(normalize(w.wardName)))
+        if (!ward) return
+
+        selectedWard.value = ward.wardCode
+        await calculateShippingFee()
+      } catch (e) { console.error('Lỗi tải phường/xã:', e) }
+    } catch (e) { console.error('Lỗi tải quận/huyện:', e) }
+  } catch (e) {
+    console.error('Lỗi tải địa chỉ khách hàng:', e)
   }
 }
 
@@ -2114,6 +2204,13 @@ const calculateRemaining = computed(() => {
   return 0
 })
 
+const calculateChange = computed(() => {
+  if (paymentMethod.value === 'CASH' && customerCash.value > totalPrice.value) {
+    return customerCash.value - totalPrice.value
+  }
+  return 0
+})
+
 const confirmCreateOrder = async () => {
   if (paymentMethod.value === 'CASH' && customerCash.value < totalPrice.value) {
     alert('Tiền khách đưa chưa đủ!')
@@ -2796,9 +2893,6 @@ const clearDeliveryFormWhenBackToCounter = () => {
 const fetchProvinces = async () => {
   try {
     const res = await ghnApi.getProvinces()
-
-    console.log("PROVINCES =", res.data)
-
     provinces.value = res.data
   } catch (error) {
     console.error("Lỗi tải tỉnh:", error)
@@ -3727,6 +3821,12 @@ input:disabled {
   font-weight: 900;
 }
 
+.p-change {
+  color: #16a34a;
+  font-weight: 900;
+  margin-top: 4px;
+}
+
 .price-main {
   color: #dc2626;
   font-weight: 900;
@@ -4448,9 +4548,10 @@ input:disabled {
 
 /* ===== PAYMENT MODAL ===== */
 .payment-modal {
-  width: 440px;
+  width: 450px !important;
   max-width: 95vw;
-  padding: 16px;
+  padding: 20px !important;
+  background: #ffffff;
   animation: pop .18s ease;
 }
 
@@ -4466,15 +4567,97 @@ input:disabled {
   }
 }
 
+.modal-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.modal-header-flex h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #334155;
+}
+
+.payment-summary {
+  background: #f8fafc;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+}
+
 .payment-tabs {
   display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .payment-tabs .tab-item {
   flex: 1;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #1e293b !important;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  outline: none;
   text-align: center;
+}
+
+.payment-tabs .tab-item:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+.payment-tabs .tab-item.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.payment-tabs .tab-item.active:hover {
+  background: #1d4ed8 !important;
+  color: #ffffff !important;
+  border-color: #1d4ed8 !important;
+}
+
+.payment-tabs .tab-item:focus,
+.payment-tabs .tab-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.payment-content {
+  margin-bottom: 15px;
+}
+
+.cash-section .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.payment-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 16px;
+  margin-top: 5px;
 }
 
 .qr-section {
@@ -4482,16 +4665,105 @@ input:disabled {
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  text-align: center;
+}
+
+.bank-info {
+  margin-bottom: 10px;
+  font-size: 13px;
 }
 
 .qr-code img {
-  width: 220px;
-  height: 220px;
+  width: 200px;
+  height: 200px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 5px;
   object-fit: contain;
 }
 
+.qr-hint {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 5px;
+}
+
 .payment-footer {
-  margin-top: 14px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+.remaining-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  font-size: 15px;
+}
+
+.fw-bold {
+  font-weight: 700;
+}
+
+.text-danger {
+  color: #dc2626;
+}
+
+.text-success {
+  color: #16a34a;
+}
+
+.payment-footer .btn-submit-payment,
+.btn-submit-payment {
+  width: 100%;
+  padding: 12px 16px;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #16a34a !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border: 1px solid #15803d !important;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.22);
+}
+
+.payment-footer .btn-submit-payment:hover,
+.btn-submit-payment:hover {
+  background: #15803d !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: #166534 !important;
+  transform: translateY(-1px);
+}
+
+.payment-footer .btn-submit-payment:active,
+.btn-submit-payment:active {
+  transform: translateY(0);
+}
+
+.payment-footer .btn-submit-payment:focus,
+.payment-footer .btn-submit-payment:focus-visible,
+.btn-submit-payment:focus,
+.btn-submit-payment:focus-visible {
+  outline: none;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+}
+
+.btn-submit-payment:disabled {
+  background: #9ca3af !important;
+  border-color: #9ca3af !important;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .order-type-toggle {
@@ -4726,9 +4998,14 @@ input:disabled {
   color: var(--brand-danger);
 }
 
-.btn-pay {
-  background: linear-gradient(180deg, var(--brand-orange), var(--brand-orange-strong));
-  box-shadow: 0 12px 22px rgba(34, 63, 103, 0.28);
+.payment-tabs .tab-item.active {
+  background: var(--brand-navy) !important;
+  border-color: var(--brand-navy) !important;
+}
+
+.payment-tabs .tab-item.active:hover {
+  background: var(--brand-navy-strong) !important;
+  border-color: var(--brand-navy-strong) !important;
 }
 
 .order-type-toggle span.active {

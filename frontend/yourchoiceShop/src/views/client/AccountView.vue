@@ -126,7 +126,7 @@
                   <span class="default-badge" v-if="addr.macDinh">Mặc định</span>
                 </div>
                 <p>{{ addr.soDienThoai }}</p>
-                <p class="addr-detail">{{ addr.diaChiChiTiet }}, {{ addr.phuongXa }}, {{ addr.quanHuyen }}, {{ addr.tinhThanh }}</p>
+                <p class="addr-detail">{{ addr.diaChiCuThe }}, {{ addr.phuong }}, {{ addr.quan }}, {{ addr.thanhPho }}</p>
                 <div class="addr-actions">
                   <button @click="openAddressForm(addr)"><i class="fas fa-edit"></i> Sửa</button>
                   <button v-if="!addr.macDinh" @click="setDefault(addr.id)"><i class="fas fa-check"></i> Đặt mặc định</button>
@@ -151,30 +151,30 @@
                   <div class="form-row">
                     <div class="form-group">
                       <label>Tỉnh/Thành</label>
-                      <select v-model="addrForm.tinhThanh" @change="onProvinceChange" required>
+                      <select v-model="addrForm.thanhPho" @change="onProvinceChange" required>
                         <option value="">-- Chọn --</option>
-                        <option v-for="p in provinces" :key="p.ProvinceID" :value="p.ProvinceName">{{ p.ProvinceName }}</option>
+                        <option v-for="p in provinces" :key="p.provinceId" :value="p.provinceName">{{ p.provinceName }}</option>
                       </select>
                     </div>
                     <div class="form-group">
                       <label>Quận/Huyện</label>
-                      <select v-model="addrForm.quanHuyen" @change="onDistrictChange" required>
+                      <select v-model="addrForm.quan" @change="onDistrictChange" required>
                         <option value="">-- Chọn --</option>
-                        <option v-for="d in districts" :key="d.DistrictID" :value="d.DistrictName">{{ d.DistrictName }}</option>
+                        <option v-for="d in districts" :key="d.districtId" :value="d.districtName">{{ d.districtName }}</option>
                       </select>
                     </div>
                   </div>
                   <div class="form-row">
                     <div class="form-group">
                       <label>Phường/Xã</label>
-                      <select v-model="addrForm.phuongXa" required>
+                      <select v-model="addrForm.phuong" required>
                         <option value="">-- Chọn --</option>
-                        <option v-for="w in wards" :key="w.WardCode" :value="w.WardName">{{ w.WardName }}</option>
+                        <option v-for="w in wards" :key="w.wardCode" :value="w.wardName">{{ w.wardName }}</option>
                       </select>
                     </div>
                     <div class="form-group">
                       <label>Địa chỉ chi tiết</label>
-                      <input v-model="addrForm.diaChiChiTiet" type="text" placeholder="Số nhà, đường..." required />
+                      <input v-model="addrForm.diaChiCuThe" type="text" placeholder="Số nhà, đường..." required />
                     </div>
                   </div>
                   <div class="form-actions">
@@ -227,7 +227,7 @@ const handleAvatarChange = (e) => {
 const addresses = ref([])
 const showAddrForm = ref(false)
 const editAddr = ref(null)
-const addrForm = reactive({ tenNguoiNhan: '', soDienThoai: '', tinhThanh: '', quanHuyen: '', phuongXa: '', diaChiChiTiet: '' })
+const addrForm = reactive({ tenNguoiNhan: '', soDienThoai: '', thanhPho: '', quan: '', phuong: '', diaChiCuThe: '' })
 const provinces = ref([])
 const districts = ref([])
 const wards = ref([])
@@ -384,34 +384,34 @@ const syncBrowserPasswordManager = async (username, password, fullName) => {
 
 // Address management
 const onProvinceChange = async () => {
-  addrForm.quanHuyen = ''; addrForm.phuongXa = ''; districts.value = []; wards.value = []
-  const prov = provinces.value.find(p => p.ProvinceName === addrForm.tinhThanh)
+  addrForm.quan = ''; addrForm.phuong = ''; districts.value = []; wards.value = []
+  const prov = provinces.value.find(p => p.provinceName === addrForm.thanhPho)
   if (prov) {
-    try { const res = await getDistricts(prov.ProvinceID); districts.value = res.data?.data || res.data || [] } catch {}
+    try { const res = await getDistricts(prov.provinceId); districts.value = res.data?.data || res.data || [] } catch {}
   }
 }
 
 const onDistrictChange = async () => {
-  addrForm.phuongXa = ''; wards.value = []
-  const dist = districts.value.find(d => d.DistrictName === addrForm.quanHuyen)
+  addrForm.phuong = ''; wards.value = []
+  const dist = districts.value.find(d => d.districtName === addrForm.quan)
   if (dist) {
-    try { const res = await getWards(dist.DistrictID); wards.value = res.data?.data || res.data || [] } catch {}
+    try { const res = await getWards(dist.districtId); wards.value = res.data?.data || res.data || [] } catch {}
   }
 }
 
 const openAddressForm = (addr) => {
   editAddr.value = addr
   if (addr) {
-    Object.assign(addrForm, { tenNguoiNhan: addr.tenNguoiNhan, soDienThoai: addr.soDienThoai, tinhThanh: addr.tinhThanh, quanHuyen: addr.quanHuyen, phuongXa: addr.phuongXa, diaChiChiTiet: addr.diaChiChiTiet })
+    Object.assign(addrForm, { tenNguoiNhan: addr.tenNguoiNhan, soDienThoai: addr.soDienThoai, thanhPho: addr.thanhPho, quan: addr.quan, phuong: addr.phuong, diaChiCuThe: addr.diaChiCuThe })
   } else {
-    Object.assign(addrForm, { tenNguoiNhan: '', soDienThoai: '', tinhThanh: '', quanHuyen: '', phuongXa: '', diaChiChiTiet: '' })
+    Object.assign(addrForm, { tenNguoiNhan: '', soDienThoai: '', thanhPho: '', quan: '', phuong: '', diaChiCuThe: '' })
   }
   showAddrForm.value = true
 }
 
 const saveAddress = async () => {
   try {
-    const data = { ...addrForm, khachHangId: customer.value.id }
+    const data = { ...addrForm, idKhachHang: customer.value.id }
     if (editAddr.value) { await updateAddress(editAddr.value.id, data) }
     else { await createAddress(data) }
     toastSuccess(editAddr.value ? 'Đã cập nhật!' : 'Đã thêm địa chỉ!')
