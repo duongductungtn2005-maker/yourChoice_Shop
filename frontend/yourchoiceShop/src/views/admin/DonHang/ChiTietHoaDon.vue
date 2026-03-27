@@ -34,6 +34,16 @@
 
   <div class="status-card-actions">
     <button
+      v-if="order && order.trangThai === 5"
+      class="btn btn-status-danger"
+      @click="returnOrder"
+      title="Hoàn hàng - Hủy đơn và cộng lại số lượng sản phẩm"
+    >
+      <i class="fas fa-undo"></i>
+      Hoàn hàng
+    </button>
+    <button
+      v-else
       class="btn btn-status-secondary"
       @click="goPrevStatus"
       :disabled="!order || getStatusIndex(order.trangThai) <= 0 || order.trangThai === 0"
@@ -804,6 +814,22 @@ const cancelOrder = async () => {
     icon: 'warning',
     showCancelButton: true,
     confirmButtonText: 'Đồng ý hủy',
+    confirmButtonColor: '#ef4444'
+  });
+
+  if (res.isConfirmed) {
+    await updateOrderStatus(0);
+  }
+};
+
+const returnOrder = async () => {
+  const res = await Swal.fire({
+    title: 'Hoàn hàng?',
+    text: 'Đơn hàng sẽ chuyển sang trạng thái hủy và số lượng sản phẩm sẽ được cộng lại. Bạn có chắc chắn?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Xác nhận hoàn hàng',
+    cancelButtonText: 'Hủy bỏ',
     confirmButtonColor: '#ef4444'
   });
 
@@ -2524,6 +2550,17 @@ onMounted(() => {
 .btn-status-secondary:hover {
   background: #eef4fb;
   border-color: #aebfd8;
+}
+
+.btn-status-danger {
+  background: #ef4444;
+  color: #fff;
+  border: 1px solid #dc2626;
+}
+
+.btn-status-danger:hover {
+  background: #dc2626;
+  border-color: #b91c1c;
 }
 
 @media (max-width: 768px) {
