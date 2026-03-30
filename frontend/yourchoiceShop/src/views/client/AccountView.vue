@@ -61,6 +61,7 @@
                       <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
                     </button>
                   </div>
+                  <span class="error" v-if="errors.matKhau">{{ errors.matKhau }}</span>
                 </div>
               </div>
               <div class="form-row">
@@ -84,6 +85,7 @@
                 <div class="form-group">
                   <label>Ngày sinh</label>
                   <input v-model="form.ngaySinh" type="date" />
+                  <span class="error" v-if="errors.ngaySinh">{{ errors.ngaySinh }}</span>
                 </div>
               </div>
               <div class="form-row">
@@ -307,8 +309,29 @@ const saveProfile = async () => {
     return
   }
 
-  saving.value = true
+  if (form.ngaySinh) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dob = new Date(form.ngaySinh)
+    if (dob > today) {
+      errors.ngaySinh = 'Ngày sinh không được là ngày trong tương lai'
+      return
+    }
+    const age = today.getFullYear() - dob.getFullYear()
+      - (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0)
+    if (age < 18) {
+      errors.ngaySinh = 'Bạn phải đủ 18 tuổi'
+      return
+    }
+  }
+
   const newPassword = String(form.matKhau || '').trim()
+  if (newPassword && newPassword.length < 6) {
+    errors.matKhau = 'Mật khẩu tối thiểu 6 ký tự'
+    return
+  }
+
+  saving.value = true
   try {
     const fd = new FormData()
     fd.append('tenKhachHang', form.hoTen)

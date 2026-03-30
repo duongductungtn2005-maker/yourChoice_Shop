@@ -27,13 +27,13 @@
 
           <form class="form" @submit.prevent="handleLogin">
             <div class="form-group">
-              <label class="label">Tài khoản</label>
+              <label class="label">Tài khoản hoặc Email</label>
               <div class="input-shell">
                 <input
                   v-model="username"
                   type="text"
                   class="input"
-                  placeholder="Nhập tài khoản"
+                  placeholder="Nhập tài khoản hoặc email"
                   autocomplete="username"
                 />
                 <i class="fa-regular fa-user icon"></i>

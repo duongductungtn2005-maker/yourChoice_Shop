@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.example.yourchoiceshop.dto.request.KhachHangRequest;
 import org.example.yourchoiceshop.dto.request.LoginRequest;
+import org.example.yourchoiceshop.dto.request.RegisterRequest;
 import org.example.yourchoiceshop.entity.DiaChiKhachHang;
 import org.example.yourchoiceshop.repository.KhachHangRepository;
 import org.example.yourchoiceshop.security.JwtUtil;
@@ -142,7 +143,35 @@ public class KhachHangController {
         }
     }
 
-    // 6) Tạo mới
+    // 6) Đăng ký tài khoản client (JSON)
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
+        try {
+            var customer = khachHangService.registerCustomer(registerRequest);
+
+            Map<String, Object> customerData = new LinkedHashMap<>();
+            customerData.put("id", customer.getId());
+            customerData.put("tenKhachHang", customer.getTenKhachHang());
+            customerData.put("email", customer.getEmail());
+            customerData.put("soDienThoai", customer.getSoDienThoai());
+            customerData.put("tenTaiKhoan", customer.getTenTaiKhoan());
+            customerData.put("trangThai", customer.getTrangThai());
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", true);
+            response.put("message", "Đăng ký thành công");
+            response.put("customer", customerData);
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", ex.getMessage()));
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("success", false, "message", "Lỗi hệ thống: " + ex.getMessage()));
+        }
+    }
+
+    // 7) Tạo mới (admin tạo, multipart)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> create(
             @ModelAttribute KhachHangRequest request,

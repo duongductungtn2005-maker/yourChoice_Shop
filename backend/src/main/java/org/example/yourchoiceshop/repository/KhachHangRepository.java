@@ -42,6 +42,11 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer>, 
 
     Optional<KhachHang> findByTenTaiKhoanIgnoreCaseAndMatKhau(String tenTaiKhoan, String matKhau);
 
+    // Đăng nhập bằng email
+    boolean existsByEmailIgnoreCaseAndMatKhau(String email, String matKhau);
+
+    Optional<KhachHang> findByEmailIgnoreCaseAndMatKhau(String email, String matKhau);
+
     boolean existsByTenTaiKhoanIgnoreCaseAndIdNot(String tenTaiKhoan, Integer id);
 
     // =========================

@@ -12,14 +12,14 @@
 
         <form @submit.prevent="handleLogin" class="login-form">
           <div class="form-group">
-            <label class="form-label">Tên tài khoản</label>
+            <label class="form-label">Tên tài khoản hoặc Email</label>
             <div class="input-wrapper">
               <i class="fa-regular fa-user input-icon"></i>
               <input
                 v-model="username"
                 type="text"
                 class="form-input"
-                placeholder="Nhập tên tài khoản"
+                placeholder="Nhập tên tài khoản hoặc email"
                 autocomplete="username"
               />
             </div>

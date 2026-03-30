@@ -56,8 +56,13 @@ export function loginCustomer(username, password) {
   })
 }
 
-/** Đăng ký khách hàng mới */
-export function registerCustomer(formData) {
+/** Đăng ký khách hàng mới (client tự đăng ký) */
+export function registerCustomer(data) {
+  return axios.post(`${API_URL}/khach-hang/register`, data)
+}
+
+/** Đăng ký khách hàng mới (admin tạo, multipart) */
+export function createCustomer(formData) {
   return axios.post(`${API_URL}/khach-hang`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })

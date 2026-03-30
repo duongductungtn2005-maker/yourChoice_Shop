@@ -151,6 +151,15 @@ public class KhachHangServiceImpl implements KhachHangService {
 
         if (tenKh.isEmpty()) throw new RuntimeException("Họ và tên không được để trống");
         if (username.isEmpty()) throw new RuntimeException("Tên tài khoản không được để trống");
+        if (username.length() < 3 || username.length() > 50) {
+            throw new RuntimeException("Tên tài khoản phải từ 3 đến 50 ký tự");
+        }
+        if (!email.isEmpty() && !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new RuntimeException("Email không hợp lệ");
+        }
+        if (!sdt.isEmpty() && !sdt.matches("^0\\d{9}$")) {
+            throw new RuntimeException("Số điện thoại không hợp lệ (phải gồm 10 số, bắt đầu bằng 0)");
+        }
 
         // ✅ CHỈ CHẶN TRÙNG USERNAME (ngoại trừ chính nó)
         if (khachHangRepository.existsByTenTaiKhoanIgnoreCaseAndIdNot(username, id)) {
@@ -172,6 +181,9 @@ public class KhachHangServiceImpl implements KhachHangService {
 
         // Password update (chỉ khi có giá trị mới)
         if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            if (request.getPassword().trim().length() < 6) {
+                throw new RuntimeException("Mật khẩu tối thiểu 6 ký tự");
+            }
             kh.setMatKhau(request.getPassword().trim());
         }
 
@@ -248,8 +260,12 @@ public class KhachHangServiceImpl implements KhachHangService {
         String passwordValue = password != null ? password.trim() : "";
         if (usernameValue.isEmpty() || passwordValue.isEmpty()) return false;
 
-        // NOTE: đang check plain-text theo DB hiện tại
-        return khachHangRepository.existsByTenTaiKhoanIgnoreCaseAndMatKhau(usernameValue, passwordValue);
+        // Thử đăng nhập bằng tên tài khoản trước
+        if (khachHangRepository.existsByTenTaiKhoanIgnoreCaseAndMatKhau(usernameValue, passwordValue)) {
+            return true;
+        }
+        // Nếu không tìm thấy, thử đăng nhập bằng email
+        return khachHangRepository.existsByEmailIgnoreCaseAndMatKhau(usernameValue, passwordValue);
     }
 
     @Override
@@ -258,15 +274,66 @@ public class KhachHangServiceImpl implements KhachHangService {
         String passwordValue = password != null ? password.trim() : "";
         if (usernameValue.isEmpty() || passwordValue.isEmpty()) return null;
 
+        // Thử tìm bằng tên tài khoản trước
         KhachHang customer = khachHangRepository
                 .findByTenTaiKhoanIgnoreCaseAndMatKhau(usernameValue, passwordValue)
                 .orElse(null);
+
+        // Nếu không tìm thấy, thử tìm bằng email
+        if (customer == null) {
+            customer = khachHangRepository
+                    .findByEmailIgnoreCaseAndMatKhau(usernameValue, passwordValue)
+                    .orElse(null);
+        }
 
         // Kiểm tra tài khoản còn hoạt động không (trangThai = 1)
         if (customer != null && customer.getTrangThai() != null && customer.getTrangThai() != 1) {
             return null;
         }
         return customer;
+    }
+
+    // =========================
+    // REGISTER (Client tự đăng ký)
+    // =========================
+    @Override
+    public KhachHang registerCustomer(org.example.yourchoiceshop.dto.request.RegisterRequest request) {
+        if (request == null) {
+            throw new RuntimeException("Dữ liệu đăng ký không hợp lệ");
+        }
+
+        String hoTen = request.getHoTen() != null ? request.getHoTen().trim() : "";
+        String email = request.getEmail() != null ? request.getEmail().trim() : "";
+        String sdt = request.getSoDienThoai() != null ? request.getSoDienThoai().trim() : "";
+        String tenTaiKhoan = request.getTenTaiKhoan() != null ? request.getTenTaiKhoan().trim() : "";
+        String matKhau = request.getMatKhau() != null ? request.getMatKhau().trim() : "";
+
+        if (hoTen.isEmpty()) throw new RuntimeException("Họ và tên không được để trống");
+        if (email.isEmpty()) throw new RuntimeException("Email không được để trống");
+        if (tenTaiKhoan.isEmpty()) throw new RuntimeException("Tên tài khoản không được để trống");
+        if (matKhau.isEmpty()) throw new RuntimeException("Mật khẩu không được để trống");
+        if (matKhau.length() < 6) throw new RuntimeException("Mật khẩu tối thiểu 6 ký tự");
+
+        // Kiểm tra trùng username
+        if (khachHangRepository.existsByTenTaiKhoanIgnoreCase(tenTaiKhoan)) {
+            throw new RuntimeException("Tên tài khoản đã tồn tại");
+        }
+
+        // Kiểm tra trùng SĐT
+        if (!sdt.isEmpty() && khachHangRepository.existsBySoDienThoai(sdt)) {
+            throw new RuntimeException("Số điện thoại đã tồn tại");
+        }
+
+        KhachHang kh = new KhachHang();
+        kh.setMaKhachHang("KH" + System.currentTimeMillis());
+        kh.setTenKhachHang(hoTen);
+        kh.setEmail(email);
+        kh.setSoDienThoai(sdt.isEmpty() ? null : sdt);
+        kh.setTenTaiKhoan(tenTaiKhoan);
+        kh.setMatKhau(matKhau);
+        kh.setTrangThai(1);
+
+        return khachHangRepository.save(kh);
     }
 
     // =========================

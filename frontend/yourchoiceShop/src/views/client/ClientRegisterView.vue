@@ -10,21 +10,30 @@
         <h2 class="register-title">Đăng ký tài khoản</h2>
         <p class="register-subtitle">Tạo tài khoản để mua sắm tại YourChoiceShop</p>
 
-        <form @submit.prevent="handleRegister" class="register-form">
+        <form @submit.prevent="handleRegister" class="register-form" autocomplete="off">
           <div class="form-group">
             <label class="form-label">Họ và tên <span class="req">*</span></label>
             <div class="input-wrapper">
               <i class="fa-regular fa-user input-icon"></i>
-              <input v-model="form.hoTen" type="text" class="form-input" placeholder="Nhập họ và tên" maxlength="100" />
+              <input v-model="form.hoTen" type="text" class="form-input" placeholder="Nhập họ và tên" maxlength="100" autocomplete="name" />
             </div>
             <span class="field-error" v-if="errors.hoTen">{{ errors.hoTen }}</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tên tài khoản <span class="req">*</span></label>
+            <div class="input-wrapper">
+              <i class="fa-regular fa-id-badge input-icon"></i>
+              <input v-model="form.tenTaiKhoan" type="text" class="form-input" placeholder="Nhập tên tài khoản" maxlength="50" autocomplete="username" />
+            </div>
+            <span class="field-error" v-if="errors.tenTaiKhoan">{{ errors.tenTaiKhoan }}</span>
           </div>
 
           <div class="form-group">
             <label class="form-label">Email <span class="req">*</span></label>
             <div class="input-wrapper">
               <i class="fa-regular fa-envelope input-icon"></i>
-              <input v-model="form.email" type="email" class="form-input" placeholder="Nhập email" />
+              <input v-model="form.email" type="email" class="form-input" placeholder="Nhập email" autocomplete="email" />
             </div>
             <span class="field-error" v-if="errors.email">{{ errors.email }}</span>
           </div>
@@ -33,7 +42,7 @@
             <label class="form-label">Số điện thoại</label>
             <div class="input-wrapper">
               <i class="fa-solid fa-phone input-icon"></i>
-              <input v-model="form.soDienThoai" type="text" class="form-input" placeholder="Nhập số điện thoại" maxlength="15" />
+              <input v-model="form.soDienThoai" type="tel" class="form-input" placeholder="Nhập số điện thoại" maxlength="15" autocomplete="tel" />
             </div>
             <span class="field-error" v-if="errors.soDienThoai">{{ errors.soDienThoai }}</span>
           </div>
@@ -47,6 +56,7 @@
                 :type="showPw ? 'text' : 'password'"
                 class="form-input"
                 placeholder="Nhập mật khẩu"
+                autocomplete="new-password"
               />
               <button type="button" class="toggle-pw" @click="showPw = !showPw">
                 <i :class="showPw ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'"></i>
@@ -64,6 +74,7 @@
                 :type="showPw2 ? 'text' : 'password'"
                 class="form-input"
                 placeholder="Nhập lại mật khẩu"
+                autocomplete="new-password"
               />
               <button type="button" class="toggle-pw" @click="showPw2 = !showPw2">
                 <i :class="showPw2 ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'"></i>
@@ -92,6 +103,9 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { toastSuccess } from '@/utils/toast'
+import axios from 'axios'
+
+const API_URL = 'http://localhost:8080/api/v1'
 
 const router = useRouter()
 const showLogo = ref(true)
@@ -102,6 +116,7 @@ const errorMessage = ref('')
 
 const form = reactive({
   hoTen: '',
+  tenTaiKhoan: '',
   email: '',
   soDienThoai: '',
   matKhau: '',
@@ -110,6 +125,7 @@ const form = reactive({
 
 const errors = reactive({
   hoTen: '',
+  tenTaiKhoan: '',
   email: '',
   soDienThoai: '',
   matKhau: '',
@@ -121,6 +137,8 @@ const validate = () => {
   Object.keys(errors).forEach(k => errors[k] = '')
 
   if (!form.hoTen.trim()) { errors.hoTen = 'Vui lòng nhập họ tên'; valid = false }
+  if (!form.tenTaiKhoan.trim()) { errors.tenTaiKhoan = 'Vui lòng nhập tên tài khoản'; valid = false }
+  else if (form.tenTaiKhoan.trim().length < 3) { errors.tenTaiKhoan = 'Tên tài khoản tối thiểu 3 ký tự'; valid = false }
   if (!form.email.trim()) { errors.email = 'Vui lòng nhập email'; valid = false }
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) { errors.email = 'Email không hợp lệ'; valid = false }
   if (form.soDienThoai.trim() && !/^0\d{9,10}$/.test(form.soDienThoai.trim())) { errors.soDienThoai = 'SĐT không hợp lệ'; valid = false }
@@ -138,12 +156,23 @@ const handleRegister = async () => {
 
   submitting.value = true
   try {
-    // TODO: Gọi API đăng ký thật ở đây
-    // await request.post('/khach-hang/register', { ... })
-    toastSuccess('Đăng ký thành công!')
-    router.push('/client/login')
+    const res = await axios.post(`${API_URL}/khach-hang/register`, {
+      hoTen: form.hoTen.trim(),
+      tenTaiKhoan: form.tenTaiKhoan.trim(),
+      email: form.email.trim(),
+      soDienThoai: form.soDienThoai.trim() || null,
+      matKhau: form.matKhau
+    })
+
+    if (res.data?.success) {
+      toastSuccess('Đăng ký thành công! Vui lòng đăng nhập.')
+      router.push('/client/login')
+    } else {
+      errorMessage.value = res.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.'
+    }
   } catch (e) {
-    errorMessage.value = e.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.'
+    const msg = e.response?.data?.message || e.response?.data || 'Đăng ký thất bại. Vui lòng thử lại.'
+    errorMessage.value = typeof msg === 'string' ? msg : 'Đăng ký thất bại. Vui lòng thử lại.'
   } finally {
     submitting.value = false
   }
