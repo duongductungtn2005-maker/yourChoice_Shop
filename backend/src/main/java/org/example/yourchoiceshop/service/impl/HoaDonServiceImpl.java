@@ -307,12 +307,16 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
     }
 
-    private void cancelUnfulfillablePendingOrders(Set<Integer> affectedProductIds) {
+    private void cancelUnfulfillablePendingOrders(Set<Integer> affectedProductIds, String reason) {
         if (affectedProductIds == null || affectedProductIds.isEmpty()) return;
 
         List<HoaDon> pendingOrders = hoaDonRepo.findPendingOrdersByProductIds(affectedProductIds);
 
         for (HoaDon pending : pendingOrders) {
+            if (pending.getLoaiHoaDon() != null && pending.getLoaiHoaDon().equalsIgnoreCase("TAI_QUAY")) {
+                continue;
+            }
+
             boolean canFulfill = true;
             for (HoaDonChiTiet item : pending.getHoaDonChiTiets()) {
                 if (item.getChiTietSanPham() == null) continue;
@@ -325,6 +329,7 @@ public class HoaDonServiceImpl implements HoaDonService {
 
             if (!canFulfill) {
                 pending.setTrangThai(0);
+                pending.setGhiChu(reason);
                 hoaDonRepo.save(pending);
 
                 LichSuHoaDon history = new LichSuHoaDon();
@@ -332,7 +337,7 @@ public class HoaDonServiceImpl implements HoaDonService {
                 history.setHanhDong("Đơn hàng đã bị hủy tự động");
                 history.setThoiGian(LocalDateTime.now());
                 history.setTrangThai(0);
-                history.setGhiChu("Đã hủy do không đủ số lượng sản phẩm");
+                history.setGhiChu(reason);
                 lichSuHoaDonRepo.save(history);
             }
         }
@@ -502,10 +507,14 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         BigDecimal tongTien = BigDecimal.ZERO;
 
+        Set<Integer> affectedProductIds = new HashSet<>();
+
         for (CreateOrderRequest.CartItem item : req.getItems()) {
             ChiTietSanPham sp = chiTietSanPhamRepo
                     .findById(item.getIdChiTietSanPham())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+
+            affectedProductIds.add(sp.getId());
 
             HoaDonChiTiet ct = new HoaDonChiTiet();
             ct.setHoaDon(hd);
@@ -553,6 +562,11 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
 
         lichSuHoaDonRepo.save(history);
+
+        cancelUnfulfillablePendingOrders(
+            affectedProductIds,
+            "Đơn hàng đã bị hủy do bên phía bán hàng tại quầy đã mua hết số lượng"
+        );
 
         // Gửi thông báo đơn hàng mới (tại quầy)
         thongBaoService.guiThongBaoDonHangMoi(
@@ -648,16 +662,6 @@ public class HoaDonServiceImpl implements HoaDonService {
             ChiTietSanPham sp = chiTietSanPhamRepo.findById(item.getIdChiTietSanPham())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
             itemsToReserve.add(new Object[]{sp, item});
-        }
-
-        for (Object[] data : itemsToReserve) {
-            ChiTietSanPham sp = (ChiTietSanPham) data[0];
-            CreateOrderRequest.CartItem item = (CreateOrderRequest.CartItem) data[1];
-            int reserved = chiTietSanPhamRepo.reserveStock(sp.getId(), item.getSoLuong());
-            if (reserved == 0) {
-                throw new RuntimeException("Sản phẩm " + sp.getMaCtsp()
-                        + " không đủ số lượng trong kho (còn lại: " + sp.getSoLuong() + ", cần: " + item.getSoLuong() + ")");
-            }
         }
 
         hd = hoaDonRepo.findByMaHoaDon(hd.getMaHoaDon())
