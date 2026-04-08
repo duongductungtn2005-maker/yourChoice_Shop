@@ -328,12 +328,12 @@ function formatMoney(amount) {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #dc3545, #c82333);
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
   color: #fff;
   border: none;
   font-size: 24px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(220, 53, 69, 0.4);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -341,7 +341,7 @@ function formatMoney(amount) {
 }
 
 .chat-toggle:hover { transform: scale(1.1); }
-.chat-toggle.active { background: #6c757d; }
+.chat-toggle.active { background: #0f172a; }
 
 /* Panel */
 .chat-panel {
@@ -359,7 +359,7 @@ function formatMoney(amount) {
 }
 
 .chat-panel-header {
-  background: linear-gradient(135deg, #dc3545, #c82333);
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
   color: #fff;
   padding: 14px 16px;
   display: flex;
@@ -423,7 +423,7 @@ function formatMoney(amount) {
 }
 
 .msg-mine .msg-bubble {
-  background: #dc3545;
+  background: #1e3a8a;
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -500,8 +500,8 @@ function formatMoney(amount) {
 }
 
 .product-card:hover {
-  border-color: #dc3545;
-  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.1);
+  border-color: #1e3a8a;
+  box-shadow: 0 2px 8px rgba(30, 58, 138, 0.12);
 }
 
 .product-img {
@@ -534,7 +534,7 @@ function formatMoney(amount) {
 .product-price {
   font-size: 13px;
   font-weight: 700;
-  color: #dc3545;
+  color: #1e3a8a;
   margin-top: 2px;
   display: flex;
   align-items: center;
@@ -550,12 +550,12 @@ function formatMoney(amount) {
 }
 
 .price-sale {
-  color: #dc3545;
+  color: #1e3a8a;
   font-weight: 700;
 }
 
 .badge-discount {
-  background: #dc3545;
+  background: #1e3a8a;
   color: #fff;
   font-size: 10px;
   padding: 1px 5px;
@@ -588,7 +588,7 @@ function formatMoney(amount) {
 }
 
 .stock-ok { color: #16a34a; font-weight: 600; }
-.stock-out { color: #dc2626; font-weight: 600; }
+.stock-out { color: #475569; font-weight: 600; }
 
 /* Input */
 .chat-input-area {
@@ -609,14 +609,14 @@ function formatMoney(amount) {
 }
 
 .chat-input-area input:focus {
-  border-color: #dc3545;
+  border-color: #1e3a8a;
 }
 
 .btn-send {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #dc3545;
+  background: #1e3a8a;
   color: #fff;
   border: none;
   cursor: pointer;
@@ -624,6 +624,10 @@ function formatMoney(amount) {
   align-items: center;
   justify-content: center;
   font-size: 14px;
+}
+
+.btn-send:hover {
+  background: #0f172a;
 }
 
 .btn-send:disabled {

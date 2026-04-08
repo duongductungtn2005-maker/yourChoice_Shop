@@ -560,7 +560,7 @@ watch(sessions, () => {
 }
 
 .tab-btn.active {
-  background: #dc3545;
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
   color: #fff;
 }
 
@@ -594,7 +594,7 @@ watch(sessions, () => {
 .status-btn.active {
   color: #1e293b;
   font-weight: 700;
-  border-bottom-color: #dc3545;
+  border-bottom-color: #1e3a8a;
   background: #fff;
 }
 
@@ -638,7 +638,7 @@ watch(sessions, () => {
 
 .session-item.active {
   background: #e8f0fe;
-  border-left: 3px solid #dc3545;
+  border-left: 3px solid #1e3a8a;
 }
 
 .session-name {
@@ -656,8 +656,8 @@ watch(sessions, () => {
   font-weight: 500;
   padding: 2px 8px;
   border-radius: 10px;
-  background: #fee2e2;
-  color: #dc2626;
+  background: #dbeafe;
+  color: #1d4ed8;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -749,7 +749,7 @@ watch(sessions, () => {
 
 .btn-close-session {
   padding: 6px 14px;
-  background: #ef4444;
+  background: #1e3a8a;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -760,7 +760,7 @@ watch(sessions, () => {
   gap: 5px;
 }
 
-.btn-close-session:hover { background: #dc2626; }
+.btn-close-session:hover { background: #0f172a; }
 
 /* Messages container */
 .messages-container {
@@ -1104,7 +1104,7 @@ watch(sessions, () => {
   padding: 2px 4px;
   flex-shrink: 0;
 }
-.chat-toast-close:hover { color: #f87171; }
+.chat-toast-close:hover { color: #93c5fd; }
 
 /* Toast transition */
 .toast-slide-enter-active,
