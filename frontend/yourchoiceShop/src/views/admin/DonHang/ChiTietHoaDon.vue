@@ -34,16 +34,7 @@
 
   <div class="status-card-actions">
     <button
-      v-if="order && order.trangThai === 5"
-      class="btn btn-status-danger"
-      @click="returnOrder"
-      title="Hoàn hàng - Hủy đơn và cộng lại số lượng sản phẩm"
-    >
-      <i class="fas fa-undo"></i>
-      Hoàn hàng
-    </button>
-    <button
-      v-else
+      v-if="order && order.trangThai !== 4 && order.trangThai !== 1"
       class="btn btn-status-secondary"
       @click="goPrevStatus"
       :disabled="!order || getStatusIndex(order.trangThai) <= 0 || order.trangThai === 0"
@@ -54,9 +45,10 @@
     </button>
 
     <button
+      v-if="order && order.trangThai !== 4 && order.trangThai !== 3"
       class="btn btn-status-primary"
       @click="goNextStatus"
-      :disabled="!order || getStatusIndex(order.trangThai) < 0 || getStatusIndex(order.trangThai) >= statusMap.length - 1 || order.trangThai === 0 || order.trangThai === 4 || order.trangThai === 5"
+      :disabled="!order || getStatusIndex(order.trangThai) < 0 || getStatusIndex(order.trangThai) >= statusMap.length - 1 || order.trangThai === 0"
       title="Chuyển sang trạng thái tiếp theo"
     >
       <i class="fas fa-pen"></i>
@@ -68,7 +60,7 @@
     </button>
   </div>
 </div>
-          <div class="timeline-wrapper">
+          <div v-if="order && (order.loaiHoaDon !== 'Tại quầy' && order.loaiHoaDon !== 'TAI_QUAY') || visibleSteps.length > 0" class="timeline-wrapper">
             <div class="steps-container">
               <div v-for="(step, index) in visibleSteps" :key="index" class="step-item active">
                 <div class="step-icon">
@@ -233,8 +225,8 @@
               </div>
             </div>
           </div>
-          <div v-if="order.trangThai === 4" class="history-footer">
-            <button class="btn-pay" @click="payOrder">Xác nhận thanh toán</button>
+          <div v-if="order.trangThai === 3" class="history-footer">
+            <button class="btn-pay" @click="payOrder">Xác nhận hóa đơn hoàn thành</button>
           </div>
         </div>
 
@@ -242,7 +234,7 @@
           <button class="btn btn-blue-block" @click="printOrder">
             <i class="fas fa-print"></i> In hóa đơn
           </button>
-          <button class="btn btn-orange-block" @click="openEditOrder">
+          <button v-if="order && order.trangThai !== 4 && order.trangThai !== 3" class="btn btn-orange-block" @click="openEditOrder">
             <i class="fas fa-edit"></i> Sửa thông tin
           </button>
         </div>
@@ -267,7 +259,7 @@
         <div class="form-group">
           <label>Trạng thái đơn hàng</label>
           <select v-model="selectedStatus" class="select-status"
-            :disabled="order.trangThai === 5 || order.trangThai === 0 || order.trangThai === 4">
+            :disabled="order.trangThai === 0 || order.trangThai === 4">
             <option v-for="st in availableStatuses" :key="st.value" :value="Number(st.value)">
               {{ st.label }}
             </option>
@@ -276,19 +268,27 @@
         <!-- ===== THÔNG TIN NHẬN HÀNG ===== -->
         <div class="form-group">
           <label>Tên người nhận</label>
-          <input v-model="editForm.tenKhachHang" />
+          <input v-model="editForm.tenKhachHang" :disabled="order.trangThai === 4" />
+        </div>
+        <div class="form-group">
+          <label>SĐT người nhận</label>
+          <input v-model="editForm.sdt" :disabled="order.trangThai === 4" />
+        </div>
+        <div class="form-group">
+          <label>Địa chỉ nhận hàng</label>
+          <input v-model="editForm.diaChi" :disabled="order.trangThai === 4" />
         </div>
         <div class="modal-actions">
           <button class="btn btn-outline" @click="closeEditStatusModal">
             Hủy
           </button>
 
-          <button v-if="order.trangThai !== 5 && order.trangThai !== 0" class="btn btn-danger" @click="cancelOrder">
+          <button v-if="order.trangThai !== 0 && order.trangThai !== 4" class="btn btn-danger" @click="cancelOrder">
             Hủy đơn hàng
           </button>
 
-          <button class="btn btn-primary" @click="confirmUpdateStatus">
-            Cập nhật
+          <button v-if="order.trangThai !== 4 && order.trangThai !== 3" class="btn btn-primary" @click="confirmUpdateStatus">
+            Xác nhận
           </button>
         </div>
       </div>
@@ -596,18 +596,16 @@ const orderListRouteName = computed(() => {
 // --- CONSTANTS ---
 const steps = [
   { label: 'Chờ xác nhận', icon: 'fas fa-clipboard-list' },   // 1
-  { label: 'Chờ giao hàng', icon: 'fas fa-box' },             // 2
+  { label: 'Đã xác nhận', icon: 'fas fa-box' },               // 2
   { label: 'Đang vận chuyển', icon: 'fas fa-shipping-fast' }, // 3
-  { label: 'Chờ thanh toán', icon: 'fas fa-credit-card' },    // 4
-  { label: 'Hoàn thành', icon: 'fas fa-check-circle' }        // 5
+  { label: 'Hoàn thành', icon: 'fas fa-check-circle' }        // 4
 ];
 
 const statusMap = [
   { value: 1, label: 'Chờ xác nhận' },
-  { value: 2, label: 'Chờ giao hàng' },
+  { value: 2, label: 'Đã xác nhận' },
   { value: 3, label: 'Đang vận chuyển' },
-  { value: 4, label: 'Chờ thanh toán' },
-  { value: 5, label: 'Hoàn thành' }
+  { value: 4, label: 'Hoàn thành' }
 ];
 
 // --- HELPERS ---
@@ -698,10 +696,9 @@ const getStatusLabel = (status) => {
   const map = {
     0: 'Đã hủy',
     1: 'Chờ xác nhận',
-    2: 'Chờ giao hàng',
+    2: 'Đã xác nhận',
     3: 'Đang vận chuyển',
-    4: 'Chờ thanh toán',
-    5: 'Hoàn thành'
+    4: 'Hoàn thành'
   };
   return map[status] || 'Không xác định';
 };
@@ -712,16 +709,15 @@ const getStatusBadgeClass = (status) => {
     1: 'badge-pending',
     2: 'badge-wait',
     3: 'badge-shipping',
-    4: 'badge-payment',
-    5: 'badge-success'
+    4: 'badge-success'
   };
   return map[status] || 'badge-unknown';
 };
 
 const getCurrentStepIndex = (status) => {
   if (status === 0) return -1; // Đã hủy
-  // Mapping trạng thái DB (1-5) sang index mảng steps (0-4)
-  return status >= 1 && status <= 5 ? status - 1 : -1;
+  // Mapping trạng thái DB (1-4) sang index mảng steps (0-3)
+  return status >= 1 && status <= 4 ? status - 1 : -1;
 };
 
 const getStatusIndex = (status) => statusMap.findIndex(s => s.value === status);
@@ -731,10 +727,9 @@ const statusInfo = (status) => {
   const map = {
     0: { text: 'Đã hủy', class: 'badge-cancel' },
     1: { text: 'Chờ xác nhận', class: 'badge-pending' },
-    2: { text: 'Chờ giao hàng', class: 'badge-wait' },
-    3: { text: 'Đang giao', class: 'badge-shipping' },
-    4: { text: 'Chờ thanh toán', class: 'badge-payment' },
-    5: { text: 'Hoàn thành', class: 'badge-success' }
+    2: { text: 'Đã xác nhận', class: 'badge-wait' },
+    3: { text: 'Đang vận chuyển', class: 'badge-shipping' },
+    4: { text: 'Hoàn thành', class: 'badge-success' }
   };
   return map[status] || { text: 'Không xác định', class: 'badge-unknown' };
 };
@@ -822,22 +817,6 @@ const cancelOrder = async () => {
   }
 };
 
-const returnOrder = async () => {
-  const res = await Swal.fire({
-    title: 'Hoàn hàng?',
-    text: 'Đơn hàng sẽ chuyển sang trạng thái hủy và số lượng sản phẩm sẽ được cộng lại. Bạn có chắc chắn?',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Xác nhận hoàn hàng',
-    cancelButtonText: 'Hủy bỏ',
-    confirmButtonColor: '#ef4444'
-  });
-
-  if (res.isConfirmed) {
-    await updateOrderStatus(0);
-  }
-};
-
 const payOrder = () => {
   showPaymentModal.value = true;
 };
@@ -875,7 +854,23 @@ const goPrevStatus = async () => {
   const currentIndex = getStatusIndex(order.value.trangThai);
   if (currentIndex > 0) {
     const prevStatus = statusMap[currentIndex - 1].value;
-    await updateOrderStatus(prevStatus);
+    const currentStatusLabel = statusMap[currentIndex].label;
+    const prevStatusLabel = statusMap[currentIndex - 1].label;
+    
+    const result = await Swal.fire({
+      title: 'Xác nhận thay đổi trạng thái',
+      html: `Bạn có muốn cập nhật trạng thái từ<br/><strong>"${currentStatusLabel}"</strong> thành <strong>"${prevStatusLabel}"</strong>?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy'
+    });
+    
+    if (result.isConfirmed) {
+      await updateOrderStatus(prevStatus);
+    }
   }
 };
 
@@ -885,11 +880,37 @@ const goNextStatus = async () => {
   const currentIndex = getStatusIndex(order.value.trangThai);
   if (currentIndex >= 0 && currentIndex < statusMap.length - 1) {
     const nextStatus = statusMap[currentIndex + 1].value;
-    await updateOrderStatus(nextStatus);
+    const currentStatusLabel = statusMap[currentIndex].label;
+    const nextStatusLabel = statusMap[currentIndex + 1].label;
+    
+    const result = await Swal.fire({
+      title: 'Xác nhận thay đổi trạng thái',
+      html: `Bạn có muốn cập nhật trạng thái từ<br/><strong>"${currentStatusLabel}"</strong> thành <strong>"${nextStatusLabel}"</strong>?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy'
+    });
+    
+    if (result.isConfirmed) {
+      await updateOrderStatus(nextStatus);
+    }
   }
 };
 
 const visibleSteps = computed(() => {
+  if (!order.value) return [];
+  
+  // Nếu là hóa đơn "Tại quầy" thì chỉ hiển thị trạng thái cuối cùng
+  if (order.value.loaiHoaDon === 'Tại quầy' || order.value.loaiHoaDon === 'TAI_QUAY') {
+    if (order.value.trangThai === 0) return []; // Đã hủy
+    if (order.value.trangThai === 4) return [{ label: 'Hoàn thành', icon: 'fas fa-check-circle' }];
+    return [];
+  }
+  
+  // Hóa đơn online / giao hàng - hiển thị quy trình bình thường
   const idx = getCurrentStepIndex(order.value?.trangThai);
   if (idx < 0) return [];
   return steps.slice(0, idx + 1);
@@ -901,13 +922,8 @@ const availableStatuses = computed(() => {
   const current = order.value.trangThai;
 
   // 🚫 ĐÃ HOÀN THÀNH hoặc ĐÃ HỦY → KHÓA CỨNG
-  if (current === 5 || current === 0) {
+  if (current === 4 || current === 0) {
     return statusMap.filter(s => s.value === current);
-  }
-
-  // 🚫 ĐANG CHỜ THANH TOÁN → KHÔNG CHO LÊN HOÀN THÀNH
-  if (current === 4) {
-    return statusMap.filter(s => s.value === 4);
   }
 
   // ✅ Các trạng thái khác → chỉ cho tiến lên 1 bước

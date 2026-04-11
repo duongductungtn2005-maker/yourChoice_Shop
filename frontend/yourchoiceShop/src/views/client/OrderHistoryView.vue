@@ -176,17 +176,17 @@ const orderDetail = ref(null)
 const statusTabs = [
   { label: 'Tất cả', value: null, count: 0 },
   { label: 'Chờ xác nhận', value: 1, count: 0 },
-  { label: 'Chờ giao hàng', value: 2, count: 0 },
+  { label: 'Đã xác nhận', value: 2, count: 0 },
   { label: 'Đang vận chuyển', value: 3, count: 0 },
-  { label: 'Hoàn thành', value: 5, count: 0 },
+  { label: 'Hoàn thành', value: 4, count: 0 },
   { label: 'Đã hủy', value: 0, count: 0 },
 ]
 
 const timelineSteps = [
   { status: 1, label: 'Chờ xác nhận', icon: 'fas fa-clock' },
-  { status: 2, label: 'Chờ giao hàng', icon: 'fas fa-box' },
+  { status: 2, label: 'Đã xác nhận', icon: 'fas fa-box' },
   { status: 3, label: 'Đang giao', icon: 'fas fa-truck' },
-  { status: 5, label: 'Hoàn thành', icon: 'fas fa-check-circle' },
+  { status: 4, label: 'Hoàn thành', icon: 'fas fa-check-circle' },
 ]
 
 onMounted(() => {
@@ -274,12 +274,12 @@ const changePage = (p) => {
 }
 
 const getStatusLabel = (status) => {
-  const map = { 0: 'Đã hủy', 1: 'Chờ xác nhận', 2: 'Chờ giao hàng', 3: 'Đang vận chuyển', 4: 'Chờ thanh toán', 5: 'Hoàn thành' }
+  const map = { 0: 'Đã hủy', 1: 'Chờ xác nhận', 2: 'Đã xác nhận', 3: 'Đang vận chuyển', 4: 'Hoàn thành' }
   return map[status] || 'Không xác định'
 }
 
 const getStatusClass = (status) => {
-  const map = { 0: 'status-cancelled', 1: 'status-pending', 2: 'status-preparing', 3: 'status-shipping', 4: 'status-payment', 5: 'status-completed' }
+  const map = { 0: 'status-cancelled', 1: 'status-pending', 2: 'status-preparing', 3: 'status-shipping', 4: 'status-completed' }
   return map[status] || ''
 }
 
