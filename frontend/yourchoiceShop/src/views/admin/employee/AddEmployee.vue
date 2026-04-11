@@ -128,6 +128,7 @@ import axios from 'axios';
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { toastSuccess, toastError, Toast } from '@/utils/toast';
 import Swal from 'sweetalert2'; // Import thư viện
+import { fetchProvinces as apiFetchProvinces, fetchDistricts as apiFetchDistricts, fetchWards as apiFetchWards } from '@/api/locationApi';
 
 const router = useRouter();
 const route = useRoute(); 
@@ -200,19 +201,19 @@ const findLocationCode = (inputName, listData) => {
 // ============================================================
 // 2. LOGIC API LOCATION
 // ============================================================
-const fetchProvinces = async () => { try { const res = await axios.get('https://provinces.open-api.vn/api/?depth=1'); locationData.provinces = res.data; } catch (e) {} };
+const fetchProvinces = async () => { try { locationData.provinces = await apiFetchProvinces(); } catch (e) {} };
 
 const onProvinceChange = async () => {
     address.districtId = ''; address.wardCode = ''; locationData.districts = []; locationData.wards = [];
     if(address.provinceId) { 
-        try { const res = await axios.get(`https://provinces.open-api.vn/api/p/${address.provinceId}?depth=2`); locationData.districts = res.data.districts; } catch (e) {}
+        try { locationData.districts = await apiFetchDistricts(address.provinceId); } catch (e) {}
     }
 };
 
 const onDistrictChange = async () => {
     address.wardCode = ''; locationData.wards = [];
     if(address.districtId) { 
-        try { const res = await axios.get(`https://provinces.open-api.vn/api/d/${address.districtId}?depth=2`); locationData.wards = res.data.wards; } catch (e) {}
+        try { locationData.wards = await apiFetchWards(address.districtId); } catch (e) {}
     }
 };
 

@@ -19,7 +19,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -63,12 +65,15 @@ public class DotGiamGiaServiceImpl {
         // Lưu sản phẩm
         saveProductDetails(savedDot, req.getIdChiTietSanPhams());
 
+        refreshBestDiscountForCampaignProducts(savedDot.getId());
+
         return savedDot;
     }
 
     @Transactional
     public DotGiamGia update(Integer id, DotGiamGiaRequest req) {
         DotGiamGia dot = getById(id);
+        List<ChiTietSanPham> affectedProducts = getCampaignProducts(id);
 
         if (req.getNgayKetThuc() != null && req.getNgayBatDau() != null && req.getNgayKetThuc().isBefore(req.getNgayBatDau())) {
             throw new RuntimeException("Ngày kết thúc phải sau ngày bắt đầu");
@@ -81,25 +86,44 @@ public class DotGiamGiaServiceImpl {
             // BƯỚC 1: Tìm các chi tiết cũ
             List<ChiTietDotGiamGia> oldDetails = ctDotRepo.findByDotGiamGiaId(id);
 
-            // BƯỚC 2: Gỡ đợt giảm giá khỏi các sản phẩm cũ (Reset về null)
+            // BƯỚC 2: Lấy danh sách sản phẩm cũ để tính lại đợt tốt nhất
             List<ChiTietSanPham> oldProducts = new ArrayList<>();
             for (ChiTietDotGiamGia detail : oldDetails) {
                 ChiTietSanPham sp = detail.getChiTietSanPham();
                 if (sp != null) {
-                    sp.setDotGiamGia(null); // Xóa liên kết
                     oldProducts.add(sp);
                 }
             }
-            ctspRepo.saveAll(oldProducts); // Lưu cập nhật gỡ bỏ
+            affectedProducts.addAll(oldProducts);
 
             // BƯỚC 3: Xóa bảng trung gian cũ
             ctDotRepo.deleteAll(oldDetails);
 
             // BƯỚC 4: Thêm sản phẩm mới và cập nhật liên kết mới
             saveProductDetails(dot, req.getIdChiTietSanPhams());
+
+            if (!req.getIdChiTietSanPhams().isEmpty()) {
+                List<ChiTietSanPham> newProducts = ctspRepo.findAllById(req.getIdChiTietSanPhams());
+                affectedProducts.addAll(newProducts);
+            }
         }
 
-        return dotRepo.save(dot);
+        DotGiamGia savedDot = dotRepo.save(dot);
+        if (req.getIdChiTietSanPhams() == null) {
+            List<ChiTietDotGiamGia> campaignDetails = ctDotRepo.findByDotGiamGiaId(id);
+
+            Integer nextDetailStatus = Integer.valueOf(1).equals(savedDot.getTrangThai()) ? 1 : 0;
+            campaignDetails.forEach(detail -> detail.setTrangThai(nextDetailStatus));
+            ctDotRepo.saveAll(campaignDetails);
+
+            campaignDetails.forEach(detail -> {
+                if (detail.getChiTietSanPham() != null) {
+                    affectedProducts.add(detail.getChiTietSanPham());
+                }
+            });
+        }
+        refreshBestDiscountForProducts(affectedProducts);
+        return savedDot;
     }
 
     public void delete(Integer id) {
@@ -109,20 +133,18 @@ public class DotGiamGiaServiceImpl {
 
         // Ngưng kích hoạt các chi tiết liên quan
         List<ChiTietDotGiamGia> details = ctDotRepo.findByDotGiamGiaId(id);
+        List<ChiTietSanPham> affectedProducts = new ArrayList<>();
 
-        // Đồng thời gỡ đợt giảm giá khỏi sản phẩm để giá về bình thường
-        List<ChiTietSanPham> productsToUpdate = new ArrayList<>();
         for (ChiTietDotGiamGia d : details) {
             d.setTrangThai(0);
 
             ChiTietSanPham sp = d.getChiTietSanPham();
             if (sp != null) {
-                sp.setDotGiamGia(null); // Gỡ bỏ đợt giảm giá
-                productsToUpdate.add(sp);
+                affectedProducts.add(sp);
             }
         }
         ctDotRepo.saveAll(details);
-        ctspRepo.saveAll(productsToUpdate);
+        refreshBestDiscountForProducts(affectedProducts);
     }
 
     // --- HÀM QUAN TRỌNG ĐÃ ĐƯỢC SỬA ---
@@ -151,6 +173,10 @@ public class DotGiamGiaServiceImpl {
 
 // Hàm dùng chung để tính toán lại % tốt nhất
 public void updateBestDiscountForProduct(ChiTietSanPham ctsp) {
+    if (ctsp == null || ctsp.getId() == null) {
+        return;
+    }
+
     List<DotGiamGia> activeDiscounts = ctDotRepo.findBestActiveDiscountForProduct(ctsp.getId());
     
     if (!activeDiscounts.isEmpty()) {
@@ -161,6 +187,44 @@ public void updateBestDiscountForProduct(ChiTietSanPham ctsp) {
         ctsp.setDotGiamGia(null);
     }
 }
+
+    private List<ChiTietSanPham> getCampaignProducts(Integer campaignId) {
+        List<ChiTietDotGiamGia> details = ctDotRepo.findByDotGiamGiaId(campaignId);
+        List<ChiTietSanPham> products = new ArrayList<>();
+        for (ChiTietDotGiamGia detail : details) {
+            if (detail.getChiTietSanPham() != null) {
+                products.add(detail.getChiTietSanPham());
+            }
+        }
+        return products;
+    }
+
+    private void refreshBestDiscountForCampaignProducts(Integer campaignId) {
+        refreshBestDiscountForProducts(getCampaignProducts(campaignId));
+    }
+
+    private void refreshBestDiscountForProducts(List<ChiTietSanPham> products) {
+        if (products == null || products.isEmpty()) {
+            return;
+        }
+
+        Map<Integer, ChiTietSanPham> uniqueProducts = new LinkedHashMap<>();
+        for (ChiTietSanPham product : products) {
+            if (product != null && product.getId() != null) {
+                uniqueProducts.put(product.getId(), product);
+            }
+        }
+
+        if (uniqueProducts.isEmpty()) {
+            return;
+        }
+
+        List<ChiTietSanPham> toSave = new ArrayList<>(uniqueProducts.values());
+        for (ChiTietSanPham product : toSave) {
+            updateBestDiscountForProduct(product);
+        }
+        ctspRepo.saveAll(toSave);
+    }
 
     private void mapReqToEntity(DotGiamGiaRequest req, DotGiamGia entity) {
         entity.setTenDotGiamGia(req.getTenDotGiamGia());

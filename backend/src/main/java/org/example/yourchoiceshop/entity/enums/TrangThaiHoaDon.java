@@ -7,10 +7,9 @@ import lombok.Getter;
 public enum TrangThaiHoaDon {
     DA_HUY(0),
     CHO_XAC_NHAN(1),
-    CHO_GIAO_HANG(2),
+    DA_XAC_NHAN(2),
     DANG_VAN_CHUYEN(3),
-    CHO_THANH_TOAN(4),
-    HOAN_THANH(5);
+    HOAN_THANH(4);
 
     private final int value;
 

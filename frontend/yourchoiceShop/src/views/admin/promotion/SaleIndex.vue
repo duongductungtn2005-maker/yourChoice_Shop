@@ -265,11 +265,7 @@ const handleToggleStatus = async (item, event) => {
 
     if (result.isConfirmed) {
         try {
-            if (newStatus === 0) {
-                await request.delete(`/dot-giam-gia/${item.id}`);
-            } else {
-                await request.put(`/dot-giam-gia/${item.id}`, { ...item, trangThai: 1, idChiTietSanPhams: null });
-            }
+            await request.put(`/dot-giam-gia/${item.id}`, { ...item, trangThai: newStatus, idChiTietSanPhams: null });
             item.trangThai = newStatus;
             toastSuccess(`Đã ${actionText.toLowerCase()} thành công!`);
         } catch (e) { console.error(e); toastError(e.response?.data?.message || 'Có lỗi xảy ra'); }

@@ -33,10 +33,10 @@
                 <div class="dropdown-btn customer-label">
                   <i class="fas fa-user-check"></i> {{ customerName || 'Đã đăng nhập' }}
                 </div>
-                <router-link to="/account" class="dropdown-btn" @click="isUserDropdownOpen = false">
+                <router-link :to="customerAccountPath" class="dropdown-btn" @click="isUserDropdownOpen = false">
                   <i class="fas fa-user-cog"></i> Tài khoản
                 </router-link>
-                <router-link to="/orders" class="dropdown-btn" @click="isUserDropdownOpen = false">
+                <router-link :to="customerOrdersPath" class="dropdown-btn" @click="isUserDropdownOpen = false">
                   <i class="fas fa-clipboard-list"></i> Đơn hàng
                 </router-link>
                 <button class="dropdown-btn" @click="handleLogout">
@@ -44,10 +44,10 @@
                 </button>
               </template>
               <template v-else>
-                <router-link to="/login" class="dropdown-btn login-btn" @click="isUserDropdownOpen = false">
+                <router-link to="/client/login" class="dropdown-btn login-btn" @click="isUserDropdownOpen = false">
                   <i class="fas fa-sign-in-alt"></i> Đăng nhập
                 </router-link>
-                <router-link to="/register" class="dropdown-btn" @click="isUserDropdownOpen = false">
+                <router-link to="/client/register" class="dropdown-btn" @click="isUserDropdownOpen = false">
                   <i class="fas fa-user-plus"></i> Đăng ký
                 </router-link>
               </template>
@@ -57,6 +57,10 @@
           <div class="icon-item cart-icon" @click="$router.push('/cart')" style="cursor: pointer;">
             <i class="fas fa-shopping-bag"></i>
             <span class="cart-badge">{{ cartCount }}</span>
+          </div>
+
+          <div class="icon-item order-history-icon" @click="goToOrderHistory" style="cursor: pointer;" title="Lịch sử đơn hàng">
+            <i class="fas fa-clipboard-list"></i>
           </div>
         </div>
       </div>
@@ -98,32 +102,38 @@
         © 2026 YourChoice Shop. All rights reserved.
       </div>
     </footer>
+
+    <!-- Chat Widget -->
+    <ChatWidget />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import ChatWidget from '@/components/ChatWidget.vue';
+import { useRouter, useRoute } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
 import { useCartStore } from '@/stores/cart';
+import { getCustomerAccountPath, getCustomerOrdersPath } from '@/services/auth';
 
 const router = useRouter();
+const route = useRoute();
 const cartStore = useCartStore();
 const isScrolled = ref(false);
 const isUserDropdownOpen = ref(false);
 const userRole = ref('');
 const hasToken = ref(false);
+const authUser = ref(null);
 const searchKeyword = ref('');
 const isCustomerLoggedIn = computed(() => hasToken.value && userRole.value === 'CUSTOMER');
 const cartCount = computed(() => cartStore.totalItems);
+const customerAccountPath = computed(() => getCustomerAccountPath());
+const customerOrdersPath = computed(() => getCustomerOrdersPath());
 
 const customerName = computed(() => {
-  try {
-    const userStr = sessionStorage.getItem('user');
-    if (!userStr) return null;
-    const user = JSON.parse(userStr);
-    return user.hoTen || user.tenKhachHang || user.tenNhanVien || null;
-  } catch { return null; }
+  const user = authUser.value;
+  if (!user) return null;
+  return user.tenTaiKhoan || user.username || user.hoTen || user.tenKhachHang || user.tenNhanVien || null;
 });
 
 const handleScroll = () => {
@@ -134,9 +144,37 @@ const toggleUserDropdown = () => {
   isUserDropdownOpen.value = !isUserDropdownOpen.value;
 };
 
+const goToOrderHistory = () => {
+  if (isCustomerLoggedIn.value) {
+    router.push(customerOrdersPath.value);
+  } else {
+    router.push('/order-tracking');
+  }
+};
+
+const handleClickOutside = (e) => {
+  const userIconEl = document.querySelector('.user-icon');
+  if (userIconEl && !userIconEl.contains(e.target)) {
+    isUserDropdownOpen.value = false;
+  }
+};
+
+watch(() => route.path, () => {
+  isUserDropdownOpen.value = false;
+});
+
 const loadAuthState = () => {
   userRole.value = String(sessionStorage.getItem('userRole') || '').toUpperCase();
   hasToken.value = !!sessionStorage.getItem('token');
+  try {
+    authUser.value = JSON.parse(sessionStorage.getItem('user') || 'null');
+  } catch {
+    authUser.value = null;
+  }
+};
+
+const handleAuthUserUpdated = () => {
+  loadAuthState();
 };
 
 const handleSearch = () => {
@@ -152,6 +190,7 @@ const handleLogout = () => {
   sessionStorage.removeItem('userRole');
   sessionStorage.removeItem('loginTime');
   isUserDropdownOpen.value = false;
+  cartStore.reloadCart();
   loadAuthState();
   toastSuccess('Đăng xuất thành công!');
   router.push('/');
@@ -165,8 +204,14 @@ const handleImageError = (e) => {
 onMounted(() => {
   loadAuthState();
   window.addEventListener('scroll', handleScroll);
+  window.addEventListener('auth-user-updated', handleAuthUserUpdated);
+  document.addEventListener('click', handleClickOutside);
 });
-onUnmounted(() => window.removeEventListener('scroll', handleScroll));
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+  window.removeEventListener('auth-user-updated', handleAuthUserUpdated);
+  document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <style scoped>

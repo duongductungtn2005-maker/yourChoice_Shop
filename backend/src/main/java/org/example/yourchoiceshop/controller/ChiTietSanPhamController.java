@@ -29,21 +29,23 @@ public class ChiTietSanPhamController {
     public ResponseEntity<Page<ChiTietSanPham>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "100") int size,
-            // Thêm các tham số lọc vào đây
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer idMauSac,
             @RequestParam(required = false) Integer idKichThuoc,
+            @RequestParam(required = false) Integer idThuongHieu,
+            @RequestParam(required = false) Integer idChatLieu,
+            @RequestParam(required = false) Integer idCoAo,
+            @RequestParam(required = false) Integer idTayAo,
+            @RequestParam(required = false) Integer idXuatXu,
+            @RequestParam(required = false) Integer idSanPham,
             @RequestParam(required = false) Integer trangThai
     ) {
         Pageable pageable = PageRequest.of(page, size);
 
-        // Gọi hàm search trong Repository thay vì findAll
         Page<ChiTietSanPham> result = repository.searchByCriteria(
-                keyword,
-                idMauSac,
-                idKichThuoc,
-                trangThai,
-                pageable
+                keyword, idMauSac, idKichThuoc,
+                idThuongHieu, idChatLieu, idCoAo, idTayAo, idXuatXu, idSanPham,
+                trangThai, pageable
         );
 
         return ResponseEntity.ok(result);

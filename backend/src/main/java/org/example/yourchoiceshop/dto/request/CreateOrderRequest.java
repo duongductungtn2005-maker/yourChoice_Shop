@@ -20,6 +20,7 @@ public class CreateOrderRequest {
     private String ghiChu;
 
     private Integer idNhanVien;
+    private Integer idKhachHang;
 
     private BigDecimal tongTien;
     private BigDecimal tienGiamGia;

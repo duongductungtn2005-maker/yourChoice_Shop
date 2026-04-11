@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public interface HoaDonService {
 
     // Hàm lấy danh sách hóa đơn (cho màn Quản lý đơn hàng)
-    Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, LocalDateTime from, LocalDateTime to, Pageable pageable);
+    Page<HoaDonResponse> getOrders(String keyword, Integer status, String type, Integer khachHangId, LocalDateTime from, LocalDateTime to, Pageable pageable);
 
     // Hàm lấy chi tiết hóa đơn (cho màn Chi tiết đơn hàng)
     HoaDonDetailResponse getOrderDetail(String maHoaDon);
@@ -23,4 +23,5 @@ public interface HoaDonService {
     void createOrderAtCounter(CreateOrderRequest req);
     byte[] exportExcel(String keyword, Integer status, String type, LocalDateTime from, LocalDateTime to);
     String createOrderDelivery(CreateOrderRequest req);
+    Page<HoaDonResponse> getOrdersByPhone(String soDienThoai, String keyword, Integer status, Pageable pageable);
 }

@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional; // NHỚ THÊM 
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -230,5 +232,83 @@ public class PhieuGiamGiaServiceImpl {
             workbook.write(out);
             return out.toByteArray();
         }
+    }
+    public BigDecimal calculateDiscount(String maCode, Integer idKhachHang, BigDecimal tongTienDonHang, BigDecimal phiVanChuyen) {
+        
+        // 1. Kiểm tra tồn tại
+        PhieuGiamGia v = repository.findFirstByMaPhieuGiamGia(maCode)
+                .orElseThrow(() -> new RuntimeException("Mã phiếu giảm giá không tồn tại!"));
+
+        // 2. Kiểm tra trạng thái và Hạn sử dụng
+        LocalDateTime now = LocalDateTime.now();
+        if (v.getTrangThai() == 0 || now.isBefore(v.getNgayBatDau()) || now.isAfter(v.getNgayKetThuc())) {
+            throw new RuntimeException("Mã giảm giá đã hết hạn hoặc chưa đến thời gian sử dụng!");
+        }
+
+        // 3. Kiểm tra số lượng tổng (Nếu không phải Vô hạn)
+        if (v.getSoLuong() != null && v.getSoLuong() <= 0) {
+            throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng!");
+        }
+
+        // 4. Kiểm tra điều kiện đơn hàng tối thiểu
+        if (v.getDonHangToiThieu() != null && tongTienDonHang.compareTo(v.getDonHangToiThieu()) < 0) {
+            throw new RuntimeException("Đơn hàng chưa đạt mức tối thiểu " + v.getDonHangToiThieu() + "đ để áp dụng mã này!");
+        }
+
+        // 5. Kiểm tra phân loại Cá Nhân / Công Khai
+        if ("CaNhan".equals(v.getKieu())) {
+            // Nếu là phiếu cá nhân, phải kiểm tra xem khách hàng này có được tặng không
+            List<PhieuGiamGiaCaNhan> listCaNhan = pggCaNhanRepo.findByPhieuGiamGiaId(v.getId());
+            
+            PhieuGiamGiaCaNhan pggCn = listCaNhan.stream()
+                    .filter(p -> p.getKhachHang().getId().equals(idKhachHang))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Bạn không có quyền sử dụng mã giảm giá này!"));
+
+            // Kiểm tra xem khách đã dùng phiếu này chưa
+            if (pggCn.getDaSuDung() != null && pggCn.getDaSuDung()) {
+                throw new RuntimeException("Bạn đã sử dụng mã giảm giá này rồi!");
+            }
+        } else {
+            // NẾU LÀ PHIẾU CÔNG KHAI: 
+            // Cần check bảng HoaDon xem Khách hàng này đã dùng mã này mấy lần rồi.
+            // (Mày cần tạo hàm đếm trong HoaDonRepository, tao ví dụ logic ở đây)
+            // int soLanDaDung = hoaDonRepo.countByKhachHangIdAndPhieuGiamGiaId(idKhachHang, v.getId());
+            // int gioiHan = (v.getGioiHanMoiKhach() != null) ? v.getGioiHanMoiKhach() : 1; // Mặc định 1 lần
+            // if (soLanDaDung >= gioiHan) {
+            //    throw new RuntimeException("Bạn đã hết lượt sử dụng mã này!");
+            // }
+        }
+
+        // 6. TÍNH TOÁN SỐ TIỀN ĐƯỢC GIẢM
+        BigDecimal discountAmount = BigDecimal.ZERO;
+
+        if ("FreeShip".equals(v.getLoaiPhieu())) {
+            // Giảm tiền ship (tối đa bằng phí vận chuyển hoặc giá trị giảm tối đa của phiếu)
+            discountAmount = phiVanChuyen;
+            if (v.getGiaTriGiamToiDa() != null && discountAmount.compareTo(v.getGiaTriGiamToiDa()) > 0) {
+                discountAmount = v.getGiaTriGiamToiDa();
+            }
+
+        } else if ("TienMat".equals(v.getLoaiPhieu())) {
+            // Giảm thẳng tiền mặt
+            discountAmount = v.getGiaTriGiam();
+            // Không được giảm âm tiền đơn hàng
+            if (discountAmount.compareTo(tongTienDonHang) > 0) {
+                discountAmount = tongTienDonHang;
+            }
+
+        } else if ("PhanTram".equals(v.getLoaiPhieu())) {
+            // Giảm theo %: (tongTien * %)/100
+            discountAmount = tongTienDonHang.multiply(v.getGiaTriGiam())
+                    .divide(new BigDecimal(100), 0, RoundingMode.HALF_UP);
+            
+            // Chặn mức giảm tối đa
+            if (v.getGiaTriGiamToiDa() != null && discountAmount.compareTo(v.getGiaTriGiamToiDa()) > 0) {
+                discountAmount = v.getGiaTriGiamToiDa();
+            }
+        }
+
+        return discountAmount; // Trả về số tiền được giảm
     }
 }

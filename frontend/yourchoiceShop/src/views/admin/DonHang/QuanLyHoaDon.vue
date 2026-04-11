@@ -402,20 +402,18 @@ const visiblePages = computed(() => {
 const STATUS_TABS = [
   { key: 'ALL', label: 'Tất cả' },
   { key: '1', label: 'Chờ xác nhận' },
-  { key: '2', label: 'Chờ giao hàng' },
-  { key: '3', label: 'Vận chuyển' },
-  { key: '4', label: 'Đã giao hàng' },
-  { key: '5', label: 'Hoàn thành' },
+  { key: '2', label: 'Đã xác nhận' },
+  { key: '3', label: 'Đang vận chuyển' },
+  { key: '4', label: 'Hoàn thành' },
   { key: '0', label: 'Đã hủy' }
 ]
 
 const STATUS_CONFIG = {
   0: { text: 'Đã hủy', class: 'st-red' },
   1: { text: 'Chờ xác nhận', class: 'st-yellow' },
-  2: { text: 'Chờ giao', class: 'st-blue' },
-  3: { text: 'Đang giao', class: 'st-orange' },
-  4: { text: 'Chờ thanh toán', class: 'st-purple' },
-  5: { text: 'Hoàn thành', class: 'st-green' }
+  2: { text: 'Đã xác nhận', class: 'st-blue' },
+  3: { text: 'Đang vận chuyển', class: 'st-orange' },
+  4: { text: 'Hoàn thành', class: 'st-green' }
 }
 
 const ORDER_TYPE_CONFIG = {

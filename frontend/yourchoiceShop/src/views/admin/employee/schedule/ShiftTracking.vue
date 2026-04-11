@@ -31,7 +31,7 @@
         </div>
       </div>
 
-      <div v-else-if="todaySchedule" class="alert-card status-empty">
+      <div v-else-if="todaySchedule && !isSchedulePast" class="alert-card status-empty">
         <h2><i class="fas fa-clock"></i> Chưa mở ca làm việc</h2>
         
         <div class="shift-details">
@@ -48,15 +48,16 @@
       </div>
 
       <div v-else class="alert-card status-no-shift">
-        <h2><i class="fas fa-calendar-times"></i> Không có lịch làm việc</h2>
-        <p>Hôm nay bạn không có lịch được phân công hoặc ca làm việc đã kết thúc.</p>
+          <h2><i class="fas fa-calendar-times"></i> Không có lịch làm việc</h2>
+          <p v-if="isSchedulePast">Ca làm việc của bạn hôm nay đã kết thúc lúc {{ endTimeRawGlobal }}.</p>
+          <p v-else>Hôm nay bạn không có lịch được phân công.</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2'; 
 import request from '@/services/request'; 
@@ -73,6 +74,17 @@ const isTimeToEndShift = ref(false);
 const endTimeRawGlobal = ref(''); // 🔥 ĐÃ THÊM: Biến lưu riêng giờ kết thúc để không ảnh hưởng activeShift
 let timeChecker = null; 
 
+// 2. Thêm đoạn này vào bên dưới các khai báo ref
+const isSchedulePast = computed(() => {
+  if (!endTimeRawGlobal.value) return false;
+  
+  const endTime = parseTime(endTimeRawGlobal.value);
+  if (!endTime) return false;
+
+  const now = new Date();
+  // Nếu bây giờ đã muộn hơn giờ kết thúc ca thì coi như ca đã qua
+  return now > endTime;
+});
 const handleOpenShift = async () => {
   if (!todaySchedule.value) return;
 

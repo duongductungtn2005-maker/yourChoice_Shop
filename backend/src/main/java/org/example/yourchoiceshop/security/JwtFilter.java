@@ -30,28 +30,17 @@ public class JwtFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
-            try {
-                if (jwtUtil.validateToken(token)) {
-                    Claims claims = jwtUtil.parseToken(token);
-                    String role = claims.get("role", String.class);
-                    String username = claims.get("username", String.class);
-                    String subject = claims.getSubject();
+            if (jwtUtil.validateToken(token)) {
+                Claims claims = jwtUtil.parseToken(token);
+                String role = claims.get("role", String.class);
+                String username = claims.get("username", String.class);
+                Integer userId = Integer.valueOf(claims.getSubject());
 
-                    // Kiểm tra an toàn trước khi ép kiểu
-                    if (subject != null && subject.matches("\\d+")) { 
-                        Integer userId = Integer.valueOf(subject);
-                        var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
-                        var authToken = new UsernamePasswordAuthenticationToken(username, null, authorities);
-                        authToken.setDetails(userId);
+                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+                var authToken = new UsernamePasswordAuthenticationToken(username, null, authorities);
+                authToken.setDetails(userId);
 
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
-                    } else {
-                        System.out.println("⚠️ Token không hợp lệ: Subject không phải là số ID - Subject: " + subject);
-                    }
-                }
-            } catch (Exception e) {
-                // Đặt bẫy ở đây để log lỗi ra console thay vì bị Spring nuốt mất
-                System.err.println("❌ Lỗi xử lý JWT Token: " + e.getMessage());
+                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 

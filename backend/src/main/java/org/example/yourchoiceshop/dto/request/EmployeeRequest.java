@@ -1,8 +1,10 @@
 package org.example.yourchoiceshop.dto.request;
 
 import java.time.LocalDate;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.multipart.MultipartFile;
+
 import lombok.Data;
 
 @Data
@@ -10,6 +12,7 @@ public class EmployeeRequest {
     private String tenNhanVien;
     private String email;
     private String soDienThoai;
+    private String matKhau;
     private String cccd;
     private Boolean gioiTinh;
     private String tenTaiKhoan;

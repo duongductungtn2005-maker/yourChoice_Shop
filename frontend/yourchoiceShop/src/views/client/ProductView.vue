@@ -4,9 +4,11 @@
     <div class="page-header-small">
       <div class="header-overlay"></div>
       <div class="container header-content">
+        <div class="header-glass">
         <h1>CỬA HÀNG</h1>
         <div class="breadcrumb">
           <span @click="$router.push('/')">Trang chủ</span> / <span>Sản phẩm</span>
+        </div>
         </div>
       </div>
     </div>
@@ -333,10 +335,37 @@ onUnmounted(() => {
   background-size: cover; background-position: center; height: 200px; position: relative;
   display: flex; align-items: center; justify-content: center; margin-bottom: 40px;
 }
-.header-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
+.header-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.62) 0%, rgba(2, 6, 23, 0.74) 100%);
+}
 .header-content { position: relative; z-index: 1; text-align: center; color: #fff; }
-.header-content h1 { font-size: 36px; font-weight: 700; margin-bottom: 10px; letter-spacing: 1px; }
-.breadcrumb { font-size: 15px; color: #e2e8f0; }
+.header-glass {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 34px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.header-content h1 {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+.breadcrumb {
+  font-size: 15px;
+  color: #f1f5f9;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
 .breadcrumb span { cursor: pointer; transition: 0.2s; }
 .breadcrumb span:first-child:hover { color: #fff; text-decoration: underline; }
 
@@ -427,6 +456,9 @@ onUnmounted(() => {
   .product-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 768px) {
+  .header-glass { padding: 14px 20px; border-radius: 12px; }
+  .header-content h1 { font-size: 30px; margin-bottom: 6px; }
+  .breadcrumb { font-size: 14px; }
   .product-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
 }
 </style>

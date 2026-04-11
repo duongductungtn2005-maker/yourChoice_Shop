@@ -20,20 +20,20 @@
               @error="onLogoError"
             />
             <div class="brand-text">
-              <h2 class="title">Xin chào quý khách</h2>
-              <p class="subtitle">Vui lòng nhập thông tin của bạn</p>
+              <h2 class="title">Quản trị / Nhân viên</h2>
+              <p class="subtitle">Dành cho Admin và Nhân viên</p>
             </div>
           </div>
 
           <form class="form" @submit.prevent="handleLogin">
             <div class="form-group">
-              <label class="label">Tài khoản</label>
+              <label class="label">Tài khoản hoặc Email</label>
               <div class="input-shell">
                 <input
                   v-model="username"
                   type="text"
                   class="input"
-                  placeholder="Nhập tài khoản"
+                  placeholder="Nhập tài khoản hoặc email"
                   autocomplete="username"
                 />
                 <i class="fa-regular fa-user icon"></i>
@@ -64,7 +64,7 @@
             <div class="row">
               <label class="remember">
                 <input type="checkbox" />
-                <span>Remember for 30 days</span>
+                <span>Ghi nhớ tôi</span>
               </label>
               <button type="button" class="link">Quên mật khẩu?</button>
             </div>
@@ -135,17 +135,16 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
 import request from '@/services/request';
 import { login as authLogin } from '@/services/auth';
-<<<<<<< Updated upstream
-=======
 import { useCartStore } from '@/stores/cart';
 import { jwtDecode } from 'jwt-decode';
->>>>>>> Stashed changes
+import { useCartStore } from '@/stores/cart';
 
 const router = useRouter();
+const route = useRoute();
 const username = ref('');
 const password = ref('');
 const showPassword = ref(false);
@@ -223,15 +222,18 @@ onBeforeUnmount(() => stopAuto());
 const authenticateCustomer = async (usernameValue, passwordValue) => {
   const finalUsername = String(usernameValue || '').trim();
   const finalPassword = String(passwordValue || '').trim();
-  if (!finalUsername || !finalPassword) return false;
+  if (!finalUsername || !finalPassword) return null;
 
   try {
-    const response = await request.get('/khach-hang/authenticate', {
-      params: { username: finalUsername, password: finalPassword }
+    const response = await request.post('/khach-hang/authenticate', {
+      username: finalUsername, password: finalPassword
     });
-    return response?.data?.authenticated === true;
+    if (response?.data?.authenticated === true) {
+      return response?.data?.customer || null;
+    }
+    return null;
   } catch {
-    return false;
+    return null;
   }
 };
 
@@ -241,11 +243,11 @@ const authenticateEmployee = async (usernameValue, passwordValue) => {
   if (!finalUsername || !finalPassword) return null;
 
   try {
-    const response = await request.get('/nhan-vien/authenticate', {
-      params: { username: finalUsername, password: finalPassword }
+    const response = await request.post('/nhan-vien/authenticate', {
+      username: finalUsername, password: finalPassword
     });
     if (response?.data?.authenticated === true) {
-      return response?.data?.employee || null;
+      return response?.data || null;
     }
     return null;
   } catch {
@@ -302,18 +304,6 @@ const handleLogin = async () => {
   } else {
     errorMessage.value = 'Sai tài khoản hoặc mật khẩu. Vui lòng thử lại.';
   }
-
-  // 2. Thử đăng nhập Khách hàng (từ database)
-  const isCustomer = await authenticateCustomer(username.value, password.value);
-  if (isCustomer) {
-    authLogin({ role: 'CUSTOMER' });
-    toastSuccess('Đăng nhập thành công!');
-    router.push('/');
-    return;
-  }
-
-  // Không khớp gì
-  errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
 };
 const handleGoBack = () => {
   router.push('/');
