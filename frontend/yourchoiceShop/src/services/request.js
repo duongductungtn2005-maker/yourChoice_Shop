@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { getToken, getCurrentUser } from './auth'; 
+// ADDED: Imported 'logout' from your auth file
+import { getToken, getCurrentUser, logout } from './auth'; 
 
 const request = axios.create({
     baseURL: 'http://localhost:8080/api/v1',
@@ -38,8 +39,14 @@ request.interceptors.response.use(
     },
     (error) => {
         if (error.response && error.response.status === 401) {
-            sessionStorage.clear(); 
-            window.location.href = '/login';
+            // Xác định role để redirect về đúng trang login
+            const role = sessionStorage.getItem('userRole');
+            logout(); // Now this will work correctly!
+            if (role === 'ADMIN' || role === 'STAFF') {
+                window.location.href = '/admin/login';
+            } else {
+                window.location.href = '/client/login';
+            }
         }
         return Promise.reject(error);
     }

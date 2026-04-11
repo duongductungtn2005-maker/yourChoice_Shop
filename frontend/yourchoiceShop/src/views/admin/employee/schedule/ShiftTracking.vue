@@ -39,8 +39,7 @@
           <p><strong>Ca:</strong> {{ todaySchedule.caLamViec?.tenCa || 'Đang cập nhật' }}</p>
           <p><strong>Thời gian:</strong> 
             {{ formatTime(todaySchedule.caLamViec?.thoiGianBatDau || todaySchedule.thoiGianBatDau) }} - 
-            {{ formatTime(todaySchedule.caLamViec?.thoiGianKetThuc || todaySchedule.thoiGianKetThuc) }}
-          </p>
+            {{ formatTime(endTimeRawGlobal) }} </p>
         </div>
 
         <button @click="handleOpenShift" class="btn btn-open">
@@ -55,8 +54,8 @@
     </div>
   </div>
 </template>
-<script setup>
 
+<script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2'; 
@@ -71,7 +70,48 @@ const activeShift = ref(null);
 const todaySchedule = ref(null);  
 const isLoading = ref(true);
 const isTimeToEndShift = ref(false); 
+const endTimeRawGlobal = ref(''); // 🔥 ĐÃ THÊM: Biến lưu riêng giờ kết thúc để không ảnh hưởng activeShift
 let timeChecker = null; 
+
+const handleOpenShift = async () => {
+  if (!todaySchedule.value) return;
+
+  // HIỆN THÔNG BÁO XÁC NHẬN TRƯỚC KHI VÀO CA
+  const confirm = await Swal.fire({
+    title: 'Xác nhận vào ca?',
+    text: `Bạn chuẩn bị bắt đầu ca làm việc: ${todaySchedule.value.caLamViec?.tenCa}`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Xác nhận vào làm',
+    cancelButtonText: 'Để sau'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    const res = await request.post(`/giao-ca/mo-ca?username=${user.tenTaiKhoan}`, {
+      idLichLamViec: todaySchedule.value.id
+    });
+
+    if (res.data) {
+      activeShift.value = {
+        ...res.data,
+        thoiGianKetThucDuKien: endTimeRawGlobal.value
+      };
+      sessionStorage.setItem('hasActiveShift', 'true');
+      window.dispatchEvent(new Event('shift-changed'));
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Bắt đầu ca thành công!',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    }
+  } catch (error) {
+    Swal.fire('Lỗi', error.response?.data || 'Không thể mở ca', 'error');
+  }
+};
 
 const fetchCurrentShift = async () => {
   if (!user || !user.tenTaiKhoan) {
@@ -86,7 +126,6 @@ const fetchCurrentShift = async () => {
     const scheduleRes = await request.get(`/lich-lam-viec/hom-nay?username=${user.tenTaiKhoan}`);
     todaySchedule.value = scheduleRes.data || null;
 
-    // ❗ check ở đây mới đúng
     if (!todaySchedule.value) {
       activeShift.value = null;
       sessionStorage.setItem('hasActiveShift', 'false');
@@ -101,29 +140,24 @@ const fetchCurrentShift = async () => {
       todaySchedule.value?.thoiGianKetThuc ||
       todaySchedule.value?.gioKetThuc;
 
+    endTimeRawGlobal.value = endTimeRaw; // 🔥 ĐÃ THÊM: Lưu vào biến ngoài để dùng cho Template
+
     // 2. Lấy ca hiện tại
     const res = await request.get(`/giao-ca/hien-tai?username=${user.tenTaiKhoan}`);
 
     if (res.data && res.data.trangThai === 1) {
-      // 👉 ĐANG CA
+      // 👉 ĐANG TRONG CA
       activeShift.value = {
         ...res.data,
         thoiGianKetThucDuKien: endTimeRaw
       };
-
       sessionStorage.setItem('hasActiveShift', 'true');
 
     } else {
-      // 👉 CHƯA MỞ CA
-      activeShift.value = {
-        thoiGianKetThucDuKien: endTimeRaw
-      };
-
+      // 👉 CHƯA MỞ CA: Gán null chuẩn chỉ để không bị lỗi màn hình xanh
+      activeShift.value = null; 
       sessionStorage.setItem('hasActiveShift', 'false');
     }
-
-    console.log("Schedule:", todaySchedule.value);
-    console.log("EndTimeRaw:", endTimeRaw);
 
     checkTimeToEndShift();
 
@@ -140,33 +174,14 @@ const backgroundSync = async () => {
     const res = await request.get(`/giao-ca/hien-tai?username=${user.tenTaiKhoan}`);
 
     if (res.data && res.data.trangThai === 1) {
-      activeShift.value = res.data;
+      activeShift.value = {
+        ...res.data,
+        thoiGianKetThucDuKien: endTimeRawGlobal.value
+      };
       checkTimeToEndShift();
-
       sessionStorage.setItem('hasActiveShift', 'true');
     } else {
-      // ❌ KHÔNG reset ngay
       console.warn("Không tìm thấy ca hiện tại (có thể delay backend)");
-
-      // 👉 chỉ reset nếu trước đó đang có ca
-      if (activeShift.value) {
-        // delay confirm
-        setTimeout(async () => {
-          const retry = await request.get(`/giao-ca/hien-tai?username=${user.tenTaiKhoan}`);
-
-          if (!retry.data || !retry.data.id) {
-            Swal.fire({
-              icon: 'warning',
-              title: 'Ca làm việc đã kết thúc!',
-              text: 'Ca của bạn đã bị đóng từ hệ thống.'
-            });
-
-            activeShift.value = null;
-            sessionStorage.setItem('hasActiveShift', 'false');
-            router.push('/staff/giao-ca');
-          }
-        }, 2000); // 👉 delay 2s tránh false alarm
-      }
     }
   } catch (error) {
     console.log("Sync lỗi:", error.message);
@@ -182,38 +197,34 @@ const checkTimeToEndShift = () => {
   const now = new Date();
   isTimeToEndShift.value = now >= endTime;
 };
+
 const parseTime = (timeStr) => {
   if (!timeStr) return null;
-
-  // 👉 HH:mm hoặc HH:mm:ss
   if (typeof timeStr === 'string' && timeStr.includes(':') && !timeStr.includes('T')) {
     const parts = timeStr.split(':');
     const h = Number(parts[0]);
     const m = Number(parts[1]);
-
     const d = new Date();
     d.setHours(h, m, 0, 0);
     return d;
   }
-
-  // 👉 ISO
   const d = new Date(timeStr);
   return isNaN(d.getTime()) ? null : d;
 };
 
 const handleCloseShift = async () => {
   if (isTimeToEndShift.value) {
-  const confirm = await Swal.fire({
-    icon: 'info',
-    title: 'Đã đến giờ kết ca',
-    text: 'Bạn có muốn đóng ca không?',
-    showCancelButton: true,
-    confirmButtonText: 'Đóng ca',
-    cancelButtonText: 'Hủy'
-  });
-
-  if (!confirm.isConfirmed) return;
-}
+    const confirm = await Swal.fire({
+      icon: 'info',
+      title: 'Đã đến giờ kết ca',
+      text: 'Bạn có muốn đóng ca không?',
+      showCancelButton: true,
+      confirmButtonText: 'Đóng ca',
+      cancelButtonText: 'Hủy'
+    });
+    if (!confirm.isConfirmed) return;
+  }
+  
   if (!isTimeToEndShift.value) {
     const confirm = await Swal.fire({
       icon: 'warning',
@@ -223,7 +234,6 @@ const handleCloseShift = async () => {
       confirmButtonText: 'Đóng ca',
       cancelButtonText: 'Hủy'
     });
-
     if (!confirm.isConfirmed) return;
   }
 
@@ -241,7 +251,6 @@ const handleCloseShift = async () => {
   if (result.isConfirmed) {
     try {
       await request.put(`/giao-ca/dong-ca/${activeShift.value.id}`);
-      
       Swal.fire({
         icon: 'success',
         title: 'Đã đóng ca!',
@@ -249,13 +258,11 @@ const handleCloseShift = async () => {
         timer: 2000,
         showConfirmButton: false
       });
-      
       activeShift.value = null;
-todaySchedule.value = null;
-
-sessionStorage.setItem('hasActiveShift', 'false'); // 🔥 QUAN TRỌNG
-window.dispatchEvent(new Event('shift-changed'));
-router.push('/staff/giao-ca');                     // 🔥 QUAN TRỌNG
+      todaySchedule.value = null;
+      sessionStorage.setItem('hasActiveShift', 'false'); 
+      window.dispatchEvent(new Event('shift-changed'));
+      router.push('/staff/giao-ca'); 
     } catch (e) { 
       Swal.fire({
         icon: 'error',
@@ -268,15 +275,11 @@ router.push('/staff/giao-ca');                     // 🔥 QUAN TRỌNG
 
 const formatTime = (value) => {
   if (!value) return '--:--';
-
-  // dạng "HH:mm" hoặc "HH:mm:ss"
   if (typeof value === 'string' && value.includes(':') && !value.includes('T')) {
-    return value.slice(0, 5); // lấy HH:mm
+    return value.slice(0, 5); 
   }
-
   const d = new Date(value);
   if (isNaN(d.getTime())) return '--:--';
-
   return d.toLocaleTimeString('vi-VN', {
     hour: '2-digit',
     minute: '2-digit'
@@ -285,7 +288,6 @@ const formatTime = (value) => {
 
 onMounted(() => {
   fetchCurrentShift();
-  
   timeChecker = setInterval(() => {
     checkTimeToEndShift();
     backgroundSync(); 

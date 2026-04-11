@@ -20,7 +20,8 @@ const SESSION_TTL = 8 * 60 * 60 * 1000
 ============================ */
 
 /** Lưu thông tin đăng nhập */
-export function login({ token = 'demo-token', role, user = null } = {}) {
+export function login({ token, role, user = null } = {}) {
+  if (!token) throw new Error('Token is required for login')
   localStorage.setItem(TOKEN_KEY, token)
   localStorage.setItem(ROLE_KEY, role)
   localStorage.setItem(LOGIN_TIME_KEY, String(Date.now()))

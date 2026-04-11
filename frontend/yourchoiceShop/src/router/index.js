@@ -1,8 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router"
-import { isAuthenticated, getRole } from "@/services/auth"
+import { isAuthenticated, getRole, getCurrentUserId, getCurrentUser } from "@/services/auth"
 import request from "@/services/request"
-import { getCurrentUser } from "@/services/auth"
-import Swal from "sweetalert2"
+import { useShiftStore } from '@/stores/shiftStore';
 // import { initCrossTabSync } from "@/services/auth" // Đã vô hiệu hóa cross-tab sync
 
 /* ================= STATIC IMPORT ================= */
@@ -17,6 +16,8 @@ import CustomerDetail from "@/views/admin/customer/CustomerDetail.vue"
 
 import ThongKeView from "@/views/admin/dashboard/ThongKeView.vue"
 import ShiftTracking from "@/views/admin/employee/schedule/ShiftTracking.vue";
+
+import Swal from 'sweetalert2';
 
 /* ================= ROLE HELPER ================= */
 const getUserRole = () => {
@@ -240,48 +241,38 @@ const router = createRouter({
           component: CustomerDetail,
           meta: { requiresShift: true }
         },
+        /* Thông tin cá nhân */
+        { path: "thong-tin-ca-nhan", name: "staff-profile", component: () => import("../views/admin/employee/ProfileView.vue") },
+
+        /* Chat Management */
+        { path: "chat", name: "staff-chat", component: () => import("../views/admin/chat/ChatManagement.vue") },
       ],
     },
   ],
 })
 
 /* ================= NAVIGATION GUARD CẢI TIẾN ================= */
-router.beforeEach((to, from, next) => {
-  const authenticated = isAuthenticated ? isAuthenticated() : !!sessionStorage.getItem("token")
-  const role = normalizeRole(getRole ? getRole() : getUserRole())
-  
-  const hasActiveShift = sessionStorage.getItem('hasActiveShift') === 'true'
+router.beforeEach(async (to, from, next) => {
+  const normalizeRole = (value) => {
+    const role = String(value || '').toUpperCase();
+    if (role === 'EMPLOYEE' || role === 'NHANVIEN' || role === 'NHAN_VIEN') return 'STAFF';
+    return role;
+  };
 
-  // Nếu đã login mà vào /login → redirect
-  if (to.path === "/login" && authenticated) {
-    next(getDefaultPathByRole(role))
-    return
-  }
+  const rawRole = getRole();
+  const role = normalizeRole(rawRole);
+  const path = to.path;
 
-  // Route không cần login
-  if (!to.matched.some(r => r.meta.requiresAuth)) {
-    next()
-    return
-  }
-
-  // Chưa login
-  if (!authenticated || !role) {
-  next("/login")
-  return
-}
-
-  // ================== 🔥 THÊM ĐOẠN NÀY ==================
-  const requiredRoles = to.meta.roles
-
-  if (requiredRoles && !requiredRoles.includes(role)) {
-    console.warn("Không có quyền truy cập:", role)
-
-    if (role === 'STAFF') {
-      next('/staff/giao-ca')
-    } else if (role === 'ADMIN') {
-      next('/admin/dashboard')
-    } else {
-      next('/login')
+  // 1. CHƯA ĐĂNG NHẬP: Đá về trang login
+  if (!role) {
+    // NẾU ĐƯỜNG DẪN ĐÃ LÀ TRANG LOGIN RỒI THÌ CHO QUA LUÔN (Chống lặp vô hạn)
+    if (path === '/admin/login') {
+      return next(); 
+    }
+    
+    // Nếu chưa đăng nhập mà cố lân la vào các trang nội bộ thì mới đá về login
+    if (path.startsWith('/admin') || path.startsWith('/staff')) {
+      return next('/admin/login');
     }
 
     return
@@ -305,8 +296,43 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  next()
-})
+  // 2. CHẶN VƯỢT QUYỀN CHÉO (Admin <-> Staff)
+  if (role === 'STAFF' && path.startsWith('/admin')) {
+    return next('/staff/giao-ca'); 
+  }
+  if (role === 'ADMIN' && path.startsWith('/staff')) {
+    return next('/admin/home'); 
+  }
+
+  // 3. LUẬT RIÊNG CHO NHÂN VIÊN (STAFF)
+  if (role === 'STAFF') {
+    // Lưu ý: Phải gọi useShiftStore() ở BÊN TRONG beforeEach để tránh lỗi Pinia chưa khởi tạo
+    const shiftStore = useShiftStore(); 
+    
+    // Nếu ứng dụng vừa F5 (reload), store có thể bị reset, ta cần chắc chắn store đã fetch trạng thái ca
+    if (shiftStore.hasActiveShift === null || shiftStore.hasActiveShift === undefined) {
+      await shiftStore.fetchShift(); 
+    }
+
+    const hasShift = shiftStore.hasActiveShift;
+
+    // Danh sách các trang nhân viên ĐƯỢC PHÉP VÀO khi KHÔNG CÓ CA
+    const allowedRoutesWithoutShift = [
+      '/staff/giao-ca', 
+      '/staff/thong-tin-ca-nhan' // Cho phép xem thông tin cá nhân
+    ];
+
+    // Nếu KHÔNG có ca VÀ đang cố vào một trang KHÔNG nằm trong danh sách cho phép
+    if (!hasShift && !allowedRoutesWithoutShift.includes(path)) {
+      // Đá thẳng về trang giao ca
+      return next('/staff/giao-ca');
+    }
+  }
+
+  // 4. Mọi thứ hợp lệ, cho phép đi tiếp
+  next();
+  console.log("Role thực tế đang chạy là:", role);
+});
 
 /* ================= CROSS-TAB SYNC ================= */
 // VÔ HIỆU HÓA đồng bộ tab - mỗi tab hoạt động độc lập

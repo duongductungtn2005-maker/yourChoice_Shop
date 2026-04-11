@@ -9,6 +9,17 @@
       </div>
 
       <nav class="menu">
+        <!-- Trang chủ -->
+        <router-link
+          v-if="isAdmin || (isStaff && hasActiveShift)"
+          to="/admin/home" 
+          class="menu-item"
+          active-class="active-link"
+        >
+          <i class="fa-solid fa-house icon"></i> Trang chủ
+        </router-link>
+
+        <!-- Admin only -->
         <router-link
           v-if="isAdmin"
           to="/admin/dashboard"
@@ -172,6 +183,16 @@
             </router-link>
           </div>
         </div>
+
+        <!-- Chat Management -->
+        <router-link
+          v-if="isAdmin || (isStaff && hasActiveShift)"
+          :to="`${basePath}/chat`"
+          class="menu-item"
+          active-class="active-link"
+        >
+          <i class="fa-regular fa-comment-dots icon"></i> Quản lý Chat
+        </router-link>
       </nav>
     </aside>
 
@@ -216,9 +237,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { toastSuccess } from '@/utils/toast'; 
-import { logout as authLogout, getRole, getCurrentUser, getCurrentUserName } from '@/services/auth';
-import { useShiftStore } from '@/stores/shiftStore'
+import { toastSuccess } from '@/utils/toast';
+import { logout as authLogout, getRole, getCurrentUser } from '@/services/auth'; // Xóa getCurrentUserName vì bạn tự viết logic tính toán rồi
+import axios from 'axios';
+import SockJS from 'sockjs-client/dist/sockjs';
+import { Client } from '@stomp/stompjs';
+import { useShiftStore } from '@/stores/shiftStore';
+
+const API_URL = 'http://localhost:8080/api/v1';
 
 const shiftStore = useShiftStore()
 const route = useRoute();
@@ -250,13 +276,9 @@ const currentUserName = computed(() => {
 });
 
 const userRoleLabel = computed(() => {
-  if (isAdmin.value && currentUserName.value) {
-    return `Admin: ${currentUserName.value}`;
-  }
+  if (isAdmin.value && currentUserName.value) return `Admin: ${currentUserName.value}`;
   if (isAdmin.value) return 'Admin';
-  if (isStaff.value && currentUserName.value) {
-    return `Nhân viên: ${currentUserName.value}`;
-  }
+  if (isStaff.value && currentUserName.value) return `Nhân viên: ${currentUserName.value}`;
   return 'Nhân viên';
 });
 
@@ -274,9 +296,38 @@ const toggleUserDropdown = () => {
   isUserDropdownOpen.value = !isUserDropdownOpen.value;
 };
 
+const handleClickOutside = (e) => {
+  const userInfoEl = document.querySelector('.user-info');
+  if (userInfoEl && !userInfoEl.contains(e.target)) {
+    isUserDropdownOpen.value = false;
+  }
+  if (notifWrapperRef.value && !notifWrapperRef.value.contains(e.target)) {
+    isNotifOpen.value = false;
+  }
+};
+
+watch(() => route.path, () => {
+  isUserDropdownOpen.value = false;
+});
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+  fetchNotifications();
+  connectWebSocket();
+});
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+  disconnectWebSocket();
+});
+
+const goToProfile = () => {
+  isUserDropdownOpen.value = false;
+  const profilePath = isAdmin.value ? '/admin/thong-tin-ca-nhan' : '/staff/thong-tin-ca-nhan';
+  router.push(profilePath);
+};
+
 const handleLogout = () => {
   shiftStore.clearShift();
-  
   authLogout();
   isUserDropdownOpen.value = false;
 
@@ -286,7 +337,106 @@ const handleLogout = () => {
     // Nếu chưa cấu hình toast thì bỏ qua
   }
 
-  router.push('/login');
+  router.push('/admin/login'); // Có thể đổi thành '/login' nếu route chuẩn của bạn là '/login'
+};
+
+/* =========================
+   THÔNG BÁO REALTIME
+========================= */
+const isNotifOpen = ref(false);
+const notifications = ref([]);
+const unreadCount = ref(0);
+const bellRinging = ref(false);
+const notifWrapperRef = ref(null);
+let stompClient = null;
+
+const toggleNotifDropdown = () => {
+  isNotifOpen.value = !isNotifOpen.value;
+  if (isNotifOpen.value) fetchNotifications();
+};
+
+const fetchNotifications = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/thong-bao`);
+    notifications.value = res.data.items || [];
+    unreadCount.value = res.data.unreadCount || 0;
+  } catch (e) {
+    console.error('Lỗi tải thông báo:', e);
+  }
+};
+
+const markAsRead = async (id) => {
+  try {
+    await axios.put(`${API_URL}/thong-bao/${id}/read`);
+    const item = notifications.value.find((n) => n.id === id);
+    if (item && !item.daDoc) {
+      item.daDoc = true;
+      unreadCount.value = Math.max(0, unreadCount.value - 1);
+    }
+  } catch (e) {
+    console.error('Lỗi đánh dấu đã đọc:', e);
+  }
+};
+
+const markAllAsRead = async () => {
+  try {
+    await axios.put(`${API_URL}/thong-bao/read-all`);
+    notifications.value.forEach((n) => (n.daDoc = true));
+    unreadCount.value = 0;
+  } catch (e) {
+    console.error('Lỗi đánh dấu tất cả:', e);
+  }
+};
+
+const handleNotifClick = (item) => {
+  if (!item.daDoc) markAsRead(item.id);
+  if (item.maHoaDon) {
+    isNotifOpen.value = false;
+    router.push(`${basePath.value}/orders`);
+  }
+};
+
+const triggerBellAnimation = () => {
+  bellRinging.value = true;
+  setTimeout(() => { bellRinging.value = false; }, 1500);
+};
+
+const connectWebSocket = () => {
+  stompClient = new Client({
+    webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+    reconnectDelay: 5000,
+    onConnect: () => {
+      stompClient.subscribe('/topic/notifications', (message) => {
+        const newNotif = JSON.parse(message.body);
+        notifications.value.unshift(newNotif);
+        unreadCount.value++;
+        triggerBellAnimation();
+      });
+    },
+    onStompError: (frame) => {
+      console.error('WebSocket STOMP error:', frame.headers?.message);
+    },
+  });
+  stompClient.activate();
+};
+
+const disconnectWebSocket = () => {
+  if (stompClient) {
+    stompClient.deactivate();
+    stompClient = null;
+  }
+};
+
+const timeAgo = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return 'Vừa xong';
+  if (diff < 3600) return Math.floor(diff / 60) + ' phút trước';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' giờ trước';
+  if (diff < 604800) return Math.floor(diff / 86400) + ' ngày trước';
+  return date.toLocaleDateString('vi-VN');
 };
 
 /* =========================
@@ -309,35 +459,16 @@ const toggleMenu = (key) => {
 const isProductRoute = computed(() => {
   const p = route.path;
   return (
-    p.includes('/admin/products') ||
-    p.includes('/admin/co-ao') ||
-    p.includes('/admin/tay-ao') ||
-    p.includes('/admin/xuat-xu') ||
-    p.includes('/admin/chat-lieu') ||
-    p.includes('/admin/thuong-hieu') ||
-    p.includes('/admin/mau-sac') ||
-    p.includes('/admin/kich-thuoc')
+    p.includes('/admin/products') || p.includes('/admin/co-ao') ||
+    p.includes('/admin/tay-ao') || p.includes('/admin/xuat-xu') ||
+    p.includes('/admin/chat-lieu') || p.includes('/admin/thuong-hieu') ||
+    p.includes('/admin/mau-sac') || p.includes('/admin/kich-thuoc')
   );
 });
 
-const isDiscountRoute = computed(() => {
-  const p = route.path;
-  return p.includes('/admin/vouchers') || p.includes('/admin/sales');
-});
-
-const isWorkScheduleRoute = computed(() => {
-  const p = route.path;
-  return p.includes('/admin/shifts') || p.includes('/admin/schedules');
-});
-
-const isAccountRoute = computed(() => {
-  const p = route.path;
-  return (
-    p.includes('/admin/customers') ||
-    p.includes('/staff/customers') ||
-    p.includes('/admin/employees')
-  );
-});
+const isDiscountRoute = computed(() => route.path.includes('/admin/vouchers') || route.path.includes('/admin/sales'));
+const isWorkScheduleRoute = computed(() => route.path.includes('/admin/shifts') || route.path.includes('/admin/schedules'));
+const isAccountRoute = computed(() => route.path.includes('/admin/customers') || route.path.includes('/staff/customers') || route.path.includes('/admin/employees'));
 
 /* =========================
    LOGO FALLBACK

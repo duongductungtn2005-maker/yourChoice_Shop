@@ -73,4 +73,7 @@ public class GiaoCa extends BaseStatusEntity {
 
     @Column(name = "ghi_chu")
     private String ghiChu;
+
+    @Column(name = "dong_som")
+    private Boolean dongSom;
 }

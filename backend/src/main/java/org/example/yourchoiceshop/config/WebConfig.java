@@ -15,14 +15,4 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceLocations("file:uploads/");
     }
 
-    // 2. Cấu hình CORS (Gộp chung vào đây cho dễ quản lý)
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") 
-                .allowedOrigins("http://localhost:5173") // Đổi "*" thành địa chỉ cụ thể này
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true) // Phải có cái này để khớp với Frontend
-                .maxAge(3600);
-    }
 }   

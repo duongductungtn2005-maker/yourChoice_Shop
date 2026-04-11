@@ -139,6 +139,11 @@ import { useRouter } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
 import request from '@/services/request';
 import { login as authLogin } from '@/services/auth';
+<<<<<<< Updated upstream
+=======
+import { useCartStore } from '@/stores/cart';
+import { jwtDecode } from 'jwt-decode';
+>>>>>>> Stashed changes
 
 const router = useRouter();
 const username = ref('');
@@ -269,32 +274,33 @@ const handleLogin = async () => {
 
   errorMessage.value = '';
 
-  // 1. Thử đăng nhập Nhân viên/Admin (từ database)
-  const employeeData = await authenticateEmployee(username.value, password.value);
-  if (employeeData) {
-    const role = determineRole(employeeData);
+  // — Chỉ đăng nhập Nhân viên / Admin —
+  const result = await authenticateEmployee(username.value, password.value);
+  if (result && result.employee) {
+    const employeeData = result.employee;
+    const token = result.token;
     
-    // Lưu vào hệ thống auth chung
-    authLogin({ 
-      role: role, 
-      user: employeeData 
-    });
+    // ===== CHÍNH LÀ ĐOẠN NÀY: MỔ TOKEN ĐỂ LẤY QUYỀN =====
+    let role = 'STAFF'; // Đặt mặc định đề phòng lỗi
+    try {
+      const decoded = jwtDecode(token);
+      if (decoded.role) {
+        role = decoded.role; // Lấy chữ 'ADMIN' hoặc 'STAFF' từ bên trong token
+      }
+      console.log("Quyền lấy từ Token:", role); // Log ra để check cho sướng mắt
+    } catch (error) {
+      console.error("Không thể giải mã Token:", error);
+    }
+    // ====================================================
 
-    // --- LƯU THÔNG TIN ĐỂ TRỰC CA SỬ DỤNG ---
-    localStorage.setItem('username', username.value);
-    localStorage.setItem('password', password.value);
-    // Lưu tên hiển thị (Rất quan trọng để hiển thị "Chào nhân viên...")
-    localStorage.setItem('tenNhanVien', employeeData.tenNhanVien || employeeData.hoTen || 'Nhân viên');
-    // ----------------------------------------
-
+    authLogin({ token, role, user: employeeData });
     toastSuccess(`Đăng nhập thành công! Xin chào ${employeeData.tenNhanVien}`);
     
-    if (role === 'ADMIN') {
-      router.push('/admin/dashboard');
-    } else {
-      router.push('/staff/pos'); // Sau khi đăng nhập sẽ vào đây
-    }
-    return;
+    // Điều hướng theo quyền mới lấy được
+    router.push(role === 'ADMIN' ? '/admin/home' : '/staff/giao-ca'); 
+    
+  } else {
+    errorMessage.value = 'Sai tài khoản hoặc mật khẩu. Vui lòng thử lại.';
   }
 
   // 2. Thử đăng nhập Khách hàng (từ database)
@@ -309,7 +315,6 @@ const handleLogin = async () => {
   // Không khớp gì
   errorMessage.value = 'Mật khẩu hoặc tài khoản không đúng. Vui lòng thử lại.';
 };
-
 const handleGoBack = () => {
   router.push('/');
 };

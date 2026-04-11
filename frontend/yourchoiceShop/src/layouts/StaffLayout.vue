@@ -7,17 +7,35 @@
       </div>
 
       <nav class="menu">
-        <router-link to="/staff/pos" class="menu-item" active-class="active">
-          <i class="fas fa-desktop"></i> Bán hàng tại quầy
+        <router-link to="/staff/giao-ca" class="menu-item" active-class="active">
+          <i class="fas fa-clock"></i> Trực ca làm việc
         </router-link>
-        
-        <router-link to="/staff/hoa-don" class="menu-item" active-class="active">
-          <i class="fas fa-file-invoice-dollar"></i> Quản lý hóa đơn
-        </router-link>
-        
-        <router-link to="/staff/khach-hang" class="menu-item" active-class="active">
-          <i class="fas fa-users"></i> Quản lý khách hàng
-        </router-link>
+
+        <template v-if="hasActiveShift">
+          <router-link to="/staff/pos" class="menu-item" active-class="active">
+            <i class="fas fa-desktop"></i> Bán hàng tại quầy
+          </router-link>
+          
+          <router-link to="/staff/hoa-don" class="menu-item" active-class="active">
+            <i class="fas fa-file-invoice-dollar"></i> Quản lý hóa đơn
+          </router-link>
+          
+          <router-link to="/staff/khach-hang" class="menu-item" active-class="active">
+            <i class="fas fa-users"></i> Quản lý khách hàng
+          </router-link>
+
+          <router-link to="/staff/chat" class="menu-item" active-class="active">
+            <i class="fa-regular fa-comment-dots"></i> Quản lý Chat
+          </router-link>
+        </template>
+
+        <div v-if="!hasActiveShift" class="shift-notice">
+          <i class="fa-solid fa-circle-exclamation icon"></i>
+          <span>Bạn chưa mở ca làm việc</span>
+          <router-link to="/staff/giao-ca" class="shift-link">
+            Mở ca ngay
+          </router-link>
+        </div>
       </nav>
 
       <div class="bottom-menu">
@@ -31,7 +49,7 @@
       <header class="top-header">
         <div class="header-title">Hệ thống quản lý cửa hàng</div>
         <div class="user-info">
-          <i class="fas fa-user-circle"></i> Xin chào, <strong>Nhân viên</strong>
+          <i class="fas fa-user-circle"></i> Xin chào, <strong>{{ userName }}</strong>
         </div>
       </header>
 
@@ -43,13 +61,37 @@
 </template>
 
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+// Import thêm auth để lấy tên user thật
+import { getCurrentUser } from '@/services/auth'; 
 
 const router = useRouter();
 
+// 1. Xử lý hiển thị tên nhân viên thật
+const user = getCurrentUser() || {};
+const userName = ref(user.tenNhanVien || user.tenTaiKhoan || 'Nhân viên');
+
+// 2. Logic kiểm tra trạng thái ca làm việc
+const hasActiveShift = ref(sessionStorage.getItem('hasActiveShift') === 'true');
+
+// Lắng nghe event 'shift-changed' (bạn đã tạo ở màn hình Giao Ca trước đó)
+// Khi nhân viên bấm "Xác nhận vào ca", menu sẽ tự động mở khóa các chức năng
+const updateShiftStatus = () => {
+  hasActiveShift.value = sessionStorage.getItem('hasActiveShift') === 'true';
+};
+
+onMounted(() => {
+  window.addEventListener('shift-changed', updateShiftStatus);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('shift-changed', updateShiftStatus);
+});
+
+// 3. Đăng xuất
 const logout = () => {
-  // Xóa token hoặc session ở đây (nếu có)
-  // sessionStorage.clear();
+  sessionStorage.clear(); // Nên clear session để xóa trạng thái ca làm việc & token
   router.push('/login');
 };
 </script>

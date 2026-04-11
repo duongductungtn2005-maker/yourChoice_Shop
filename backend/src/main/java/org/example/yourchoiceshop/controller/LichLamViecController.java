@@ -43,8 +43,9 @@ public class LichLamViecController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Integer id) {
+        // Gọi hàm mới trong Service đã bao gồm logic đóng ca
         lichLamViecService.delete(id);
-        return ResponseEntity.ok("Xóa thành công");
+        return ResponseEntity.ok("Xóa lịch làm việc và đóng ca thành công (nếu có)");
     }
     
     // API PUT: http://localhost:8080/api/v1/lich-lam-viec/{id}
