@@ -334,6 +334,7 @@ import Swal from 'sweetalert2';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import { toastSuccess, toastError } from '@/utils/toast';
+import { fetchProvinces as apiFetchProvinces, fetchDistricts as apiFetchDistricts, fetchWards as apiFetchWards } from '@/api/locationApi';
 
 const router = useRouter();
 const items = ref([]);
@@ -568,8 +569,8 @@ const formatAddress = (addr) => {
 const fetchProvinces = async () => {
   if (provinces.value.length > 0) return;
   try {
-    const res = await axios.get('https://provinces.open-api.vn/api/?depth=1');
-    provinces.value = res.data || [];
+    const res = await apiFetchProvinces();
+    provinces.value = res || [];
   } catch (e) {
     toastError('Không tải được danh mục tỉnh/thành');
   }
@@ -629,8 +630,7 @@ const onQuickProvinceChange = async () => {
 
   if (!quickAddressForm.tinhId) return;
   try {
-    const res = await axios.get(`https://provinces.open-api.vn/api/p/${quickAddressForm.tinhId}?depth=2`);
-    quickDistricts.value = res.data?.districts || [];
+    quickDistricts.value = await apiFetchDistricts(quickAddressForm.tinhId);
   } catch (e) {
     toastError('Không tải được quận/huyện');
   }
@@ -641,8 +641,7 @@ const onQuickDistrictChange = async () => {
 
   if (!quickAddressForm.huyenId) return;
   try {
-    const res = await axios.get(`https://provinces.open-api.vn/api/d/${quickAddressForm.huyenId}?depth=2`);
-    quickWards.value = res.data?.wards || [];
+    quickWards.value = await apiFetchWards(quickAddressForm.huyenId);
   } catch (e) {
     toastError('Không tải được phường/xã');
   }

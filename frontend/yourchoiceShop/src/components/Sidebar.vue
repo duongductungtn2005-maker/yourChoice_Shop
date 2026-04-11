@@ -39,6 +39,9 @@
           <router-link to="/admin/products" class="submenu-item">
             <span class="dot">•</span> Sản phẩm
           </router-link>
+          <router-link to="/admin/products/variants" class="submenu-item">
+            <span class="dot">•</span> Toàn bộ biến thể
+          </router-link>
           <router-link to="/admin/co-ao" class="submenu-item">
             <span class="dot">•</span> Cổ áo
           </router-link>

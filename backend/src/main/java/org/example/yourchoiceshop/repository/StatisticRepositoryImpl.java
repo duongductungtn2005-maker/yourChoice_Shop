@@ -169,21 +169,27 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         return resultList;
     }
 
+    @Override
     public List<ProductStatDTO> getLowStockStats(StatisticFilterRequest filter) {
         int threshold = (filter != null && filter.getThreshold() != null) ? filter.getThreshold() : 10;
 
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
+                        // Subquery lấy ảnh an toàn kể cả khi không có chi tiết SP
                         "  (SELECT TOP 1 ha.duong_dan_anh FROM hinh_anh ha WHERE ha.id_chi_tiet_san_pham = ctsp.id ORDER BY ha.anh_chinh DESC, ha.id ASC) AS anh, " +
                         "  sp.ten_san_pham AS tenSanPham, " +
-                        "  kt.ten_kich_thuoc AS kichCo, " +
-                        "  ctsp.gia_ban AS doanhThu, " +
-                        "  ctsp.so_luong AS soLuongBan " +
-                        "FROM chi_tiet_san_pham ctsp " +
-                        "JOIN san_pham sp ON ctsp.id_san_pham = sp.id " +
+                        "  COALESCE(kt.ten_kich_thuoc, 'N/A') AS kichCo, " +
+                        "  COALESCE(ctsp.gia_ban, 0) AS doanhThu, " +
+                        // Bọc COALESCE: Nếu SP chưa có chi tiết, số lượng = 0
+                        "  COALESCE(ctsp.so_luong, 0) AS soLuongBan " +
+                        "FROM san_pham sp " +
+                        // Đổi thành LEFT JOIN lấy SP làm gốc
+                        "LEFT JOIN chi_tiet_san_pham ctsp ON ctsp.id_san_pham = sp.id " +
                         "LEFT JOIN kich_thuoc kt ON ctsp.id_kich_thuoc = kt.id " +
-                        "WHERE ctsp.so_luong <= :threshold " +
-                        "ORDER BY ctsp.so_luong ASC "
+                        // Điều kiện: SP đang kinh doanh (số 1) VÀ tồn kho <= ngưỡng
+                        "WHERE sp.trang_thai = 1 " + 
+                        "AND COALESCE(ctsp.so_luong, 0) <= :threshold " +
+                        "ORDER BY COALESCE(ctsp.so_luong, 0) ASC "
         );
 
         Query query = entityManager.createNativeQuery(sql.toString());
@@ -198,7 +204,9 @@ public class StatisticRepositoryImpl implements StatisticRepository {
             dto.setTenSanPham(row[1] != null ? row[1].toString() : "Không xác định");
             dto.setKichCo(row[2] != null ? row[2].toString() : "");
             dto.setDoanhThu(row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO);
-            dto.setSoLuongBan(row[4] != null ? ((Number) row[4]).longValue() : 0L);
+            
+            // Hứng giá trị SỐ LƯỢNG TỒN vào biến soLuongBan của DTO
+            dto.setSoLuongBan(row[4] != null ? ((Number) row[4]).longValue() : 0L); 
             result.add(dto);
         }
 

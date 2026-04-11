@@ -16,8 +16,8 @@ public interface ChiTietDotGiamGiaRepository extends JpaRepository<ChiTietDotGia
     @Query("SELECT d FROM ChiTietDotGiamGia c " +
        "JOIN c.dotGiamGia d " +
        "WHERE c.chiTietSanPham.id = :idCtsp " +
-       "AND d.trangThai = 1 AND c.trangThai = 1 " +
+       "AND d.trangThai = 1 " +
        "AND CURRENT_TIMESTAMP BETWEEN d.ngayBatDau AND d.ngayKetThuc " +
-       "ORDER BY d.giaTriGiam DESC")
+         "ORDER BY CASE WHEN d.loaiGiamGia = '%' THEN (c.chiTietSanPham.giaBan * d.giaTriGiam / 100) ELSE d.giaTriGiam END DESC, d.giaTriGiam DESC, d.id DESC")
 List<DotGiamGia> findBestActiveDiscountForProduct(@Param("idCtsp") Integer idCtsp);
 }

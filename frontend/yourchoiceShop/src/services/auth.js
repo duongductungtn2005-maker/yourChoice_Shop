@@ -20,7 +20,8 @@ const SESSION_TTL = 8 * 60 * 60 * 1000
 ============================ */
 
 /** Lưu thông tin đăng nhập */
-export function login({ token = 'demo-token', role, user = null } = {}) {
+export function login({ token, role, user = null } = {}) {
+  if (!token) throw new Error('Token is required for login')
   sessionStorage.setItem(TOKEN_KEY, token)
   sessionStorage.setItem(ROLE_KEY, role)
   sessionStorage.setItem(LOGIN_TIME_KEY, String(Date.now()))
@@ -84,6 +85,25 @@ export function getCurrentUser() {
   }
 }
 
+/** Lấy id user hiện tại */
+export function getCurrentUserId() {
+  const user = getCurrentUser()
+  const id = Number(user?.id)
+  return Number.isFinite(id) ? id : null
+}
+
+/** Trang tài khoản theo từng khách hàng */
+export function getCustomerAccountPath() {
+  const id = getCurrentUserId()
+  return id ? `/customer/${id}/account` : '/'
+}
+
+/** Trang đơn hàng theo từng khách hàng */
+export function getCustomerOrdersPath() {
+  const id = getCurrentUserId()
+  return id ? `/customer/${id}/orders` : '/'
+}
+
 /** Lấy tên nhân viên/khách hàng hiện tại */
 export function getCurrentUserName() {
   const user = getCurrentUser()
@@ -119,7 +139,7 @@ export function initCrossTabSync(router) {
       const role = sessionStorage.getItem(ROLE_KEY)
       if (role) {
         const normalized = normalizeRoleValue(role)
-        if (normalized === 'CUSTOMER') router.push('/')
+        if (normalized === 'CUSTOMER') router.push(getCustomerAccountPath())
         else if (normalized === 'STAFF') router.push('/staff/pos')
         else router.push('/admin/dashboard')
       }

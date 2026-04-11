@@ -34,6 +34,16 @@
 
   <div class="status-card-actions">
     <button
+      v-if="order && order.trangThai === 5"
+      class="btn btn-status-danger"
+      @click="returnOrder"
+      title="Hoàn hàng - Hủy đơn và cộng lại số lượng sản phẩm"
+    >
+      <i class="fas fa-undo"></i>
+      Hoàn hàng
+    </button>
+    <button
+      v-else
       class="btn btn-status-secondary"
       @click="goPrevStatus"
       :disabled="!order || getStatusIndex(order.trangThai) <= 0 || order.trangThai === 0"
@@ -136,6 +146,7 @@
                 <col class="col-material" />
                 <col class="col-color" />
                 <col class="col-size" />
+                <col class="col-original-price" />
                 <col class="col-qty" />
               </colgroup>
               <thead>
@@ -147,6 +158,7 @@
                   <th class="text-center">Chất liệu</th>
                   <th class="text-center">Màu sắc</th>
                   <th class="text-center">Kích thước</th>
+                  <th class="text-center">Giá gốc</th>
                   <th class="text-center">Số lượng</th>
                 </tr>
               </thead>
@@ -159,6 +171,7 @@
                   <td class="text-center">{{ item.chatLieu || '-' }}</td>
                   <td class="text-center">{{ item.mauSac || item.tenMauSac || '-' }}</td>
                   <td class="text-center">{{ item.size || item.tenKichThuoc || '-' }}</td>
+                  <td class="text-center fw-bold">{{ formatMoney(item.giaGoc ?? item.giaBanGoc ?? item.donGia ?? 0) }}</td>
                   <td class="text-center fw-bold">{{ item.soLuong }}</td>
                 </tr>
               </tbody>
@@ -386,7 +399,13 @@
           <span>Tiền thiếu</span>
           <span class="text-danger fw-bold">{{ formatMoney(calculateRemaining) }}</span>
         </div>
-        <button type="button" class="btn-submit-payment" @click="confirmPayment">
+        <div v-if="calculateChange > 0" class="remaining-row">
+          <span>Tiền thừa</span>
+          <span class="text-success fw-bold">{{ formatMoney(calculateChange) }}</span>
+        </div>
+        <button type="button" class="btn-submit-payment"
+          :disabled="paymentMethod === 'CASH' && customerCash < (order?.tongTienSauGiam || 0)"
+          @click="confirmPayment">
   Xác nhận thanh toán
 </button>
       </div>
@@ -531,6 +550,10 @@ const paymentMethod = ref('TRANSFER'); // 'TRANSFER' hoặc 'CASH'
 const customerCash = ref(0);
 const showStatusHistoryModal = ref(false);
 const confirmPayment = async () => {
+  if (paymentMethod.value === 'CASH' && customerCash.value < (order.value?.tongTienSauGiam || 0)) {
+    toastError('Tiền khách đưa chưa đủ!');
+    return;
+  }
   try {
     const paymentData = {
       hinhThucThanhToan: paymentMethod.value === 'CASH'
@@ -799,6 +822,22 @@ const cancelOrder = async () => {
   }
 };
 
+const returnOrder = async () => {
+  const res = await Swal.fire({
+    title: 'Hoàn hàng?',
+    text: 'Đơn hàng sẽ chuyển sang trạng thái hủy và số lượng sản phẩm sẽ được cộng lại. Bạn có chắc chắn?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Xác nhận hoàn hàng',
+    cancelButtonText: 'Hủy bỏ',
+    confirmButtonColor: '#ef4444'
+  });
+
+  if (res.isConfirmed) {
+    await updateOrderStatus(0);
+  }
+};
+
 const payOrder = () => {
   showPaymentModal.value = true;
 };
@@ -809,6 +848,15 @@ const calculateRemaining = computed(() => {
     return Math.max(0, total - customerCash.value);
   }
   return 0; // Chuyển khoản mặc định là quét đủ
+});
+
+const calculateChange = computed(() => {
+  if (!order.value) return 0;
+  const total = order.value.tongTienSauGiam || 0;
+  if (paymentMethod.value === 'CASH' && customerCash.value > total) {
+    return customerCash.value - total;
+  }
+  return 0;
 });
 
 const printOrder = () => {
@@ -1100,14 +1148,15 @@ onMounted(() => {
   font-size: 13px;
 }
 
-.custom-table .col-stt { width: 52px; }
-.custom-table .col-code { width: 140px; }
-.custom-table .col-name { width: auto; }
-.custom-table .col-brand { width: 115px; }
-.custom-table .col-material { width: 105px; }
-.custom-table .col-color { width: 95px; }
-.custom-table .col-size { width: 95px; }
-.custom-table .col-qty { width: 100px; }
+.custom-table .col-stt { width: 6%; }
+.custom-table .col-code { width: 14%; }
+.custom-table .col-name { width: 22%; }
+.custom-table .col-brand { width: 10%; }
+.custom-table .col-material { width: 10%; }
+.custom-table .col-color { width: 10%; }
+.custom-table .col-size { width: 10%; }
+.custom-table .col-original-price { width: 12%; }
+.custom-table .col-qty { width: 6%; }
 
 .custom-table th {
   background: #f5f5f5 !important;
@@ -1589,6 +1638,14 @@ onMounted(() => {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
   box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+}
+
+.btn-submit-payment:disabled {
+  background: #9ca3af !important;
+  border-color: #9ca3af !important;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .qr-section {
@@ -2493,6 +2550,17 @@ onMounted(() => {
 .btn-status-secondary:hover {
   background: #eef4fb;
   border-color: #aebfd8;
+}
+
+.btn-status-danger {
+  background: #ef4444;
+  color: #fff;
+  border: 1px solid #dc2626;
+}
+
+.btn-status-danger:hover {
+  background: #dc2626;
+  border-color: #b91c1c;
 }
 
 @media (max-width: 768px) {

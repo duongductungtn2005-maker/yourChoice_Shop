@@ -1,6 +1,7 @@
 package org.example.yourchoiceshop.service;
 
 import org.example.yourchoiceshop.dto.request.KhachHangRequest;
+import org.example.yourchoiceshop.dto.request.RegisterRequest;
 import org.example.yourchoiceshop.entity.KhachHang;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,12 @@ public interface KhachHangService {
 
     // Authenticate đăng nhập (true/false)
     boolean authenticateCustomer(String username, String password);
+
+    // Lấy khách hàng theo thông tin đăng nhập
+    KhachHang getCustomerByCredentials(String username, String password);
+
+    // Đăng ký tài khoản client
+    KhachHang registerCustomer(RegisterRequest request);
 
     // Export excel
     ByteArrayInputStream exportToExcel(String keyword, Boolean gender, Integer status) throws IOException;

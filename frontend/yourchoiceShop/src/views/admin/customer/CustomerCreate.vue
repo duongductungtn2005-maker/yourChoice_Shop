@@ -147,6 +147,7 @@ import { useRouter } from 'vue-router';
 import { toastSuccess, toastError, Toast } from '@/utils/toast';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import { fetchProvinces as apiFetchProvinces, fetchDistricts as apiFetchDistricts, fetchWards as apiFetchWards } from '@/api/locationApi';
 
 const router = useRouter();
 const role = (sessionStorage.getItem('userRole') || 'ADMIN').toUpperCase();
@@ -224,8 +225,7 @@ const updatePreviewAddress = (index) => {
 // API Location
 onMounted(async () => {
   try {
-    const res = await axios.get('https://provinces.open-api.vn/api/?depth=1');
-    provinces.value = res.data;
+    provinces.value = await apiFetchProvinces();
   } catch (e) { console.error('Lỗi load tỉnh', e); }
 });
 
@@ -238,8 +238,7 @@ const onProvinceChange = async (index) => {
 
   if (!form.addresses[index].tinhId) return;
   try {
-    const res = await axios.get(`https://provinces.open-api.vn/api/p/${form.addresses[index].tinhId}?depth=2`);
-    districtsList.value[index] = res.data.districts || [];
+    districtsList.value[index] = await apiFetchDistricts(form.addresses[index].tinhId);
   } catch (e) {}
 };
 
@@ -250,8 +249,7 @@ const onDistrictChange = async (index) => {
 
   if (!form.addresses[index].huyenId) return;
   try {
-    const res = await axios.get(`https://provinces.open-api.vn/api/d/${form.addresses[index].huyenId}?depth=2`);
-    wardsList.value[index] = res.data.wards || [];
+    wardsList.value[index] = await apiFetchWards(form.addresses[index].huyenId);
   } catch (e) {}
 };
 

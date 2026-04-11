@@ -103,7 +103,7 @@
             </button>
 
             <p class="login-link">
-              Đã có tài khoản? <router-link to="/login">Đăng nhập</router-link>
+              Đã có tài khoản? <router-link to="/client/login">Đăng nhập</router-link>
             </p>
           </form>
         </div>
@@ -174,7 +174,7 @@ const handleRegister = async () => {
     await registerCustomer(fd)
     toastSuccess('Đăng ký thành công!')
     await Swal.fire({ icon: 'success', title: 'Đăng ký thành công!', text: 'Bạn có thể đăng nhập ngay', confirmButtonColor: '#0f172a' })
-    router.push('/login')
+    router.push('/client/login')
   } catch (e) {
     errorMessage.value = e.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.'
   } finally { submitting.value = false }

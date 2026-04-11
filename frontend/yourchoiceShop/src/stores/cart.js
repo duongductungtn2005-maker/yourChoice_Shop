@@ -1,20 +1,35 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-export const useCartStore = defineStore('cart', () => {
-  const STORAGE_KEY = 'yc_cart_items'
+function getCurrentUserId() {
+  try {
+    const user = JSON.parse(sessionStorage.getItem('user') || 'null')
+    return user?.id || null
+  } catch { return null }
+}
 
-  // Khởi tạo từ localStorage
+function getStorageKey() {
+  const userId = getCurrentUserId()
+  return userId ? `yc_cart_items_${userId}` : 'yc_cart_items_guest'
+}
+
+export const useCartStore = defineStore('cart', () => {
+  // Khởi tạo từ localStorage theo user hiện tại
   const items = ref(loadFromStorage())
 
   function loadFromStorage() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []
+      return JSON.parse(localStorage.getItem(getStorageKey())) || []
     } catch { return [] }
   }
 
   function saveToStorage() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items.value))
+    localStorage.setItem(getStorageKey(), JSON.stringify(items.value))
+  }
+
+  /** Gọi khi đăng nhập/đăng xuất để nạp lại giỏ hàng đúng user */
+  function reloadCart() {
+    items.value = loadFromStorage()
   }
 
   // Computed
@@ -61,5 +76,7 @@ export const useCartStore = defineStore('cart', () => {
     updateQuantity,
     removeItem,
     clearCart,
+    reloadCart,
   }
 })
+  

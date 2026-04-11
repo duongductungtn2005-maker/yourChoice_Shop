@@ -51,13 +51,18 @@ export function getKichThuoc(params) {
 
 /** Đăng nhập khách hàng */
 export function loginCustomer(username, password) {
-  return axios.get(`${API_URL}/khach-hang/authenticate`, {
-    params: { username, password }
+  return axios.post(`${API_URL}/khach-hang/authenticate`, {
+    username, password
   })
 }
 
-/** Đăng ký khách hàng mới */
-export function registerCustomer(formData) {
+/** Đăng ký khách hàng mới (client tự đăng ký) */
+export function registerCustomer(data) {
+  return axios.post(`${API_URL}/khach-hang/register`, data)
+}
+
+/** Đăng ký khách hàng mới (admin tạo, multipart) */
+export function createCustomer(formData) {
   return axios.post(`${API_URL}/khach-hang`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
@@ -133,6 +138,11 @@ export function updateOrderStatus(maHoaDon, newStatus) {
   return request.put(`/hoa-don/${maHoaDon}/status`, null, {
     params: { newStatus }
   })
+}
+
+/** Tra cứu đơn hàng theo SĐT (khách vãng lai, không cần đăng nhập) */
+export function trackOrderByPhone(params) {
+  return axios.get(`${API_URL}/hoa-don/tra-cuu`, { params })
 }
 
 // ===================== PHIẾU GIẢM GIÁ =====================

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface KhachHangRepository extends JpaRepository<KhachHang, Integer>, JpaSpecificationExecutor<KhachHang> {
@@ -39,6 +40,13 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer>, 
 
     boolean existsByTenTaiKhoanIgnoreCaseAndMatKhau(String tenTaiKhoan, String matKhau);
 
+    Optional<KhachHang> findByTenTaiKhoanIgnoreCaseAndMatKhau(String tenTaiKhoan, String matKhau);
+
+    // Đăng nhập bằng email
+    boolean existsByEmailIgnoreCaseAndMatKhau(String email, String matKhau);
+
+    Optional<KhachHang> findByEmailIgnoreCaseAndMatKhau(String email, String matKhau);
+
     boolean existsByTenTaiKhoanIgnoreCaseAndIdNot(String tenTaiKhoan, Integer id);
 
     // =========================
@@ -48,13 +56,14 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer>, 
 
     boolean existsBySoDienThoai(String soDienThoai);
 
-    // Dùng cho UPDATE (trừ chính nó ra)
     boolean existsByEmailIgnoreCaseAndIdNot(String email, Integer id);
 
     boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);
 
     // =========================
     // THỐNG KÊ (NATIVE QUERY)
+    // Tính cả đơn mua online/theo tài khoản và đơn tại quầy qua SĐT
+    // Loại bỏ đơn hủy (trang_thai != 0)
     // =========================
     @Query(value = "SELECT " +
             "k.id AS id, " +
@@ -63,35 +72,64 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer>, 
             "k.email AS email, " +
             "k.ngay_sinh AS ngaySinh, " +
             "k.trang_thai AS trangThai, " +
-            "(SELECT COALESCE(SUM(hd.tong_tien_sau_giam), 0) FROM hoa_don hd WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) AND hd.trang_thai != 0) AS tongChiTieu, " +
-            "(SELECT COUNT(hd.id) FROM hoa_don hd WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) AND hd.trang_thai != 0) AS soDonHang, " +
-            "(SELECT MAX(hd.ngay_tao) FROM hoa_don hd WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) AND hd.trang_thai != 0) AS donHangGanNhat " +
+            "(SELECT COALESCE(SUM(hd.tong_tien_sau_giam), 0) " +
+            "   FROM hoa_don hd " +
+            "  WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) " +
+            "    AND hd.trang_thai != 0) AS tongChiTieu, " +
+            "(SELECT COUNT(hd.id) " +
+            "   FROM hoa_don hd " +
+            "  WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) " +
+            "    AND hd.trang_thai != 0) AS soDonHang, " +
+            "(SELECT MAX(hd.ngay_tao) " +
+            "   FROM hoa_don hd " +
+            "  WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) " +
+            "    AND hd.trang_thai != 0) AS donHangGanNhat " +
             "FROM khach_hang k " +
-            "WHERE (:keyword = '' OR k.ten_khach_hang LIKE :keyword OR k.so_dien_thoai LIKE :keyword) " +
-            "AND (:trangThai = -1 OR k.trang_thai = :trangThai) " +
+            "WHERE (:keyword = '' " +
+            "   OR LOWER(k.ten_khach_hang) LIKE :keyword " +
+            "   OR LOWER(k.email) LIKE :keyword " +
+            "   OR k.so_dien_thoai LIKE :keyword) " +
+            "AND (:status = -1 OR k.trang_thai = :status) " +
             "ORDER BY k.id DESC",
-            
-            countQuery = "SELECT COUNT(k.id) FROM khach_hang k " +
-                         "WHERE (:keyword = '' OR k.ten_khach_hang LIKE :keyword OR k.so_dien_thoai LIKE :keyword) " +
-                         "AND (:trangThai = -1 OR k.trang_thai = :trangThai)",
+            countQuery = "SELECT COUNT(k.id) " +
+                    "FROM khach_hang k " +
+                    "WHERE (:keyword = '' " +
+                    "   OR LOWER(k.ten_khach_hang) LIKE :keyword " +
+                    "   OR LOWER(k.email) LIKE :keyword " +
+                    "   OR k.so_dien_thoai LIKE :keyword) " +
+                    "AND (:status = -1 OR k.trang_thai = :status)",
             nativeQuery = true)
-    Page<org.example.yourchoiceshop.dto.response.KhachHangThongKeResponse> searchKhachHangThongKe(
+    Page<KhachHangThongKeRes> searchKhachHangThongKe(
             @Param("keyword") String keyword,
-            @Param("trangThai") Integer trangThai,
+            @Param("status") Integer status,
             Pageable pageable
     );
 
+    // =========================
+    // PHỤC VỤ GỬI VOUCHER / PHÂN NHÓM KHÁCH HÀNG
+    // =========================
 
-    // 1. Lấy TẤT CẢ ID khách hàng đang hoạt động
+    // Lấy tất cả ID khách hàng đang hoạt động
     @Query("SELECT k.id FROM KhachHang k WHERE k.trangThai = 1")
     List<Integer> findAllActiveCustomerIds();
 
-    // 2. Lấy ID khách hàng theo Hạng (Tính cả đơn mua tại quầy qua SĐT)
-    @Query(value = "SELECT k.id FROM khach_hang k WHERE k.trang_thai = 1 AND " +
-            "(SELECT COALESCE(SUM(hd.tong_tien_sau_giam), 0) FROM hoa_don hd WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) AND hd.trang_thai != 0) >= :minSpend AND " +
-            "(SELECT COALESCE(SUM(hd.tong_tien_sau_giam), 0) FROM hoa_don hd WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) AND hd.trang_thai != 0) < :maxSpend",
+    // Lấy ID khách hàng theo khoảng chi tiêu
+    @Query(value = "SELECT k.id " +
+            "FROM khach_hang k " +
+            "WHERE k.trang_thai = 1 " +
+            "AND (SELECT COALESCE(SUM(hd.tong_tien_sau_giam), 0) " +
+            "       FROM hoa_don hd " +
+            "      WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) " +
+            "        AND hd.trang_thai != 0) >= :minSpend " +
+            "AND (SELECT COALESCE(SUM(hd.tong_tien_sau_giam), 0) " +
+            "       FROM hoa_don hd " +
+            "      WHERE (hd.id_khach_hang = k.id OR hd.sdt_nguoi_nhan = k.so_dien_thoai) " +
+            "        AND hd.trang_thai != 0) < :maxSpend",
             nativeQuery = true)
-    List<Integer> findCustomerIdsBySpendRange(@Param("minSpend") Long minSpend, @Param("maxSpend") Long maxSpend);
+    List<Integer> findCustomerIdsBySpendRange(
+            @Param("minSpend") Long minSpend,
+            @Param("maxSpend") Long maxSpend
+    );
 
     // =========================
     // PROJECTION KẾT QUẢ THỐNG KÊ

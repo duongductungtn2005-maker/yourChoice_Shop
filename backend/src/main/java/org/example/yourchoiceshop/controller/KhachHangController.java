@@ -4,12 +4,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.example.yourchoiceshop.dto.request.KhachHangRequest;
+import org.example.yourchoiceshop.dto.request.LoginRequest;
+import org.example.yourchoiceshop.dto.request.RegisterRequest;
 import org.example.yourchoiceshop.entity.DiaChiKhachHang;
 import org.example.yourchoiceshop.repository.KhachHangRepository;
+import org.example.yourchoiceshop.security.JwtUtil;
 import org.example.yourchoiceshop.service.KhachHangService;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +32,7 @@ public class KhachHangController {
     private final KhachHangService khachHangService;
     private final KhachHangRepository khachHangRepository;
     private final ObjectMapper objectMapper;
+    private final JwtUtil jwtUtil;
 
     // 1) Lấy danh sách
     @GetMapping
@@ -41,8 +45,14 @@ public class KhachHangController {
     ) {
         return ResponseEntity.ok(
                 khachHangService.findAll(
-                        keyword, gioiTinh, trangThai,
-                        PageRequest.of(page, size, Sort.by("id").descending())
+                        keyword,
+                        gioiTinh,
+                        trangThai,
+                        org.springframework.data.domain.PageRequest.of(
+                                page,
+                                size,
+                                org.springframework.data.domain.Sort.by("id").descending()
+                        )
                 )
         );
     }
@@ -53,7 +63,7 @@ public class KhachHangController {
         return ResponseEntity.ok(khachHangService.findById(id));
     }
 
-    // 3) Check trùng username (hỗ trợ excludeId cho update)
+    // 3) Check trùng username
     @GetMapping("/exists-username")
     public ResponseEntity<?> existsUsername(
             @RequestParam String username,
@@ -73,7 +83,7 @@ public class KhachHangController {
         }
     }
 
-    // 4) Check trùng SĐT (hỗ trợ excludeId cho update)
+    // 4) Check trùng SĐT
     @GetMapping("/exists-sdt")
     public ResponseEntity<?> existsSoDienThoai(
             @RequestParam String soDienThoai,
@@ -90,15 +100,41 @@ public class KhachHangController {
         }
     }
 
-    // 5) Authenticate (đăng nhập)
-    @GetMapping("/authenticate")
-    public ResponseEntity<?> authenticate(
-            @RequestParam String username,
-            @RequestParam String password
-    ) {
+    // 5) Authenticate (đăng nhập) — POST để tránh lộ password trong URL
+    @PostMapping("/authenticate")
+    public ResponseEntity<?> authenticate(@RequestBody LoginRequest loginRequest) {
         try {
-            boolean authenticated = khachHangService.authenticateCustomer(username, password);
-            return ResponseEntity.ok(Map.of("authenticated", authenticated));
+            var customer = khachHangService.getCustomerByCredentials(
+                    loginRequest.getUsername(),
+                    loginRequest.getPassword()
+            );
+
+            if (customer == null) {
+                return ResponseEntity.ok(Map.of("authenticated", false));
+            }
+
+            String token = jwtUtil.generateToken(
+                    customer.getId(),
+                    customer.getTenTaiKhoan(),
+                    "CUSTOMER",
+                    null
+            );
+
+            Map<String, Object> customerData = new LinkedHashMap<>();
+            customerData.put("id", customer.getId());
+            customerData.put("tenKhachHang", customer.getTenKhachHang());
+            customerData.put("email", customer.getEmail());
+            customerData.put("soDienThoai", customer.getSoDienThoai());
+            customerData.put("tenTaiKhoan", customer.getTenTaiKhoan());
+            customerData.put("avatar", customer.getAvatar());
+            customerData.put("trangThai", customer.getTrangThai());
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("authenticated", true);
+            response.put("token", token);
+            response.put("customer", customerData);
+
+            return ResponseEntity.ok(response);
         } catch (RuntimeException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         } catch (Exception ex) {
@@ -107,18 +143,46 @@ public class KhachHangController {
         }
     }
 
-    // 6) Tạo mới
+    // 6) Đăng ký tài khoản client (JSON)
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
+        try {
+            var customer = khachHangService.registerCustomer(registerRequest);
+
+            Map<String, Object> customerData = new LinkedHashMap<>();
+            customerData.put("id", customer.getId());
+            customerData.put("tenKhachHang", customer.getTenKhachHang());
+            customerData.put("email", customer.getEmail());
+            customerData.put("soDienThoai", customer.getSoDienThoai());
+            customerData.put("tenTaiKhoan", customer.getTenTaiKhoan());
+            customerData.put("trangThai", customer.getTrangThai());
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", true);
+            response.put("message", "Đăng ký thành công");
+            response.put("customer", customerData);
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", ex.getMessage()));
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("success", false, "message", "Lỗi hệ thống: " + ex.getMessage()));
+        }
+    }
+
+    // 7) Tạo mới (admin tạo, multipart)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> create(
             @ModelAttribute KhachHangRequest request,
             @RequestParam(value = "addresses", required = false) String addressesJson
     ) {
-        // Parse addresses JSON (nếu có)
         if (addressesJson != null && !addressesJson.trim().isEmpty()) {
             try {
                 List<DiaChiKhachHang> listDiaChi = objectMapper.readValue(
                         addressesJson,
-                        new TypeReference<List<DiaChiKhachHang>>() {}
+                        new TypeReference<List<DiaChiKhachHang>>() {
+                        }
                 );
                 request.setListDiaChi(listDiaChi);
             } catch (Exception ex) {
@@ -144,12 +208,12 @@ public class KhachHangController {
             @ModelAttribute KhachHangRequest request,
             @RequestParam(value = "addresses", required = false) String addressesJson
     ) {
-        // Parse addresses JSON (nếu có)
         if (addressesJson != null && !addressesJson.trim().isEmpty()) {
             try {
                 List<DiaChiKhachHang> listDiaChi = objectMapper.readValue(
                         addressesJson,
-                        new TypeReference<List<DiaChiKhachHang>>() {}
+                        new TypeReference<List<DiaChiKhachHang>>() {
+                        }
                 );
                 request.setListDiaChi(listDiaChi);
             } catch (Exception ex) {
@@ -229,8 +293,6 @@ public class KhachHangController {
 
             Integer statusFilter = (trangThai != null) ? trangThai : -1;
 
-            // ĐÃ BỎ Sort.by("id").descending() Ở ĐÂY CHỈ ĐỂ LẠI PAGE VÀ SIZE
-            // Ở API Thống kê, CHỈ DÙNG PAGE VÀ SIZE NHƯ NÀY, KHÔNG DÙNG Sort.by()
             org.springframework.data.domain.Pageable pageable =
                     org.springframework.data.domain.PageRequest.of(page, size);
 
@@ -245,41 +307,35 @@ public class KhachHangController {
         }
     }
 
-    // =========================================================================
-    // 12) Phân loại khách hàng 5 Hạng (Customer Segmentation)
-    // =========================================================================
+    // 12) Phân loại khách hàng 5 hạng
     @GetMapping("/segmentation")
     public ResponseEntity<List<Integer>> getCustomerIdsBySegment(@RequestParam String type) {
         List<Integer> ids;
-        long MAX_VAL = 1000000000000L; // Mức max (1 nghìn tỷ) cho Kim Cương
-        
+        long maxVal = 1_000_000_000_000L;
+
         switch (type.toUpperCase()) {
             case "ALL":
                 ids = khachHangRepository.findAllActiveCustomerIds();
                 break;
             case "NEWBIE":
-                // 0đ
                 ids = khachHangRepository.findCustomerIdsBySpendRange(0L, 1L);
                 break;
             case "BRONZE":
-                // 1đ -> dưới 2 triệu
-                ids = khachHangRepository.findCustomerIdsBySpendRange(1L, 2000000L);
+                ids = khachHangRepository.findCustomerIdsBySpendRange(1L, 2_000_000L);
                 break;
             case "SILVER":
-                // 2 triệu -> dưới 5 triệu
-                ids = khachHangRepository.findCustomerIdsBySpendRange(2000000L, 5000000L);
+                ids = khachHangRepository.findCustomerIdsBySpendRange(2_000_000L, 5_000_000L);
                 break;
             case "GOLD":
-                // 5 triệu -> dưới 10 triệu
-                ids = khachHangRepository.findCustomerIdsBySpendRange(5000000L, 10000000L);
+                ids = khachHangRepository.findCustomerIdsBySpendRange(5_000_000L, 10_000_000L);
                 break;
             case "DIAMOND":
-                // Trên 10 triệu
-                ids = khachHangRepository.findCustomerIdsBySpendRange(10000000L, MAX_VAL);
+                ids = khachHangRepository.findCustomerIdsBySpendRange(10_000_000L, maxVal);
                 break;
             default:
-                ids = new java.util.ArrayList<>();
+                ids = new ArrayList<>();
         }
+
         return ResponseEntity.ok(ids);
     }
 }

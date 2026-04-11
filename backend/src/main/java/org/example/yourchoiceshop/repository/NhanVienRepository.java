@@ -33,6 +33,10 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
         boolean existsByTenTaiKhoanAndMatKhau(String tenTaiKhoan, String matKhau);
         Optional<NhanVien> findByTenTaiKhoanAndMatKhau(String tenTaiKhoan, String matKhau);
 
+        // Đăng nhập bằng email
+        boolean existsByEmailIgnoreCaseAndMatKhau(String email, String matKhau);
+        Optional<NhanVien> findByEmailIgnoreCaseAndMatKhau(String email, String matKhau);
+
         // Check trùng Số điện thoại
         boolean existsBySoDienThoai(String soDienThoai);
         boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);

@@ -157,6 +157,9 @@ public class NhanVienServiceImpl implements NhanVienService {
         nv.setSoDienThoai(req.getSoDienThoai());
         nv.setGioiTinh(req.getGioiTinh());
         nv.setNgaySinh(req.getNgaySinh());
+        if (req.getMatKhau() != null && !req.getMatKhau().trim().isEmpty()) {
+            nv.setMatKhau(req.getMatKhau().trim());
+        }
 
         if (req.getDiaChi() != null && !req.getDiaChi().isEmpty()) {
             nv.setDiaChi(req.getDiaChi());
@@ -252,7 +255,12 @@ public class NhanVienServiceImpl implements NhanVienService {
         if (usernameValue.isEmpty() || passwordValue.isEmpty()) {
             return false;
         }
-        return nhanVienRepo.existsByTenTaiKhoanAndMatKhau(usernameValue, passwordValue);
+        // Thử đăng nhập bằng tên tài khoản trước
+        if (nhanVienRepo.existsByTenTaiKhoanAndMatKhau(usernameValue, passwordValue)) {
+            return true;
+        }
+        // Nếu không tìm thấy, thử đăng nhập bằng email
+        return nhanVienRepo.existsByEmailIgnoreCaseAndMatKhau(usernameValue, passwordValue);
     }
 
     @Override
@@ -262,7 +270,19 @@ public class NhanVienServiceImpl implements NhanVienService {
         if (usernameValue.isEmpty() || passwordValue.isEmpty()) {
             return null;
         }
-        return nhanVienRepo.findByTenTaiKhoanAndMatKhau(usernameValue, passwordValue).orElse(null);
+        // Thử tìm bằng tên tài khoản trước
+        NhanVien employee = nhanVienRepo.findByTenTaiKhoanAndMatKhau(usernameValue, passwordValue).orElse(null);
+
+        // Nếu không tìm thấy, thử tìm bằng email
+        if (employee == null) {
+            employee = nhanVienRepo.findByEmailIgnoreCaseAndMatKhau(usernameValue, passwordValue).orElse(null);
+        }
+
+        // Kiểm tra tài khoản còn hoạt động không (trangThai = 1)
+        if (employee != null && employee.getTrangThai() != null && employee.getTrangThai() != 1) {
+            return null;
+        }
+        return employee;
     }
 
     private String generateRandomPassword() {
