@@ -139,7 +139,6 @@ import { useRouter, useRoute } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
 import request from '@/services/request';
 import { login as authLogin } from '@/services/auth';
-import { useCartStore } from '@/stores/cart';
 import { jwtDecode } from 'jwt-decode';
 import { useCartStore } from '@/stores/cart';
 
