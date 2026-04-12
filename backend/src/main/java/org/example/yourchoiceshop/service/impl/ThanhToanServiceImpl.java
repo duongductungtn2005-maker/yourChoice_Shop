@@ -31,9 +31,9 @@ public class ThanhToanServiceImpl implements ThanhToanService {
         HoaDon hoaDon = hoaDonRepo.findByMaHoaDon(maHoaDon)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
 
-        // ❌ Chỉ cho thanh toán khi CHỜ THANH TOÁN
-        if (hoaDon.getTrangThai() != 4) {
-            throw new RuntimeException("Hóa đơn không ở trạng thái chờ thanh toán");
+        // ❌ Chỉ cho thanh toán khi ĐÃ XÁC NHẬN (status 2 trở lên)
+        if (hoaDon.getTrangThai() < 2) {
+            throw new RuntimeException("Hóa đơn không ở trạng thái có thể thanh toán");
         }
 
         // Kho đã được trừ khi xác nhận đơn (trạng thái 1→2), KHÔNG trừ lại ở đây
@@ -51,7 +51,7 @@ public class ThanhToanServiceImpl implements ThanhToanService {
 
         // 2️⃣ HOÀN THÀNH ĐƠN
         hoaDon.setTongTienSauGiam(req.getSoTien());
-        hoaDon.setTrangThai(5);
+        hoaDon.setTrangThai(4);
         hoaDonRepo.save(hoaDon);
     }
 
@@ -61,9 +61,9 @@ public class ThanhToanServiceImpl implements ThanhToanService {
         HoaDon hoaDon = hoaDonRepo.findByMaHoaDon(maHoaDon)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
 
-        // ❌ Chỉ cho thanh toán khi chờ thanh toán
-        if (hoaDon.getTrangThai() != 4) {
-            throw new RuntimeException("Hóa đơn không ở trạng thái chờ thanh toán");
+        // ❌ Chỉ cho thanh toán khi ĐÃ XÁC NHẬN (status 2 trở lên)
+        if (hoaDon.getTrangThai() < 2) {
+            throw new RuntimeException("Hóa đơn không ở trạng thái có thể thanh toán");
         }
 
         // 1️⃣ Trừ kho
@@ -90,7 +90,7 @@ public class ThanhToanServiceImpl implements ThanhToanService {
         lichSuThanhToanRepository.save(ls);
 
         // 3️⃣ Chuyển trạng thái → HOÀN THÀNH
-        hoaDon.setTrangThai(5);
+        hoaDon.setTrangThai(4);
         hoaDonRepo.save(hoaDon);
     }
 }

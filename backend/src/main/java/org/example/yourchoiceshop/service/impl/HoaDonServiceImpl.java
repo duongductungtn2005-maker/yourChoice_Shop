@@ -348,10 +348,9 @@ public class HoaDonServiceImpl implements HoaDonService {
         return switch (status) {
             case 0 -> "Đã hủy";
             case 1 -> "Chờ xác nhận";
-            case 2 -> "Chờ giao hàng";
+            case 2 -> "Đã xác nhận";
             case 3 -> "Đang vận chuyển";
-            case 4 -> "Chờ thanh toán";
-            case 5 -> "Hoàn thành";
+            case 4 -> "Hoàn thành";
             default -> "Không xác định";
         };
     }
@@ -480,7 +479,7 @@ public class HoaDonServiceImpl implements HoaDonService {
             hd.setLoaiHoaDon("TAI_QUAY");
         }
 
-        hd.setTrangThai(5);
+        hd.setTrangThai(4);
         hd.setNgayThanhToan(LocalDateTime.now());
         hd.setHinhThucThanhToan(
                 req.getHinhThucThanhToan() != null
@@ -730,6 +729,9 @@ public class HoaDonServiceImpl implements HoaDonService {
     private String convertStatusToText(Integer status) {
         if (status == 1) return "Chờ xác nhận";
         if (status == 4) return "Hoàn thành";
+        if (status == 2) return "Đã xác nhận";
+        if (status == 3) return "Đang vận chuyển";
+        if (status == 0) return "Đã hủy";
         return "Khác";
     }
 
