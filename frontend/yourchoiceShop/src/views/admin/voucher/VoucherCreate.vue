@@ -180,7 +180,7 @@
           ></textarea>
         </div>
 
-        <button @click="submitForm" class="btn-submit">Hoàn tất & Thêm mới</button>
+        <button @click="submitForm" class="btn-submit">Tạo phiếu giảm giá</button>
       </div>
 
       <div class="card right-panel mt-4" v-if="form.kieu === 'CaNhan'">
@@ -368,19 +368,16 @@ const fetchCustomers = async () => {
     try {
         const searchKeyword = custFilter.ten.trim() !== '' ? custFilter.ten : custFilter.sdt.trim();
 
-        // 1. Chỉ tạo params với những giá trị bắt buộc
         const queryParams = {
             page: custPage.value,
             size: custPageSize.value,
             keyword: searchKeyword
         };
 
-        // 2. NẾU CÓ CHỌN TRẠNG THÁI THÌ MỚI GỬI LÊN (Bỏ qua chuỗi rỗng)
         if (custFilter.trangThai !== null && custFilter.trangThai !== '') {
             queryParams.trangThai = parseInt(custFilter.trangThai);
         }
 
-        // 3. Gửi request sạch
         const res = await request.get('/khach-hang/thong-ke', {
             params: queryParams
         });
@@ -471,6 +468,7 @@ watch(() => form.value.kieu, (newVal) => {
 
 const submitForm = async () => {
   try {
+    // === Validate Dữ Liệu ===
     if (!form.value.tenPhieuGiamGia || form.value.tenPhieuGiamGia.trim() === '') {
       return Toast.fire({ icon: 'warning', title: 'Vui lòng nhập tên phiếu giảm giá' });
     }
@@ -499,6 +497,27 @@ const submitForm = async () => {
         return Toast.fire({ icon: 'warning', title: 'Vui lòng chọn ít nhất 1 khách hàng' });
     }
 
+    // === Hộp Thoại Xác Nhận Tạo Mới (Yêu cầu mới thêm vào) ===
+    const isConfirmCreate = await Swal.fire({
+        title: 'Xác nhận',
+        text: 'Bạn có đồng ý tạo mới không?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Có',
+        cancelButtonText: 'Không',
+        customClass: {
+            actions: 'my-swal-actions',
+            confirmButton: 'my-swal-confirm-btn',
+            cancelButton: 'my-swal-cancel-btn'
+        },
+        buttonsStyling: false // Tắt styling mặc định để nhận CSS gradient
+    });
+
+    if (!isConfirmCreate.isConfirmed) {
+        return; // Dừng nếu người dùng bấm "Không" hoặc tắt popup
+    }
+
+    // === Chuẩn bị Payload ===
     const payload = { ...form.value };
     
     if (!payload.maPhieuGiamGia || payload.maPhieuGiamGia.trim() === '') {
@@ -517,6 +536,7 @@ const submitForm = async () => {
         payload.soLuong = selectedCustomerIds.value.length;
     }
 
+    // === Hộp Thoại Hỏi Gửi Email (Giữ nguyên logic cũ) ===
     if (payload.kieu === 'CaNhan') {
         const confirmResult = await Swal.fire({
             title: 'Xác nhận tạo phiếu',
@@ -536,6 +556,7 @@ const submitForm = async () => {
         payload.sendEmail = confirmResult.isConfirmed; 
     }
 
+    // === Gọi API ===
     await request.post('/phieu-giam-gia', payload);
     
     localStorage.setItem('voucherSuccessMessage', 'Thêm phiếu giảm giá thành công!');
@@ -800,5 +821,55 @@ input:checked + .slider:before {
     background-color: #ef4444;
     color: #ffffff;
     box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+}
+
+/* =========================================
+   CUSTOM STYLE CHO NÚT SWEETALERT2
+========================================= */
+:global(.my-swal-actions) {
+    gap: 12px !important;
+}
+
+:global(.my-swal-confirm-btn) {
+    background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%) !important;
+    color: #ffffff !important;
+    padding: 10px 28px !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2) !important;
+    transition: all 0.2s;
+}
+
+:global(.my-swal-confirm-btn:hover) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3) !important;
+}
+
+:global(.my-swal-cancel-btn) {
+    background-color: #ffffff !important;
+    border: 1px solid #1e3a8a !important;
+    padding: 9px 28px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    
+    /* Fallback màu chữ nếu trình duyệt không hỗ trợ gradient text */
+    color: #1e3a8a !important; 
+}
+
+/* Áp dụng chữ màu gradient cho trình duyệt hỗ trợ */
+@supports (-webkit-background-clip: text) {
+    :global(.my-swal-cancel-btn) {
+        /* Tạo background gradient nhưng clip nó vào chữ */
+        background-image: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%) !important;
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        color: transparent !important;
+    }
 }
 </style>

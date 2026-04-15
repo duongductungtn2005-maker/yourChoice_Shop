@@ -423,19 +423,16 @@ const fetchCustomers = async () => {
     try {
         const searchKeyword = custFilter.ten.trim() !== '' ? custFilter.ten : custFilter.sdt.trim();
 
-        // 1. Chỉ tạo params với những giá trị bắt buộc
         const queryParams = {
             page: custPage.value,
             size: custPageSize.value,
             keyword: searchKeyword
         };
 
-        // 2. NẾU CÓ CHỌN TRẠNG THÁI THÌ MỚI GỬI LÊN (Bỏ qua chuỗi rỗng)
         if (custFilter.trangThai !== null && custFilter.trangThai !== '') {
             queryParams.trangThai = parseInt(custFilter.trangThai);
         }
 
-        // 3. Gửi request sạch
         const res = await request.get('/khach-hang/thong-ke', {
             params: queryParams
         });
@@ -525,6 +522,7 @@ watch(() => form.value.kieu, (newVal) => {
 
 const submitForm = async () => {
   try {
+    // Validate
     if (!form.value.tenPhieuGiamGia || form.value.tenPhieuGiamGia.trim() === '') {
       return Toast.fire({ icon: 'warning', title: 'Vui lòng nhập tên phiếu giảm giá' });
     }
@@ -553,6 +551,27 @@ const submitForm = async () => {
         return Toast.fire({ icon: 'warning', title: 'Vui lòng chọn ít nhất 1 khách hàng' });
     }
 
+    // Hiển thị hộp thoại Confirm (Sửa đổi dữ liệu)
+    const isConfirmUpdate = await Swal.fire({
+        title: 'Xác nhận',
+        text: 'Bạn có đồng ý lưu thay đổi không?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Có',
+        cancelButtonText: 'Không',
+        customClass: {
+            actions: 'my-swal-actions',
+            confirmButton: 'my-swal-confirm-btn',
+            cancelButton: 'my-swal-cancel-btn'
+        },
+        buttonsStyling: false // Tắt styling mặc định để ăn CSS global
+    });
+
+    if (!isConfirmUpdate.isConfirmed) {
+        return; // Dừng lại nếu bấm Không
+    }
+
+    // Chuẩn bị payload
     const payload = { ...form.value };
     
     if (!payload.maPhieuGiamGia || payload.maPhieuGiamGia.trim() === '') {
@@ -572,6 +591,7 @@ const submitForm = async () => {
         payload.sendEmail = false; 
     }
 
+    // Gọi API cập nhật
     await request.put(`/phieu-giam-gia/${voucherId}`, payload);
     
     localStorage.setItem('voucherSuccessMessage', 'Cập nhật phiếu giảm giá thành công!');
@@ -587,6 +607,7 @@ const confirmSendMailDirect = async () => {
         return Toast.fire({ icon: 'warning', title: 'Vui lòng chọn ít nhất 1 khách hàng để gửi mail' });
     }
 
+    // Chỉnh lại một chút cho đồng bộ giao diện class CSS
     const result = await Swal.fire({
         title: 'Xác nhận gửi mail',
         text: 'Bạn có muốn gửi gmail cho các khách hàng đã chọn không?',
@@ -594,8 +615,12 @@ const confirmSendMailDirect = async () => {
         showCancelButton: true,
         confirmButtonText: 'Có',
         cancelButtonText: 'Hủy',
-        confirmButtonColor: '#2563eb',
-        cancelButtonColor: '#f59e0b',
+        customClass: {
+            actions: 'my-swal-actions',
+            confirmButton: 'my-swal-confirm-btn',
+            cancelButton: 'my-swal-cancel-btn'
+        },
+        buttonsStyling: false
     });
 
     if (!result.isConfirmed) return;

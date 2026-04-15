@@ -297,8 +297,6 @@ const formatDateTimeForInput = (dateString) => {
     return d.toISOString().slice(0, 16); 
 };
 
-// --- API LẤY DATA CŨ ---
-// --- API LẤY DATA CŨ ---
 // --- API LẤY DATA CŨ VÀ SẢN PHẨM ---
 const fetchDiscountDetail = async () => {
     try {
@@ -313,14 +311,12 @@ const fetchDiscountDetail = async () => {
         form.ngayKetThuc = formatDateTimeForInput(data.ngayKetThuc);
         form.trangThai = data.trangThai;
 
-        // 2. Gọi API thứ hai (cái mày viết sẵn): Lấy danh sách sản phẩm
+        // 2. Gọi API thứ hai: Lấy danh sách sản phẩm
         const resProducts = await request.get(`/dot-giam-gia/${discountId}/products`);
         const listChiTiet = resProducts.data.data || resProducts.data || [];
 
         if (listChiTiet && listChiTiet.length > 0) {
             selectedVariants.value = listChiTiet.map(item => {
-                // API của mày nhả ra List<ChiTietDotGiamGia>, 
-                // nên thông tin sản phẩm sẽ nằm trong field chiTietSanPham
                 const v = item.chiTietSanPham; 
                 if (!v) return null;
 
@@ -330,18 +326,15 @@ const fetchDiscountDetail = async () => {
                     id: v.id,
                     maCtsp: v.maCtsp,
                     tenSanPham: v.sanPham?.tenSanPham || v.tenSanPham || 'Sản phẩm',
-                    
-                    // --- ĐÃ SỬA CHỖ NÀY: Bao quát cả trường hợp lồng Object ---
                     tenThuongHieu: v.thuongHieu?.tenThuongHieu || v.tenThuongHieu || v.sanPham?.thuongHieu?.tenThuongHieu || v.sanPham?.tenThuongHieu || '-',
                     tenChatLieu: v.chatLieu?.tenChatLieu || v.tenChatLieu || v.sanPham?.chatLieu?.tenChatLieu || v.sanPham?.tenChatLieu || '-',
-                    
                     tenKichThuoc: v.kichThuoc?.tenKichThuoc || v.tenKichThuoc || '-',
                     tenMauSac: v.mauSac?.tenMauSac || v.tenMauSac || '-',
                     hinhAnh: v.hinhAnhs && v.hinhAnhs.length > 0 ? v.hinhAnhs[0].duongDanAnh : (v.hinhAnh || v.sanPham?.hinhAnh || ''),
                     giaBan: v.giaBan,
                     parentId: idCha 
                 };
-            }).filter(v => v !== null); // Lọc bỏ nếu bị null
+            }).filter(v => v !== null); 
 
             // 3. Tự động tích xanh các ô vuông ở bảng trên
             const parentIds = [...new Set(selectedVariants.value.map(v => v.parentId).filter(id => id))];
@@ -396,11 +389,8 @@ const fetchVariantsByProductId = async (parentId) => {
             id: v.id, 
             maCtsp: v.maCtsp,
             tenSanPham: v.sanPham?.tenSanPham || parent?.tenSanPham || 'Sản phẩm',
-            
-            // --- ĐÃ SỬA CHỖ NÀY ---
             tenThuongHieu: v.thuongHieu?.tenThuongHieu || v.tenThuongHieu || parent?.thuongHieu?.tenThuongHieu || parent?.tenThuongHieu || v.sanPham?.thuongHieu?.tenThuongHieu || v.sanPham?.tenThuongHieu || '-',
             tenChatLieu: v.chatLieu?.tenChatLieu || v.tenChatLieu || parent?.chatLieu?.tenChatLieu || parent?.tenChatLieu || v.sanPham?.chatLieu?.tenChatLieu || v.sanPham?.tenChatLieu || '-',
-            
             tenKichThuoc: v.kichThuoc?.tenKichThuoc || v.tenKichThuoc || '-',
             tenMauSac: v.mauSac?.tenMauSac || v.tenMauSac || '-',
             hinhAnh: v.listAnh && v.listAnh.length > 0 ? v.listAnh[0] : (v.hinhAnh || parent?.hinhAnh || ''),
@@ -491,6 +481,7 @@ const clearAllSelection = () => {
 
 // --- SUBMIT UPDATE ---
 const updateSale = async () => {
+    // 1. Validate Dữ Liệu
     if(!form.tenDotGiamGia.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên đợt giảm giá' });
     if(form.giaTriGiam <= 0) return Toast.fire({ icon: 'warning', title: 'Mức giảm phải > 0' });
     if(!form.ngayBatDau || !form.ngayKetThuc) return Toast.fire({ icon: 'warning', title: 'Chọn thời gian' });
@@ -498,10 +489,31 @@ const updateSale = async () => {
     form.idChiTietSanPhams = selectedVariants.value.map(v => v.id);
     if(form.idChiTietSanPhams.length === 0) return Toast.fire({ icon: 'warning', title: 'Chưa chọn sản phẩm nào' });
 
+    // 2. Gọi Hộp Thoại Confirm (Đã tích hợp CSS Global của team)
+    const isConfirmUpdate = await Swal.fire({
+        title: 'Xác nhận',
+        text: 'Bạn có đồng ý lưu thay đổi đợt giảm giá này không?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Có',
+        cancelButtonText: 'Không',
+        customClass: {
+            actions: 'my-swal-actions',
+            confirmButton: 'my-swal-confirm-btn',
+            cancelButton: 'my-swal-cancel-btn'
+        },
+        buttonsStyling: false // Bắt buộc tắt để dùng CSS chung
+    });
+
+    if (!isConfirmUpdate.isConfirmed) {
+        return; // Thoát nếu người dùng bấm "Không"
+    }
+
+    // 3. Tiến Hành Gọi API Lưu Dữ Liệu
     try {
         await request.put(`/dot-giam-gia/${discountId}`, form);
         localStorage.setItem('saleSuccessMessage', 'Cập nhật đợt giảm giá thành công!');
-        router.push({ name: 'admin-sale-list' }); // Sửa lại đúng name trang list của mày
+        router.push({ name: 'admin-sale-list' }); // Sửa lại đúng name trang list
     } catch (e) {
         console.error(e);
         Toast.fire({ icon: 'error', title: e.response?.data?.message || 'Có lỗi xảy ra' });
