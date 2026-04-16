@@ -25,6 +25,9 @@
           <div class="filter-group">
             <label>Giờ kết thúc <span class="text-red">*</span></label>
             <input type="time" v-model="shiftData.thoiGianKetThuc" required />
+            <small v-if="isNightShift" style="color: #f97316; margin-top: 4px; display: block; font-size: 0.85rem;">
+              <i class="fas fa-moon"></i> Ca này sẽ vắt sang ngày hôm sau
+            </small>
           </div>
 
           <div class="filter-group">
@@ -50,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import request from '@/services/request';
 import Swal from 'sweetalert2';
@@ -69,27 +72,54 @@ const shiftData = ref({
 // Lưu bản gốc để khôi phục
 const originalData = ref({});
 
+// Hàm tính toán tự động ca qua đêm
+const isNightShift = computed(() => {
+  if (!shiftData.value.thoiGianBatDau || !shiftData.value.thoiGianKetThuc) return false;
+  
+  // Xử lý cắt chuỗi giờ để so sánh, đề phòng trường hợp chuỗi có giây (VD: "22:00:00")
+  const start = shiftData.value.thoiGianBatDau.substring(0, 5);
+  const end = shiftData.value.thoiGianKetThuc.substring(0, 5);
+  
+  return start > end;
+});
+
 const fetchShiftDetail = async () => {
   try {
-    // Đảm bảo shiftId đã lấy được từ route.params.id
     if (!shiftId) return;
 
-    // Kiểm tra URL API: '/ca-lam-viec/' + id
     const response = await request.get(`/ca-lam-viec/${shiftId}`);
     
     if (response.data) {
       shiftData.value = { ...response.data };
       originalData.value = { ...response.data };
+      
+      // Đảm bảo định dạng giờ phù hợp với thẻ input type="time" (chỉ lấy HH:mm)
+      if (shiftData.value.thoiGianBatDau && shiftData.value.thoiGianBatDau.length > 5) {
+          shiftData.value.thoiGianBatDau = shiftData.value.thoiGianBatDau.substring(0, 5);
+      }
+      if (shiftData.value.thoiGianKetThuc && shiftData.value.thoiGianKetThuc.length > 5) {
+          shiftData.value.thoiGianKetThuc = shiftData.value.thoiGianKetThuc.substring(0, 5);
+      }
     }
   } catch (error) {
     console.error("Lỗi 404 hoặc lỗi lấy dữ liệu:", error);
-    // Nếu API trả về 404, có thể do ID không tồn tại trong DB
   }
 };
 
 const updateShift = async () => {
   try {
-    await request.put(`/ca-lam-viec/${shiftId}`, shiftData.value);
+    // Chuẩn bị payload để gửi đi, ghép thêm giây cho chuẩn định dạng Time của Java (nếu cần)
+    // Và quan trọng nhất: Gửi thêm cờ laCaQuaDem
+    const payload = {
+        ...shiftData.value,
+        tenCa: shiftData.value.tenCa.trim(),
+        thoiGianBatDau: shiftData.value.thoiGianBatDau.length === 5 ? shiftData.value.thoiGianBatDau + ':00' : shiftData.value.thoiGianBatDau,
+        thoiGianKetThuc: shiftData.value.thoiGianKetThuc.length === 5 ? shiftData.value.thoiGianKetThuc + ':00' : shiftData.value.thoiGianKetThuc,
+        laCaQuaDem: isNightShift.value 
+    };
+
+    await request.put(`/ca-lam-viec/${shiftId}`, payload);
+    
     Swal.fire({
       icon: 'success',
       title: 'Thành công',
@@ -99,7 +129,20 @@ const updateShift = async () => {
     });
     router.push({ name: 'admin-shift-list' });
   } catch (error) {
-    Swal.fire('Thất bại', 'Vui lòng kiểm tra lại thông tin', 'error');
+    console.error("Có lỗi xảy ra khi cập nhật ca làm việc:", error);
+    
+    // BẮT LỖI TỪ BACKEND GỬI VỀ (Đồng nhất với màn Thêm)
+    let errorMessage = 'Vui lòng kiểm tra lại thông tin.';
+    if (error.response && error.response.status === 400) {
+        // Lấy đúng câu chữ từ Spring Boot trả về (Ví dụ: "Ca này bị trùng thời gian")
+        errorMessage = error.response.data || errorMessage; 
+    }
+
+    Swal.fire({
+      icon: 'error',
+      title: 'Thất bại!',
+      text: errorMessage,
+    });
   }
 };
 

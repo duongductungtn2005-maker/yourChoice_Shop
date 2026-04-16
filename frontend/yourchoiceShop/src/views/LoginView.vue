@@ -139,6 +139,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
 import request from '@/services/request';
 import { login as authLogin } from '@/services/auth';
+import { jwtDecode } from 'jwt-decode';
 import { useCartStore } from '@/stores/cart';
 
 const router = useRouter();
@@ -279,15 +280,30 @@ const handleLogin = async () => {
   if (result && result.employee) {
     const employeeData = result.employee;
     const token = result.token;
-    const role = determineRole(employeeData);
+    
+    // ===== CHÍNH LÀ ĐOẠN NÀY: MỔ TOKEN ĐỂ LẤY QUYỀN =====
+    let role = 'STAFF'; // Đặt mặc định đề phòng lỗi
+    try {
+      const decoded = jwtDecode(token);
+      if (decoded.role) {
+        role = decoded.role; // Lấy chữ 'ADMIN' hoặc 'STAFF' từ bên trong token
+      }
+      console.log("Quyền lấy từ Token:", role); // Log ra để check cho sướng mắt
+    } catch (error) {
+      console.error("Không thể giải mã Token:", error);
+    }
+    // ====================================================
+
     authLogin({ token, role, user: employeeData });
     toastSuccess(`Đăng nhập thành công! Xin chào ${employeeData.tenNhanVien}`);
+    
+    // Điều hướng theo quyền mới lấy được
     router.push(role === 'ADMIN' ? '/admin/dashboard' : '/staff/pos');
+    
   } else {
     errorMessage.value = 'Sai tài khoản hoặc mật khẩu. Vui lòng thử lại.';
   }
 };
-
 const handleGoBack = () => {
   router.push('/');
 };

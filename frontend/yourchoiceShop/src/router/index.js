@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router"
-import { isAuthenticated, getRole, getCurrentUserId } from "@/services/auth"
+import { isAuthenticated, getRole, getCurrentUserId, getCurrentUser } from "@/services/auth"
+import request from "@/services/request"
+import { useShiftStore } from '@/stores/shiftStore';
 // import { initCrossTabSync } from "@/services/auth" // Đã vô hiệu hóa cross-tab sync
 
 /* ================= STATIC IMPORT ================= */
@@ -13,6 +15,9 @@ import CustomerCreate from "@/views/admin/customer/CustomerCreate.vue"
 import CustomerDetail from "@/views/admin/customer/CustomerDetail.vue"
 
 import ThongKeView from "@/views/admin/dashboard/ThongKeView.vue"
+import ShiftTracking from "@/views/admin/employee/schedule/ShiftTracking.vue";
+
+import Swal from 'sweetalert2';
 
 /* ================= ROLE HELPER ================= */
 const getUserRole = () => {
@@ -143,7 +148,7 @@ const router = createRouter({
         { path: "employees/edit/:id", name: "admin-employee-edit", component: () => import("../views/admin/employee/EditEmployee.vue") },
 
         /* Shifts & Schedule */
-        { path: "shifts", name: "admin-shift", component: () => import("../views/admin/employee/schedule/ShiftList.vue") },
+        { path: "shifts", name: "admin-shift-list", component: () => import("../views/admin/employee/schedule/ShiftList.vue") },
         { path: "shifts/create", name: "admin-shift-create", component: () => import("../views/admin/employee/schedule/ShiftCreate.vue") },
         { path: "shifts/edit/:id", name: "admin-shift-edit", component: () => import("../views/admin/employee/schedule/ShiftEdit.vue") },
         { path: "schedules", name: "admin-schedule", component: () => import("../views/admin/employee/schedule/ScheduleManager.vue") },
@@ -199,14 +204,69 @@ const router = createRouter({
       component: () => import("../layouts/AdminLayout.vue"),
       meta: { requiresAuth: true, roles: ["STAFF"] },
       children: [
-        { path: "", redirect: "/staff/pos" },
+        { path: "", redirect: "/staff/home" },
+        { path: "home", name: "staff-home", component: () => import("../views/admin/AdminHome.vue") },
 
-        { path: "pos", name: "staff-pos", component: () => import("../views/admin/pos/BanHangTaiQuay.vue"), meta: { layout: "full" } },
+        { 
+          path: "pos", 
+          name: "staff-pos", 
+          component: () => import("../views/admin/pos/PosWrapper.vue"), 
+          meta: { requiresShift: true },
+          beforeEnter: async (to, from, next) => {
+          const user = getCurrentUser();
+
+          if (!user || !user.tenTaiKhoan) {
+            next('/login');
+            return;
+          }
+
+          const username = user.tenTaiKhoan;
+
+          if (!username) {
+            console.error("User không hợp lệ:", user);
+            next('/login');
+            return;
+          }
+
+          try {
+            const res = await request.get(`/giao-ca/hien-tai?username=${username}`);
+
+            if (res.data && res.data.id) {
+              sessionStorage.setItem('hasActiveShift', 'true');
+              next();
+            } else {
+              sessionStorage.setItem('hasActiveShift', 'false');
+              next('/staff/giao-ca');
+            }
+          } catch (error) {
+            console.error("Lỗi kiểm tra ca làm việc:", error);
+            sessionStorage.setItem('hasActiveShift', 'false');
+            next('/staff/giao-ca');
+          }
+        }
+        },
+
+        /* --- THÊM ROUTE GIAO CA VÀO ĐÂY --- */
+        { 
+          path: "giao-ca", 
+          name: "staff-shift-tracking", 
+          component: () => import("../views/admin/employee/schedule/ShiftTracking.vue") 
+        },
 
         /* Orders (theo File 1) */
-        { path: "orders", name: "staff-order-list", component: () => import("../views/admin/DonHang/QuanLyHoaDon.vue") },
-        { path: "orders/:id", name: "staff-order-detail", component: () => import("../views/admin/DonHang/ChiTietHoaDon.vue") },
-
+        { 
+          path: "orders", 
+          name: "staff-order-list", 
+          component: () => import("../views/admin/DonHang/QuanLyHoaDon.vue"),
+          meta: { requiresShift: true }
+        },
+        { 
+          path: "orders/:id", 
+          name: "staff-order-detail", 
+          component: () => import("../views/admin/DonHang/ChiTietHoaDon.vue"),
+          meta: { requiresShift: true }
+        },
+        
         /* Customers */
         { path: "customers", name: "staff-customer-list", component: () => import("../views/admin/customer/CustomerList.vue") },
         { path: "customers/create", name: "staff-customer-create", component: CustomerCreate },
@@ -222,60 +282,61 @@ const router = createRouter({
   ],
 })
 
-/* ================= NAVIGATION GUARD ================= */
-router.beforeEach((to, from, next) => {
-  // Ưa tiên service auth, fallback qua sessionStorage
-  const authenticated = isAuthenticated ? isAuthenticated() : !!sessionStorage.getItem("token")
-  const roleFromService = authenticated && getRole ? getRole() : null
-  const role = normalizeRole(roleFromService || getUserRole())
+/* ================= NAVIGATION GUARD CẢI TIẾN ================= */
+router.beforeEach(async (to, from, next) => {
+  const rawRole = getRole();
+  const role = normalizeRole(rawRole);
+  const path = to.path;
 
-  const requiresAuth = to.matched.some((r) => r.meta.requiresAuth)
-
-  // Đã đăng nhập mà vào trang login → chuyển về trang mặc định theo role
-  if ((to.path === "/login" || to.path === "/client/login" || to.path === "/admin/login") && authenticated && role) {
-    next(getDefaultPathByRole(role))
-    return
+  // 1. CHƯA ĐĂNG NHẬP: Đá về trang login
+  if (!role) {
+    if (path === '/admin/login' || path === '/client/login') return next();
+    if (path.startsWith('/admin') || path.startsWith('/staff')) return next('/admin/login');
+    return next();
   }
 
-  // Route không yêu cầu auth → cho qua
-  if (!requiresAuth) {
-    next()
-    return
-  }
+  // 2. CHẶN VƯỢT QUYỀN CHÉO (Admin <-> Staff)
+  if (role === 'STAFF' && path.startsWith('/admin')) return next('/staff/giao-ca');
+  if (role === 'ADMIN' && path.startsWith('/staff')) return next('/admin/home');
 
-  // Chưa đăng nhập hoặc không có role → về đúng trang login theo loại route
-  if (!authenticated || !role) {
-    const needsAdminLogin = to.matched.some((r) => {
-      const roles = (r.meta?.roles || []).map((x) => normalizeRole(x))
-      return roles.includes("ADMIN") || roles.includes("STAFF")
-    })
-    next(needsAdminLogin ? "/admin/login" : "/client/login")
-    return
-  }
+  // 3. LOGIC RIÊNG CHO NHÂN VIÊN (STAFF)
+  if (role === 'STAFF') {
+    const shiftStore = useShiftStore(); // Khởi tạo store sớm
 
-  // Kiểm tra role
-  const allowedRoles = to.matched
-    .flatMap((r) => (r.meta?.roles ? r.meta.roles : []))
-    .map((r) => normalizeRole(r))
+    // Nếu F5 trang, đảm bảo fetch lại trạng thái ca từ API
+    if (shiftStore.hasActiveShift === null) {
+      await shiftStore.fetchShift();
+    }
 
-  if (allowedRoles.length && !allowedRoles.includes(role)) {
-    next(getDefaultPathByRole(role))
-    return
-  }
+    const hasActiveShift = shiftStore.hasActiveShift; // <--- ĐỊNH NGHĨA BIẾN Ở ĐÂY
 
-  // Khách hàng chỉ được truy cập route có id trùng với tài khoản hiện tại
-  const requiresCustomerOwnership = to.matched.some((r) => r.meta?.customerOwned)
-  if (requiresCustomerOwnership && role === "CUSTOMER") {
-    const routeCustomerId = Number(to.params?.id)
-    const currentUserId = getCurrentUserId()
-    if (!currentUserId || Number.isNaN(routeCustomerId) || routeCustomerId !== currentUserId) {
-      next(getDefaultPathByRole(role))
-      return
+    // Kiểm tra xem route hiện tại có yêu cầu phải có ca không
+    const requiresShift = to.meta.requiresShift || 
+      ['staff-order-list', 'staff-order-detail', 'staff-customer-list', 'staff-customer-create', 'staff-customer-detail']
+      .includes(to.name);
+
+    // Nếu trang yêu cầu ca mà chưa có ca -> Đá về trang giao ca
+    if (requiresShift && !hasActiveShift) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Yêu cầu mở ca!',
+        text: 'Bạn phải mở ca làm việc mới có thể sử dụng chức năng này.',
+        confirmButtonText: 'Đi tới màn trực ca'
+      });
+      return next({ name: 'staff-shift-tracking' });
+    }
+
+    // Các trang được phép vào khi KHÔNG có ca
+    const allowedWithoutShift = ['/staff/giao-ca', '/staff/thong-tin-ca-nhan'];
+    if (!hasActiveShift && !allowedWithoutShift.includes(path)) {
+      return next('/staff/giao-ca');
     }
   }
 
-  next()
-})
+  // 4. Mọi thứ hợp lệ, cho phép đi tiếp
+  console.log("Điều hướng hợp lệ với role:", role);
+  next();
+});
 
 /* ================= CROSS-TAB SYNC ================= */
 // VÔ HIỆU HÓA đồng bộ tab - mỗi tab hoạt động độc lập

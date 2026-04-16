@@ -19,7 +19,7 @@ import org.example.yourchoiceshop.repository.CaLamViecRepository;
 
 @RestController
 @RequestMapping("/api/v1/ca-lam-viec")
-@CrossOrigin(origins = "*") // Cho phép Frontend gọi API mà không bị lỗi CORS
+
 @RequiredArgsConstructor
 public class CaLamViecController {
 
