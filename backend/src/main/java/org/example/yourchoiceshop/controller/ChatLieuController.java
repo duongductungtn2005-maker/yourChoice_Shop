@@ -15,7 +15,7 @@ import java.io.ByteArrayInputStream;
 @RestController
 @RequestMapping("/api/v1/chat-lieu")
 @RequiredArgsConstructor
-@CrossOrigin("*")
+
 public class ChatLieuController {
     private final ChatLieuServiceImpl service;
 

@@ -95,7 +95,13 @@
             </td>
                 <td>
                 <span :class="['status-pill', getStatusClass(item.trangThai)]">
-                    {{ item.trangThai === 1 ? 'Đang làm việc' : 'Đã đóng ca' }}
+                  {{
+                    item.trangThai === 1
+                      ? 'Đang làm việc'
+                      : item.trangThai === 2
+                      ? 'Đóng ca sớm'
+                      : 'Đã đóng ca'
+                  }}
                 </span>
                 </td>
                 <td class="note">{{ item.ghiChu || '---' }}</td>
@@ -203,7 +209,11 @@ const handlePageSizeChange = () => {
 };
 // ---------------------------------
 
-const getStatusClass = status => status === 1 ? 'status-working' : 'status-done';
+const getStatusClass = status => {
+  if (status === 1) return 'status-working';
+  if (status === 2) return 'status-early';
+  return 'status-done';
+};
 const formatTime = dt => {
   if (!dt) return '---';
   const d = new Date(dt);
