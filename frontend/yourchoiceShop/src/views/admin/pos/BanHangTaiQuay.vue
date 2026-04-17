@@ -779,6 +779,105 @@ const setGuestCustomer = () => {
   shippingFee.value = 0
 }
 
+const normalizeAddressToken = (value) => {
+  if (!value) return ''
+
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd')
+    .toLowerCase()
+    .replace(/\?/g, '')
+    .replace(/\b(thanh\s*pho|tinh|tp|quan|huyen|thi\s*xa|thi\s*tran|xa|phuong|tx)\b/g, ' ')
+    .replace(/[^a-z0-9]/g, '')
+}
+
+const levenshteinDistance = (a, b) => {
+  if (!a) return b.length
+  if (!b) return a.length
+
+  const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0))
+
+  for (let i = 0; i <= a.length; i++) matrix[i][0] = i
+  for (let j = 0; j <= b.length; j++) matrix[0][j] = j
+
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      )
+    }
+  }
+
+  return matrix[a.length][b.length]
+}
+
+const findBestAddressMatch = (options, sourceName, nameKey) => {
+  if (!Array.isArray(options) || options.length === 0 || !sourceName) return null
+
+  const sourceNorm = normalizeAddressToken(sourceName)
+  if (!sourceNorm) return null
+
+  const exact = options.find(item => normalizeAddressToken(item?.[nameKey]) === sourceNorm)
+  if (exact) return exact
+
+  const include = options.find(item => {
+    const n = normalizeAddressToken(item?.[nameKey])
+    return n && (n.includes(sourceNorm) || sourceNorm.includes(n))
+  })
+  if (include) return include
+
+  let best = null
+  let bestScore = 0
+  for (const item of options) {
+    const n = normalizeAddressToken(item?.[nameKey])
+    if (!n) continue
+
+    const distance = levenshteinDistance(sourceNorm, n)
+    const maxLen = Math.max(sourceNorm.length, n.length)
+    const score = maxLen > 0 ? 1 - distance / maxLen : 0
+
+    if (score > bestScore) {
+      bestScore = score
+      best = item
+    }
+  }
+
+  return bestScore >= 0.6 ? best : null
+}
+
+const applyManualAddressFallback = (addr) => {
+  const manualSeed = Date.now()
+  const provinceName = (addr?.thanhPho || '').trim()
+  const districtName = (addr?.quan || '').trim()
+  const wardName = (addr?.phuong || '').trim()
+
+  const provinceId = `manual-province-${manualSeed}`
+  const districtId = `manual-district-${manualSeed}`
+  const wardCode = `manual-ward-${manualSeed}`
+
+  if (provinceName) {
+    provinces.value = [
+      { provinceId, provinceName },
+      ...provinces.value.filter(p => String(p.provinceId) !== provinceId)
+    ]
+    selectedProvince.value = provinceId
+  }
+
+  districts.value = districtName ? [{ districtId, districtName, provinceId }] : []
+  selectedDistrict.value = districtName ? districtId : ''
+
+  wards.value = wardName ? [{ wardCode, wardName, districtId }] : []
+  selectedWard.value = wardName ? wardCode : ''
+
+  // Không tính phí vận chuyển cho địa chỉ fallback vì thiếu mã GHN hợp lệ.
+  shippingFee.value = 0
+}
+
 const fillDefaultAddress = async (customerId) => {
   try {
     const res = await axios.get('http://localhost:8080/api/v1/dia-chi', { params: { khachHangId: customerId } })
@@ -802,11 +901,11 @@ const fillDefaultAddress = async (customerId) => {
 
     if (!provinces.value.length) await fetchProvinces()
 
-    const normalize = (s) => (s || '').trim().toLowerCase()
-    const prov = provinces.value.find(p => normalize(p.provinceName) === normalize(provName))
-      || provinces.value.find(p => normalize(p.provinceName).includes(normalize(provName)))
-      || provinces.value.find(p => normalize(provName).includes(normalize(p.provinceName)))
-    if (!prov) return
+    const prov = findBestAddressMatch(provinces.value, provName, 'provinceName')
+    if (!prov) {
+      applyManualAddressFallback(defaultAddr)
+      return
+    }
 
     selectedProvince.value = prov.provinceId
     try {
@@ -814,12 +913,16 @@ const fillDefaultAddress = async (customerId) => {
       districts.value = distRes.data
 
       const distName = defaultAddr.quan
-      if (!distName) return
+      if (!distName) {
+        applyManualAddressFallback(defaultAddr)
+        return
+      }
 
-      const dist = districts.value.find(d => normalize(d.districtName) === normalize(distName))
-        || districts.value.find(d => normalize(d.districtName).includes(normalize(distName)))
-        || districts.value.find(d => normalize(distName).includes(normalize(d.districtName)))
-      if (!dist) return
+      const dist = findBestAddressMatch(districts.value, distName, 'districtName')
+      if (!dist) {
+        applyManualAddressFallback(defaultAddr)
+        return
+      }
 
       selectedDistrict.value = dist.districtId
       try {
@@ -827,12 +930,16 @@ const fillDefaultAddress = async (customerId) => {
         wards.value = wardRes.data
 
         const wardName = defaultAddr.phuong
-        if (!wardName) return
+        if (!wardName) {
+          applyManualAddressFallback(defaultAddr)
+          return
+        }
 
-        const ward = wards.value.find(w => normalize(w.wardName) === normalize(wardName))
-          || wards.value.find(w => normalize(w.wardName).includes(normalize(wardName)))
-          || wards.value.find(w => normalize(wardName).includes(normalize(w.wardName)))
-        if (!ward) return
+        const ward = findBestAddressMatch(wards.value, wardName, 'wardName')
+        if (!ward) {
+          applyManualAddressFallback(defaultAddr)
+          return
+        }
 
         selectedWard.value = ward.wardCode
         await calculateShippingFee()
@@ -2385,13 +2492,43 @@ const handleCreateOrderDelivery = async () => {
 
   // Hoàn lại tồn kho đã giữ từ POS trước khi tạo đơn giao hàng,
   // vì backend sẽ tự trừ kho khi admin xác nhận đơn (trạng thái 1→2).
+  const releasedItems = []
   for (const item of cart.value) {
-    if (item.qty > 0) {
-      await releaseProductStock(getOriginalProductId(item), item.qty, false)
+    const qtyToRelease = Number(item.qty || 0)
+    if (qtyToRelease <= 0) continue
+
+    const productId = getOriginalProductId(item)
+    if (!Number.isFinite(productId)) {
+      alert('Không thể xác định sản phẩm để hoàn tồn kho. Vui lòng tải lại trang và thử lại!')
+      return
     }
+
+    const released = await releaseProductStock(productId, qtyToRelease, false)
+    if (!released) {
+      // Rollback các dòng đã hoàn kho thành công trước đó để tránh lệch tồn kho tạm giữ.
+      for (const releasedItem of releasedItems) {
+        await reserveProductStock(releasedItem.id, releasedItem.qty, false)
+      }
+      alert('Không thể hoàn tồn kho trước khi tạo đơn giao hàng. Vui lòng thử lại!')
+      return
+    }
+
+    releasedItems.push({ id: productId, qty: qtyToRelease })
   }
 
-  await createOrderDelivery(payload)
+  try {
+    await createOrderDelivery(payload)
+  } catch (error) {
+    // Nếu tạo đơn thất bại, giữ kho lại như trước để trạng thái tab POS không bị lệch.
+    for (const releasedItem of releasedItems) {
+      await reserveProductStock(releasedItem.id, releasedItem.qty, false)
+    }
+
+    console.error(error)
+    const msg = error?.response?.data?.message || error?.response?.data || 'Lỗi khi tạo đơn giao hàng!'
+    alert(msg)
+    return
+  }
 
   if (currentOrder.value?.maHoaDon) {
     try {
@@ -2961,13 +3098,13 @@ const calculateShippingFee = async () => {
 }
 
 const getFullAddress = () => {
-  const province = provinces.value.find(p => p.ProvinceID == selectedProvince.value)
-  const district = districts.value.find(d => d.DistrictID == selectedDistrict.value)
-  const ward = wards.value.find(w => w.WardCode == selectedWard.value)
+  const province = provinces.value.find(p => p.provinceId == selectedProvince.value)
+  const district = districts.value.find(d => d.districtId == selectedDistrict.value)
+  const ward = wards.value.find(w => w.wardCode == selectedWard.value)
 
-  const provinceName = province ? province.ProvinceName : ''
-  const districtName = district ? district.DistrictName : ''
-  const wardName = ward ? ward.WardName : ''
+  const provinceName = province ? province.provinceName : ''
+  const districtName = district ? district.districtName : ''
+  const wardName = ward ? ward.wardName : ''
 
   return `${wardName}, ${districtName}, ${provinceName}`.trim()
 }
