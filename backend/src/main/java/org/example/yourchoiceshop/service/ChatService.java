@@ -227,7 +227,8 @@ public class ChatService {
         boolean isAiHandling = "AI".equals(session.getNguoiXuLy());
 
         if (isFromCustomer && isAiHandling) {
-            Map<String, Object> aiResult = chatAiService.processMessage(request.getNoiDung());
+            List<String> contextMessages = buildConversationContext(session.getId());
+            Map<String, Object> aiResult = chatAiService.processMessage(request.getNoiDung(), contextMessages);
 
             ChatMessage aiMsg = new ChatMessage();
             aiMsg.setChatSession(session);
@@ -255,6 +256,29 @@ public class ChatService {
         }
 
         return result;
+    }
+
+    private List<String> buildConversationContext(Integer sessionId) {
+        List<ChatMessage> recentMessages = chatMessageRepository
+                .findTop8ByChatSessionIdOrderByNgayGuiDesc(sessionId);
+        Collections.reverse(recentMessages);
+
+        return recentMessages.stream()
+                .filter(m -> m.getNoiDung() != null && !m.getNoiDung().isBlank())
+                .map(m -> {
+                    String role;
+                    if ("CUSTOMER".equals(m.getSenderRole())) {
+                        role = "Khach";
+                    } else if ("AI".equals(m.getSenderRole())) {
+                        role = "AI";
+                    } else if ("STAFF".equals(m.getSenderRole())) {
+                        role = "NhanVien";
+                    } else {
+                        role = "HeThong";
+                    }
+                    return role + ": " + m.getNoiDung();
+                })
+                .collect(Collectors.toList());
     }
 
     /* ======================== MAPPING ======================== */

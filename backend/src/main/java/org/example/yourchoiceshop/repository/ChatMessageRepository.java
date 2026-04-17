@@ -10,4 +10,6 @@ import java.util.List;
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Integer> {
 
     List<ChatMessage> findByChatSessionIdOrderByNgayGuiAsc(Integer chatSessionId);
+
+    List<ChatMessage> findTop8ByChatSessionIdOrderByNgayGuiDesc(Integer chatSessionId);
 }
