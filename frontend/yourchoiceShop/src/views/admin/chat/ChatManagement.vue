@@ -83,7 +83,7 @@
             </div>
             <div class="chat-header-actions">
               <button
-                v-if="selectedSession.trangThai !== 3 && selectedSession.nguoiXuLy === 'AI'"
+                v-if="selectedSession.trangThai !== 3 && (selectedSession.nguoiXuLy === 'AI' || selectedSession.trangThai === 2)"
                 class="btn-assign"
                 @click="handleAssign"
               >
