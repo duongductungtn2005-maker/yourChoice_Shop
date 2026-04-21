@@ -47,10 +47,10 @@ public class HoaDon extends BaseStatusEntity {
     @Column(name = "email_khach_hang")
     private String emailKhachHang;
 
-    @Column(name = "dia_chi_nguoi_nhan", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "dia_chi_nguoi_nhan")
     private String diaChiNguoiNhan;
 
-    @Column(name = "ghi_chu", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "ghi_chu")
     private String ghiChu;
 
     @ManyToOne(fetch = FetchType.LAZY) // Đã thêm LAZY

@@ -235,7 +235,7 @@ onUnmounted(() => {
 
 .hero-content { position: relative; z-index: 10; color: #fff; max-width: 800px; padding: 0 20px; }
 .sub-title { font-size: 16px; letter-spacing: 4px; text-transform: uppercase; display: block; margin-bottom: 15px; color: #bfdbfe; font-weight: bold; }
-.hero-content h1 { font-size: 52px; font-weight: 700; margin-bottom: 20px; letter-spacing: 2px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+.hero-content h1 { font-size: 52px; font-weight: 700; margin-bottom: 20px; letter-spacing: 2px; color: #f8fafc; text-shadow: 0 3px 14px rgba(0, 0, 0, 0.55); }
 .hero-content p { font-size: 19px; margin-bottom: 40px; font-weight: 400; opacity: 0.95; line-height: 1.6; }
 
 .btn-shop-now {
