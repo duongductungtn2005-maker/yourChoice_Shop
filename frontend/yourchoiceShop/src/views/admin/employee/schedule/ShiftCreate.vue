@@ -21,7 +21,11 @@
           <div class="form-group half-width">
             <label class="form-label">Thời gian kết thúc <span class="required">*</span></label>
             <input type="time" v-model="form.endTime" class="form-input" required />
-          </div>
+            
+            <small v-if="isNightShift" style="color: #f97316; margin-top: 4px; display: block; font-size: 0.85rem;">
+              <i class="fas fa-moon"></i> Ca này sẽ vắt sang ngày hôm sau
+            </small>
+            </div>
         </div>
 
         <div class="form-group">
@@ -40,7 +44,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
+import { reactive, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import Swal from 'sweetalert2';
@@ -48,13 +52,19 @@ import Swal from 'sweetalert2';
 const router = useRouter();
 const form = reactive({ name: '', startTime: '', endTime: '', description: '' });
 
+const isNightShift = computed(() => {
+  if (!form.startTime || !form.endTime) return false;
+  return form.startTime > form.endTime; 
+});
+
 const handleSubmit = async () => {
   try {
     const payload = {
       maCa: 'CA' + new Date().getTime().toString().slice(-5), 
-      tenCa: form.name.trim(), // Thêm .trim() để lỡ user gõ dấu cách thừa ở 2 đầu
+      tenCa: form.name.trim(),
       thoiGianBatDau: form.startTime + ':00', 
       thoiGianKetThuc: form.endTime + ':00',
+      laCaQuaDem: isNightShift.value,
       ghiChu: form.description,
       trangThai: 1 
     };

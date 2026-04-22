@@ -21,16 +21,21 @@ public class DiaChiKhachHang extends PrimaryEntity {
     @Column(name = "so_dien_thoai")
     private String soDienThoai;
 
+    // @Column(name = "thanh_pho", columnDefinition = "NVARCHAR(100)")
     @Column(name = "thanh_pho")
     private String thanhPho;
 
+    
+    // @Column(name = "quan", columnDefinition = "NVARCHAR(100)")
     @Column(name = "quan")
     private String quan;
 
+    // @Column(name = "phuong", columnDefinition = "NVARCHAR(100)")
     @Column(name = "phuong")
     private String phuong;
 
-    @Column(name = "dia_chi_cu_the")
+    // @Column(name = "dia_chi_cu_the", columnDefinition = "NVARCHAR(MAX)")
+        @Column(name = "dia_chi_cu_the")
     private String diaChiCuThe;
 
     @Column(name = "mac_dinh")

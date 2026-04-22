@@ -84,26 +84,38 @@
 
       <!-- Input -->
       <div class="chat-input-area">
-        <input
-          v-model="inputMessage"
-          type="text"
-          placeholder="Nhập tin nhắn..."
-          @keyup.enter="handleSend"
-          :disabled="sending"
-        />
-        <button class="btn-send" @click="handleSend" :disabled="!inputMessage.trim() || sending">
-          <i class="fa-solid fa-paper-plane"></i>
-        </button>
+        <div class="chat-actions">
+          <button
+            class="btn-request-staff"
+            @click="handleRequestStaff"
+            :disabled="requestingStaff || !sessionId || staffRequested || sessionClosed"
+          >
+            <i class="fa-solid fa-user-tie"></i>
+            {{ staffRequested ? 'Đã yêu cầu nhân viên' : 'Chat với Nhân viên' }}
+          </button>
+        </div>
+        <div class="chat-input-row">
+          <input
+            v-model="inputMessage"
+            type="text"
+            placeholder="Nhập tin nhắn..."
+            @keyup.enter="handleSend"
+            :disabled="sending"
+          />
+          <button class="btn-send" @click="handleSend" :disabled="!inputMessage.trim() || sending">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted } from 'vue'
+import { computed, ref, onMounted, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getOrCreateSession, sendChatMessage, getChatMessages, getSessionInfo } from '@/api/chatApi'
-import { getCurrentUser, getCurrentUserId, isAuthenticated } from '@/services/auth'
+import { getOrCreateSession, sendChatMessage, getChatMessages, getSessionInfo, requestStaffSupport } from '@/api/chatApi'
+import { getCurrentUser, isAuthenticated } from '@/services/auth'
 
 const router = useRouter()
 
@@ -114,9 +126,13 @@ const sending = ref(false)
 const isTyping = ref(false)
 const sessionId = ref(null)
 const sessionKey = ref(null)
+const sessionStatus = ref(1)
 const handlerName = ref('Trợ lý AI')
+const staffRequested = ref(false)
+const requestingStaff = ref(false)
 const suggestedProducts = ref([])
 const chatMessages = ref(null)
+const sessionClosed = computed(() => sessionStatus.value === 3)
 let pollInterval = null
 
 onMounted(() => {
@@ -149,7 +165,7 @@ async function initChat() {
       tenHienThi: user?.tenKhachHang || 'Khách vãng lai'
     })
     sessionId.value = res.data.id
-    handlerName.value = res.data.nguoiXuLy === 'AI' ? 'Trợ lý AI' : res.data.nguoiXuLy || 'Hỗ trợ'
+    applySessionState(res.data)
 
     await loadMessages()
 
@@ -197,15 +213,7 @@ async function refreshSessionState() {
     const res = await getSessionInfo(sessionId.value)
     const session = res.data
     if (session) {
-      // Detect staff assignment
-      const newHandler = session.nguoiXuLy === 'AI' ? 'Trợ lý AI' : session.nguoiXuLy || 'Hỗ trợ'
-      if (handlerName.value !== newHandler) {
-        handlerName.value = newHandler
-      }
-      // Detect session closed
-      if (session.trangThai === 3) {
-        handlerName.value = 'Phiên đã kết thúc'
-      }
+      applySessionState(session)
     }
   } catch (e) {
     // silent
@@ -260,6 +268,8 @@ async function handleSend() {
 
     // Transfer to staff notification
     if (res.data.transferToStaff) {
+      sessionStatus.value = 2
+      staffRequested.value = true
       handlerName.value = 'Đang chờ nhân viên...'
     }
   } catch (e) {
@@ -278,6 +288,49 @@ async function handleSend() {
     await nextTick()
     scrollToBottom()
   }
+}
+
+async function handleRequestStaff() {
+  if (!sessionId.value || requestingStaff.value || staffRequested.value || sessionClosed.value) return
+
+  requestingStaff.value = true
+  try {
+    const res = await requestStaffSupport(sessionId.value)
+    applySessionState(res.data)
+    await loadMessages()
+  } catch (e) {
+    console.error('Request staff support failed:', e)
+    messages.value.push({
+      id: 'err_staff_' + Date.now(),
+      senderRole: 'SYSTEM',
+      senderName: 'Hệ thống',
+      noiDung: 'Không thể yêu cầu nhân viên lúc này. Vui lòng thử lại.',
+      loaiTinNhan: 'TEXT',
+      ngayGui: new Date().toISOString()
+    })
+  } finally {
+    requestingStaff.value = false
+  }
+}
+
+function applySessionState(session) {
+  sessionStatus.value = session?.trangThai ?? 1
+
+  const isWaiting = session?.trangThai === 2 || session?.nguoiXuLy === 'Chờ nhân viên'
+  const hasStaffHandler = session?.nguoiXuLy && session.nguoiXuLy !== 'AI' && session.nguoiXuLy !== 'Chờ nhân viên'
+  staffRequested.value = !!(isWaiting || hasStaffHandler)
+
+  if (sessionStatus.value === 3) {
+    handlerName.value = 'Phiên đã kết thúc'
+    return
+  }
+
+  if (isWaiting) {
+    handlerName.value = 'Đang chờ nhân viên...'
+    return
+  }
+
+  handlerName.value = session?.nguoiXuLy === 'AI' ? 'Trợ lý AI' : session?.nguoiXuLy || 'Hỗ trợ'
 }
 
 function goToProduct(id) {
@@ -595,11 +648,45 @@ function formatMoney(amount) {
   padding: 10px 12px;
   border-top: 1px solid #e5e7eb;
   display: flex;
+  flex-direction: column;
   gap: 8px;
   background: #fff;
 }
 
-.chat-input-area input {
+.chat-actions {
+  display: flex;
+}
+
+.btn-request-staff {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-request-staff:hover {
+  background: #dbeafe;
+}
+
+.btn-request-staff:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input-row input {
   flex: 1;
   padding: 8px 12px;
   border: 1px solid #d1d5db;
@@ -608,7 +695,7 @@ function formatMoney(amount) {
   outline: none;
 }
 
-.chat-input-area input:focus {
+.chat-input-row input:focus {
   border-color: #1e3a8a;
 }
 

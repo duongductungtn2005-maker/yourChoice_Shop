@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,6 +22,7 @@ public class ChatAiService {
     private final ChiTietSanPhamRepository chiTietSanPhamRepository;
     private final MauSacRepository mauSacRepository;
     private final KichThuocRepository kichThuocRepository;
+    private final ChatKnowledgeService chatKnowledgeService;
 
     // ===== Từ điển màu sắc tiếng Việt → tên trong DB =====
     private static final Map<String, List<String>> COLOR_ALIASES = new LinkedHashMap<>();
@@ -80,6 +82,10 @@ public class ChatAiService {
     // ==========================================================================================
 
     public Map<String, Object> processMessage(String userMessage) {
+        return processMessage(userMessage, Collections.emptyList());
+    }
+
+    public Map<String, Object> processMessage(String userMessage, List<String> conversationContext) {
         Map<String, Object> result = new HashMap<>();
         String msg = userMessage.toLowerCase().trim();
 
@@ -105,40 +111,50 @@ public class ChatAiService {
             return result;
         }
 
-        // 3. Tư vấn size
+        // 3. Trả lời theo kho tri thức đã train (ưu tiên cho các câu FAQ/CSKH)
+        if (shouldUseKnowledgeFirst(msg)) {
+            Map<String, Object> knowledgeResult = handleKnowledgeLookup(msg, conversationContext);
+            if (knowledgeResult != null) return knowledgeResult;
+        }
+
+        // 4. Tư vấn size
         if (isSizeConsultation(msg)) {
             return handleSizeConsultation(msg);
         }
 
-        // 4. Hỏi sản phẩm giảm giá / khuyến mãi
+        // 5. Hỏi sản phẩm giảm giá / khuyến mãi
         if (isDiscountQuery(msg)) {
             return handleDiscountQuery(msg);
         }
 
-        // 5. Kiểm tra tồn kho cụ thể
+        // 6. Kiểm tra tồn kho cụ thể
         if (isStockQuery(msg)) {
             return handleStockQuery(msg);
         }
 
-        // 6. Gợi ý phối đồ
+        // 7. Gợi ý phối đồ
         if (isOutfitQuery(msg)) {
             return handleOutfitSuggestion(msg);
         }
 
-        // 7. FAQ - Chăm sóc quần áo
+        // 8. FAQ - Chăm sóc quần áo
         if (isCareQuery(msg)) {
             return handleCareQuery(msg);
         }
 
-        // 8. FAQ chung
+        // 9. FAQ chung
         Map<String, Object> faqResult = handleFAQ(msg);
         if (faqResult != null) return faqResult;
 
-        // 9. Tìm sản phẩm thông minh (mặc định cho mọi yêu cầu có keyword/thuộc tính)
+        // 10. Tìm sản phẩm thông minh (mặc định cho mọi yêu cầu có keyword/thuộc tính)
         Map<String, Object> searchResult = handleSmartProductSearch(msg);
         if (searchResult != null) return searchResult;
 
-        // 10. Mặc định
+        // 11. Cơ hội cuối: thử khớp tri thức với ngưỡng thấp hơn để đề xuất câu hỏi gần đúng
+        Map<String, Object> fallbackKnowledge = handleKnowledgeLookup(msg, conversationContext);
+        if (fallbackKnowledge != null) return fallbackKnowledge;
+
+        // 12. Mặc định
         result.put("reply", "Mình có thể giúp bạn:\n" +
                 "• 🔍 Tìm sản phẩm: \"áo polo trắng size L\", \"quần jean dưới 500k\"\n" +
                 "• 🎨 Tìm theo màu: \"áo màu đen\", \"quần xanh navy\"\n" +
@@ -219,6 +235,67 @@ public class ChatAiService {
         return false;
     }
 
+    private boolean shouldUseKnowledgeFirst(String msg) {
+        return !isSizeConsultation(msg)
+                && !isDiscountQuery(msg)
+                && !isStockQuery(msg)
+                && !isOutfitQuery(msg)
+                && !isCareQuery(msg)
+                && !isPriceSearchIntent(msg)
+                && extractProductKeyword(msg) == null;
+    }
+
+    private boolean isPriceSearchIntent(String msg) {
+        String[] keywords = {
+                "giá", "mức giá", "khoảng giá", "tầm giá", "dưới", "trên", "từ", "đến", "tới",
+                "không quá", "tối đa", "tối thiểu", "under", "between", "budget",
+                "tầm", "khoảng", "khoang", "quanh", "xấp xỉ", "xap xi", "around"
+        };
+        for (String kw : keywords) {
+            if (msg.contains(kw)) return true;
+        }
+
+        return msg.matches(".*(?:tầm|khoảng|khoang|quanh|xấp xỉ|xap xi|around)\\s*(?:mức\\s+)?(?:giá\\s+)?\\d+[\\d.,]*\\s*(?:k|nghìn|ngàn|triệu|tr)?.*");
+    }
+
+    private Map<String, Object> handleKnowledgeLookup(String msg, List<String> conversationContext) {
+        Optional<ChatKnowledgeService.KnowledgeMatch> bestMatch = chatKnowledgeService.findBestMatch(msg, conversationContext);
+        if (bestMatch.isEmpty()) return null;
+
+        double score = bestMatch.get().score();
+
+        // Ngưỡng đủ chắc chắn để trả lời trực tiếp.
+        if (score >= 0.62d) {
+            chatKnowledgeService.markUsed(bestMatch.get().knowledge().getId());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("reply", bestMatch.get().knowledge().getCauTraLoi() +
+                    "\n\nNếu cần mình có thể giải thích chi tiết hơn hoặc bạn gõ \"chuyển nhân viên\" để gặp tư vấn viên.");
+            result.put("products", Collections.emptyList());
+            return result;
+        }
+
+        // Không chắc chắn: gợi ý các chủ đề gần đúng để giảm trả lời sai.
+        if (score >= 0.45d) {
+            List<ChatKnowledgeService.KnowledgeMatch> suggestions = chatKnowledgeService.suggestMatches(msg, conversationContext, 3);
+            if (suggestions.isEmpty()) return null;
+
+            StringBuilder sb = new StringBuilder("Mình chưa chắc bạn đang hỏi ý nào, bạn chọn giúp mình nhé:\n\n");
+            int i = 1;
+            for (ChatKnowledgeService.KnowledgeMatch suggestion : suggestions) {
+                sb.append(i++).append(". ").append(suggestion.knowledge().getCauHoiMau()).append("\n");
+            }
+            sb.append("\nBạn có thể nhắn lại cụ thể hơn hoặc gõ \"chuyển nhân viên\" để được hỗ trợ trực tiếp.");
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("reply", sb.toString());
+            result.put("products", Collections.emptyList());
+            return result;
+        }
+
+        return null;
+    }
+
     // ==========================================================================================
     // HANDLER: Tìm sản phẩm thông minh
     // ==========================================================================================
@@ -230,6 +307,35 @@ public class ChatAiService {
         String keyword = extractProductKeyword(msg);
         BigDecimal minPrice = extractMinPrice(msg);
         BigDecimal maxPrice = extractMaxPrice(msg);
+
+        // Query kiểu "tầm 500k" -> tự tạo khoảng +-20%
+        if (minPrice == null && maxPrice == null && isPriceSearchIntent(msg)) {
+            BigDecimal aroundPrice = extractApproxPrice(msg);
+            if (aroundPrice != null) {
+                BigDecimal[] approxRange = buildApproxPriceRange(aroundPrice);
+                minPrice = approxRange[0];
+                maxPrice = approxRange[1];
+            }
+        }
+
+        // Người dùng hỏi theo giá nhưng chưa nêu số cụ thể
+        if (minPrice == null && maxPrice == null && isPriceSearchIntent(msg)) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("reply", "Bạn muốn lọc theo mức giá nào ạ? 💰\n" +
+                    "Ví dụ:\n" +
+                    "• \"Cho tôi sản phẩm dưới 500k\"\n" +
+                    "• \"Cho tôi sản phẩm trong khoảng giá 300k đến 700k\"\n" +
+                    "• \"Cho tôi áo polo tầm 400k\"");
+            result.put("products", Collections.emptyList());
+            return result;
+        }
+
+        if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            BigDecimal tmp = minPrice;
+            minPrice = maxPrice;
+            maxPrice = tmp;
+        }
+
         boolean onlyDiscount = msg.contains("giảm giá") || msg.contains("sale") || msg.contains("khuyến mãi");
 
         // Nếu không trích xuất được gì → return null để xử lý mặc định
@@ -806,56 +912,106 @@ public class ChatAiService {
 
         // Làm sạch và trích xuất
         String cleaned = msg
+                .replaceAll("(?:trong\\s+khoảng\\s+giá|khoảng\\s+giá|mức\\s+giá|tầm\\s+giá)", "")
+                .replaceAll("(?:từ|tu|khoảng|khoang)\\s*\\d+[.,]?\\d*\\s*(?:k|nghìn|ngàn|triệu|tr|đồng|vnd|vnđ)?\\s*(?:đến|den|tới|toi|-)\\s*\\d+[.,]?\\d*\\s*(?:k|nghìn|ngàn|triệu|tr|đồng|vnd|vnđ)?", "")
                 .replaceAll("(?:dưới|trên|từ|đến|khoảng|tầm|giá)\\s*\\d+[.,]?\\d*\\s*(?:k|nghìn|ngàn|triệu|tr|đồng|vnd|vnđ)?", "")
                 .replaceAll("(?:màu)\\s+\\S+", "")
                 .replaceAll("(?:size|cỡ|sz)\\s*\\S+", "")
-                .replaceAll("\\b(?:tìm|kiếm|muốn mua|cho mình|mình muốn|tìm giúp|shop có|bán|giá|bao nhiêu|còn hàng|còn không|có không|mình|cho|có|cái|chiếc|đôi|được không|nào|nhé|ạ|đi|với|và|the|a|is|are)\\b", "")
+                .replaceAll("\\b(?:tìm|kiếm|muốn mua|cho mình|mình muốn|tìm giúp|shop có|bán|giá|bao nhiêu|còn hàng|còn không|có không|mình|cho|có|cái|chiếc|đôi|được không|nào|nhé|ạ|đi|với|và|the|a|is|are|tôi|toi|xin|hãy|làm ơn|sản phẩm|san pham|mặt hàng|mat hang|hàng|hang|đồ|do)\\b", "")
                 .replaceAll("\\b(?:đỏ|xanh|trắng|đen|vàng|hồng|tím|cam|nâu|xám|bạc|kem|be|ghi|navy|rêu)\\b", "")
                 .replaceAll("\\s+", " ").trim();
 
+        if (cleaned.equals("sản phẩm") || cleaned.equals("san pham") || cleaned.equals("hàng") || cleaned.equals("hang")) {
+            return null;
+        }
         if (cleaned.length() >= 2) return cleaned;
         return null;
     }
 
     private BigDecimal extractMaxPrice(String msg) {
+        BigDecimal[] range = extractPriceRange(msg);
+        if (range != null) return range[1];
+
         // "dưới 500k", "under 500000", "tối đa 500k"
-        Pattern p = Pattern.compile("(?:dưới|under|tối đa|max|không quá)\\s*(\\d+[.,]?\\d*)\\s*(k|nghìn|ngàn|triệu|tr)?", Pattern.CASE_INSENSITIVE);
+        Pattern p = Pattern.compile("(?:dưới|under|tối đa|max|không quá|nhỏ hơn|ít hơn)\\s*(?:mức\\s+)?(?:giá\\s+)?(\\d+[\\d.,]*)\\s*(k|nghìn|ngàn|triệu|tr)?", Pattern.CASE_INSENSITIVE);
         Matcher m = p.matcher(msg);
         if (m.find()) return parsePrice(m.group(1), m.group(2));
 
         // "500k trở xuống"
-        Pattern p2 = Pattern.compile("(\\d+[.,]?\\d*)\\s*(k|nghìn|ngàn|triệu|tr)\\s*(?:trở xuống|trở lại)", Pattern.CASE_INSENSITIVE);
+        Pattern p2 = Pattern.compile("(\\d+[\\d.,]*)\\s*(k|nghìn|ngàn|triệu|tr)?\\s*(?:trở xuống|trở lại|đổ lại)", Pattern.CASE_INSENSITIVE);
         Matcher m2 = p2.matcher(msg);
         if (m2.find()) return parsePrice(m2.group(1), m2.group(2));
-
-        // "giá từ X đến Y" → Y là max
-        Pattern p3 = Pattern.compile("(?:từ|khoảng)\\s*\\d+[.,]?\\d*\\s*(?:k|nghìn|ngàn|triệu|tr)?\\s*(?:đến|tới|-)\\s*(\\d+[.,]?\\d*)\\s*(k|nghìn|ngàn|triệu|tr)?", Pattern.CASE_INSENSITIVE);
-        Matcher m3 = p3.matcher(msg);
-        if (m3.find()) return parsePrice(m3.group(1), m3.group(2));
 
         return null;
     }
 
     private BigDecimal extractMinPrice(String msg) {
+        BigDecimal[] range = extractPriceRange(msg);
+        if (range != null) return range[0];
+
         // "trên 200k", "từ 200k"
-        Pattern p = Pattern.compile("(?:trên|tối thiểu|min|từ)\\s*(\\d+[.,]?\\d*)\\s*(k|nghìn|ngàn|triệu|tr)?", Pattern.CASE_INSENSITIVE);
+        Pattern p = Pattern.compile("(?:trên|tối thiểu|min|từ|lớn hơn|cao hơn)\\s*(?:mức\\s+)?(?:giá\\s+)?(\\d+[\\d.,]*)\\s*(k|nghìn|ngàn|triệu|tr)?", Pattern.CASE_INSENSITIVE);
         Matcher m = p.matcher(msg);
         if (m.find()) {
-            // Kiểm tra không phải pattern "từ X đến Y" (X là min)
             return parsePrice(m.group(1), m.group(2));
         }
 
         // "200k trở lên"
-        Pattern p2 = Pattern.compile("(\\d+[.,]?\\d*)\\s*(k|nghìn|ngàn|triệu|tr)\\s*(?:trở lên|trở đi)", Pattern.CASE_INSENSITIVE);
+        Pattern p2 = Pattern.compile("(\\d+[\\d.,]*)\\s*(k|nghìn|ngàn|triệu|tr)?\\s*(?:trở lên|trở đi)", Pattern.CASE_INSENSITIVE);
         Matcher m2 = p2.matcher(msg);
         if (m2.find()) return parsePrice(m2.group(1), m2.group(2));
+
+        return null;
+    }
+
+    private BigDecimal extractApproxPrice(String msg) {
+        Pattern p = Pattern.compile("(?:tầm|khoảng|khoang|quanh|xấp xỉ|xap xi|around)\\s*(?:mức\\s+)?(?:giá\\s+)?(\\d+[\\d.,]*)\\s*(k|nghìn|ngàn|triệu|tr)?", Pattern.CASE_INSENSITIVE);
+        Matcher m = p.matcher(msg);
+        if (m.find()) return parsePrice(m.group(1), m.group(2));
+
+        Pattern p2 = Pattern.compile("(?:giá|gia)\\s*(\\d+[\\d.,]*)\\s*(k|nghìn|ngàn|triệu|tr)", Pattern.CASE_INSENSITIVE);
+        Matcher m2 = p2.matcher(msg);
+        if (m2.find()) return parsePrice(m2.group(1), m2.group(2));
+
+        return null;
+    }
+
+    private BigDecimal[] extractPriceRange(String msg) {
+        Pattern p1 = Pattern.compile("(?:từ|tu|trong\\s+khoảng|khoảng|khoang|mức\\s+giá|muc\\s+gia)\\s*(?:giá\\s*)?(\\d+[\\d.,]*)\\s*(k|nghìn|ngàn|triệu|tr)?\\s*(?:đến|den|tới|toi|-)\\s*(\\d+[\\d.,]*)\\s*(k|nghìn|ngàn|triệu|tr)?", Pattern.CASE_INSENSITIVE);
+        Matcher m1 = p1.matcher(msg);
+        if (m1.find()) {
+            BigDecimal first = parsePrice(m1.group(1), m1.group(2));
+            String secondUnit = m1.group(4) != null ? m1.group(4) : m1.group(2);
+            BigDecimal second = parsePrice(m1.group(3), secondUnit);
+            if (first != null && second != null) {
+                return first.compareTo(second) <= 0
+                        ? new BigDecimal[]{first, second}
+                        : new BigDecimal[]{second, first};
+            }
+        }
+
+        Pattern p2 = Pattern.compile("(\\d+[\\d.,]*)\\s*(k|nghìn|ngàn|triệu|tr)?\\s*(?:đến|den|tới|toi|-)\\s*(\\d+[\\d.,]*)\\s*(k|nghìn|ngàn|triệu|tr)?", Pattern.CASE_INSENSITIVE);
+        Matcher m2 = p2.matcher(msg);
+        if (m2.find()) {
+            BigDecimal first = parsePrice(m2.group(1), m2.group(2));
+            String secondUnit = m2.group(4) != null ? m2.group(4) : m2.group(2);
+            BigDecimal second = parsePrice(m2.group(3), secondUnit);
+            if (first != null && second != null) {
+                return first.compareTo(second) <= 0
+                        ? new BigDecimal[]{first, second}
+                        : new BigDecimal[]{second, first};
+            }
+        }
 
         return null;
     }
 
     private BigDecimal parsePrice(String number, String unit) {
         try {
-            BigDecimal value = new BigDecimal(number.replace(",", "."));
+            String normalizedNumber = normalizeNumberToken(number);
+            if (normalizedNumber.isBlank()) return null;
+
+            BigDecimal value = new BigDecimal(normalizedNumber);
             if (unit != null) {
                 String u = unit.toLowerCase();
                 if (u.equals("k") || u.equals("nghìn") || u.equals("ngàn")) {
@@ -871,6 +1027,93 @@ public class ChatAiService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private String normalizeNumberToken(String token) {
+        if (token == null) return "";
+
+        String cleaned = token.trim().replaceAll("\\s+", "");
+        cleaned = cleaned.replaceAll("[^0-9,\\.]", "");
+        if (cleaned.isBlank()) return "";
+
+        boolean hasComma = cleaned.contains(",");
+        boolean hasDot = cleaned.contains(".");
+
+        if (hasComma && hasDot) {
+            if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+                // 1.200,5 -> 1200.5
+                cleaned = cleaned.replace(".", "").replace(",", ".");
+            } else {
+                // 1,200.5 -> 1200.5
+                cleaned = cleaned.replace(",", "");
+            }
+            return cleaned;
+        }
+
+        if (hasComma) {
+            if (cleaned.matches("\\d{1,3}(,\\d{3})+")) {
+                // 1,200,000 -> 1200000
+                return cleaned.replace(",", "");
+            }
+            // 1,5 -> 1.5
+            return cleaned.replace(",", ".");
+        }
+
+        if (hasDot) {
+            if (cleaned.matches("\\d{1,3}(\\.\\d{3})+")) {
+                // 1.200.000 -> 1200000
+                return cleaned.replace(".", "");
+            }
+            // 1.5 giữ nguyên
+            return cleaned;
+        }
+
+        return cleaned;
+    }
+
+    private BigDecimal[] buildApproxPriceRange(BigDecimal aroundPrice) {
+        if (aroundPrice == null || aroundPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            return new BigDecimal[]{null, null};
+        }
+
+        BigDecimal lowerOffset;
+        BigDecimal upperOffset;
+
+        // Theo hành vi mua sắm thời trang: ngân sách càng cao thì biên độ tìm kiếm càng rộng.
+        if (aroundPrice.compareTo(BigDecimal.valueOf(300_000)) <= 0) {
+            lowerOffset = BigDecimal.valueOf(70_000);
+            upperOffset = BigDecimal.valueOf(100_000);
+        } else if (aroundPrice.compareTo(BigDecimal.valueOf(700_000)) <= 0) {
+            lowerOffset = BigDecimal.valueOf(100_000);
+            upperOffset = BigDecimal.valueOf(150_000);
+        } else if (aroundPrice.compareTo(BigDecimal.valueOf(1_200_000)) <= 0) {
+            lowerOffset = BigDecimal.valueOf(150_000);
+            upperOffset = BigDecimal.valueOf(250_000);
+        } else {
+            lowerOffset = BigDecimal.valueOf(250_000);
+            upperOffset = BigDecimal.valueOf(400_000);
+        }
+
+        BigDecimal min = aroundPrice.subtract(lowerOffset);
+        BigDecimal max = aroundPrice.add(upperOffset);
+
+        if (min.compareTo(BigDecimal.valueOf(50_000)) < 0) {
+            min = BigDecimal.valueOf(50_000);
+        }
+
+        min = roundDownToNearestTenThousand(min);
+        max = roundUpToNearestTenThousand(max);
+        return new BigDecimal[]{min, max};
+    }
+
+    private BigDecimal roundDownToNearestTenThousand(BigDecimal value) {
+        return value.divide(BigDecimal.valueOf(10_000), 0, RoundingMode.DOWN)
+                .multiply(BigDecimal.valueOf(10_000));
+    }
+
+    private BigDecimal roundUpToNearestTenThousand(BigDecimal value) {
+        return value.divide(BigDecimal.valueOf(10_000), 0, RoundingMode.UP)
+                .multiply(BigDecimal.valueOf(10_000));
     }
 
     private Integer extractNumber(String msg, String beforePattern, String afterPattern) {

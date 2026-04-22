@@ -69,6 +69,15 @@ public class ChatController {
     }
 
     /**
+     * Khách hàng chủ động yêu cầu chat với nhân viên
+     */
+    @PostMapping("/sessions/{sessionId}/request-staff")
+    public ResponseEntity<ChatSessionResponse> requestStaffSupport(@PathVariable Integer sessionId) {
+        ChatSession session = chatService.requestStaffSupport(sessionId);
+        return ResponseEntity.ok(chatService.toSessionResponse(session));
+    }
+
+    /**
      * Nhân viên nhận xử lý session
      */
     @PostMapping("/sessions/{sessionId}/assign")

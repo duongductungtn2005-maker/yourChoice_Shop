@@ -37,7 +37,7 @@ public class LichSuThanhToan extends PrimaryEntity {
     @Column(name = "loai_thanh_toan")
     private String loaiThanhToan;
 
-    @Column(name = "ghi_chu")
+    @Column(name = "ghi_chu", columnDefinition = "NVARCHAR(MAX)")
     private String ghiChu;
 
     @Column(name = "trang_thai")

@@ -123,6 +123,44 @@ public class ChatService {
         return session;
     }
 
+    /**
+     * Khách hàng yêu cầu hỗ trợ từ nhân viên
+     */
+    @Transactional
+    public ChatSession requestStaffSupport(Integer sessionId) {
+        ChatSession session = chatSessionRepository.findById(sessionId).orElseThrow();
+
+        if (session.getTrangThai() != null && session.getTrangThai() == 3) {
+            throw new RuntimeException("Phiên chat đã đóng");
+        }
+
+        if ("NOI_BO".equals(session.getLoaiChat())) {
+            throw new RuntimeException("Phiên chat nội bộ không hỗ trợ yêu cầu nhân viên");
+        }
+
+        boolean alreadyWaitingOrAssigned = "Chờ nhân viên".equals(session.getNguoiXuLy())
+                || (session.getNguoiXuLy() != null && !"AI".equals(session.getNguoiXuLy()));
+
+        if (alreadyWaitingOrAssigned) {
+            return session;
+        }
+
+        session.setTrangThai(2); // Chờ nhận
+        session.setNguoiXuLy("Chờ nhân viên");
+        chatSessionRepository.save(session);
+
+        ChatMessage systemMsg = new ChatMessage();
+        systemMsg.setChatSession(session);
+        systemMsg.setSenderRole("SYSTEM");
+        systemMsg.setSenderName("Hệ thống");
+        systemMsg.setNoiDung("Khách hàng đã yêu cầu hỗ trợ từ nhân viên.");
+        systemMsg.setLoaiTinNhan("TEXT");
+        chatMessageRepository.save(systemMsg);
+
+        messagingTemplate.convertAndSend("/topic/chat/" + session.getId(), toMessageResponse(systemMsg));
+        return session;
+    }
+
     /* ======================== MESSAGES ======================== */
 
     /**
@@ -227,7 +265,8 @@ public class ChatService {
         boolean isAiHandling = "AI".equals(session.getNguoiXuLy());
 
         if (isFromCustomer && isAiHandling) {
-            Map<String, Object> aiResult = chatAiService.processMessage(request.getNoiDung());
+            List<String> contextMessages = buildConversationContext(session.getId());
+            Map<String, Object> aiResult = chatAiService.processMessage(request.getNoiDung(), contextMessages);
 
             ChatMessage aiMsg = new ChatMessage();
             aiMsg.setChatSession(session);
@@ -255,6 +294,29 @@ public class ChatService {
         }
 
         return result;
+    }
+
+    private List<String> buildConversationContext(Integer sessionId) {
+        List<ChatMessage> recentMessages = chatMessageRepository
+                .findTop8ByChatSessionIdOrderByNgayGuiDesc(sessionId);
+        Collections.reverse(recentMessages);
+
+        return recentMessages.stream()
+                .filter(m -> m.getNoiDung() != null && !m.getNoiDung().isBlank())
+                .map(m -> {
+                    String role;
+                    if ("CUSTOMER".equals(m.getSenderRole())) {
+                        role = "Khach";
+                    } else if ("AI".equals(m.getSenderRole())) {
+                        role = "AI";
+                    } else if ("STAFF".equals(m.getSenderRole())) {
+                        role = "NhanVien";
+                    } else {
+                        role = "HeThong";
+                    }
+                    return role + ": " + m.getNoiDung();
+                })
+                .collect(Collectors.toList());
     }
 
     /* ======================== MAPPING ======================== */

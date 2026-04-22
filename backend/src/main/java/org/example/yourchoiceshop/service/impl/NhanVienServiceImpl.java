@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.security.SecureRandom;
 import java.text.Normalizer;
@@ -283,6 +284,14 @@ public class NhanVienServiceImpl implements NhanVienService {
             return null;
         }
         return employee;
+    }
+
+    @Override
+    public Optional<NhanVien> findByTenDangNhap(String tenDangNhap) {
+        if (tenDangNhap == null || tenDangNhap.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        return nhanVienRepo.findByTenTaiKhoan(tenDangNhap.trim());
     }
 
     private String generateRandomPassword() {

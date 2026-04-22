@@ -104,20 +104,23 @@
                 <img src="/src/img/Logo_GHN.webp" alt="GHN" class="ghn-logo" />
                 <div class="option-info">
                   <span class="option-name">Vận chuyển tiêu chuẩn (GHN)</span>
-                  <span class="option-desc">3-5 ngày | {{ cartStore.totalMoney >= 500000 ? 'MIỄN PHÍ' : formatMoney(30000) }}</span>
+                  <span class="option-desc">3-5 ngày | Tính phí theo địa chỉ GHN</span>
                 </div>
-                <span class="option-price">{{ cartStore.totalMoney >= 500000 ? 'Miễn phí' : formatMoney(30000) }}</span>
+                <span class="option-price">{{ formatShippingOptionPrice() }}</span>
               </label>
               <label class="shipping-option" :class="{ active: form.shippingMethod === 'express' }">
                 <input type="radio" value="express" v-model="form.shippingMethod" />
                 <img src="/src/img/Logo_GHN.webp" alt="GHN" class="ghn-logo" />
                 <div class="option-info">
                   <span class="option-name">Vận chuyển nhanh (GHN Express)</span>
-                  <span class="option-desc">1-2 ngày</span>
+                  <span class="option-desc">1-2 ngày | Tính phí theo địa chỉ GHN</span>
                 </div>
-                <span class="option-price">{{ formatMoney(50000) }}</span>
+                <span class="option-price">{{ formatShippingOptionPrice() }}</span>
               </label>
             </div>
+            <span class="error-msg" v-if="errors.shipping">{{ errors.shipping }}</span>
+            <p class="shipping-hint" v-if="!errors.shipping && !isShippingAddressReady">Vui lòng chọn đủ quận/huyện và phường/xã để GHN tính phí.</p>
+            <p class="shipping-error" v-if="shippingQuote.error">{{ shippingQuote.error }}</p>
           </div>
 
           <!-- Phương thức thanh toán -->
@@ -244,7 +247,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
-import { createOrderOnline, getProvinces, getDistricts, getWards, getVouchers, getAddresses } from '@/api/clientApi'
+import { createOrderOnline, getProvinces, getDistricts, getWards, getVouchers, getAddresses, calculateShippingFee } from '@/api/clientApi'
 import { getCurrentUser, isAuthenticated, getCustomerOrdersPath } from '@/services/auth'
 import Swal from 'sweetalert2'
 import axios from 'axios'
@@ -280,11 +283,21 @@ const form = reactive({
 
 const errors = reactive({})
 
-// Calculated prices
-const shippingFee = computed(() => {
-  if (form.shippingMethod === 'express') return 50000
-  return cartStore.totalMoney >= 500000 ? 0 : 30000
+const shippingQuote = reactive({
+  fee: 0,
+  loading: false,
+  error: '',
 })
+
+const isShippingAddressReady = computed(() => Boolean(form.districtId && form.wardCode))
+
+const resetShippingQuote = () => {
+  shippingQuote.fee = 0
+  shippingQuote.error = ''
+}
+
+// Calculated prices
+const shippingFee = computed(() => shippingQuote.fee)
 
 const discountAmount = computed(() => {
   if (!appliedVoucher.value) return 0
@@ -327,7 +340,7 @@ onMounted(async () => {
       const defaultAddr = savedAddresses.value.find(a => a.macDinh)
       if (defaultAddr) {
         selectedAddressId.value = defaultAddr.id
-        fillAddress(defaultAddr)
+        await fillAddress(defaultAddr)
       }
     } catch (e) { console.error('Lỗi tải địa chỉ:', e) }
   }
@@ -341,6 +354,7 @@ const onProvinceChange = async () => {
   wards.value = []
   form.districtId = null
   form.wardCode = null
+  resetShippingQuote()
   const prov = provinces.value.find(p => p.provinceId === form.provinceId)
   form.provinceName = prov ? prov.provinceName : ''
   if (!form.provinceId) return
@@ -353,6 +367,7 @@ const onProvinceChange = async () => {
 const onDistrictChange = async () => {
   wards.value = []
   form.wardCode = null
+  resetShippingQuote()
   const dist = districts.value.find(d => d.districtId === form.districtId)
   form.districtName = dist ? dist.districtName : ''
   if (!form.districtId) return
@@ -367,19 +382,167 @@ watch(() => form.wardCode, (val) => {
   form.wardName = w ? w.wardName : ''
 })
 
-const fillAddress = (addr) => {
+watch(
+  [() => form.districtId, () => form.wardCode],
+  () => {
+    if (!isShippingAddressReady.value) {
+      resetShippingQuote()
+      return
+    }
+    void calculateGhnFee()
+  }
+)
+
+watch(
+  () => cartStore.totalMoney,
+  () => {
+    if (isShippingAddressReady.value) {
+      void calculateGhnFee()
+    }
+  }
+)
+
+const normalizeLocationName = (value) => String(value || '')
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/\b(tinh|thanh pho|tp|quan|q|huyen|h|phuong|p|xa|x)\b\.?/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+
+const findLocationByName = (list, key, name) => {
+  const normalizedTarget = normalizeLocationName(name)
+  if (!normalizedTarget) return null
+
+  return (
+    list.find(item => normalizeLocationName(item[key]) === normalizedTarget)
+    || list.find(item => {
+      const normalizedCurrent = normalizeLocationName(item[key])
+      return normalizedCurrent.includes(normalizedTarget) || normalizedTarget.includes(normalizedCurrent)
+    })
+    || null
+  )
+}
+
+const hydrateGhnLocationIdsFromAddress = async (addr) => {
+  const provinceById = Number(addr.provinceId || 0)
+  const districtById = Number(addr.districtId || 0)
+  const wardByCode = String(addr.wardCode || '').trim()
+
+  const province = provinceById > 0
+    ? provinces.value.find(p => p.provinceId === provinceById)
+    : findLocationByName(provinces.value, 'provinceName', addr.thanhPho)
+
+  form.provinceId = province?.provinceId ?? null
+  form.provinceName = province?.provinceName || addr.thanhPho || ''
+
+  districts.value = []
+  wards.value = []
+  form.districtId = null
+  form.wardCode = null
+
+  if (!form.provinceId) {
+    resetShippingQuote()
+    return
+  }
+
+  try {
+    const distRes = await getDistricts(form.provinceId)
+    districts.value = distRes.data?.data || distRes.data || []
+  } catch (e) {
+    console.error('Lỗi tải quận/huyện khi map địa chỉ:', e)
+    resetShippingQuote()
+    return
+  }
+
+  const district = districtById > 0
+    ? districts.value.find(d => d.districtId === districtById)
+    : findLocationByName(districts.value, 'districtName', addr.quan)
+
+  form.districtId = district?.districtId ?? null
+  form.districtName = district?.districtName || addr.quan || ''
+
+  if (!form.districtId) {
+    resetShippingQuote()
+    return
+  }
+
+  try {
+    const wardRes = await getWards(form.districtId)
+    wards.value = wardRes.data?.data || wardRes.data || []
+  } catch (e) {
+    console.error('Lỗi tải phường/xã khi map địa chỉ:', e)
+    resetShippingQuote()
+    return
+  }
+
+  const ward = wardByCode
+    ? wards.value.find(w => String(w.wardCode) === wardByCode)
+    : findLocationByName(wards.value, 'wardName', addr.phuong)
+
+  form.wardCode = ward?.wardCode ?? null
+  form.wardName = ward?.wardName || addr.phuong || ''
+
+  if (!form.wardCode) {
+    resetShippingQuote()
+  }
+}
+
+const calculateGhnFee = async () => {
+  if (!isShippingAddressReady.value) {
+    resetShippingQuote()
+    return
+  }
+
+  shippingQuote.loading = true
+  shippingQuote.error = ''
+
+  try {
+    const requestData = {
+      toDistrictId: Number(form.districtId),
+      toWardCode: String(form.wardCode),
+      tongCanNang: 1200,
+      dai: 30,
+      rong: 20,
+      cao: 10,
+      tongGiaTriHang: Math.max(0, Math.round(cartStore.totalMoney || 0)),
+    }
+
+    const res = await calculateShippingFee(requestData)
+    shippingQuote.fee = Number(res?.data?.total || 0)
+  } catch (e) {
+    console.error('Lỗi tính phí vận chuyển GHN:', e)
+    shippingQuote.fee = 0
+    shippingQuote.error = e?.response?.data?.message || 'Không thể tính phí vận chuyển từ GHN. Vui lòng kiểm tra lại địa chỉ.'
+  } finally {
+    shippingQuote.loading = false
+  }
+}
+
+const formatShippingOptionPrice = () => {
+  if (shippingQuote.loading) return 'Đang tính...'
+  if (!isShippingAddressReady.value) return 'Chọn địa chỉ'
+  return formatMoney(shippingFee.value)
+}
+
+const fillAddress = async (addr) => {
   form.tenKhachHang = form.tenKhachHang || addr.tenNguoiNhan
   form.soDienThoai = form.soDienThoai || addr.soDienThoai
   form.provinceName = addr.thanhPho || ''
   form.districtName = addr.quan || ''
   form.wardName = addr.phuong || ''
   form.diaChiCuThe = addr.diaChiCuThe || ''
+
+  await hydrateGhnLocationIdsFromAddress(addr)
 }
 
 const clearAddressForm = () => {
   form.provinceId = null; form.districtId = null; form.wardCode = null
   form.provinceName = ''; form.districtName = ''; form.wardName = ''
   form.diaChiCuThe = ''
+  districts.value = []
+  wards.value = []
+  resetShippingQuote()
 }
 
 // Voucher
@@ -474,6 +637,10 @@ const validate = () => {
     if (!form.districtName) e.district = 'Chọn quận/huyện'
     if (!form.wardName) e.ward = 'Chọn phường/xã'
     if (!form.diaChiCuThe.trim()) e.diaChiCuThe = 'Nhập địa chỉ cụ thể'
+  }
+
+  if (!isShippingAddressReady.value) {
+    e.shipping = 'Cần đủ quận/huyện và phường/xã để tính phí vận chuyển GHN'
   }
 
   Object.keys(errors).forEach(k => delete errors[k])
@@ -610,6 +777,8 @@ textarea:focus { border-color: #1e3a8a; }
 .option-name { font-weight: 600; font-size: 14px; display: block; }
 .option-desc { font-size: 13px; color: #64748b; }
 .option-price { font-weight: 700; color: #0f172a; font-size: 14px; }
+.shipping-hint { margin-top: 10px; font-size: 12px; color: #64748b; }
+.shipping-error { margin-top: 8px; font-size: 12px; color: #dc2626; }
 
 /* Payment */
 .payment-options { display: flex; flex-direction: column; gap: 10px; }

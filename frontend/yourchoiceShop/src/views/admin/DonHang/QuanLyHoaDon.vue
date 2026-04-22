@@ -65,16 +65,16 @@
       <div class="table-scroll">
         <table class="custom-table">
           <colgroup>
-            <col style="width: 5%;" />
-            <col style="width: 14%;" />
-            <col style="width: 14%;" />
-            <col style="width: 14%;" />
+            <col style="width: 4%;" />
             <col style="width: 12%;" />
             <col style="width: 11%;" />
+            <col style="width: 12%;" />
+            <col style="width: 10%;" />
+            <col style="width: 10%;" />
             <col style="width: 10%;" />
             <col style="width: 9%;" />
-            <col style="width: 8%;" />
-            <col style="width: 3%;" />
+            <col style="width: 12%;" />
+            <col style="width: 9%;" />
           </colgroup>
           <thead>
             <tr>
@@ -152,6 +152,20 @@
           </select>
           kết quả / trang
         </div>
+
+        <div class="sort-dropdown-wrapper" ref="sortFilterRef">
+          <button type="button" class="sort-btn" @click="toggleSortFilterDropdown">
+            {{ sortFilterLabel }}
+            <i class="fas" :class="showSortFilterDropdown ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+          </button>
+          <div v-if="showSortFilterDropdown" class="sort-dropdown-menu" :style="sortDropdownStyle">
+            <div v-for="option in SORT_OPTIONS" :key="option.value" class="sort-item" 
+              @click="applySortFilter(option.value)">
+              {{ option.label }}
+            </div>
+          </div>
+        </div>
+
         <div class="page-controls">
           <button :disabled="currentPage === 1" @click="changePage(currentPage - 1)">‹</button>
           <button v-for="p in visiblePages" :key="p" :class="{ active: p === currentPage }" @click="changePage(p)">
@@ -200,6 +214,10 @@ const filter = ref({ keyword: '', fromDate: '', toDate: '', orderType: '', activ
 const quickFilterValue = ref('')
 const showQuickFilterDropdown = ref(false)
 const quickFilterRef = ref(null)
+const sortValue = ref('ngay_cua_nhest')
+const showSortFilterDropdown = ref(false)
+const sortFilterRef = ref(null)
+const sortDropdownStyle = ref({})
 const showScanModal = ref(false)
 let html5QrcodeScanner = null
 
@@ -208,6 +226,13 @@ const QUICK_FILTER_OPTIONS = [
   { value: 'Trực tuyến', label: 'Online' },
   { value: 'Tại quầy', label: 'Tại quầy' },
   { value: 'DANG_GIAO', label: 'Đơn đang giao' }
+]
+
+const SORT_OPTIONS = [
+  { value: 'ngay_cua_nhest', label: 'Cũ nhất -> Mới nhất' },
+  { value: 'ngay_moi_nhat', label: 'Mới nhất -> Cũ nhất' },
+  { value: 'tien_lon_nhat', label: 'Tổng tiền: Lớn nhất -> Bé nhất' },
+  { value: 'tien_be_nhat', label: 'Tổng tiền: Bé nhất -> Lớn nhất' }
 ]
 
 // Computed để chọn route name dựa trên role
@@ -236,6 +261,11 @@ const quickFilterLabel = computed(() => {
   return selected ? selected.label : 'Tất cả'
 })
 
+const sortFilterLabel = computed(() => {
+  const selected = SORT_OPTIONS.find(option => option.value === sortValue.value)
+  return selected ? selected.label : 'Sắp xếp'
+})
+
 const getTodayDateInputValue = () => {
   const now = new Date();
   const year = now.getFullYear();
@@ -257,10 +287,34 @@ const formatDate = (val) => {
 }
 
 // --- LOGIC MODAL & QR ---
+const toggleSortFilterDropdown = () => {
+  if (!showSortFilterDropdown.value && sortFilterRef.value) {
+    // Khi mở dropdown, tính vị trí của button
+    const btn = sortFilterRef.value.querySelector('.sort-btn');
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      sortDropdownStyle.value = {
+        top: (rect.bottom + 4) + 'px',
+        left: rect.left + 'px'
+      };
+    }
+  }
+  showSortFilterDropdown.value = !showSortFilterDropdown.value
+}
+
+const applySortFilter = (value) => {
+  sortValue.value = value
+  currentPage.value = 1
+  showSortFilterDropdown.value = false
+  fetchData()
+}
+
 const resetFilter = () => {
   filter.value = { keyword: '', fromDate: '', toDate: '', orderType: '', activeTab: 'ALL' };
   quickFilterValue.value = '';
+  sortValue.value = 'ngay_cua_nhest';
   showQuickFilterDropdown.value = false;
+  showSortFilterDropdown.value = false;
   currentPage.value = 1;
   fetchData();
 }
@@ -289,6 +343,10 @@ const handleOutsideQuickFilterClick = (event) => {
   if (!quickFilterRef.value) return
   if (!quickFilterRef.value.contains(event.target)) {
     showQuickFilterDropdown.value = false
+  }
+  if (!sortFilterRef.value) return
+  if (!sortFilterRef.value.contains(event.target)) {
+    showSortFilterDropdown.value = false
   }
 }
 
@@ -369,7 +427,29 @@ const fetchData = async () => {
       status: filter.value.activeTab === 'ALL' ? null : filter.value.activeTab
     }
     const res = await fetchOrders(params);
-    orders.value = res.data.content;
+    let data = res.data.content || [];
+
+    // Sắp xếp dữ liệu ở client-side
+    if (sortValue.value === 'ngay_moi_nhat') {
+      data.sort((a, b) => {
+        const dateA = new Date(Array.isArray(a.ngayTao) ? new Date(a.ngayTao[0], a.ngayTao[1] - 1, a.ngayTao[2], a.ngayTao[3] || 0, a.ngayTao[4] || 0) : a.ngayTao);
+        const dateB = new Date(Array.isArray(b.ngayTao) ? new Date(b.ngayTao[0], b.ngayTao[1] - 1, b.ngayTao[2], b.ngayTao[3] || 0, b.ngayTao[4] || 0) : b.ngayTao);
+        return dateB - dateA;
+      });
+    } else if (sortValue.value === 'tien_lon_nhat') {
+      data.sort((a, b) => (b.tongTienSauGiam || 0) - (a.tongTienSauGiam || 0));
+    } else if (sortValue.value === 'tien_be_nhat') {
+      data.sort((a, b) => (a.tongTienSauGiam || 0) - (b.tongTienSauGiam || 0));
+    } else {
+      // ngay_cua_nhest (mặc định)
+      data.sort((a, b) => {
+        const dateA = new Date(Array.isArray(a.ngayTao) ? new Date(a.ngayTao[0], a.ngayTao[1] - 1, a.ngayTao[2], a.ngayTao[3] || 0, a.ngayTao[4] || 0) : a.ngayTao);
+        const dateB = new Date(Array.isArray(b.ngayTao) ? new Date(b.ngayTao[0], b.ngayTao[1] - 1, b.ngayTao[2], b.ngayTao[3] || 0, b.ngayTao[4] || 0) : b.ngayTao);
+        return dateA - dateB;
+      });
+    }
+
+    orders.value = data;
     totalPages.value = res.data.totalPages > 0 ? res.data.totalPages : 1;
   } catch (error) {
     console.error("Lỗi:", error);
@@ -402,20 +482,18 @@ const visiblePages = computed(() => {
 const STATUS_TABS = [
   { key: 'ALL', label: 'Tất cả' },
   { key: '1', label: 'Chờ xác nhận' },
-  { key: '2', label: 'Chờ giao hàng' },
+  { key: '2', label: 'Đã xác nhận' },
   { key: '3', label: 'Đang vận chuyển' },
-  { key: '4', label: 'Chờ thanh toán' },
-  { key: '5', label: 'Hoàn thành' },
+  { key: '4', label: 'Hoàn thành' },
   { key: '0', label: 'Đã hủy' }
 ]
 
 const STATUS_CONFIG = {
   0: { text: 'Đã hủy', class: 'st-red' },
   1: { text: 'Chờ xác nhận', class: 'st-yellow' },
-  2: { text: 'Chờ giao hàng', class: 'st-blue' },
+  2: { text: 'Đã xác nhận', class: 'st-blue' },
   3: { text: 'Đang vận chuyển', class: 'st-orange' },
-  4: { text: 'Chờ thanh toán', class: 'st-purple' },
-  5: { text: 'Hoàn thành', class: 'st-green' }
+  4: { text: 'Hoàn thành', class: 'st-green' }
 }
 
 const ORDER_TYPE_CONFIG = {
@@ -481,7 +559,8 @@ onBeforeUnmount(() => {
 
 .table-container {
   padding: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  position: relative;
 }
 
 /* === HEADER SECTION TRONG BẢNG === */
@@ -725,7 +804,7 @@ onBeforeUnmount(() => {
 /* === TABLE === */
 .custom-table {
   width: 100%;
-  min-width: 1120px;
+  min-width: 1000px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -743,6 +822,9 @@ onBeforeUnmount(() => {
   font-weight: 700;
   text-transform: uppercase;
   border-bottom: none !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .custom-table td {
@@ -756,6 +838,13 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Action column - hiển thị đầy đủ không cắt chữ */
+.custom-table td.action-col {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 /* Cột LOẠI luôn hiển thị đủ badge, không hiện dấu ... */
@@ -909,6 +998,15 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 15px 24px;
   border-top: 1px solid #f1f5f9;
+  position: relative;
+  gap: 20px;
+}
+
+.page-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
 }
 
 .page-info select {
@@ -918,13 +1016,73 @@ onBeforeUnmount(() => {
   margin: 0 5px;
 }
 
+.sort-dropdown-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.sort-btn:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.sort-dropdown-menu {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 280px;
+}
+
+.sort-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #334155;
+  transition: background 0.15s;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sort-item:last-child {
+  border-bottom: none;
+}
+
+.sort-item:hover {
+  background: #f8fafc;
+  color: var(--brand-navy);
+}
+
+.page-controls {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
 .page-controls button {
   width: 32px;
   height: 32px;
   border: 1px solid #e2e8f0;
   background: #fff;
   border-radius: 4px;
-  margin-left: 5px;
   cursor: pointer;
 }
 

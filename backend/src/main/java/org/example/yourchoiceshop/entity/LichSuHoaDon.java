@@ -29,11 +29,11 @@ public class LichSuHoaDon extends PrimaryEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Integer id;
-    @Column(name = "hanh_dong")
+    @Column(name = "hanh_dong", columnDefinition = "NVARCHAR(255)")
     private String hanhDong;
     @Column(name = "thoi_gian")
     private LocalDateTime thoiGian;
-    @Column(name = "ghi_chu")
+    @Column(name = "ghi_chu", columnDefinition = "NVARCHAR(MAX)")
     private String ghiChu;
     @ManyToOne
     @JoinColumn(name = "id_hoa_don")

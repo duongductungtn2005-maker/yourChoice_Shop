@@ -1,18 +1,28 @@
 import axios from 'axios';
-import { getToken, logout, isAuthenticated, touchSession } from './auth';
+// ADDED: Imported 'logout' from your auth file
+import { getToken, getCurrentUser, logout, isAuthenticated, touchSession } from './auth'; 
 
 const request = axios.create({
     baseURL: 'http://localhost:8080/api/v1',
-    timeout: 30000 
+    timeout: 30000,
+    withCredentials: true
 });
 
 request.interceptors.request.use(
     (config) => {
-        // Kiểm tra phiên còn hiệu lực trước mỗi request
         const token = getToken();
-        if (token) config.headers.Authorization = `Bearer ${token}`;
+        if (token) {
+            config.headers['Authorization'] = `Bearer ${token}`; 
+        }
+        
+        const user = getCurrentUser();
+        if (user) {
+            const accountName = user.username || user.tenTaiKhoan || user.id; 
+            if (accountName) {
+                config.headers['X-Username'] = encodeURIComponent(accountName);
+            }
+        }
 
-        // Xóa Content-Type nếu là FormData để browser tự xử lý
         if (config.data instanceof FormData) {
             delete config.headers['Content-Type'];
         } else {
@@ -33,7 +43,7 @@ request.interceptors.response.use(
         if (error.response && error.response.status === 401) {
             // Xác định role để redirect về đúng trang login
             const role = sessionStorage.getItem('userRole');
-            logout();
+            logout(); // Now this will work correctly!
             if (role === 'ADMIN' || role === 'STAFF') {
                 window.location.href = '/admin/login';
             } else {
@@ -44,4 +54,4 @@ request.interceptors.response.use(
     }
 );
 
-export default request;
+export default request; 

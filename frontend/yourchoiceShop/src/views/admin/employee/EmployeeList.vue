@@ -63,7 +63,7 @@
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="9" class="text-center empty-state">Đang tải dữ liệu...</td>
+            <td colspan="9" class="text-center empty-state">Đang tải dữ liệu..</td>
           </tr>
           <tr v-else-if="employees.length === 0">
             <td colspan="9" class="text-center empty-state">Không tìm thấy nhân viên nào.</td>

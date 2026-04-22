@@ -11,7 +11,8 @@
       <nav class="menu">
         <!-- Trang chủ -->
         <router-link
-          to="/admin/home"
+          v-if="isAdmin || (isStaff && hasActiveShift)"
+          :to="`${basePath}/home`" 
           class="menu-item"
           active-class="active-link"
         >
@@ -28,34 +29,52 @@
           <i class="fa-solid fa-gauge icon"></i> Thống kê
         </router-link>
 
-        <!-- Admin + Staff -->
-        <router-link
-          :to="`${basePath}/pos`"
-          class="menu-item"
+        <router-link 
+          v-if="isStaff" 
+          to="/staff/giao-ca" 
+          class="menu-item" 
           active-class="active-link"
         >
-          <i class="fa-solid fa-shop icon"></i> Bán hàng tại quầy
+          <i class="fas fa-clock icon"></i> Trực ca làm việc
         </router-link>
 
-        <router-link
-          :to="`${basePath}/orders`"
-          class="menu-item"
-          active-class="active-link"
-        >
-          <i class="fa-solid fa-file-lines icon"></i> Quản lý hóa đơn
-        </router-link>
+        <template v-if="isAdmin || (isStaff && hasActiveShift)">
+          <router-link
+            :to="`${basePath}/pos`"
+            class="menu-item"
+            active-class="active-link"
+          >
+            <i class="fa-solid fa-shop icon"></i> Bán hàng tại quầy
+          </router-link>
 
-        <!-- Staff only -->
-        <router-link
-          v-if="isStaff"
-          :to="`${basePath}/customers`"
-          class="menu-item"
-          active-class="active-link"
-        >
-          <i class="fa-solid fa-users icon"></i> Khách hàng
-        </router-link>
+          <router-link
+            :to="`${basePath}/orders`"
+            class="menu-item"
+            active-class="active-link"
+          >
+            <i class="fa-solid fa-file-lines icon"></i> Quản lý hóa đơn
+          </router-link>
 
-        <!-- Admin only: Product -->
+          <router-link
+            v-if="isStaff"
+            :to="`${basePath}/customers`"
+            class="menu-item"
+            active-class="active-link"
+          >
+            <i class="fa-solid fa-users icon"></i> Khách hàng
+          </router-link>
+        </template>
+
+        <!-- Thông báo cho nhân viên khi chưa có ca -->
+        <div v-if="isStaff && !hasActiveShift" class="shift-notice">
+          <i class="fa-solid fa-clock icon"></i>
+          <span>Chưa mở ca làm việc</span>
+          <router-link to="/staff/giao-ca" class="shift-link">
+            Mở ca ngay
+          </router-link>
+        </div>
+
+
         <div v-if="isAdmin" class="menu-group">
           <div
             class="menu-item parent"
@@ -96,7 +115,6 @@
           </div>
         </div>
 
-        <!-- Admin only: Discounts -->
         <div v-if="isAdmin" class="menu-group">
           <div
             class="menu-item parent"
@@ -119,7 +137,6 @@
           </div>
         </div>
 
-        <!-- Admin only: Work schedule -->
         <div v-if="isAdmin" class="menu-group">
           <div
             class="menu-item parent"
@@ -127,7 +144,7 @@
             @click="toggleMenu('workSchedules')"
           >
             <span>
-              <i class="fa-solid fa-user-secret icon"></i> Quản lý lịch làm việc
+              <i class="fa-solid fa-calendar-days icon"></i> Quản lý lịch làm việc
             </span>
             <span class="arrow">{{ openMenus.workSchedules ? '▲' : '▼' }}</span>
           </div>
@@ -145,7 +162,6 @@
           </div>
         </div>
 
-        <!-- Admin only: Accounts -->
         <div v-if="isAdmin" class="menu-group">
           <div
             class="menu-item parent"
@@ -153,7 +169,7 @@
             @click="toggleMenu('accounts')"
           >
             <span>
-              <i class="fa-solid fa-user-secret icon"></i> Quản lý tài khoản
+              <i class="fa-solid fa-user-shield icon"></i> Quản lý tài khoản
             </span>
             <span class="arrow">{{ openMenus.accounts ? '▲' : '▼' }}</span>
           </div>
@@ -170,6 +186,7 @@
 
         <!-- Chat Management -->
         <router-link
+          v-if="isAdmin || (isStaff && hasActiveShift)"
           :to="`${basePath}/chat`"
           class="menu-item"
           active-class="active-link"
@@ -252,18 +269,20 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toastSuccess } from '@/utils/toast';
-import { logout as authLogout, getRole, getCurrentUser, getCurrentUserName } from '@/services/auth';
+import { logout as authLogout, getRole, getCurrentUser, getCurrentUserName } from '@/services/auth'; // Xóa getCurrentUserName vì bạn tự viết logic tính toán rồi
 import axios from 'axios';
 import SockJS from 'sockjs-client/dist/sockjs';
 import { Client } from '@stomp/stompjs';
+import { useShiftStore } from '@/stores/shiftStore';
 
 const API_URL = 'http://localhost:8080/api/v1';
 
+const shiftStore = useShiftStore()
 const route = useRoute();
 const router = useRouter();
 
 /* =========================
-   PHÂN QUYỀN (gộp từ File 2)
+   PHÂN QUYỀN VÀ CA LÀM VIỆC
 ========================= */
 const normalizeRole = (value) => {
   const role = String(value || '').toUpperCase();
@@ -272,20 +291,8 @@ const normalizeRole = (value) => {
 };
 
 const userRole = computed(() => {
-  const directRole = sessionStorage.getItem('userRole');
-  if (directRole) return normalizeRole(directRole);
-
-  const rawUser = sessionStorage.getItem('user');
-  if (!rawUser) return 'ADMIN';
-
-  try {
-    const user = JSON.parse(rawUser);
-    return normalizeRole(
-      user?.role || user?.quyenHan?.maQuyen || user?.quyenHan?.tenQuyen || 'ADMIN'
-    );
-  } catch {
-    return 'ADMIN';
-  }
+  const role = getRole();
+  return normalizeRole(role);
 });
 
 const isAdmin = computed(() => userRole.value === 'ADMIN');
@@ -300,16 +307,17 @@ const currentUserName = computed(() => {
 });
 
 const userRoleLabel = computed(() => {
-  if (isAdmin.value && currentUserName.value) {
-    return `Admin: ${currentUserName.value}`;
-  }
+  if (isAdmin.value && currentUserName.value) return `Admin: ${currentUserName.value}`;
   if (isAdmin.value) return 'Admin';
-  if (isStaff.value && currentUserName.value) {
-    return `Nhân viên: ${currentUserName.value}`;
-  }
+  if (isStaff.value && currentUserName.value) return `Nhân viên: ${currentUserName.value}`;
   return 'Nhân viên';
 });
 
+const hasActiveShift = computed(() => shiftStore.hasActiveShift);
+
+onMounted(() => {
+  shiftStore.fetchShift();
+});
 /* =========================
    USER DROPDOWN
 ========================= */
@@ -324,7 +332,6 @@ const handleClickOutside = (e) => {
   if (userInfoEl && !userInfoEl.contains(e.target)) {
     isUserDropdownOpen.value = false;
   }
-  // Đóng dropdown thông báo khi click ra ngoài
   if (notifWrapperRef.value && !notifWrapperRef.value.contains(e.target)) {
     isNotifOpen.value = false;
   }
@@ -351,6 +358,7 @@ const goToProfile = () => {
 };
 
 const handleLogout = () => {
+  shiftStore.clearShift();
   authLogout();
   isUserDropdownOpen.value = false;
 
@@ -477,47 +485,28 @@ const toggleMenu = (key) => {
 };
 
 /* =========================
-   ROUTE ACTIVE (gộp + bổ sung)
+   ROUTE ACTIVE
 ========================= */
 const isProductRoute = computed(() => {
   const p = route.path;
   return (
-    p.includes('/admin/products') ||
-    p.includes('/admin/co-ao') ||
-    p.includes('/admin/tay-ao') ||
-    p.includes('/admin/xuat-xu') ||
-    p.includes('/admin/chat-lieu') ||
-    p.includes('/admin/thuong-hieu') ||
-    p.includes('/admin/mau-sac') ||
-    p.includes('/admin/kich-thuoc')
+    p.includes('/admin/products') || p.includes('/admin/co-ao') ||
+    p.includes('/admin/tay-ao') || p.includes('/admin/xuat-xu') ||
+    p.includes('/admin/chat-lieu') || p.includes('/admin/thuong-hieu') ||
+    p.includes('/admin/mau-sac') || p.includes('/admin/kich-thuoc')
   );
 });
 
-const isDiscountRoute = computed(() => {
-  const p = route.path;
-  return p.includes('/admin/vouchers') || p.includes('/admin/sales');
-});
-
-const isWorkScheduleRoute = computed(() => {
-  const p = route.path;
-  return p.includes('/admin/shifts') || p.includes('/admin/schedules');
-});
-
-const isAccountRoute = computed(() => {
-  const p = route.path;
-  return (
-    p.includes('/admin/customers') ||
-    p.includes('/staff/customers') ||
-    p.includes('/admin/employees')
-  );
-});
+const isDiscountRoute = computed(() => route.path.includes('/admin/vouchers') || route.path.includes('/admin/sales'));
+const isWorkScheduleRoute = computed(() => route.path.includes('/admin/shifts') || route.path.includes('/admin/schedules'));
+const isAccountRoute = computed(() => route.path.includes('/admin/customers') || route.path.includes('/staff/customers') || route.path.includes('/admin/employees'));
 
 /* =========================
    LOGO FALLBACK
 ========================= */
 const handleImageError = (e) => {
   e.target.style.display = 'none';
-};
+}; 
 </script>
 
 <style scoped>
@@ -948,5 +937,39 @@ const handleImageError = (e) => {
   padding: 24px;
   flex: 1;
   background-color: #ebecee;
+}
+
+/* --- 9. SHIFT NOTICE STYLES --- */
+.shift-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  margin-top: 10px;
+  color: #856404;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.shift-notice .icon {
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.shift-link {
+  color: #0284c7;
+  text-decoration: none;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: 0.2s;
+}
+
+.shift-link:hover {
+  background-color: #e0f2fe;
+  color: #0284c7;
 }
 </style>

@@ -43,6 +43,11 @@ export function sendChatMessage(data) {
   return axios.post(`${API_URL}/send`, data)
 }
 
+/** Khách hàng yêu cầu nhân viên hỗ trợ */
+export function requestStaffSupport(sessionId) {
+  return axios.post(`${API_URL}/sessions/${sessionId}/request-staff`)
+}
+
 /** Nhân viên gửi tin nhắn (có auth) */
 export function staffSendMessage(data) {
   return request.post('/chat/send', data)
