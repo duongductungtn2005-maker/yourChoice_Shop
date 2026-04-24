@@ -158,14 +158,14 @@
         <!-- ===== CUSTOMER ===== -->
         <div class="card">
           <div class="order-type-toggle">
-            <span :class="{ active: orderType === 'TAI_QUAY' }"></span>
-
             <label class="switch">
               <input type="checkbox" v-model="isDelivery" />
               <span class="slider"></span>
             </label>
 
-            <span :class="{ active: orderType === 'GIAO_HANG' }">Giao hàng</span>
+            <span :class="{ active: orderType === 'GIAO_HANG' }">
+              {{ orderType === 'GIAO_HANG' ? 'Giao hàng' : 'Tại quầy' }}
+            </span>
           </div>
           <div class="card-header">
             <div class="card-title">
