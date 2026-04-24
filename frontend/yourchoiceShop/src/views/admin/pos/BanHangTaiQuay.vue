@@ -327,7 +327,7 @@
               THANH TOÁN
             </button>
 
-            <button v-else class="btn-pay" @click="handleCreateOrderDelivery">
+            <button v-else class="btn-pay" @click="openDeliveryConfirmModal">
               TẠO HÓA ĐƠN
             </button>
 
@@ -561,7 +561,14 @@
         <div v-if="paymentMethod === 'CASH'" class="payment-content cash-section">
           <div class="form-group">
             <label>Tiền khách đưa</label>
-            <input type="number" v-model.number="customerCash" placeholder="Nhập số tiền..." class="payment-input" />
+            <input
+              type="text"
+              v-model="customerCashDisplay"
+              inputmode="numeric"
+              autocomplete="off"
+              placeholder="Nhập số tiền..."
+              class="payment-input"
+            />
           </div>
         </div>
 
@@ -578,6 +585,34 @@
             :disabled="paymentMethod === 'CASH' && customerCash < totalPrice"
             @click="confirmCreateOrder">
             {{ orderType === 'TAI_QUAY' ? 'THANH TOÁN' : 'TẠO ĐƠN GIAO HÀNG' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL CONFIRM TẠO ĐƠN GIAO HÀNG ===== -->
+    <div v-if="showDeliveryConfirmModal" class="modal-overlay" @click.self="closeDeliveryConfirmModal">
+      <div class="modal delivery-confirm-modal">
+        <div class="modal-header-flex">
+          <h3>Xác nhận tạo đơn giao hàng</h3>
+          <button class="close-btn" @click="closeDeliveryConfirmModal">×</button>
+        </div>
+
+        <div class="delivery-confirm-content">
+          <p>Bạn có chắc muốn tạo hóa đơn giao hàng cho đơn này không?</p>
+          <div class="delivery-confirm-total">
+            Tổng thanh toán: <b>{{ formatMoney(totalPrice) }}</b>
+          </div>
+          
+        </div>
+
+        <div class="delivery-confirm-actions">
+          <button type="button" class="btn-outline" @click="closeDeliveryConfirmModal" :disabled="isSubmittingDeliveryOrder">
+            Hủy
+          </button>
+          <button type="button" class="btn-confirm-delivery" @click="submitDeliveryOrderWithConfirm"
+            :disabled="isSubmittingDeliveryOrder">
+            {{ isSubmittingDeliveryOrder ? 'Đang xử lý...' : 'Đồng ý' }}
           </button>
         </div>
       </div>
@@ -1059,6 +1094,19 @@ const mapProductDetail = (p) => {
   }
 }
 
+const sortProductDetailsNewestFirst = (items) => {
+  return [...items].sort((a, b) => {
+    const timeA = a?.ngayTao ? new Date(a.ngayTao).getTime() : Number.NaN
+    const timeB = b?.ngayTao ? new Date(b.ngayTao).getTime() : Number.NaN
+
+    if (Number.isFinite(timeA) && Number.isFinite(timeB) && timeA !== timeB) {
+      return timeB - timeA
+    }
+
+    return Number(b?.id || 0) - Number(a?.id || 0)
+  })
+}
+
 /* ================= QR SCANNER ================= */
 const showQrScanner = ref(false)
 const qrScanMessage = ref('')
@@ -1171,7 +1219,7 @@ const loadProducts = async () => {
     trangThai: 1
   })
 
-  products.value = (res?.data?.content || [])
+  products.value = sortProductDetailsNewestFirst((res?.data?.content || []))
     .filter(isActiveProductDetail)
     .map(mapProductDetail)
 }
@@ -1196,7 +1244,7 @@ const loadProductFilterSource = async () => {
     page += 1
   }
 
-  productFilterSource.value = allItems.map(mapProductDetail)
+  productFilterSource.value = sortProductDetailsNewestFirst(allItems).map(mapProductDetail)
 }
 
 const openProductModal = async () => {
@@ -2294,6 +2342,15 @@ const formatMoney = (val) =>
 const showPaymentModal = ref(false)
 const paymentMethod = ref('TRANSFER') // TRANSFER | CASH
 const customerCash = ref(0)
+const showDeliveryConfirmModal = ref(false)
+const isSubmittingDeliveryOrder = ref(false)
+const customerCashDisplay = computed({
+  get: () => (customerCash.value > 0 ? new Intl.NumberFormat('vi-VN').format(customerCash.value) : ''),
+  set: (value) => {
+    const digitsOnly = String(value ?? '').replace(/\D/g, '')
+    customerCash.value = digitsOnly ? Number(digitsOnly) : 0
+  }
+})
 
 const openPaymentModal = () => {
   if (!cart.value.length) {
@@ -2302,6 +2359,32 @@ const openPaymentModal = () => {
   }
 
   showPaymentModal.value = true
+}
+
+const openDeliveryConfirmModal = () => {
+  if (!cart.value.length) {
+    alert('Giỏ hàng đang trống!')
+    return
+  }
+
+  showDeliveryConfirmModal.value = true
+}
+
+const closeDeliveryConfirmModal = () => {
+  if (isSubmittingDeliveryOrder.value) return
+  showDeliveryConfirmModal.value = false
+}
+
+const submitDeliveryOrderWithConfirm = async () => {
+  if (isSubmittingDeliveryOrder.value) return
+  isSubmittingDeliveryOrder.value = true
+
+  try {
+    showDeliveryConfirmModal.value = false
+    await handleCreateOrderDelivery()
+  } finally {
+    isSubmittingDeliveryOrder.value = false
+  }
 }
 
 const calculateRemaining = computed(() => {
@@ -2392,7 +2475,7 @@ const handleSubmitOrder = async () => {
   if (orderType.value === 'TAI_QUAY') {
     openPaymentModal()
   } else {
-    await handleCreateOrderDelivery()
+    openDeliveryConfirmModal()
   }
 }
 
@@ -2491,7 +2574,7 @@ const handleCreateOrderDelivery = async () => {
   }
 
   // Hoàn lại tồn kho đã giữ từ POS trước khi tạo đơn giao hàng,
-  // vì backend sẽ tự trừ kho khi admin xác nhận đơn (trạng thái 1→2).
+  // vì backend sẽ trừ kho ngay trong lúc tạo đơn giao hàng tại quầy.
   const releasedItems = []
   for (const item of cart.value) {
     const qtyToRelease = Number(item.qty || 0)
@@ -2538,7 +2621,7 @@ const handleCreateOrderDelivery = async () => {
     }
   }
 
-  alert('Tạo đơn giao hàng thành công – chờ xác nhận')
+  alert('Tạo đơn giao hàng thành công – đã xác nhận')
 
   const tabIndex = orderTabs.value.findIndex(t => t.id === activeTabId.value)
   if (tabIndex !== -1) {
@@ -4692,6 +4775,71 @@ input:disabled {
   animation: pop .18s ease;
 }
 
+.delivery-confirm-modal {
+  width: 460px !important;
+  max-width: 95vw;
+  padding: 20px !important;
+  background: #ffffff;
+  animation: pop .18s ease;
+}
+
+.delivery-confirm-content {
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.delivery-confirm-content p {
+  margin: 0 0 8px;
+}
+
+.delivery-confirm-total {
+  margin-bottom: 6px;
+}
+
+.delivery-confirm-total b {
+  color: #0f172a;
+}
+
+.delivery-confirm-note {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.delivery-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn-confirm-delivery {
+  min-width: 110px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid #0f172a;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
+}
+
+.btn-confirm-delivery:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.btn-confirm-delivery:disabled {
+  background: #9ca3af;
+  border-color: #9ca3af;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
 @keyframes pop {
   from {
     transform: translateY(6px) scale(.98);
@@ -4857,10 +5005,10 @@ input:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #16a34a !important;
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%) !important;
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
-  border: 1px solid #15803d !important;
+  border: 1px solid #0f172a !important;
   border-radius: 10px;
   font-weight: 700;
   font-size: 15px;
@@ -4868,15 +5016,15 @@ input:disabled {
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.22);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
 }
 
 .payment-footer .btn-submit-payment:hover,
 .btn-submit-payment:hover {
-  background: #15803d !important;
+  background: linear-gradient(135deg, #1e40af 0%, #0b1220 100%) !important;
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
-  border-color: #166534 !important;
+  border-color: #0b1220 !important;
   transform: translateY(-1px);
 }
 
@@ -4892,7 +5040,7 @@ input:disabled {
   outline: none;
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.28);
 }
 
 .btn-submit-payment:disabled {
