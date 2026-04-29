@@ -1618,10 +1618,10 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #16a34a !important;
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
-  border: 1px solid #15803d !important;
+  border: 1px solid #321580 !important;
   border-radius: 10px;
   font-weight: 700;
   font-size: 15px;
@@ -1634,10 +1634,10 @@ onMounted(() => {
 
 .payment-footer .btn-submit-payment:hover,
 .btn-submit-payment:hover {
-  background: #15803d !important;
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
-  border-color: #166534 !important;
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
   transform: translateY(-1px);
 }
 
