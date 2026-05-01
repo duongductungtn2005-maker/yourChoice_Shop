@@ -82,10 +82,10 @@
               </div>
             </td>
 
-            <td class="name-text">{{ emp.tenTaiKhoan }}</td>
-            <td class="name-text">{{ emp.tenNhanVien }}</td>
-            <td>{{ emp.soDienThoai }}</td>
-            <td class="text-gray">{{ emp.email }}</td>
+            <td class="name-text"><span class="cell-ellipsis" :title="emp.tenTaiKhoan">{{ emp.tenTaiKhoan }}</span></td>
+            <td class="name-text"><span class="cell-ellipsis" :title="emp.tenNhanVien">{{ emp.tenNhanVien }}</span></td>
+            <td><span class="cell-ellipsis" :title="emp.soDienThoai">{{ emp.soDienThoai }}</span></td>
+            <td class="text-gray"><span class="cell-ellipsis" :title="emp.email">{{ emp.email }}</span></td>
             
             
             <td class="text-address">
@@ -318,7 +318,7 @@ onMounted(() => { fetchEmployees(); });
     background: white; border-radius: 16px; border: 1px solid #bfdbfe !important; 
     box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; padding: 24px; 
 }
-.table-container { padding: 0; overflow: hidden; }
+.table-container { padding: 0; overflow-x: auto; overflow-y: hidden; }
 
 /* FLEX LAYOUT */
 .controls-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
@@ -350,7 +350,7 @@ onMounted(() => { fetchEmployees(); });
 .btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 23, 42, 0.3); }
 
 /* TABLE STYLES */
-.custom-table { width: 100%; border-collapse: collapse; }
+.custom-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .custom-table th {
     background: #f5f5f5 !important; color: #000000; padding: 16px; text-align: left;
      font-weight: 700; text-transform: uppercase; border-bottom: 1px solid #e2e8f0 !important; white-space: nowrap;
@@ -359,6 +359,14 @@ onMounted(() => { fetchEmployees(); });
 .custom-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-size: 14px; }
 
 .text-center { text-align: center; }
+.cell-ellipsis {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .code-text { font-weight: 400; font-size: 13px; }
 .name-text { font-weight: 400; color: #1e293b; }
 .text-address { max-width: 200px; color: #475569; font-size: 13px; }

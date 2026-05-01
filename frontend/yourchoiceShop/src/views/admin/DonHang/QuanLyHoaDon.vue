@@ -804,7 +804,7 @@ onBeforeUnmount(() => {
 /* === TABLE === */
 .custom-table {
   width: 100%;
-  min-width: 1000px;
+  min-width: 880px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -1171,6 +1171,33 @@ onBeforeUnmount(() => {
 @media (max-width: 1200px) {
   .table-container {
     overflow-x: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 12px;
+  }
+
+  .controls-row,
+  .filter-group,
+  .action-group,
+  .date-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box,
+  .radio-dropdown,
+  .radio-dropdown-btn,
+  .btn {
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+  }
+
+  .custom-table {
+    min-width: 780px;
   }
 }
 </style>
