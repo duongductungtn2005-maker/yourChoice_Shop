@@ -239,10 +239,10 @@
              <div class="form-row">
                 <div class="form-col"><label>Số lượng</label><input type="number" v-model="bulkForm.soLuong" class="form-control"></div>
              </div>
-             <div class="form-row">
-                <div class="form-col"><label>Giá nhập</label><input type="number" v-model="bulkForm.giaNhap" class="form-control"></div>
-                <div class="form-col"><label>Giá bán</label><input type="number" v-model="bulkForm.giaBan" class="form-control"></div>
-             </div>
+                 <div class="form-row">
+                     <div class="form-col"><label>Giá nhập</label><input type="text" inputmode="numeric" v-model="bulkForm.giaNhap" class="form-control" @input="bulkForm.giaNhap = formatMoneyInput(bulkForm.giaNhap)"></div>
+                     <div class="form-col"><label>Giá bán</label><input type="text" inputmode="numeric" v-model="bulkForm.giaBan" class="form-control" @input="bulkForm.giaBan = formatMoneyInput(bulkForm.giaBan)"></div>
+                 </div>
           </div>
           <div class="modal-footer">
              <button class="btn btn-outline" @click="showBulkModal = false">Đóng</button>
@@ -307,7 +307,7 @@ const currentEditingImages = ref([]);
 
 const showBulkModal = ref(false);
 const editingColor = ref(null);
-const bulkForm = reactive({ soLuong: null, giaNhap: null, giaBan: null });
+const bulkForm = reactive({ soLuong: null, giaNhap: '', giaBan: '' });
 
 const showAttrModal = ref(false);
 const attrModalType = ref('color');
@@ -475,21 +475,34 @@ const handlePreviewError = (event) => {
     event.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Crect width='280' height='280' fill='%23eef2ff'/%3E%3Cg fill='none' stroke='%2364748b' stroke-width='10'%3E%3Crect x='52' y='66' width='176' height='148' rx='14'/%3E%3Cpath d='M80 182l34-36 30 28 28-24 28 32'/%3E%3Ccircle cx='182' cy='110' r='12'/%3E%3C/g%3E%3Ctext x='140' y='244' text-anchor='middle' fill='%2364748b' font-family='Arial' font-size='18'%3EImage unavailable%3C/text%3E%3C/svg%3E";
 };
 
+const formatMoneyInput = (value) => {
+    const digits = String(value ?? '').replace(/\D/g, '');
+    if (!digits) return '';
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
+const parseMoneyInput = (value) => {
+    const digits = String(value ?? '').replace(/\D/g, '');
+    return digits ? Number(digits) : null;
+};
+
 // BULK EDIT
 const countSelectedInGroup = (colorId) => generatedVariants.value.filter(v => v.idMauSac === colorId && v.isSelected).length;
 const openBulkEditModal = (color) => {
     if (countSelectedInGroup(color.id) === 0) return Toast.fire({ icon: 'info', title: 'Vui lòng chọn ít nhất 1 dòng để sửa' });
     editingColor.value = color;
-    bulkForm.soLuong = null; bulkForm.giaNhap = null; bulkForm.giaBan = null;
+    bulkForm.soLuong = null; bulkForm.giaNhap = ''; bulkForm.giaBan = '';
     showBulkModal.value = true;
 };
 const applyBulkEdit = () => {
     if (!editingColor.value) return;
+    const giaNhap = parseMoneyInput(bulkForm.giaNhap);
+    const giaBan = parseMoneyInput(bulkForm.giaBan);
     generatedVariants.value.forEach(v => {
         if (v.idMauSac === editingColor.value.id && v.isSelected) {
-            if (bulkForm.soLuong) v.soLuong = bulkForm.soLuong;
-            if (bulkForm.giaNhap) v.giaNhap = bulkForm.giaNhap;
-            if (bulkForm.giaBan) v.giaBan = bulkForm.giaBan;
+            if (bulkForm.soLuong !== null && bulkForm.soLuong !== '') v.soLuong = Number(bulkForm.soLuong);
+            if (giaNhap !== null) v.giaNhap = giaNhap;
+            if (giaBan !== null) v.giaBan = giaBan;
         }
     });
     showBulkModal.value = false;

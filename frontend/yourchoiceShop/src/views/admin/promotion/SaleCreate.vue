@@ -421,34 +421,29 @@ const clearAllSelection = () => {
 
 // --- SUBMIT ---
 const createSale = async () => {
-    // 1. Validate Dữ Liệu
     if(!form.tenDotGiamGia.trim()) return Toast.fire({ icon: 'warning', title: 'Thiếu tên đợt giảm giá' });
     if(form.giaTriGiam <= 0) return Toast.fire({ icon: 'warning', title: 'Mức giảm phải > 0' });
     if(!form.ngayBatDau || !form.ngayKetThuc) return Toast.fire({ icon: 'warning', title: 'Chọn thời gian' });
     form.idChiTietSanPhams = selectedVariants.value.map(v => v.id);
     if(form.idChiTietSanPhams.length === 0) return Toast.fire({ icon: 'warning', title: 'Chưa chọn sản phẩm nào' });
 
-    // 2. Gọi Hộp Thoại Confirm (Đã tích hợp CSS Global của team)
-    const isConfirmCreate = await Swal.fire({
-        title: 'Xác nhận',
-        text: 'Bạn có đồng ý tạo mới đợt giảm giá này không?',
+    const confirmResult = await Swal.fire({
+        title: 'Xác nhận tạo đợt giảm giá?',
+        text: `Bạn có chắc muốn tạo đợt "${form.tenDotGiamGia}"?`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'Có',
-        cancelButtonText: 'Không',
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy',
         customClass: {
-            actions: 'my-swal-actions',
-            confirmButton: 'my-swal-confirm-btn',
-            cancelButton: 'my-swal-cancel-btn'
+            popup: 'swal-rounded',
+            confirmButton: 'swal-btn-solid',
+            cancelButton: 'swal-btn-outline'
         },
-        buttonsStyling: false // Bắt buộc tắt để dùng CSS của mình
+        buttonsStyling: false
     });
 
-    if (!isConfirmCreate.isConfirmed) {
-        return; // Thoát nếu người dùng bấm "Không"
-    }
+    if (!confirmResult.isConfirmed) return;
 
-    // 3. Tiến Hành Gọi API Lưu Dữ Liệu
     try {
         await request.post('/dot-giam-gia', form);
         localStorage.setItem('saleSuccessMessage', 'Tạo đợt giảm giá thành công!');

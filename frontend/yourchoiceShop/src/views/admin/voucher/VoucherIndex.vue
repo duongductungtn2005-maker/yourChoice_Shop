@@ -240,9 +240,14 @@ const handleToggleStatus = async (item, event) => {
             showCancelButton: true,
             confirmButtonText: '<i class="fas fa-paper-plane"></i> Tắt & Gửi Mail',
             denyButtonText: '<i class="fas fa-power-off"></i> Tắt (Không gửi)',
-            cancelButtonText: 'Hủy bỏ',
-            confirmButtonColor: '#2563eb',
-            denyButtonColor: '#64748b'
+          cancelButtonText: 'Hủy bỏ',
+          customClass: {
+            popup: 'swal-rounded',
+            confirmButton: 'swal-btn-solid',
+            denyButton: 'swal-btn-outline',
+            cancelButton: 'swal-btn-outline'
+          },
+          buttonsStyling: false
         });
 
         if (result.isDismissed) return; 
@@ -258,8 +263,13 @@ const handleToggleStatus = async (item, event) => {
             icon: 'question', 
             showCancelButton: true, 
             confirmButtonText: 'Đồng ý', 
-            cancelButtonText: 'Hủy', 
-            confirmButtonColor: confirmBtnColor
+          cancelButtonText: 'Hủy', 
+          customClass: {
+            popup: 'swal-rounded',
+            confirmButton: 'swal-btn-solid',
+            cancelButton: 'swal-btn-outline'
+          },
+          buttonsStyling: false
         });
 
         if (!result.isConfirmed) return;

@@ -278,7 +278,16 @@ const handleToggleStatus = async (item, event) => {
     const result = await Swal.fire({
         title: `Xác nhận ${actionText}?`,
         text: `Bạn có chắc muốn ${actionText.toLowerCase()} "${item.tenXuatXu}"?`,
-        icon: 'question', showCancelButton: true, confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy'
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy',
+      customClass: {
+        popup: 'swal-rounded',
+        confirmButton: 'swal-btn-solid',
+        cancelButton: 'swal-btn-outline'
+      },
+      buttonsStyling: false
     });
 
     if (result.isConfirmed) {
@@ -311,8 +320,8 @@ onMounted(() => { fetchData(); });
 .swal-rounded { border-radius: 12px !important; }
 .swal-btn-outline { background-color: #fff !important; color: #1e293b !important; border: 1px solid #1e293b !important; padding: 8px 24px; border-radius: 6px; font-weight: 500; cursor: pointer; margin-left: 10px; }
 .swal-btn-outline:hover { background-color: #f1f5f9 !important; }
-.swal-btn-solid { background-color: #1e293b !important; color: #fff !important; border: none !important; padding: 8px 24px; border-radius: 6px; font-weight: 500; cursor: pointer; }
-.swal-btn-solid:hover { background-color: #334155 !important; }
+.swal-btn-solid { background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%) !important; color: #fff !important; border: none !important; padding: 8px 24px; border-radius: 6px; font-weight: 500; cursor: pointer; }
+.swal-btn-solid:hover { filter: brightness(1.05); }
 </style>
 
 <style scoped>
@@ -412,6 +421,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 .modal-content { background: white; padding: 24px; border-radius: 12px; }
 .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
 .close-btn { border: none; background: none; font-size: 18px; cursor: pointer; color: #64748b; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
 .empty-state { padding: 40px; color: #64748b; font-style: italic; }
 .form-control-custom { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-top: 5px; outline: none; }
 .form-control-custom:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }

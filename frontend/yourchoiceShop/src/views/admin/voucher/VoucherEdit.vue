@@ -565,6 +565,23 @@ const submitForm = async () => {
         return Toast.fire({ icon: 'warning', title: 'Vui lòng chọn ít nhất 1 khách hàng' });
     }
 
+    const confirmUpdate = await Swal.fire({
+      title: 'Xác nhận lưu thay đổi?',
+      text: `Bạn có chắc muốn cập nhật phiếu "${form.value.tenPhieuGiamGia}"?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy',
+      customClass: {
+        popup: 'swal-rounded',
+        confirmButton: 'swal-btn-solid',
+        cancelButton: 'swal-btn-outline'
+      },
+      buttonsStyling: false
+    });
+
+    if (!confirmUpdate.isConfirmed) return;
+
     const payload = { ...form.value };
     
     if (!payload.maPhieuGiamGia || payload.maPhieuGiamGia.trim() === '') {

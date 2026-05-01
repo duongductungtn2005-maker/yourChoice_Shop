@@ -270,6 +270,23 @@ const save = async () => {
         return; 
     }
 
+    const confirmResult = await Swal.fire({
+        title: 'Xác nhận lưu thay đổi?',
+        text: `Bạn có chắc muốn cập nhật "${form.maCtsp}"?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy',
+        customClass: {
+            popup: 'swal-rounded',
+            confirmButton: 'swal-btn-solid',
+            cancelButton: 'swal-btn-outline'
+        },
+        buttonsStyling: false
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
     loading.value = true;
     try {
         // 2. Gọi API Update - SỬA ENDPOINT ĐỂ XỬ LÝ ẢNH
