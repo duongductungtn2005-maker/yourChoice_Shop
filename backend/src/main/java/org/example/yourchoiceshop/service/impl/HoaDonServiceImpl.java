@@ -660,10 +660,12 @@ public class HoaDonServiceImpl implements HoaDonService {
     @Override
     @Transactional
     public String createOrderDelivery(CreateOrderRequest req) {
+        boolean autoConfirmFromPos = req.getIdNhanVien() != null;
+
         HoaDon hd = new HoaDon();
         hd.setMaHoaDon("HD" + System.currentTimeMillis());
         hd.setNgayTao(LocalDateTime.now());
-        hd.setTrangThai(1);
+        hd.setTrangThai(autoConfirmFromPos ? 2 : 1);
         hd.setLoaiHoaDon("GIAO_HANG");
 
         hd.setTenNguoiNhan(req.getTenKhachHang() != null ? req.getTenKhachHang() : "Khách lẻ");
@@ -691,12 +693,23 @@ public class HoaDonServiceImpl implements HoaDonService {
         hoaDonRepo.save(hd);
 
         BigDecimal tongTien = BigDecimal.ZERO;
+        Set<Integer> affectedProductIds = new HashSet<>();
 
         List<Object[]> itemsToReserve = new ArrayList<>();
         for (CreateOrderRequest.CartItem item : req.getItems()) {
             ChiTietSanPham sp = chiTietSanPhamRepo.findById(item.getIdChiTietSanPham())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+
+            if (autoConfirmFromPos) {
+                int reduced = chiTietSanPhamRepo.reserveStock(sp.getId(), item.getSoLuong());
+                if (reduced == 0) {
+                    throw new RuntimeException("Sản phẩm " + sp.getMaCtsp()
+                            + " không đủ số lượng trong kho để tạo đơn giao hàng");
+                }
+            }
+
             itemsToReserve.add(new Object[]{sp, item});
+            affectedProductIds.add(sp.getId());
         }
 
         hd = hoaDonRepo.findByMaHoaDon(hd.getMaHoaDon())
@@ -741,15 +754,24 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         LichSuHoaDon history = new LichSuHoaDon();
         history.setHoaDon(hd);
-        history.setHanhDong("Tạo đơn hàng mới");
+        history.setHanhDong(autoConfirmFromPos ? "Tạo và xác nhận đơn giao hàng" : "Tạo đơn hàng mới");
         history.setThoiGian(LocalDateTime.now());
         history.setTrangThai(hd.getTrangThai());
-        history.setGhiChu("Đơn hàng được tạo trực tuyến");
+        history.setGhiChu(autoConfirmFromPos
+            ? "Đơn giao hàng được tạo tại quầy và tự động xác nhận"
+            : "Đơn hàng được tạo trực tuyến");
         if (req.getIdNhanVien() != null) {
             history.setNhanVien(hd.getNhanVien());
         }
 
         lichSuHoaDonRepo.save(history);
+
+        if (autoConfirmFromPos) {
+            cancelUnfulfillablePendingOrders(
+                affectedProductIds,
+                "Đơn hàng đã bị hủy do số lượng tồn kho đã được dùng cho đơn giao hàng tại quầy"
+            );
+        }
 
         // Gửi thông báo đơn hàng mới (giao hàng)
         thongBaoService.guiThongBaoDonHangMoi(

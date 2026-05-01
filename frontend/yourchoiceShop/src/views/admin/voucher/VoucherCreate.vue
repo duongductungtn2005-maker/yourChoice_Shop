@@ -138,11 +138,12 @@
           <div class="form-group">
             <label>Hóa đơn tối thiểu (VNĐ)</label>
             <input 
-                v-model.number="form.donHangToiThieu" 
-                type="number" 
+                v-model="donHangToiThieuDisplay"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
                 class="form-control" 
                 placeholder="0" 
-                min="0" 
             />
           </div>
         </div>
@@ -357,6 +358,17 @@ const validateSoLuong = () => {
         form.value.soLuong = 0;
     }
 };
+
+const donHangToiThieuDisplay = computed({
+  get: () => {
+    const value = Number(form.value.donHangToiThieu || 0);
+    return value > 0 ? new Intl.NumberFormat('vi-VN').format(value) : '';
+  },
+  set: (value) => {
+    const digitsOnly = String(value ?? '').replace(/\D/g, '');
+    form.value.donHangToiThieu = digitsOnly ? Number(digitsOnly) : 0;
+  }
+});
 
 const searchCustomers = () => {
     custPage.value = 0;
