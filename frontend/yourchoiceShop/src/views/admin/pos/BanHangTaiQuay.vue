@@ -159,7 +159,7 @@
         <div class="card">
           <div class="order-type-toggle">
             <label class="switch">
-              <input type="checkbox" :checked="isDelivery" @change="handleOrderTypeToggle($event.target.checked)" />
+              <input type="checkbox" :checked="isDelivery" @click.prevent="handleOrderTypeToggle(!isDelivery)" />
               <span class="slider"></span>
             </label>
 
