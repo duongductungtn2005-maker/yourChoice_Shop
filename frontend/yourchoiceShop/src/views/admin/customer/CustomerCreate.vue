@@ -308,9 +308,13 @@ const submitForm = async () => {
     icon: 'question',
     showCancelButton: true,
     confirmButtonText: '<i class="fas fa-check"></i> Xác nhận',
-    confirmButtonColor: '#3085d6',
     cancelButtonText: 'Hủy',
-    cancelButtonColor: '#6b7280',
+    customClass: {
+      popup: 'swal-rounded',
+      confirmButton: 'swal-btn-solid',
+      cancelButton: 'swal-btn-outline'
+    },
+    buttonsStyling: false
   });
 
   if (!result.isConfirmed) return;

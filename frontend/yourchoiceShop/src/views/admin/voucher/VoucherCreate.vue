@@ -511,6 +511,23 @@ const submitForm = async () => {
         return Toast.fire({ icon: 'warning', title: 'Vui lòng chọn ít nhất 1 khách hàng' });
     }
 
+    const confirmCreate = await Swal.fire({
+      title: 'Xác nhận tạo phiếu giảm giá?',
+      text: `Bạn có chắc muốn tạo phiếu "${form.value.tenPhieuGiamGia}"?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy',
+      customClass: {
+        popup: 'swal-rounded',
+        confirmButton: 'swal-btn-solid',
+        cancelButton: 'swal-btn-outline'
+      },
+      buttonsStyling: false
+    });
+
+    if (!confirmCreate.isConfirmed) return;
+
     const payload = { ...form.value };
     
     if (!payload.maPhieuGiamGia || payload.maPhieuGiamGia.trim() === '') {

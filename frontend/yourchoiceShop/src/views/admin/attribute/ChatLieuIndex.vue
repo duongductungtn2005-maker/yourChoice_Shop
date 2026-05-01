@@ -239,7 +239,16 @@ const handleToggleStatus = async (item, event) => {
     const result = await Swal.fire({
         title: `Xác nhận ${actionText}?`,
         text: `Bạn có chắc muốn ${actionText.toLowerCase()} "${item.tenChatLieu}"?`,
-        icon: 'question', showCancelButton: true, confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy'
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy',
+      customClass: {
+        popup: 'swal-rounded',
+        confirmButton: 'swal-btn-solid',
+        cancelButton: 'swal-btn-outline'
+      },
+      buttonsStyling: false
     });
     if (result.isConfirmed) {
         try {
@@ -365,6 +374,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 .modal-content { background: white; padding: 24px; border-radius: 12px; }
 .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
 .close-btn { border: none; background: none; font-size: 18px; cursor: pointer; color: #64748b; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
 .empty-state { padding: 40px; color: #64748b; font-style: italic; }
 .form-control-custom { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-top: 5px; }
 .error-msg { color: #ef4444; font-size: 12px; margin-top: 5px; display: block; }

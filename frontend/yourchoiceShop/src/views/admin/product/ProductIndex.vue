@@ -249,6 +249,23 @@ const fetchProducts = async () => {
 const toggleStatus = async (item) => {
     const originalStatus = item.trangThai;
     const newStatus = originalStatus === 1 ? 0 : 1;
+  const actionText = newStatus === 1 ? 'Kinh doanh' : 'Ngừng kinh doanh';
+  const confirmResult = await Swal.fire({
+    title: `Xác nhận ${actionText}?`,
+    text: `Bạn có chắc muốn ${actionText.toLowerCase()} "${item.tenSanPham}"?`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Đồng ý',
+    cancelButtonText: 'Hủy',
+    customClass: {
+      popup: 'swal-rounded',
+      confirmButton: 'swal-btn-solid',
+      cancelButton: 'swal-btn-outline'
+    },
+    buttonsStyling: false
+  });
+
+  if (!confirmResult.isConfirmed) return;
     
     // 1. Cập nhật UI ngay lập tức (Optimistic Update)
     item.trangThai = newStatus;

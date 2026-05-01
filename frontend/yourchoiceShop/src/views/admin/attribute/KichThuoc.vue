@@ -281,7 +281,16 @@ const handleToggleStatus = async (item, event) => {
     const result = await Swal.fire({
         title: `Xác nhận ${actionText}?`,
         text: `Bạn có chắc muốn ${actionText.toLowerCase()} "${item.tenKichThuoc}"?`,
-        icon: 'question', showCancelButton: true, confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy'
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy',
+      customClass: {
+        popup: 'swal-rounded',
+        confirmButton: 'swal-btn-solid',
+        cancelButton: 'swal-btn-outline'
+      },
+      buttonsStyling: false
     });
 
     if (result.isConfirmed) {

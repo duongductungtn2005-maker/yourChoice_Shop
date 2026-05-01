@@ -159,7 +159,7 @@
         <div class="card">
           <div class="order-type-toggle">
             <label class="switch">
-              <input type="checkbox" v-model="isDelivery" />
+              <input type="checkbox" :checked="isDelivery" @change="handleOrderTypeToggle($event.target.checked)" />
               <span class="slider"></span>
             </label>
 
@@ -720,6 +720,7 @@ import { createOrder, createPosDraftOrder, deletePosDraftOrder } from '@/api/Hoa
 import { getCurrentUser, getRole } from '@/services/auth'
 import ghnLogo from '@/img/Logo_GHN.webp'
 import { Html5Qrcode } from 'html5-qrcode'
+import Swal from 'sweetalert2'
 
 /* ================= FILTER SẢN PHẨM ================= */
 const productKeyword = ref('')
@@ -3014,6 +3015,31 @@ const isDelivery = computed({
     }
   }
 })
+
+const handleOrderTypeToggle = async (nextValue) => {
+  const nextLabel = nextValue ? 'Giao hàng' : 'Tại quầy'
+  const result = await Swal.fire({
+    title: `Xác nhận chuyển sang ${nextLabel}?`,
+    text: 'Bạn có chắc muốn thay đổi loại đơn hiện tại không?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Đồng ý',
+    cancelButtonText: 'Hủy',
+    customClass: {
+      popup: 'swal-rounded',
+      confirmButton: 'swal-btn-solid',
+      cancelButton: 'swal-btn-outline'
+    },
+    buttonsStyling: false
+  })
+
+  if (!result.isConfirmed) return
+
+  orderType.value = nextValue ? 'GIAO_HANG' : 'TAI_QUAY'
+  if (!nextValue) {
+    shippingFee.value = 0
+  }
+}
 
 watch(orderType, (value) => {
   if (value === 'TAI_QUAY') {

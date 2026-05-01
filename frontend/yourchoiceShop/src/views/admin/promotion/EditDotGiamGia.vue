@@ -498,6 +498,23 @@ const updateSale = async () => {
     form.idChiTietSanPhams = selectedVariants.value.map(v => v.id);
     if(form.idChiTietSanPhams.length === 0) return Toast.fire({ icon: 'warning', title: 'Chưa chọn sản phẩm nào' });
 
+    const confirmResult = await Swal.fire({
+        title: 'Xác nhận lưu thay đổi?',
+        text: `Bạn có chắc muốn cập nhật đợt "${form.tenDotGiamGia}"?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy',
+        customClass: {
+            popup: 'swal-rounded',
+            confirmButton: 'swal-btn-solid',
+            cancelButton: 'swal-btn-outline'
+        },
+        buttonsStyling: false
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
     try {
         await request.put(`/dot-giam-gia/${discountId}`, form);
         localStorage.setItem('saleSuccessMessage', 'Cập nhật đợt giảm giá thành công!');
