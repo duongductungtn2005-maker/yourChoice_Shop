@@ -838,7 +838,7 @@ input:checked + .slider:before {
     width: 100%; 
     border-collapse: collapse; 
     font-size: 13px; 
-    min-width: 800px; 
+  min-width: 640px; 
 }
 
 .mini-table th, .mini-table td { 
@@ -865,7 +865,7 @@ input:checked + .slider:before {
 .cust-info { font-size: 13px; color: #475569; }
 .text-primary { color: #2563eb; }
 
-.panel-footer { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.panel-footer { display: flex; justify-content: space-between; align-items: center; font-size: 13px; gap: 12px; flex-wrap: wrap; }
 .mini-pagination { display: flex; align-items: center; gap: 10px; }
 .mini-btn { width: 28px; height: 28px; border: 1px solid #e2e8f0; background: #fff; border-radius: 4px; cursor: pointer; }
 .mini-btn:disabled { color: #ccc; cursor: not-allowed; background: #f9fafb; }
@@ -907,5 +907,40 @@ input:checked + .slider:before {
     background-color: #ef4444;
     color: #ffffff;
     box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 12px;
+  }
+
+  .header-row,
+  .row-2,
+  .label-row,
+  .panel-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .radio-group,
+  .page-size-wrapper,
+  .mini-pagination {
+    flex-wrap: wrap;
+  }
+
+  .filter-container {
+    align-items: stretch;
+  }
+
+  .filter-input,
+  .btn-filter-action,
+  .btn-back,
+  .btn-outline-mail {
+    width: 100%;
+  }
 }
 </style>

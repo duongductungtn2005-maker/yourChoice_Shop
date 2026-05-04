@@ -10,12 +10,30 @@
             <span class="brand-name">YourChoice</span>
         </div>
 
-        <nav class="main-nav">
-          <router-link to="/" class="nav-link" active-class="active">Trang chủ</router-link>
-          <router-link to="/products" class="nav-link" active-class="active">Sản phẩm</router-link>
-          <router-link to="/coupons" class="nav-link" active-class="active">Săn Voucher</router-link>
-          <router-link to="/news" class="nav-link" active-class="active">Tin tức</router-link>
-          <router-link to="/contact" class="nav-link" active-class="active">Liên hệ</router-link>
+        <nav class="main-nav" :class="{ 'mobile-open': isMobileNavOpen }">
+          <div class="main-nav-mobile-head">
+            <span class="main-nav-title">Danh mục</span>
+            <button class="nav-close" type="button" @click="closeMobileNav" aria-label="Đóng menu điều hướng">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="mobile-search-wrap">
+            <input
+              type="text"
+              placeholder="Tìm kiếm..."
+              class="search-input mobile-search-input"
+              v-model="searchKeyword"
+              @keyup.enter="handleSearch"
+            />
+            <i class="fas fa-search search-icon" @click="handleSearch" style="cursor: pointer;"></i>
+          </div>
+
+          <router-link to="/" class="nav-link" active-class="active" @click="closeMobileNav">Trang chủ</router-link>
+          <router-link to="/products" class="nav-link" active-class="active" @click="closeMobileNav">Sản phẩm</router-link>
+          <router-link to="/coupons" class="nav-link" active-class="active" @click="closeMobileNav">Săn Voucher</router-link>
+          <router-link to="/news" class="nav-link" active-class="active" @click="closeMobileNav">Tin tức</router-link>
+          <router-link to="/contact" class="nav-link" active-class="active" @click="closeMobileNav">Liên hệ</router-link>
         </nav>
 
         <div class="header-icons">
@@ -63,8 +81,20 @@
             <i class="fas fa-clipboard-list"></i>
           </div>
         </div>
+
+        <button
+          class="mobile-menu-toggle"
+          type="button"
+          @click="toggleMobileNav"
+          :aria-expanded="isMobileNavOpen"
+          aria-label="Mở menu điều hướng"
+        >
+          <i class="fa-solid" :class="isMobileNavOpen ? 'fa-xmark' : 'fa-bars'"></i>
+        </button>
       </div>
     </header>
+
+    <div v-if="isMobileNavOpen" class="nav-backdrop" @click="closeMobileNav"></div>
 
     <main class="site-main">
       <router-view />
@@ -121,6 +151,7 @@ const route = useRoute();
 const cartStore = useCartStore();
 const isScrolled = ref(false);
 const isUserDropdownOpen = ref(false);
+const isMobileNavOpen = ref(false);
 const userRole = ref('');
 const hasToken = ref(false);
 const authUser = ref(null);
@@ -144,6 +175,14 @@ const toggleUserDropdown = () => {
   isUserDropdownOpen.value = !isUserDropdownOpen.value;
 };
 
+const toggleMobileNav = () => {
+  isMobileNavOpen.value = !isMobileNavOpen.value;
+};
+
+const closeMobileNav = () => {
+  isMobileNavOpen.value = false;
+};
+
 const goToOrderHistory = () => {
   if (isCustomerLoggedIn.value) {
     router.push(customerOrdersPath.value);
@@ -161,6 +200,11 @@ const handleClickOutside = (e) => {
 
 watch(() => route.path, () => {
   isUserDropdownOpen.value = false;
+  closeMobileNav();
+});
+
+watch(isMobileNavOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : '';
 });
 
 const loadAuthState = () => {
@@ -211,6 +255,7 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
   window.removeEventListener('auth-user-updated', handleAuthUserUpdated);
   document.removeEventListener('click', handleClickOutside);
+  document.body.style.overflow = '';
 });
 </script>
 
@@ -237,7 +282,7 @@ onUnmounted(() => {
 }
 .site-header.scrolled { height: 70px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
 
-.header-inner { height: 100%; display: flex; align-items: center; justify-content: space-between; }
+.header-inner { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 
 /* === LOGO STYLE === */
 .brand { display: flex; align-items: center; cursor: pointer; }
@@ -247,6 +292,13 @@ onUnmounted(() => {
 
 /* NAV LINKS (BLUE HOVER) */
 .main-nav { display: flex; gap: 30px; }
+.main-nav-mobile-head,
+.mobile-search-wrap,
+.mobile-menu-toggle,
+.nav-backdrop,
+.nav-close {
+  display: none;
+}
 .nav-link { 
   text-decoration: none; color: #334155; font-weight: 600; text-transform: uppercase; font-size: 13px; letter-spacing: 1px; transition: 0.2s; position: relative;
 }
@@ -263,8 +315,9 @@ onUnmounted(() => {
 .nav-link:hover::after { width: 100%; }
 
 /* ICONS */
-.header-icons { display: flex; align-items: center; gap: 20px; }
+.header-icons { display: flex; align-items: center; gap: 20px; margin-left: auto; }
 .search-wrap { position: relative; }
+.mobile-search-wrap { position: relative; }
 .search-input { 
   border: none; border-bottom: 1px solid #e5e5e5; padding: 5px 25px 5px 0; outline: none; font-family: inherit; width: 150px; transition: 0.3s; 
 }
@@ -348,8 +401,91 @@ onUnmounted(() => {
 .footer-bottom { text-align: center; border-top: 1px solid #1e293b; padding-top: 20px; color: #64748b; font-size: 13px; }
 
 /* RESPONSIVE */
+@media (max-width: 992px) {
+  .container { padding: 0 16px; }
+  .search-wrap { display: none; }
+  .mobile-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #dbe4f0;
+    border-radius: 12px;
+    background: #fff;
+    color: #1e3a8a;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .main-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(82vw, 320px);
+    padding: 24px 20px;
+    background: #fff;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 1101;
+  }
+  .main-nav.mobile-open { transform: translateX(0); }
+  .main-nav-mobile-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .main-nav-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .nav-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    cursor: pointer;
+  }
+  .mobile-search-wrap {
+    display: block;
+    margin-bottom: 6px;
+  }
+  .mobile-search-input {
+    width: 100%;
+    padding-right: 30px;
+  }
+  .nav-link {
+    padding: 12px 0;
+    font-size: 14px;
+  }
+  .nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1100;
+  }
+}
+
 @media (max-width: 768px) {
-  .main-nav { display: none; /* Cần thêm Mobile Menu sau */ }
+  .header-inner { gap: 12px; }
+  .brand-name { display: none; }
+  .header-icons { gap: 14px; }
+  .icon-item { font-size: 18px; }
+  .site-main { padding-top: 76px; }
   .footer-grid { grid-template-columns: 1fr; gap: 30px; text-align: center; }
   .footer-col p { margin: 0 auto; }
   .socials { justify-content: center; }

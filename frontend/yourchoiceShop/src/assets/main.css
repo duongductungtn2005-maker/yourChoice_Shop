@@ -60,6 +60,18 @@ body {
     font-weight: var(--body-weight);
     background-color: var(--bg-light);
     margin: 0;
+    overflow-x: hidden;
+}
+
+html, body, #app {
+    width: 100%;
+    min-height: 100%;
+}
+
+img, svg, video, canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
 }
 
 /* Typography - consistent heading scale (bolder & larger) */
@@ -152,10 +164,11 @@ input:focus, select:focus, textarea:focus {
     background: white;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     border: 1px solid rgba(30, 58, 138, 0.08);
 }
-.custom-table { width: 100%; border-collapse: collapse; }
+.custom-table { width: 100%; min-width: 720px; border-collapse: collapse; }
 .custom-table thead th,
 .custom-table th {
     background: var(--accent-light);
@@ -346,9 +359,11 @@ input:focus, select:focus, textarea:focus {
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-sm);
     border: 1px solid rgba(30, 58, 138, 0.08);
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
 }
 /* Bảng trong .table-responsive (màn attribute, v.v.) – header nền + border, hover */
-.table-responsive table { width: 100%; border-collapse: collapse; }
+.table-responsive table { width: 100%; min-width: 720px; border-collapse: collapse; }
 .table-responsive table th {
     background: var(--accent-light);
     color: var(--accent-color);
@@ -388,4 +403,28 @@ input:focus, select:focus, textarea:focus {
 }
 ::-webkit-scrollbar-track {
     background: #f1f5f9;
+}
+
+@media (max-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+
+    body {
+        font-size: var(--size-md);
+    }
+
+    .card {
+        padding: var(--space-md);
+    }
+
+    .action-group,
+    .pagination-footer {
+        flex-wrap: wrap;
+    }
+
+    .custom-table,
+    .table-responsive table {
+        min-width: 640px;
+    }
 }

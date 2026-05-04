@@ -332,7 +332,7 @@ onMounted(() => {
     background: white; border-radius: 16px; border: 1px solid #bfdbfe !important; 
     box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; padding: 24px; 
 }
-.table-container { padding: 0; overflow: hidden; }
+.table-container { padding: 0; overflow-x: auto; overflow-y: hidden; }
 
 /* === GRID LAYOUT FOR FILTERS === */
 .filter-row { 
@@ -408,7 +408,7 @@ onMounted(() => {
 .btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(255, 252, 252, 0.3); }
 
 /* === TABLE STYLES === */
-.custom-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.custom-table { width: 100%; min-width: 860px; border-collapse: separate; border-spacing: 0; }
 .custom-table th {
   background: #f5f5f5; 
   color: #333;
@@ -479,10 +479,62 @@ input:disabled + .slider { background-color: #e2e8f0; cursor: not-allowed; }
 .page-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* MODAL */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-content { background: white; width: 800px; max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 20px; }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 16px; }
+.modal-content { background: white; width: min(100%, 800px); max-height: 85vh; overflow-y: auto; border-radius: 12px; padding: 20px; }
 .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
 .close-btn { border: none; background: none; font-size: 20px; cursor: pointer; color: #64748b; }
 .img-placeholder { width: 40px; height: 40px; background: #f1f5f9; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #cbd5e1; }
 .variant-badge { background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: #64748b; font-weight: 500; }
+
+@media (max-width: 992px) {
+    .filter-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: 12px;
+    }
+
+    .header-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .control-panel {
+        padding: 16px;
+    }
+
+    .filter-row {
+        grid-template-columns: 1fr;
+    }
+
+    .action-row {
+        justify-content: stretch;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .custom-table {
+        min-width: 760px;
+    }
+
+    .modal-overlay {
+        align-items: flex-end;
+        padding: 12px;
+    }
+
+    .modal-content {
+        width: 100%;
+        max-height: 88vh;
+        padding: 16px;
+        border-radius: 16px 16px 0 0;
+    }
+}
 </style>

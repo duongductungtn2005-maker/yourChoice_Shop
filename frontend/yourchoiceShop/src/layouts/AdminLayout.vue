@@ -1,14 +1,17 @@
 <template>
-  <div class="admin-layout">
-    <aside class="sidebar">
+  <div class="admin-layout" :class="{ 'sidebar-open': isSidebarOpen }">
+    <aside class="sidebar" :class="{ 'sidebar-open': isSidebarOpen }">
       <div class="brand">
         <div class="logo-circle">
           <img src="@/img/logo1.png" alt="Logo" @error="handleImageError" />
         </div>
         <span class="brand-name">YourChoice</span>
+        <button class="sidebar-close" type="button" @click="closeSidebar" aria-label="Đóng thanh điều hướng">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
 
-      <nav class="menu">
+      <nav class="menu" @click="handleMenuClick">
         <!-- Trang chủ -->
         <router-link
           v-if="isAdmin || (isStaff && hasActiveShift)"
@@ -196,64 +199,75 @@
       </nav>
     </aside>
 
+    <div v-if="isSidebarOpen" class="sidebar-backdrop" @click="closeSidebar"></div>
+
     <main class="main-content">
       <header class="top-header">
-        <div class="header-actions">
-          <button class="icon-btn" title="Lịch">
-            <i class="fa-regular fa-calendar"></i>
+        <div class="top-header-left">
+          <button class="menu-toggle" type="button" @click="toggleSidebar" :aria-expanded="isSidebarOpen" aria-label="Mở thanh điều hướng">
+            <i class="fa-solid fa-bars"></i>
           </button>
-          <div class="notification-wrapper" ref="notifWrapperRef">
-            <button class="icon-btn" :class="{ 'bell-ring': bellRinging }" title="Thông báo" @click="toggleNotifDropdown">
-              <i class="fa-regular fa-bell"></i>
-              <span class="badge-count" v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
-            </button>
-            <div v-if="isNotifOpen" class="notif-dropdown">
-              <div class="notif-header">
-                <span class="notif-title">Thông báo</span>
-                <button v-if="unreadCount > 0" class="mark-all-btn" @click.stop="markAllAsRead">Đánh dấu đã đọc tất cả</button>
-              </div>
-              <div class="notif-body" v-if="notifications.length > 0">
-                <div
-                  v-for="item in notifications"
-                  :key="item.id"
-                  class="notif-item"
-                  :class="{ unread: !item.daDoc }"
-                  @click="handleNotifClick(item)"
-                >
-                  <div class="notif-icon-box">
-                    <i class="fa-solid fa-cart-shopping"></i>
-                  </div>
-                  <div class="notif-content">
-                    <div class="notif-item-title">{{ item.tieuDe }}</div>
-                    <div class="notif-item-desc">{{ item.noiDung }}</div>
-                    <div class="notif-item-time">{{ timeAgo(item.ngayTao) }}</div>
-                  </div>
-                  <div v-if="!item.daDoc" class="notif-dot"></div>
-                </div>
-              </div>
-              <div v-else class="notif-empty">Không có thông báo</div>
-            </div>
-          </div>
+          <span class="mobile-header-title">YourChoice</span>
         </div>
 
-        <div
-          class="user-info"
-          @click="toggleUserDropdown"
-          :class="{ 'dropdown-open': isUserDropdownOpen }"
-        >
-          <div class="avatar">
-            <i class="fa-solid fa-user"></i>
+        <div class="top-header-right">
+          <div class="header-actions">
+            <button class="icon-btn" title="Lịch">
+              <i class="fa-regular fa-calendar"></i>
+            </button>
+            <div class="notification-wrapper" ref="notifWrapperRef">
+              <button class="icon-btn" :class="{ 'bell-ring': bellRinging }" title="Thông báo" @click="toggleNotifDropdown">
+                <i class="fa-regular fa-bell"></i>
+                <span class="badge-count" v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+              </button>
+              <div v-if="isNotifOpen" class="notif-dropdown">
+                <div class="notif-header">
+                  <span class="notif-title">Thông báo</span>
+                  <button v-if="unreadCount > 0" class="mark-all-btn" @click.stop="markAllAsRead">Đánh dấu đã đọc tất cả</button>
+                </div>
+                <div class="notif-body" v-if="notifications.length > 0">
+                  <div
+                    v-for="item in notifications"
+                    :key="item.id"
+                    class="notif-item"
+                    :class="{ unread: !item.daDoc }"
+                    @click="handleNotifClick(item)"
+                  >
+                    <div class="notif-icon-box">
+                      <i class="fa-solid fa-cart-shopping"></i>
+                    </div>
+                    <div class="notif-content">
+                      <div class="notif-item-title">{{ item.tieuDe }}</div>
+                      <div class="notif-item-desc">{{ item.noiDung }}</div>
+                      <div class="notif-item-time">{{ timeAgo(item.ngayTao) }}</div>
+                    </div>
+                    <div v-if="!item.daDoc" class="notif-dot"></div>
+                  </div>
+                </div>
+                <div v-else class="notif-empty">Không có thông báo</div>
+              </div>
+            </div>
           </div>
-          <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
 
-          <div v-if="isUserDropdownOpen" class="user-dropdown">
-            <div class="dropdown-item admin-label">{{ userRoleLabel }}</div>
-            <button class="dropdown-item profile-btn" @click.stop="goToProfile">
-              <i class="fa-solid fa-user-pen"></i> Thông tin cá nhân
-            </button>
-            <button class="dropdown-item logout-btn" @click.stop="handleLogout">
-              <i class="fa-solid fa-sign-out-alt"></i> Đăng xuất
-            </button>
+          <div
+            class="user-info"
+            @click="toggleUserDropdown"
+            :class="{ 'dropdown-open': isUserDropdownOpen }"
+          >
+            <div class="avatar">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+
+            <div v-if="isUserDropdownOpen" class="user-dropdown">
+              <div class="dropdown-item admin-label">{{ userRoleLabel }}</div>
+              <button class="dropdown-item profile-btn" @click.stop="goToProfile">
+                <i class="fa-solid fa-user-pen"></i> Thông tin cá nhân
+              </button>
+              <button class="dropdown-item logout-btn" @click.stop="handleLogout">
+                <i class="fa-solid fa-sign-out-alt"></i> Đăng xuất
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -314,6 +328,7 @@ const userRoleLabel = computed(() => {
 });
 
 const hasActiveShift = computed(() => shiftStore.hasActiveShift);
+const isSidebarOpen = ref(false);
 
 onMounted(() => {
   shiftStore.fetchShift();
@@ -325,6 +340,20 @@ const isUserDropdownOpen = ref(false);
 
 const toggleUserDropdown = () => {
   isUserDropdownOpen.value = !isUserDropdownOpen.value;
+};
+
+const toggleSidebar = () => {
+  isSidebarOpen.value = !isSidebarOpen.value;
+};
+
+const closeSidebar = () => {
+  isSidebarOpen.value = false;
+};
+
+const handleMenuClick = (event) => {
+  if (window.innerWidth <= 1024 && event.target.closest('a')) {
+    closeSidebar();
+  }
 };
 
 const handleClickOutside = (e) => {
@@ -339,6 +368,12 @@ const handleClickOutside = (e) => {
 
 watch(() => route.path, () => {
   isUserDropdownOpen.value = false;
+  isNotifOpen.value = false;
+  closeSidebar();
+});
+
+watch(isSidebarOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : '';
 });
 
 onMounted(() => {
@@ -349,6 +384,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
   disconnectWebSocket();
+  document.body.style.overflow = '';
 });
 
 const goToProfile = () => {
@@ -526,6 +562,7 @@ const handleImageError = (e) => {
   display: flex;
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
 }
 .sidebar {
   width: 260px;
@@ -537,6 +574,7 @@ const handleImageError = (e) => {
   z-index: 10;
   display: flex;
   flex-direction: column;
+  transition: transform 0.3s ease;
 }
 .main-content {
   flex: 1;
@@ -575,6 +613,12 @@ const handleImageError = (e) => {
   font-weight: 700;
   font-size: 20px;
   color: #2b4360;
+}
+.sidebar-close,
+.menu-toggle,
+.sidebar-backdrop,
+.mobile-header-title {
+  display: none;
 }
 
 /* --- 4. MENU STYLES --- */
@@ -683,12 +727,23 @@ const handleImageError = (e) => {
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   padding: 0 24px;
   gap: 20px;
   position: sticky;
   top: 0;
   z-index: 5;
+}
+.top-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.top-header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
 }
 .header-actions {
   display: flex;
@@ -937,6 +992,8 @@ const handleImageError = (e) => {
   padding: 24px;
   flex: 1;
   background-color: #ebecee;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 /* --- 9. SHIFT NOTICE STYLES --- */
@@ -944,6 +1001,8 @@ const handleImageError = (e) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
   padding: 12px 16px;
   background-color: #fff3cd;
   border: 1px solid #ffeaa7;
@@ -971,5 +1030,86 @@ const handleImageError = (e) => {
 .shift-link:hover {
   background-color: #e0f2fe;
   color: #0284c7;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 1200;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.2);
+  }
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1100;
+  }
+  .sidebar-close,
+  .menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #dbe4f0;
+    border-radius: 12px;
+    background: #fff;
+    color: #2b4360;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .sidebar-close {
+    margin-left: auto;
+  }
+  .mobile-header-title {
+    display: inline-block;
+    font-size: 16px;
+    font-weight: 700;
+    color: #2b4360;
+  }
+  .main-content {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-header {
+    padding: 0 16px;
+  }
+  .top-header-right {
+    gap: 12px;
+  }
+  .header-actions {
+    gap: 10px;
+  }
+  .content-body {
+    padding: 16px;
+  }
+  .notif-dropdown {
+    width: min(380px, calc(100vw - 24px));
+    right: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .top-header {
+    gap: 12px;
+  }
+  .notif-dropdown {
+    position: fixed;
+    top: 76px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: min(70vh, 480px);
+  }
+  .shift-notice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 </style>
